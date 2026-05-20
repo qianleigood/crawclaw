@@ -1,10 +1,4 @@
 # Agent Runtime
 
-`runtime/**` contains shared execution-state glue for active runs, progress, lifecycle, and
-cross-cutting runtime context.
-
-Start here:
-
-- `agent-progress.ts`
-- `subagent-context.ts`
-- `lifecycle/*`
+The old TypeScript runtime glue has been removed. Active run state, progress,
+lifecycle, and runtime context are Rust-owned in `crates/crawclaw-runtime`.

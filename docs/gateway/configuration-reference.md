@@ -2051,7 +2051,7 @@ See [Local Models](/gateway/local-models). TL;DR: run a large local model via LM
 ```
 
 - Loaded from `~/.crawclaw/extensions`, `<workspace>/.crawclaw/extensions`, plus `plugins.load.paths`.
-- Discovery accepts native CrawClaw plugins plus compatible Codex bundles and Claude bundles, including manifestless Claude default-layout bundles.
+- Discovery accepts native CrawClaw plugins through the Rust runtime registry.
 - Config changes are applied through Gateway live reconfigure.
 - `allow`: optional allowlist (only listed plugins load). `deny` wins.
 - `plugins.entries.<id>.apiKey`: plugin-level API key convenience field (when supported by the plugin).
@@ -2059,7 +2059,6 @@ See [Local Models](/gateway/local-models). TL;DR: run a large local model via LM
 - `plugins.entries.<id>.subagent.allowModelOverride`: explicitly trust this plugin to request per-run `provider` and `model` overrides for background subagent runs.
 - `plugins.entries.<id>.subagent.allowedModels`: optional allowlist of canonical `provider/model` targets for trusted subagent overrides. Use `"*"` only when you intentionally want to allow any model.
 - `plugins.entries.<id>.config`: plugin-defined config object (validated by native CrawClaw plugin schema when available).
-- Enabled Claude bundle plugins can also contribute sanitized runtime defaults from `settings.json`; CrawClaw applies those as agent runtime settings, not as raw CrawClaw config patches.
 - `plugins.installs`: CLI-managed install metadata used by CrawClaw Desktop or the local Gateway API.
   - Includes `source`, `spec`, `sourcePath`, `installPath`, `version`, `resolvedName`, `resolvedVersion`, `resolvedSpec`, `integrity`, `shasum`, `resolvedAt`, `installedAt`.
   - Treat `plugins.installs.*` as managed state; prefer Desktop and Gateway API actions over manual edits.
@@ -2320,8 +2319,9 @@ Auth: `Authorization: Bearer <token>` or `x-crawclaw-token: <token>`.
 }
 ```
 
-- Gateway auto-starts `gog gmail watch serve` on boot when configured. Set `CRAWCLAW_SKIP_GMAIL_WATCHER=1` to disable.
-- Don't run a separate `gog gmail watch serve` alongside the Gateway.
+- CrawClaw receives Gmail PubSub callbacks through the normal `/hooks/gmail`
+  mapping path. Run and renew `gog gmail watch serve` from your own service
+  manager, then point its push URL at the configured CrawClaw hook URL.
 
 ---
 

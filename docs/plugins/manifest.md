@@ -10,22 +10,6 @@ title: "Plugin Manifest"
 
 This page is for the **native CrawClaw plugin manifest** only.
 
-For compatible bundle layouts, see [Plugin bundles](/plugins/bundles).
-
-Compatible bundle formats use different manifest files:
-
-- Codex bundle: `.codex-plugin/plugin.json`
-- Claude bundle: `.claude-plugin/plugin.json` or the default Claude component
-  layout without a manifest
-- Cursor bundle: `.cursor-plugin/plugin.json`
-
-CrawClaw auto-detects those bundle layouts too, but they are not validated
-against the `crawclaw.plugin.json` schema described here.
-
-For compatible bundles, CrawClaw currently reads bundle metadata plus declared
-skill roots, Claude command roots, Claude bundle `settings.json` defaults, and
-supported hook modules when the layout matches CrawClaw runtime expectations.
-
 Every native CrawClaw plugin **must** ship a `crawclaw.plugin.json` file in the
 **plugin root**. CrawClaw uses this manifest to validate configuration
 **without executing plugin code**. Missing or invalid manifests are treated as

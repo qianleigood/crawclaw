@@ -15,36 +15,19 @@ if [[ -z "${package_dir}" ]]; then
   exit 2
 fi
 
-package_name="$(node -e 'const pkg = require(require("node:path").resolve(process.argv[1], "package.json")); console.log(pkg.name)' "${package_dir}")"
-package_version="$(node -e 'const pkg = require(require("node:path").resolve(process.argv[1], "package.json")); console.log(pkg.version)' "${package_dir}")"
+package_metadata="$(
+  cargo run --quiet -p crawclaw-runtime -- npm-package-metadata --package-dir "${package_dir}" |
+    sed '/^\[bubbletea-macros\]/d'
+)"
+package_name="$(printf '%s\n' "${package_metadata}" | sed -n '1p')"
+package_version="$(printf '%s\n' "${package_metadata}" | sed -n '2p')"
 current_beta_version="$(npm view "${package_name}" dist-tags.beta 2>/dev/null || true)"
 publish_plan_output="$(
-  PACKAGE_VERSION="${package_version}" CURRENT_BETA_VERSION="${current_beta_version}" PUBLISH_MODE="${mode}" node --input-type=module <<'EOF'
-import {
-  resolveNpmDistTagMirrorAuth,
-  resolveNpmPublishPlan,
-  shouldRequireNpmDistTagMirrorAuth,
-} from "./scripts/lib/npm-publish-plan.mjs";
-
-const plan = resolveNpmPublishPlan(
-  process.env.PACKAGE_VERSION ?? "",
-  process.env.CURRENT_BETA_VERSION,
-);
-const auth = resolveNpmDistTagMirrorAuth({
-  nodeAuthToken: process.env.NODE_AUTH_TOKEN,
-  npmToken: process.env.NPM_TOKEN,
-});
-const shouldRequireMirrorAuth = shouldRequireNpmDistTagMirrorAuth({
-  mode: process.env.PUBLISH_MODE === "--publish" ? "--publish" : "--dry-run",
-  mirrorDistTags: plan.mirrorDistTags,
-  hasAuth: auth.hasAuth,
-});
-console.log(plan.channel);
-console.log(plan.publishTag);
-console.log(plan.mirrorDistTags.join(","));
-console.log(auth.source);
-console.log(shouldRequireMirrorAuth ? "required" : "optional");
-EOF
+  cargo run --quiet -p crawclaw-runtime -- npm-publish-plan \
+    --version "${package_version}" \
+    --current-beta-version "${current_beta_version}" \
+    --publish-mode "${mode}" |
+    sed '/^\[bubbletea-macros\]/d'
 )"
 release_channel="$(printf '%s\n' "${publish_plan_output}" | sed -n '1p')"
 publish_tag="$(printf '%s\n' "${publish_plan_output}" | sed -n '2p')"

@@ -58,8 +58,8 @@ channels, speech providers, media-understanding providers, web fetch providers,
 web search providers, LLM providers, or typed lifecycle hooks.
 
 If a provider needs to become built-in, add it to the Rust provider registry or
-the appropriate Rust native plugin registry. Keep any TypeScript package limited
-to metadata/config helpers.
+the appropriate Rust native plugin registry. Keep package metadata declarative
+and non-executing.
 
 ## Related
 

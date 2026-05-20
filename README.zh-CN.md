@@ -162,20 +162,17 @@ Gateway 是核心边界。客户端和渠道连接 Gateway；agent runtime 位�
 
 ## 仓库地图
 
-| 路径                                                       | 作用                                                                    |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------- |
-| [src/gateway](src/gateway)                                 | Gateway 控制面、protocol、auth、health、pairing 和 runtime services     |
-| [src/memory](src/memory)                                   | Durable memory、recall、summaries、compaction 和 context assembly       |
-| [src/workflows](src/workflows)                             | Workflow registry、n8n bridge、execution records 和 workflow operations |
-| [src/channels](src/channels)                               | channel/plugin 边界后的核心渠道实现                                     |
-| [src/plugins](src/plugins)                                 | plugin discovery、manifests、loading、registry 和 contract enforcement  |
-| [src/internal-plugin-helpers](src/internal-plugin-helpers) | bundled plugin packaging 路径使用的 repo-private helpers                |
-| [extensions](extensions)                                   | 渠道、providers、浏览器后端、speech、media 和 tools 的 bundled plugins  |
-| [packages](packages)                                       | workspace 支持包                                                        |
-| [skills](skills)                                           | 随包发布的 runtime skills                                               |
-| [docs](docs)                                               | Mintlify 文档源文件                                                     |
-| [test](test)                                               | 共享测试基础设施和 fixtures                                             |
-| [scripts](scripts)                                         | install、build、release、generated baseline 和维护脚本                  |
+| 路径                                           | 作用                                                                   |
+| ---------------------------------------------- | ---------------------------------------------------------------------- |
+| [apps/crawclaw-desktop](apps/crawclaw-desktop) | Tauri 桌面应用、desktop BFF 和 UI workbench                            |
+| [crates](crates)                               | Rust Gateway、runtime、native-plugin、provider 和 SDK crates           |
+| [src](src)                                     | 保留的非 runtime metadata、generated JSON 和本地边界说明               |
+| [extensions](extensions)                       | 渠道、providers、浏览器后端、speech、media 和 tools 的 bundled plugins |
+| [packages](packages)                           | workspace 支持包                                                       |
+| [skills](skills)                               | 随包发布的 runtime skills                                              |
+| [docs](docs)                                   | Mintlify 文档源文件                                                    |
+| [test](test)                                   | 共享测试基础设施和 fixtures                                            |
+| [scripts](scripts)                             | Shell、Go 和 Python build/release/docs helpers                         |
 
 维护者文档：
 

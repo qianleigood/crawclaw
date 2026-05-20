@@ -201,7 +201,7 @@ Extra hook directories:
 ```
 
 <Note>
-The legacy `hooks.internal.handlers` array config format is still supported for backwards compatibility, but new hooks should use the discovery-based system.
+The legacy `hooks.internal.handlers` array config format has been removed. Use managed or workspace hook directories for trusted local automation.
 </Note>
 
 ## Gateway API reference

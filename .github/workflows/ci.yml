@@ -71,7 +71,69 @@ jobs:
             BASE="${{ github.event.pull_request.base.sha }}"
           fi
 
-          node scripts/ci-changed-scope.mjs --base "$BASE" --head HEAD
+          write_scope() {
+            {
+              echo "run_node=$run_node"
+              echo "run_windows=$run_windows"
+              echo "run_skills_python=$run_skills_python"
+            } >>"$GITHUB_OUTPUT"
+          }
+
+          run_node=false
+          run_windows=false
+          run_skills_python=false
+          has_non_docs=false
+
+          if ! changed_paths="$(git diff --name-only "$BASE" HEAD)"; then
+            run_node=true
+            run_windows=true
+            run_skills_python=true
+            write_scope
+            exit 0
+          fi
+
+          if [[ -z "$changed_paths" ]]; then
+            run_node=true
+            run_windows=true
+            run_skills_python=true
+            write_scope
+            exit 0
+          fi
+
+          while IFS= read -r changed_path; do
+            [[ -z "$changed_path" ]] && continue
+            case "$changed_path" in
+              docs/*|*.md|*.mdx)
+                continue
+                ;;
+            esac
+
+            has_non_docs=true
+
+            case "$changed_path" in
+              skills/*|pyproject.toml|.github/workflows/ci.yml)
+                run_skills_python=true
+                ;;
+            esac
+
+            case "$changed_path" in
+              apps/*|crates/*|src/*|extensions/*|packages/*|scripts/*|.github/*|crawclaw.mjs|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|tsconfig*.json|.oxlintrc.json|.oxfmtrc.jsonc)
+                run_node=true
+                ;;
+            esac
+
+            case "$changed_path" in
+              apps/*|crates/*|src/*|extensions/*|packages/*|scripts/*|crawclaw.mjs|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|tsconfig*.json|.github/workflows/ci.yml|.github/actions/setup-node-env/action.yml|.github/actions/setup-pnpm-store-cache/action.yml)
+                run_windows=true
+                ;;
+            esac
+          done <<<"$changed_paths"
+
+          if [[ "$run_node" != "true" && "$has_non_docs" == "true" ]]; then
+            run_node=true
+          fi
+
+          write_scope
 
       - name: Setup Node environment
         if: steps.docs_scope.outputs.docs_only != 'true'
@@ -89,7 +151,106 @@ jobs:
           CRAWCLAW_CI_RUN_NODE: ${{ steps.changed_scope.outputs.run_node || 'false' }}
           CRAWCLAW_CI_RUN_WINDOWS: ${{ steps.changed_scope.outputs.run_windows || 'false' }}
           CRAWCLAW_CI_RUN_SKILLS_PYTHON: ${{ steps.changed_scope.outputs.run_skills_python || 'false' }}
-        run: node scripts/ci-write-manifest-outputs.mjs --workflow ci
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          bool() {
+            local raw="${1:-}"
+            local fallback="${2:-false}"
+            case "${raw,,}" in
+              true|1) echo true ;;
+              false|0|"") echo false ;;
+              *) echo "$fallback" ;;
+            esac
+          }
+
+          json_array() {
+            local first=true
+            printf '['
+            for item in "$@"; do
+              if [[ "$first" == true ]]; then
+                first=false
+              else
+                printf ','
+              fi
+              printf '"%s"' "$item"
+            done
+            printf ']'
+          }
+
+          write_output() {
+            echo "$1=$2" >>"$GITHUB_OUTPUT"
+          }
+
+          docs_only="$(bool "$CRAWCLAW_CI_DOCS_ONLY" false)"
+          docs_changed="$(bool "$CRAWCLAW_CI_DOCS_CHANGED" false)"
+          run_node=false
+          run_windows=false
+          run_skills_python=false
+          if [[ "$docs_only" != true ]]; then
+            run_node="$(bool "$CRAWCLAW_CI_RUN_NODE" true)"
+            run_windows="$(bool "$CRAWCLAW_CI_RUN_WINDOWS" true)"
+            run_skills_python="$(bool "$CRAWCLAW_CI_RUN_SKILLS_PYTHON" true)"
+          fi
+          is_push=false
+          if [[ "${GITHUB_EVENT_NAME:-}" == "push" ]]; then
+            is_push=true
+          fi
+
+          checks_matrix='{"include":[]}'
+          if [[ "$run_node" == true && "$is_push" == true ]]; then
+            checks_matrix='{"include":[{"check_name":"checks-rust-test","runtime":"rust","task":"test","command":"pnpm test"},{"check_name":"checks-node24-build","runtime":"node","task":"build","command":"pnpm build"}]}'
+          elif [[ "$run_node" == true ]]; then
+            checks_matrix='{"include":[{"check_name":"checks-rust-test","runtime":"rust","task":"test","command":"pnpm test"}]}'
+          fi
+
+          checks_windows_matrix='{"include":[]}'
+          if [[ "$run_windows" == true ]]; then
+            checks_windows_matrix='{"include":[{"check_name":"checks-windows-rust-test","runtime":"rust","task":"test","command":"pnpm test"},{"check_name":"checks-windows-node-build","runtime":"node","task":"build","command":"pnpm build"}]}'
+          fi
+
+          required_check_names=()
+          if [[ "$run_node" == true ]]; then
+            required_check_names=("checks-rust-test")
+            if [[ "$is_push" == true ]]; then
+              required_check_names=("${required_check_names[@]}" "checks-node24-build")
+            fi
+          fi
+          if [[ "$run_windows" == true ]]; then
+            required_check_names=(
+              "${required_check_names[@]}"
+              "checks-windows-rust-test"
+              "checks-windows-node-build"
+            )
+          fi
+          required_check_names=("${required_check_names[@]}" "check" "check-additional" "build-smoke")
+          if [[ "$docs_changed" == true ]]; then
+            required_check_names=("${required_check_names[@]}" "check-docs")
+          fi
+          if [[ "$run_skills_python" == true || "$is_push" == true ]]; then
+            required_check_names=("${required_check_names[@]}" "skills-python")
+          fi
+          if [[ "$run_node" == true ]]; then
+            required_check_names=("${required_check_names[@]}" "build-artifacts")
+          fi
+
+          write_output docs_only "$docs_only"
+          write_output docs_changed "$docs_changed"
+          write_output run_node "$run_node"
+          write_output run_skills_python "$run_skills_python"
+          write_output run_windows "$run_windows"
+          write_output run_build_artifacts "$run_node"
+          write_output run_checks "$run_node"
+          write_output checks_matrix "$checks_matrix"
+          write_output run_check "$([[ "$docs_only" != true ]] && echo true || echo false)"
+          write_output run_check_additional "$([[ "$docs_only" != true ]] && echo true || echo false)"
+          write_output run_build_smoke "$run_node"
+          write_output run_check_docs "$docs_changed"
+          write_output run_skills_python_job "$([[ "$run_skills_python" == true || "$is_push" == true ]] && echo true || echo false)"
+          write_output run_checks_windows "$run_windows"
+          write_output checks_windows_matrix "$checks_windows_matrix"
+          write_output required_check_names "$(json_array "${required_check_names[@]}")"
 
   # Run the fast security/SCM checks in parallel with scope detection so the
   # main Node jobs do not have to wait for Python/pre-commit setup.

@@ -2,8 +2,8 @@
 
 mod protocol_contract;
 pub use protocol_contract::{
-    gateway_protocol_schema_json, gateway_protocol_schema_ts, gateway_protocol_schema_value,
-    GATEWAY_PROTOCOL_EVENTS, GATEWAY_PROTOCOL_METHODS, GATEWAY_PROTOCOL_VERSION,
+    gateway_protocol_schema_json, gateway_protocol_schema_value, GATEWAY_PROTOCOL_EVENTS,
+    GATEWAY_PROTOCOL_METHODS, GATEWAY_PROTOCOL_VERSION,
 };
 
 pub mod desktop {
@@ -11011,6 +11011,7 @@ mod tests {
         "src/gateway/chat-abort.ts",
         "src/gateway/events.ts",
         "src/gateway/protocol/connect-error-details.ts",
+        "src/gateway/protocol/schema.ts",
         "src/gateway/request-types.ts",
         "src/gateway/session-reset-entry.ts",
         "src/gateway/session-reset-service.ts",
@@ -11019,6 +11020,7 @@ mod tests {
         "src/gateway/sessions-patch.ts",
         "src/gateway/sessions-resolve.ts",
         "src/plugins/runtime/gateway-request-scope.ts",
+        "src/generated/gateway/protocol-schema.generated.ts",
     ];
 
     const REMOVED_PUBLIC_NODE_SURFACE_GUARD_FILES: &[&str] =

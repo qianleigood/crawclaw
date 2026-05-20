@@ -360,7 +360,11 @@ fn json_provider_auth_env_var_record(
         .map(|entry| {
             (
                 entry.provider.to_string(),
-                entry.env_vars.iter().map(|value| (*value).to_string()).collect(),
+                entry
+                    .env_vars
+                    .iter()
+                    .map(|value| (*value).to_string())
+                    .collect(),
             )
         })
         .collect()
@@ -693,7 +697,10 @@ mod tests {
                 "GITHUB_TOKEN".to_string()
             ]
         );
-        assert_eq!(payload.get("openai").unwrap(), &vec!["OPENAI_API_KEY".to_string()]);
+        assert_eq!(
+            payload.get("openai").unwrap(),
+            &vec!["OPENAI_API_KEY".to_string()]
+        );
         assert!(!payload.contains_key("openai-codex"));
     }
 
@@ -707,7 +714,7 @@ mod tests {
                 && entry["providerIds"].as_array().unwrap()
                     == &vec![
                         serde_json::Value::String("openai".to_string()),
-                        serde_json::Value::String("openai-codex".to_string())
+                        serde_json::Value::String("openai-codex".to_string()),
                     ]
         }));
         assert!(snapshots.iter().any(|entry| {
@@ -725,8 +732,14 @@ mod tests {
                 && entry["toolNames"].as_array().unwrap()
                     == &vec![serde_json::Value::String("comfyui_workflow".to_string())]
         }));
-        assert_eq!(payload["legacyPluginIdAliases"]["minimax-portal-auth"], "minimax");
-        assert_eq!(payload["autoEnableProviderPluginIds"]["google-gemini-cli"], "google");
+        assert_eq!(
+            payload["legacyPluginIdAliases"]["minimax-portal-auth"],
+            "minimax"
+        );
+        assert_eq!(
+            payload["autoEnableProviderPluginIds"]["google-gemini-cli"],
+            "google"
+        );
     }
 
     #[test]
@@ -774,7 +787,10 @@ mod tests {
         assert_eq!(searxng["invocation"]["operation"], "search");
 
         let web_fetch = payload["nativeWebFetchProviders"].as_array().unwrap();
-        let spider = web_fetch.iter().find(|entry| entry["id"] == "spider").unwrap();
+        let spider = web_fetch
+            .iter()
+            .find(|entry| entry["id"] == "spider")
+            .unwrap();
         assert_eq!(
             spider["hint"],
             "Use the bundled native static HTTP and browser-rendered fetch provider"
@@ -804,17 +820,32 @@ mod tests {
         assert_eq!(payload["AGENT_DEFAULT_PROVIDER"], "anthropic");
         assert_eq!(payload["AGENT_DEFAULT_MODEL"], "claude-opus-4-6");
         assert_eq!(payload["AGENT_DEFAULT_CONTEXT_TOKENS"], 200000);
-        assert_eq!(payload["AGENT_DEFAULT_MODEL_ALIASES"]["opus"], "anthropic/claude-opus-4-6");
-        assert_eq!(payload["AGENT_DEFAULT_MODEL_ALIASES"]["gpt-mini"], "openai/gpt-5-mini");
+        assert_eq!(
+            payload["AGENT_DEFAULT_MODEL_ALIASES"]["opus"],
+            "anthropic/claude-opus-4-6"
+        );
+        assert_eq!(
+            payload["AGENT_DEFAULT_MODEL_ALIASES"]["gpt-mini"],
+            "openai/gpt-5-mini"
+        );
         assert_eq!(
             payload["AGENT_DEFAULT_MODEL_ALIASES"]["gemini-flash-lite"],
             "google/gemini-3.1-flash-lite-preview"
         );
         assert_eq!(payload["PROVIDER_ID_ALIASES"]["z.ai"], "zai");
-        assert_eq!(payload["PROVIDER_ID_ALIASES"]["aws-bedrock"], "amazon-bedrock");
+        assert_eq!(
+            payload["PROVIDER_ID_ALIASES"]["aws-bedrock"],
+            "amazon-bedrock"
+        );
         assert_eq!(payload["PROVIDER_ID_ALIASES"]["doubao"], "volcengine");
-        assert_eq!(payload["PROVIDER_AUTH_ID_ALIASES"]["volcengine-plan"], "volcengine");
-        assert_eq!(payload["PROVIDER_AUTH_ID_ALIASES"]["byteplus-plan"], "byteplus");
+        assert_eq!(
+            payload["PROVIDER_AUTH_ID_ALIASES"]["volcengine-plan"],
+            "volcengine"
+        );
+        assert_eq!(
+            payload["PROVIDER_AUTH_ID_ALIASES"]["byteplus-plan"],
+            "byteplus"
+        );
         assert!(payload["ANTHROPIC_ADAPTIVE_THINKING_MODEL_PATTERN"]
             .as_str()
             .unwrap()
@@ -823,67 +854,116 @@ mod tests {
             .as_str()
             .unwrap()
             .starts_with("claude-(?:opus|sonnet)-4"));
-        assert!(payload["OPENAI_XHIGH_THINKING_MODEL_IDS"].as_array().unwrap().contains(
-            &serde_json::Value::String("gpt-5.4".to_string())
-        ));
-        assert!(payload["OPENAI_CODEX_XHIGH_THINKING_MODEL_IDS"].as_array().unwrap().contains(
-            &serde_json::Value::String("gpt-5.3-codex-spark".to_string())
-        ));
+        assert!(payload["OPENAI_XHIGH_THINKING_MODEL_IDS"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::Value::String("gpt-5.4".to_string())));
+        assert!(payload["OPENAI_CODEX_XHIGH_THINKING_MODEL_IDS"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::Value::String(
+                "gpt-5.3-codex-spark".to_string()
+            )));
         assert_eq!(payload["DEFAULT_MODEL_COST"]["cacheWrite"], 0);
         assert_eq!(
             payload["DEFAULT_MODEL_INPUT"].as_array().unwrap(),
             &vec![serde_json::Value::String("text".to_string())]
         );
         assert_eq!(payload["DEFAULT_MODEL_MAX_TOKENS"], 8192);
-        assert_eq!(payload["PROVIDER_DEFAULT_API_BY_PROVIDER"]["anthropic"], "anthropic-messages");
-        assert!(payload["MODEL_APIS"].as_array().unwrap().contains(
-            &serde_json::Value::String("openai-codex-responses".to_string())
-        ));
-        assert!(payload["MODEL_APIS"].as_array().unwrap().contains(
-            &serde_json::Value::String("azure-openai-responses".to_string())
-        ));
+        assert_eq!(
+            payload["PROVIDER_DEFAULT_API_BY_PROVIDER"]["anthropic"],
+            "anthropic-messages"
+        );
+        assert!(payload["MODEL_APIS"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::Value::String(
+                "openai-codex-responses".to_string()
+            )));
+        assert!(payload["MODEL_APIS"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::Value::String(
+                "azure-openai-responses".to_string()
+            )));
         assert_eq!(payload["ANTHROPIC_CONTEXT_1M_TOKENS"], 1048576);
-        assert_eq!(payload["DEFAULT_PROVIDER_CAPABILITIES"]["providerFamily"], "default");
+        assert_eq!(
+            payload["DEFAULT_PROVIDER_CAPABILITIES"]["providerFamily"],
+            "default"
+        );
         assert_eq!(
             payload["PROVIDER_CAPABILITY_FALLBACKS"]["anthropic"]["providerFamily"],
             "anthropic"
         );
-        assert_eq!(payload["CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES"]["voyage"][0], "VOYAGE_API_KEY");
         assert_eq!(
-            payload["CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES"]["anthropic"].as_array().unwrap(),
+            payload["CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES"]["voyage"][0],
+            "VOYAGE_API_KEY"
+        );
+        assert_eq!(
+            payload["CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES"]["anthropic"]
+                .as_array()
+                .unwrap(),
             &vec![
                 serde_json::Value::String("ANTHROPIC_API_KEY".to_string()),
                 serde_json::Value::String("ANTHROPIC_OAUTH_TOKEN".to_string())
             ]
         );
-        assert_eq!(payload["EXTRA_PROVIDER_AUTH_ENV_VARS"][0], "MINIMAX_CODE_PLAN_KEY");
+        assert_eq!(
+            payload["EXTRA_PROVIDER_AUTH_ENV_VARS"][0],
+            "MINIMAX_CODE_PLAN_KEY"
+        );
         assert_eq!(payload["MINIMAX_OAUTH_MARKER"], "minimax-oauth");
         assert_eq!(payload["OAUTH_API_KEY_MARKER_PREFIX"], "oauth:");
-        assert_eq!(payload["AWS_BEDROCK_BEARER_TOKEN_ENV"], "AWS_BEARER_TOKEN_BEDROCK");
-        assert!(payload["AWS_SDK_ENV_MARKERS"].as_array().unwrap().contains(
-            &serde_json::Value::String("AWS_PROFILE".to_string())
-        ));
-        assert!(payload["LEGACY_ENV_API_KEY_MARKERS"].as_array().unwrap().contains(
-            &serde_json::Value::String("AZURE_OPENAI_API_KEY".to_string())
-        ));
+        assert_eq!(
+            payload["AWS_BEDROCK_BEARER_TOKEN_ENV"],
+            "AWS_BEARER_TOKEN_BEDROCK"
+        );
+        assert!(payload["AWS_SDK_ENV_MARKERS"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::Value::String("AWS_PROFILE".to_string())));
+        assert!(payload["LEGACY_ENV_API_KEY_MARKERS"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::Value::String(
+                "AZURE_OPENAI_API_KEY".to_string()
+            )));
         assert_eq!(payload["ANTHROPIC_PROVIDER_ID"], "anthropic");
         assert_eq!(payload["ANTHROPIC_VERTEX_PROVIDER_ID"], "anthropic-vertex");
         assert_eq!(payload["OPENAI_CODEX_PROVIDER_ID"], "openai-codex");
-        assert_eq!(payload["VERCEL_AI_GATEWAY_PROVIDER_ID"], "vercel-ai-gateway");
+        assert_eq!(
+            payload["VERCEL_AI_GATEWAY_PROVIDER_ID"],
+            "vercel-ai-gateway"
+        );
         assert_eq!(payload["ANTHROPIC_API_KEY_ENV"], "ANTHROPIC_API_KEY");
-        assert_eq!(payload["ANTHROPIC_OAUTH_TOKEN_ENV"], "ANTHROPIC_OAUTH_TOKEN");
+        assert_eq!(
+            payload["ANTHROPIC_OAUTH_TOKEN_ENV"],
+            "ANTHROPIC_OAUTH_TOKEN"
+        );
         assert_eq!(
             payload["GOOGLE_APPLICATION_CREDENTIALS_ENV"],
             "GOOGLE_APPLICATION_CREDENTIALS"
         );
-        assert_eq!(payload["OAUTH_PROVIDER_AUTH_ENV_VARS"][0], "ANTHROPIC_OAUTH_TOKEN");
-        assert_eq!(payload["AUTH_COOLDOWN_BYPASS_PROVIDER_IDS"][0], "openrouter");
-        assert_eq!(payload["AUTH_WHAM_COOLDOWN_PROBE_PROVIDER_ID"], "openai-codex");
+        assert_eq!(
+            payload["OAUTH_PROVIDER_AUTH_ENV_VARS"][0],
+            "ANTHROPIC_OAUTH_TOKEN"
+        );
+        assert_eq!(
+            payload["AUTH_COOLDOWN_BYPASS_PROVIDER_IDS"][0],
+            "openrouter"
+        );
+        assert_eq!(
+            payload["AUTH_WHAM_COOLDOWN_PROBE_PROVIDER_ID"],
+            "openai-codex"
+        );
         assert_eq!(payload["PROVIDER_USAGE_LABELS"]["openai-codex"], "Codex");
         assert_eq!(payload["PROVIDER_USAGE_LABELS"]["zai"], "z.ai");
         assert_eq!(payload["PROVIDER_ATTRIBUTION_PRODUCT"], "CrawClaw");
         assert_eq!(payload["PROVIDER_ATTRIBUTION_ORIGINATOR"], "crawclaw");
-        assert_eq!(payload["PROVIDER_ATTRIBUTION_REFERER_URL"], "https://docs.crawclaw.ai");
+        assert_eq!(
+            payload["PROVIDER_ATTRIBUTION_REFERER_URL"],
+            "https://docs.crawclaw.ai"
+        );
         assert_eq!(
             payload["OPENROUTER_ATTRIBUTION_DOCS_URL"],
             "https://openrouter.ai/docs/app-attribution"
@@ -891,60 +971,122 @@ mod tests {
         assert_eq!(payload["OPENROUTER_ATTRIBUTION_CATEGORY"], "cli-agent");
         assert_eq!(payload["OPENAI_COMPLETIONS_API"], "openai-completions");
         assert_eq!(payload["OPENAI_RESPONSES_API"], "openai-responses");
-        assert_eq!(payload["OPENAI_CODEX_RESPONSES_API"], "openai-codex-responses");
-        assert_eq!(payload["OPENAI_AUDIO_TRANSCRIPTIONS_API"], "openai-audio-transcriptions");
+        assert_eq!(
+            payload["OPENAI_CODEX_RESPONSES_API"],
+            "openai-codex-responses"
+        );
+        assert_eq!(
+            payload["OPENAI_AUDIO_TRANSCRIPTIONS_API"],
+            "openai-audio-transcriptions"
+        );
         assert_eq!(payload["ANTHROPIC_MESSAGES_API"], "anthropic-messages");
-        assert!(payload["MODEL_COMPAT_THINKING_FORMATS"].as_array().unwrap().contains(
-            &serde_json::Value::String("qwen-chat-template".to_string())
-        ));
-        assert_eq!(payload["MODEL_COMPAT_MAX_TOKENS_FIELDS"][0], "max_completion_tokens");
+        assert!(payload["MODEL_COMPAT_THINKING_FORMATS"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::Value::String("qwen-chat-template".to_string())));
+        assert_eq!(
+            payload["MODEL_COMPAT_MAX_TOKENS_FIELDS"][0],
+            "max_completion_tokens"
+        );
         assert_eq!(payload["MINIMAX_VLM_MODEL_ID"], "MiniMax-VL-01");
         assert_eq!(payload["MINIMAX_API_HOST_ENV"], "MINIMAX_API_HOST");
-        assert_eq!(payload["MINIMAX_DEFAULT_API_HOST"], "https://api.minimax.io");
+        assert_eq!(
+            payload["MINIMAX_DEFAULT_API_HOST"],
+            "https://api.minimax.io"
+        );
         assert_eq!(payload["MINIMAX_VLM_API_PATH"], "/v1/coding_plan/vlm");
-        assert!(payload["LOCAL_ENDPOINT_HOSTS"].as_array().unwrap().contains(
-            &serde_json::Value::String("::1".to_string())
-        ));
-        assert!(payload["MOONSHOT_NATIVE_BASE_URLS"].as_array().unwrap().contains(
-            &serde_json::Value::String("https://api.moonshot.ai/v1".to_string())
-        ));
-        assert!(payload["MODELSTUDIO_NATIVE_BASE_URLS"].as_array().unwrap().contains(
-            &serde_json::Value::String("https://dashscope.aliyuncs.com/compatible-mode/v1".to_string())
-        ));
+        assert!(payload["LOCAL_ENDPOINT_HOSTS"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::Value::String("::1".to_string())));
+        assert!(payload["MOONSHOT_NATIVE_BASE_URLS"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::Value::String(
+                "https://api.moonshot.ai/v1".to_string()
+            )));
+        assert!(payload["MODELSTUDIO_NATIVE_BASE_URLS"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::Value::String(
+                "https://dashscope.aliyuncs.com/compatible-mode/v1".to_string()
+            )));
         assert_eq!(payload["OPENAI_RESPONSES_APIS"][0], "openai-responses");
-        assert!(payload["OPENAI_RESPONSES_PROVIDERS"].as_array().unwrap().contains(
-            &serde_json::Value::String("azure-openai-responses".to_string())
-        ));
+        assert!(payload["OPENAI_RESPONSES_PROVIDERS"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::Value::String(
+                "azure-openai-responses".to_string()
+            )));
         assert_eq!(payload["MOONSHOT_COMPAT_PROVIDERS"][0], "moonshot");
-        assert!(payload["TRANSCRIPT_OPENAI_MODEL_APIS"].as_array().unwrap().contains(
-            &serde_json::Value::String("openai-codex-responses".to_string())
-        ));
-        assert!(payload["TRANSCRIPT_ANTHROPIC_MODEL_APIS"].as_array().unwrap().contains(
-            &serde_json::Value::String("bedrock-converse-stream".to_string())
-        ));
+        assert!(payload["TRANSCRIPT_OPENAI_MODEL_APIS"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::Value::String(
+                "openai-codex-responses".to_string()
+            )));
+        assert!(payload["TRANSCRIPT_ANTHROPIC_MODEL_APIS"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::Value::String(
+                "bedrock-converse-stream".to_string()
+            )));
         assert_eq!(payload["GOOGLE_MODEL_APIS"][0], "google-gemini-cli");
-        assert_eq!(payload["OPENAI_COMPATIBLE_TURN_VALIDATION_API"], "openai-completions");
+        assert_eq!(
+            payload["OPENAI_COMPATIBLE_TURN_VALIDATION_API"],
+            "openai-completions"
+        );
         assert!(payload["OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS"]
             .as_array()
             .unwrap()
-            .contains(&serde_json::Value::String("azure-openai-responses".to_string())));
-        assert_eq!(payload["OPENROUTER_MODELS_API_URL"], "https://openrouter.ai/api/v1/models");
+            .contains(&serde_json::Value::String(
+                "azure-openai-responses".to_string()
+            )));
+        assert_eq!(
+            payload["OPENROUTER_MODELS_API_URL"],
+            "https://openrouter.ai/api/v1/models"
+        );
         assert_eq!(payload["OPENROUTER_DEFAULT_MODEL_REF"], "openrouter/auto");
-        assert_eq!(payload["MODEL_CATALOG_CONFIGURED_PROVIDER_IDS"][0], "deepseek");
-        assert_eq!(payload["OPENROUTER_PRICING_PROVIDER_ALIASES"]["openai-codex"], "openai");
-        assert_eq!(payload["OPENROUTER_PRICING_PROVIDER_ALIASES"]["zai"], "z-ai");
-        assert!(payload["OPENROUTER_WRAPPER_PROVIDERS"].as_array().unwrap().contains(
-            &serde_json::Value::String("vercel-ai-gateway".to_string())
-        ));
-        assert_eq!(payload["KNOWN_PROVIDER_FAMILIES"]["openai-codex"], "openai-family");
+        assert_eq!(
+            payload["MODEL_CATALOG_CONFIGURED_PROVIDER_IDS"][0],
+            "deepseek"
+        );
+        assert_eq!(
+            payload["OPENROUTER_PRICING_PROVIDER_ALIASES"]["openai-codex"],
+            "openai"
+        );
+        assert_eq!(
+            payload["OPENROUTER_PRICING_PROVIDER_ALIASES"]["zai"],
+            "z-ai"
+        );
+        assert!(payload["OPENROUTER_WRAPPER_PROVIDERS"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::Value::String("vercel-ai-gateway".to_string())));
+        assert_eq!(
+            payload["KNOWN_PROVIDER_FAMILIES"]["openai-codex"],
+            "openai-family"
+        );
         assert_eq!(payload["KNOWN_PROVIDER_FAMILIES"]["kimi"], "moonshot");
-        assert_eq!(payload["MISTRAL_SAFE_MAX_TOKENS_BY_MODEL"]["magistral-small"], 40000);
+        assert_eq!(
+            payload["MISTRAL_SAFE_MAX_TOKENS_BY_MODEL"]["magistral-small"],
+            40000
+        );
         assert_eq!(payload["ANTHROPIC_VERTEX_DEFAULT_REGION"], "global");
         assert_eq!(payload["OLLAMA_DEFAULT_BASE_URL"], "http://127.0.0.1:11434");
         assert_eq!(payload["OLLAMA_DEFAULT_CONTEXT_WINDOW"], 128000);
         assert_eq!(payload["OPENAI_DEFAULT_MODEL"], "openai/gpt-5.4");
-        assert_eq!(payload["GOOGLE_GEMINI_DEFAULT_MODEL"], "google/gemini-3.1-pro-preview");
-        assert_eq!(payload["OPENCODE_ZEN_DEFAULT_MODEL"], "opencode/claude-opus-4-6");
-        assert_eq!(payload["LEGACY_OPENCODE_ZEN_DEFAULT_MODELS"][0], "opencode/claude-opus-4-5");
+        assert_eq!(
+            payload["GOOGLE_GEMINI_DEFAULT_MODEL"],
+            "google/gemini-3.1-pro-preview"
+        );
+        assert_eq!(
+            payload["OPENCODE_ZEN_DEFAULT_MODEL"],
+            "opencode/claude-opus-4-6"
+        );
+        assert_eq!(
+            payload["LEGACY_OPENCODE_ZEN_DEFAULT_MODELS"][0],
+            "opencode/claude-opus-4-5"
+        );
     }
 }

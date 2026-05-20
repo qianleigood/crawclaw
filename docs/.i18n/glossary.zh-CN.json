@@ -284,6 +284,14 @@
     "target": "插件 SDK"
   },
   {
+    "source": "Plugin manifest",
+    "target": "插件清单"
+  },
+  {
+    "source": "Plugin architecture",
+    "target": "插件架构"
+  },
+  {
     "source": "Plugin Dependency Maintenance",
     "target": "插件依赖维护"
   },
@@ -298,6 +306,14 @@
   {
     "source": "SDK Overview",
     "target": "SDK 概览"
+  },
+  {
+    "source": "SDK overview",
+    "target": "SDK 概览"
+  },
+  {
+    "source": "SDK entry points",
+    "target": "SDK 入口点"
   },
   {
     "source": "Plugin Entry Points",

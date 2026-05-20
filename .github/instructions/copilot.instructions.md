@@ -4,8 +4,8 @@
 
 ## Tech Stack
 
-- **Runtime**: Node 22+ (Bun also supported for dev/scripts)
-- **Language**: TypeScript (ESM, strict mode)
+- **Runtime**: Rust Gateway/runtime with Node available for desktop renderer tooling
+- **Language**: Rust for product/runtime code; TypeScript is scoped to the desktop renderer
 - **Package Manager**: pnpm (keep `pnpm-lock.yaml` in sync)
 - **Lint/Format**: Oxlint, Oxfmt (`pnpm check`)
 - **Tests**: Rust workspace tests via `pnpm test`; do not add TypeScript test suites
@@ -20,34 +20,22 @@
 
 ## Source of Truth Locations
 
-### Formatting Utilities (`src/infra/`)
-
-- **Time formatting**: `src\infra\format-time`
-
-**NEVER create local `formatAge`, `formatDuration`, `formatElapsedTime` functions - import from centralized modules.**
-
-### Terminal Output (`src/terminal/`)
-
-- Tables: `src/terminal/table.ts` (`renderTable`)
-- Themes/colors: `src/terminal/theme.ts` (`theme.success`, `theme.muted`, etc.)
-- Progress: `src/terminal/progress.ts` (spinners, progress bars)
-
 ### Desktop/Gateway Patterns
 
 - Desktop UI/BFF: `apps/crawclaw-desktop/`
-- Gateway methods: `src/gateway/`
-- Retained shared flows/helpers: `src/control/`
-- Dependency injection via `createDefaultDeps`
+- Gateway methods and protocol: `crates/crawclaw-gateway/`
+- Runtime, config, secrets, providers, tools, hooks, and release checks: `crates/crawclaw-runtime/`
+- Native plugin descriptors and operations: `crates/crawclaw-native-plugins/`
 
 ## Import Conventions
 
-- Use `.js` extension for cross-package imports (ESM)
-- Direct imports only - no re-export wrapper files
-- Types: `import type { X }` for type-only imports
+- Keep product/runtime contracts in Rust crates.
+- Keep desktop renderer imports local to `apps/crawclaw-desktop`.
+- Do not add public JavaScript SDK exports.
 
 ## Code Quality
 
-- TypeScript (ESM), strict typing, avoid `any`
+- Rust for product/runtime behavior. For desktop renderer TypeScript, use strict typing and avoid `any`.
 - Keep files under ~700 LOC - extract helpers when larger
 - Add Rust tests under the owning crate or crate integration tests; do not add TypeScript test suites
 - Run `pnpm check` before commits (lint + format)

@@ -89,11 +89,12 @@ This keeps setup explicit: users see docs, auth, permissions, and security postu
 Long term, we want easier onboarding flows as hardening matures.
 We do not want convenience wrappers that hide critical security decisions from users.
 
-### Why TypeScript?
+### Why Rust?
 
 CrawClaw is primarily an orchestration system: prompts, tools, protocols, and integrations.
-TypeScript was chosen to keep CrawClaw hackable by default.
-It is widely known, fast to iterate in, and easy to read, modify, and extend.
+The product runtime is Rust-owned so desktop packaging, Gateway control,
+providers, plugins, and automation have one native boundary. TypeScript remains
+only for the desktop renderer where React and Vite are the current UI stack.
 
 ## What We Will Not Merge (For Now)
 

@@ -1,5 +1,24 @@
 {
-  "extends": "./tsconfig.json",
-  "include": ["src/**/*", "ui/**/*", "packages/**/*", "test/**/*"],
-  "exclude": ["node_modules", "dist", "extensions"]
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022",
+    "types": ["vite/client"]
+  },
+  "include": ["apps/crawclaw-desktop/src/**/*", "apps/crawclaw-desktop/vite.config.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "apps/crawclaw-desktop/node_modules",
+    "apps/crawclaw-desktop/dist"
+  ]
 }

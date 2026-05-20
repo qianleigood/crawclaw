@@ -1,19 +1,18 @@
-# Python Legacy / Fallback
+# Python Control Plane
 
 ## 目录
 
-- 什么时候回退 Python
+- Python 适用范围
 - Python 运行约定
 - 常用 Python 命令
 - 登录二维码说明
 
-## 什么时候回退 Python
+## Python 适用范围
 
-优先使用 Node + Puppeteer。只有在这些情况回退 Python：
+使用 Python/CDP 控制面处理小红书操作：
 
 - `search-feeds` 需要筛选器交互（`sort-by` / `note-type` / `publish-time` / `search-scope` / `location`）
-- 需要使用尚未迁移到 Node 的历史细节流程
-- 需要对照旧链路排障
+- 登录、发布、评论、内容读取和多账号排障
 
 ## Python 运行约定
 

@@ -40,9 +40,7 @@ through `pnpm desktop:tauri:stage-runtime` and
 The following TypeScript and JavaScript surfaces are allowed by design:
 
 - `apps/crawclaw-desktop/src`: the React and Vite desktop renderer.
-- `extensions/*/package.json` and plugin metadata files used for plugin packaging and distribution.
-- `scripts`: build, release, generation, docs, and verification tooling.
-- Tests and test fixtures for TypeScript, JavaScript, Rust plugin SDK, docs, and packaging behavior.
+- `apps/crawclaw-desktop/vite.config.ts`: desktop renderer build configuration.
 
 These surfaces should stay bounded. Do not use an allowed surface as a backdoor
 to add a new production Gateway handler, desktop bridge, or default plugin
@@ -85,8 +83,8 @@ Use this split instead:
 - Desktop renderer: TypeScript/React by design.
 - Plugin SDK: Rust crate `crawclaw-plugin-sdk`; JavaScript package exports are removed.
 - Bundled plugin packages: mostly metadata shells with native manifests.
-- Build and release tooling: Node/TypeScript allowed unless it is staged into
-  the desktop runtime package.
+- Build and release tooling: Rust, shell, Go, or Python. Do not add new
+  TypeScript/JavaScript repo automation.
 
 This keeps the desktop product target separate from a full repository language
 rewrite.

@@ -78,8 +78,7 @@ Details: [Gateway protocol](/gateway/protocol), [Pairing](/channels/pairing),
 ## Protocol typing and codegen
 
 - Rust Gateway owns protocol metadata and the packaged JSON Schema snapshot.
-- JSON Schema, the TypeScript protocol metadata bridge, and the TypeScript schema read model are emitted from the Rust Gateway contract snapshot.
-- `src/gateway/protocol/schema.ts` re-exports the generated read model for TypeScript client validators and typed helpers.
+- JSON Schema is emitted from the Rust Gateway contract snapshot.
 - Swift models are generated from the JSON Schema.
 
 ## Remote access

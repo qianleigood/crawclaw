@@ -33,9 +33,8 @@ This is the execution surface of the system.
 Relevant areas:
 
 - Rust tool catalog and runtime
-- `src/gateway`
 - `crates/crawclaw-plugin-sdk`
-- `src/plugins`
+- Rust Gateway and native plugin surfaces
 
 Question answered:
 
@@ -58,10 +57,8 @@ This is raw operational history.
 
 Relevant areas:
 
-- `src/sessions`
-- `src/chat`
-- `src/agents/context-archive`
 - `crates/crawclaw-gateway/src/lib.rs`
+- Rust session, chat, and context archive runtime surfaces
 
 Question answered:
 
@@ -83,11 +80,8 @@ This stage separates noise from signal.
 
 Relevant areas:
 
-- `src/memory/extraction`
-- `src/memory/session-summary`
-- `src/memory/durable`
-- `src/memory/promotion`
-- `src/memory/diagnostics`
+- Rust memory extraction, session-summary, durable memory, promotion, and
+  diagnostics surfaces
 
 Question answered:
 
@@ -109,13 +103,7 @@ This is not raw history. It is retained experience.
 
 Relevant areas:
 
-- `src/memory/durable`
-- `src/memory/experience`
-- `src/memory/notebooklm`
-- `src/memory/search`
-- `src/memory/recall`
-- `src/memory/vector`
-- `src/memory/graph`
+- Rust durable memory, experience, search, recall, vector, and graph surfaces
 
 Question answered:
 
@@ -138,11 +126,7 @@ This is how the agent avoids starting from zero.
 
 Relevant areas:
 
-- `src/memory/engine`
-- `src/memory/recall`
-- `src/memory/search`
-- `src/agents/query-context`
-- `src/agents/skills`
+- Rust memory, query-context, and skill discovery surfaces
 
 Question answered:
 
@@ -164,10 +148,8 @@ workflow, cron job, or hook remains an explicit authoring step.
 
 Relevant areas:
 
-- `src/agents/skills`
-- `src/workflows`
-- `src/cron`
-- `src/hooks`
+- `skills/`
+- Rust workflow, cron, and hook runtime surfaces
 
 Question answered:
 

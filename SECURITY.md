@@ -203,9 +203,8 @@ Security boundary notes:
 - Arbitrary host tmp paths are not treated as trusted media roots.
 - Plugin/extension code should use CrawClaw temp helpers (`resolvePreferredCrawClawTmpDir`, `buildRandomTempFilePath`, `withTempDownloadPath`) rather than raw `os.tmpdir()` defaults when handling media files.
 - Enforcement reference points:
-  - temp root resolver: `src/infra/tmp-crawclaw-dir.ts`
-  - Shared temp helpers: `src/internal-plugin-helpers/temp-path.ts`
-  - messaging/channel tmp guardrail: `scripts/check-no-random-messaging-tmp.mjs`
+  - native browser temp root resolver: `crates/crawclaw-native-plugins/src/browser.rs`
+  - plugin install temp roots: `crates/crawclaw-gateway/src/lib.rs`
 
 ## Operational Guidance
 

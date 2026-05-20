@@ -1,7 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use chrono::Utc;
 use serde_json::Value;
 
 const BASE_CONFIG_SCHEMA_STABLE_JSON: &str =
@@ -15,13 +14,6 @@ pub struct ConfigDocBaselineWriteResult {
     pub wrote: bool,
     pub json_path: PathBuf,
     pub jsonl_path: PathBuf,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BaseConfigSchemaWriteResult {
-    pub changed: bool,
-    pub wrote: bool,
-    pub output_path: PathBuf,
 }
 
 pub fn base_config_schema_payload(generated_at: &str) -> Result<Value, String> {
@@ -49,46 +41,6 @@ pub fn base_config_schema_payload_json(generated_at: &str) -> Result<String, Str
             .expect("cargo package version encodes as JSON"),
         serde_json::to_string(generated_at).expect("generated timestamp encodes as JSON")
     ))
-}
-
-pub fn write_base_config_schema_artifact(
-    output_path: impl AsRef<Path>,
-    check: bool,
-) -> Result<BaseConfigSchemaWriteResult, String> {
-    let output_path = output_path.as_ref().to_path_buf();
-    let current = read_optional_utf8(&output_path)?;
-    let generated_at = current
-        .as_deref()
-        .and_then(read_generated_at)
-        .unwrap_or_else(|| Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true));
-    let next = format!("{}\n", base_config_schema_payload_json(&generated_at)?);
-    let changed = current.as_deref() != Some(next.as_str());
-    if check {
-        return Ok(BaseConfigSchemaWriteResult {
-            changed,
-            wrote: false,
-            output_path,
-        });
-    }
-    if changed {
-        if let Some(parent) = output_path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
-        }
-        fs::write(&output_path, next)
-            .map_err(|error| format!("failed to write {}: {error}", output_path.display()))?;
-    }
-    Ok(BaseConfigSchemaWriteResult {
-        changed,
-        wrote: changed,
-        output_path,
-    })
-}
-
-fn read_generated_at(source: &str) -> Option<String> {
-    serde_json::from_str::<Value>(source)
-        .ok()
-        .and_then(|payload| payload.get("generatedAt")?.as_str().map(str::to_string))
 }
 
 pub fn config_doc_baseline_json() -> &'static str {
@@ -285,6 +237,25 @@ mod tests {
             .expect("ui hints")
             .keys()
             .any(|key| key.starts_with("tools.web.search.openaiCodex")));
+        assert!(!path(
+            &payload,
+            &[
+                "schema",
+                "properties",
+                "hooks",
+                "properties",
+                "internal",
+                "properties"
+            ]
+        )
+        .as_object()
+        .expect("hooks.internal properties")
+        .contains_key("handlers"));
+        assert!(!path(&payload, &["uiHints"])
+            .as_object()
+            .expect("ui hints")
+            .keys()
+            .any(|key| key.starts_with("hooks.internal.handlers")));
     }
 
     #[test]
@@ -383,6 +354,9 @@ mod tests {
         assert!(!entries.iter().any(|entry| entry["path"]
             .as_str()
             .is_some_and(|path| path.starts_with("tools.web.search.openaiCodex"))));
+        assert!(!entries.iter().any(|entry| entry["path"]
+            .as_str()
+            .is_some_and(|path| path.starts_with("hooks.internal.handlers"))));
 
         let mut lines = config_doc_baseline_jsonl().lines();
         let meta: Value =

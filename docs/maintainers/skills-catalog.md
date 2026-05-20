@@ -29,7 +29,7 @@ distribution model:
 The repository currently has three skill surfaces:
 
 - `skills/`: 18 bundled core skills
-- `skills-optional/`: 38 optional catalog skills
+- `skills-optional/`: 35 optional catalog skills
 - extension-owned surfaces under `extensions/`: 12 skills
 
 Treat these as different distribution surfaces, not three random directories.
@@ -101,13 +101,10 @@ Current optional catalog:
 - `gemini-browser-image`
 - `gif-sticker-maker`
 - `gog`
-- `grok-video-web`
 - `humanizer-zh`
 - `ios-application-dev`
 - `markdown-converter`
-- `minimax-pdf`
 - `minimax-xlsx`
-- `platform-login-helper`
 - `qwen3-tts-apple-silicon`
 - `react-native-dev`
 - `redbook-skills`

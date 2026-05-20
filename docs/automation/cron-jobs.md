@@ -168,9 +168,11 @@ Wire Gmail inbox triggers to CrawClaw via Google PubSub.
 
 This writes `hooks.gmail` config, enables the Gmail preset, and uses Tailscale Funnel for the push endpoint.
 
-### Gateway auto-start
+### Serve push callbacks
 
-When `hooks.enabled=true` and `hooks.gmail.account` is set, the Gateway starts `gog gmail watch serve` on boot and auto-renews the watch. Set `CRAWCLAW_SKIP_GMAIL_WATCHER=1` to opt out.
+CrawClaw receives Gmail PubSub callbacks through the normal `/hooks/gmail`
+mapping path. Run and renew `gog gmail watch serve` from your own service
+manager, then point its push URL at the configured CrawClaw hook URL.
 
 ### Manual one-time setup
 

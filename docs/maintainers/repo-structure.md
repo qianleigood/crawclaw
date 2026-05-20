@@ -13,9 +13,11 @@ large-scale moves.
 
 The short version:
 
-- `src/` is the product runtime
-- `extensions/` is the capability ecosystem
-- `packages/` contains support packages that do not fit the main runtime tree
+- `crates/` is the Rust product runtime and public native contract layer
+- `apps/crawclaw-desktop/` is the desktop application
+- `src/` is retained non-runtime metadata, generated JSON, and local boundary notes
+- `extensions/` is the bundled plugin metadata ecosystem
+- `packages/` contains support package placeholders that do not fit the runtime crates
 - `docs/` contains both product docs and maintainer-facing design material
 - `scripts/` and `.github/` are the delivery layer
 - `test/` is shared test infrastructure
@@ -25,27 +27,27 @@ The short version:
 
 ## Main Runtime
 
-The main product lives under `src/`.
+The main product runtime lives under Rust crates.
 
 Primary domains:
 
-- `src/gateway`: control plane, auth, protocol, server methods, and gateway services
-- `src/memory`: memory ingest, storage, retrieval, orchestration, compaction
-- `src/workflows`: workflow registry, compilation, n8n bridge, execution sync
-- `src/cron`: scheduled execution and delivery
-- `src/channels`: routing and session-level messaging behavior
-- `src/terminal`, `src/config`, `src/infra`, `src/shared`: support layers around the runtime
+- `crates/crawclaw-gateway`: control plane, auth, protocol, and Gateway services
+- `crates/crawclaw-runtime`: agent, memory, automation, config, secrets, tools, hooks, packaging, and repo checks
+- `crates/crawclaw-native-plugins`: native plugin descriptors and operations
+- `crates/crawclaw-providers`: provider metadata and transport contracts
+- `crates/crawclaw-plugin-sdk`: public Rust plugin SDK
+- `crates/crawclaw-channels`: native channel contracts
 
-When people say “the product code”, they usually mean `src/`.
+When people say “the product code”, they usually mean `crates/` plus the
+desktop shell under `apps/crawclaw-desktop/`.
 
-Top-level maintainer entry points inside `src/`:
+Retained maintainer entry points inside `src/`:
 
 - `src/agents/README.md`
-- `src/channels/README.md`
 - `src/plugins/README.md`
-- `src/memory/README.md`
 - `src/workflows/README.md`
 - `src/infra/README.md`
+- `src/generated/`
 
 ## Capability Ecosystem
 

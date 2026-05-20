@@ -28,7 +28,7 @@ For model selection rules, see [/concepts/models](/concepts/models).
 
 Rust owns the provider list used by `models.list`, the provider status shown by
 `runtime.status`, and the config schema surfaced by `config.schema` and
-`config.schema.lookup`. Bundled TypeScript packages may still register
+`config.schema.lookup`. Bundled native plugin descriptors register
 non-provider capabilities such as speech, media understanding, or web search.
 
 ## API key rotation

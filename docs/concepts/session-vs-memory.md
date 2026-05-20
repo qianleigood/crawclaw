@@ -141,19 +141,11 @@ Use this wording consistently:
 
 Session-heavy areas today include:
 
-- `src/sessions`
-- `src/chat`
-- `src/gateway`
-- `src/agents/context-archive`
+- Rust session, chat, Gateway, and context archive runtime surfaces
 
 Memory-heavy areas today include:
 
-- `src/memory/durable`
-- `src/memory/experience`
-- `src/memory/experience`
-- `src/memory/recall`
-- `src/memory/search`
-- `src/memory/engine`
+- Rust durable memory, experience, recall, and search runtime surfaces
 
 ## Promotion Rule
 

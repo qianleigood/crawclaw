@@ -17,7 +17,7 @@ The CI runs on every push to `main` and every pull request. It uses smart scopin
 | `preflight`       | Docs scope, change scope, key scan, workflow audit, prod dependency audit | Always; node-based audit only on non-doc changes |
 | `docs-scope`      | Detect docs-only changes                                                  | Always                                           |
 | `changed-scope`   | Detect which areas changed (node/macos/android/windows)                   | Non-doc changes                                  |
-| `check`           | TypeScript types, lint, format                                            | Non-docs, node changes                           |
+| `check`           | Desktop renderer TypeScript, lint, format                                 | Non-docs, node changes                           |
 | `check-docs`      | Markdown lint + broken link check                                         | Docs changed                                     |
 | `secrets`         | Detect leaked secrets                                                     | Always                                           |
 | `build-artifacts` | Build dist once, share with `release-check`                               | Pushes to `main`, node changes                   |
@@ -35,9 +35,9 @@ Jobs are ordered so cheap checks fail before expensive ones run:
 2. PRs: `checks` (Rust workspace test), `checks-windows`, `macos`, `android`
 3. Pushes to `main`: `build-artifacts` + `release-check` + Node build compatibility
 
-Scope logic lives in `scripts/ci-changed-scope.mjs`; keep it validated through
-the workflow audit plus affected CI lanes when changing scope behavior.
-The same shared scope module also drives packaging and install smoke scope decisions.
+Scope logic lives in the `preflight` job in `.github/workflows/ci.yml`; keep it
+validated through the workflow audit plus affected CI lanes when changing scope
+behavior.
 
 ## Runners
 

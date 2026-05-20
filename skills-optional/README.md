@@ -27,7 +27,7 @@ https://docs.crawclaw.ai/maintainers/skills-catalog
 
 ## 当前目录内容
 
-当前目录一共有 38 个 optional skills。下面的分组只是为了方便阅读，不代表运行时
+当前目录一共有 35 个 optional skills。下面的分组只是为了方便阅读，不代表运行时
 加载语义。
 
 ### 生产力与个人工具
@@ -64,7 +64,6 @@ https://docs.crawclaw.ai/maintainers/skills-catalog
 - `canvas`
 - `gemini-browser-image`
 - `gif-sticker-maker`
-- `minimax-pdf`
 - `minimax-xlsx`
 - `qwen3-tts-apple-silicon`
 - `suno-api-client`
@@ -75,9 +74,7 @@ https://docs.crawclaw.ai/maintainers/skills-catalog
 
 ### 社媒、创作者与平台工作流
 
-- `grok-video-web`
 - `humanizer-zh`
-- `platform-login-helper`
 - `redbook-skills`
 - `tikhub`
 

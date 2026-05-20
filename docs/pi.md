@@ -29,9 +29,8 @@ The Rust runtime owns:
 - Durable memory extraction, experience extraction, dream jobs, session
   summaries, assembly, compaction, and after-turn ingest.
 
-TypeScript remains only for UI, CLI, channel adapters, Gateway client calls,
-and small payload projection helpers. TypeScript must not re-enter an agent
-execution bridge or fallback runner.
+TypeScript remains only for the desktop renderer. It must not re-enter an
+agent execution bridge, channel adapter, provider runtime, or fallback runner.
 
 ## Gateway Entry Points
 
@@ -79,8 +78,8 @@ by trigger type.
 
 ## Tools
 
-The tool inventory is resolved before each Rust turn. TypeScript can still host
-channel adapters and tool payload projection, but it is not the agent loop.
+The tool inventory is resolved before each Rust turn. TypeScript does not host
+channel adapters, tool payload projection, or the agent loop.
 
 Tool payloads returned by Rust are projected into Gateway and channel-specific
 delivery formats. Channel plugins should call their documented SDK or Gateway
@@ -147,8 +146,7 @@ cargo test -p crawclaw-runtime special_agents
 cargo test -p crawclaw-gateway agent_run_turn
 ```
 
-Use TypeScript gates only for Gateway clients, channel projection, SDK surface,
-and stale-reference cleanup:
+Use TypeScript gates only for the desktop renderer and stale-reference cleanup:
 
 ```bash
 pnpm tsgo

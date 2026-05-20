@@ -89,8 +89,8 @@ Rust native capability code, not TypeScript callbacks.
   <Step title="Implement the native runtime">
 
     Implement runtime behavior in Rust and expose it through the native plugin
-    protocol declared in `crawclaw.plugin.json`. TypeScript package files are
-    metadata, docs, generated types, or tests only.
+    protocol declared in `crawclaw.plugin.json`. Do not add TypeScript runtime
+    entry files.
 
   </Step>
 

@@ -1,23 +1,23 @@
 # Repository Guidelines
 
 - Repo: https://github.com/qianleigood/crawclaw
-- In chat replies, file references must be repo-root relative only (example: `src/telegram/index.ts:80`); never absolute paths or `~/...`.
+- In chat replies, file references must be repo-root relative only (example: `crates/crawclaw-gateway/src/lib.rs:80`); never absolute paths or `~/...`.
 - Do not edit files covered by security-focused `CODEOWNERS` rules unless a listed owner explicitly asked for the change or is already reviewing it with you. Treat those paths as restricted surfaces, not drive-by cleanup.
 
 ## Project Structure & Module Organization
 
-- Source code: `src/` (terminal helpers in `src/terminal`, web provider in `src/provider-web.ts`, infra in `src/infra`, media pipeline in `src/media`).
+- Source code: Rust product runtime lives under `crates/`; the desktop app lives under `apps/crawclaw-desktop/`. `src/` is retained only for non-runtime metadata, generated JSON, and local boundary notes.
 - Tests: Rust workspace tests via `pnpm test`; do not add TypeScript test suites.
 - Docs: `docs/` (images, queue, Pi config). Built output lives in `dist/`.
 - Nomenclature: use "plugin" / "plugins" in docs, UI, changelogs, and contributor guidance. The bundled workspace plugin tree remains the internal package layout to avoid repo-wide churn from a rename.
 - Bundled plugin naming: for repo-owned workspace plugins, keep the canonical plugin id aligned across `crawclaw.plugin.json:id`, the default workspace folder name, and package names anchored to the same id (`@crawclaw/<id>` or approved suffix forms like `-provider`, `-plugin`, `-speech`, `-sandbox`, `-media-understanding`). Keep `crawclaw.install.npmSpec` equal to the package name and `crawclaw.channel.id` equal to the plugin id when present. Exceptions must be explicit and covered by the repo invariant test.
 - Plugins: live in the bundled workspace plugin tree (workspace packages). Keep plugin-only deps in the extension `package.json`; do not add them to the root `package.json` unless core uses them.
 - Plugins: install runs `npm install --omit=dev` in plugin dir; runtime deps must live in `dependencies`. Avoid `workspace:*` in `dependencies` (npm install breaks); put `crawclaw` in `devDependencies` or `peerDependencies` instead.
-- Import boundaries: extension production code should use local `api.ts` / `runtime-api.ts` barrels or reviewed repo-private helper seams. Public plugin authoring goes through the Rust SDK in `crates/crawclaw-plugin-sdk`; do not add JavaScript package SDK exports.
+- Import boundaries: public plugin authoring goes through the Rust SDK in `crates/crawclaw-plugin-sdk`; do not add JavaScript package SDK exports or new TypeScript runtime plugin seams.
 - Installers served from `https://crawclaw.ai/*`: live in the sibling repo `../crawclaw.ai` (`public/install.sh`, `public/install-cli.sh`, `public/install.ps1`).
 - Messaging channels: always consider **all** built-in + extension channels when refactoring shared logic (routing, allowlists, pairing, command gating, onboarding, docs).
   - Core channel docs: `docs/channels/`
-  - Core channel code: `src/telegram`, `src/discord`, `src/slack`, `src/signal`, `src/imessage`, `src/web` (WhatsApp web), `src/channels`, `src/routing`
+  - Core channel code: Rust/native channel contracts under `crates/crawclaw-channels` plus native plugin descriptors under `crates/crawclaw-native-plugins`
   - Bundled plugin channels: the workspace plugin tree (for example Matrix, Zalo, ZaloUser, Voice Call)
 - When adding channels/plugins/apps/docs, update `.github/labeler.yml` and create matching GitHub labels (use existing channel/plugin label colors).
 
@@ -26,42 +26,40 @@
 - Start here for the repo map:
   - bundled workspace plugin tree = bundled plugins and the closest example surface for third-party plugins
   - `crates/crawclaw-plugin-sdk` = the public Rust plugin SDK contract
-  - `src/internal-plugin-helpers/*` = repo-private helpers, not a public SDK
-  - `src/channels/*` = core channel implementation details behind the plugin/channel boundary
-  - `src/plugins/*` = plugin discovery, manifest validation, loader, registry, and contract enforcement
-  - `src/gateway/protocol/*` = typed Gateway control-plane and node wire protocol
+  - `crates/crawclaw-runtime/src/native_plugin_registry.rs` = native plugin discovery and runtime registry
+  - `crates/crawclaw-gateway/src/protocol_contract.rs` = Gateway protocol contract and JSON Schema source
+  - `src/generated/*` = generated JSON metadata consumed by docs/package checks, not executable runtime code
 - Progressive disclosure lives in local boundary guides:
   - bundled-plugin-tree `AGENTS.md`
-  - `src/channels/AGENTS.md`
   - `src/plugins/AGENTS.md`
   - `src/gateway/protocol/AGENTS.md`
 - Plugin and extension boundary:
   - Public docs: `docs/plugins/building-plugins.md`, `docs/plugins/architecture.md`, `docs/plugins/sdk-overview.md`, `docs/plugins/sdk-entrypoints.md`, `docs/plugins/sdk-runtime.md`, `docs/plugins/manifest.md`, `docs/plugins/sdk-channel-plugins.md`, `docs/plugins/sdk-provider-plugins.md`
-  - Definition files: `crates/crawclaw-plugin-sdk/src/lib.rs`, `crates/crawclaw-native-plugins/src/registry.rs`, `src/plugins/contracts/registry.ts`, `package.json`
+  - Definition files: `crates/crawclaw-plugin-sdk/src/lib.rs`, `crates/crawclaw-native-plugins/src/registry.rs`, `crates/crawclaw-runtime/src/native_plugin_registry.rs`, `src/generated/plugins/bundled-capability-metadata.generated.json`, `package.json`
   - Rule: third-party authoring contracts belong in the Rust plugin SDK, manifest metadata, and documented runtime helpers. Do not recreate public JavaScript SDK exports.
-  - Rule: core code must not deep-import bundled plugin internals such as a plugin's `src/**` files or `onboard.js`. If core needs a bundled plugin helper, expose it through that plugin's `api.ts`.
+  - Rule: core code must not deep-import bundled plugin internals. If core needs bundled plugin behavior, expose it through a documented Rust/native contract or manifest field.
   - Compatibility: new plugin seams are allowed, but they must be added as documented, versioned Rust/native contracts. We have third-party plugins in the wild and do not break them casually.
 - Channel boundary:
   - Public docs: `docs/plugins/sdk-channel-plugins.md`, `docs/plugins/architecture.md`
-  - Definition files: `src/channels/plugins/types.plugin.ts`, `src/channels/plugins/types.core.ts`, `src/channels/plugins/types.adapters.ts`, `crates/crawclaw-plugin-sdk/src/lib.rs`
-  - Rule: `src/channels/**` is core implementation. If plugin authors need a new seam, add it to the Rust plugin SDK instead of telling them to import channel internals.
+  - Definition files: `crates/crawclaw-plugin-sdk/src/lib.rs`, `crates/crawclaw-channels/src/lib.rs`, `crates/crawclaw-native-plugins/src/registry.rs`
+  - Rule: native channel contracts are core implementation. If plugin authors need a new seam, add it to the Rust plugin SDK instead of telling them to import channel internals.
 - Provider/model boundary:
   - Public docs: `docs/plugins/sdk-provider-plugins.md`, `docs/concepts/model-providers.md`, `docs/plugins/architecture.md`
-  - Definition files: `src/plugins/types.ts`, `crates/crawclaw-plugin-sdk/src/lib.rs`
+  - Definition files: `crates/crawclaw-plugin-sdk/src/lib.rs`, `crates/crawclaw-providers/src/lib.rs`, `crates/crawclaw-native-plugins/src/registry.rs`
   - Rule: core owns the generic inference loop; provider plugins own provider-specific behavior through registration and typed hooks. Do not solve provider needs by reaching into unrelated core internals.
   - Rule: avoid ad hoc reads of `plugins.entries.<id>.config` from unrelated core code. If core needs plugin-owned auth/config behavior, add or use a generic seam (`resolveSyntheticAuth`, public SDK/helper facades, manifest metadata, plugin auto-enable hooks) and honor plugin disablement plus SecretRef semantics.
   - Rule: vendor-owned tools and settings belong in the owning plugin. Do not add provider-specific tool config, secret collection, or runtime enablement to core `tools.*` surfaces unless the tool is intentionally core-owned.
 - Gateway protocol boundary:
   - Public docs: `docs/gateway/protocol.md`, `docs/gateway/bridge-protocol.md`, `docs/concepts/architecture.md`
-  - Definition files: `src/gateway/protocol/schema.ts`, `src/gateway/protocol/schema/*.ts`, `src/gateway/protocol/index.ts`
+  - Definition files: `crates/crawclaw-gateway/src/protocol_contract.rs`, `crates/crawclaw-gateway/src/protocol_contract/protocol.schema.stable.json`
   - Rule: protocol changes are contract changes. Prefer additive evolution; incompatible changes require explicit versioning, docs, and client/codegen follow-through.
 - Bundled plugin contract boundary:
   - Public docs: `docs/plugins/architecture.md`, `docs/plugins/manifest.md`, `docs/plugins/sdk-overview.md`
-- Definition files: `src/plugins/contracts/registry.ts`, `src/plugins/types.ts`, `src/plugins/public-artifacts.ts`
+- Definition files: `src/generated/plugins/bundled-capability-metadata.generated.json`, `crates/crawclaw-native-plugins/src/registry.rs`
   - Rule: keep manifest metadata, runtime registration, Rust SDK exports, and contract tests aligned. Do not create a hidden path around the declared plugin interfaces.
 - Extension test boundary:
   - Keep extension-owned onboarding/config/provider coverage under the owning bundled plugin package when feasible.
-  - If core tests need bundled plugin behavior, consume it through the plugin's `api.ts`, not private extension modules.
+  - If core tests need bundled plugin behavior, consume it through the Rust/native registry or public manifest contract, not private extension internals.
 
 ## Docs Linking (Mintlify)
 
@@ -105,7 +103,7 @@
 - Pre-commit hooks: `prek install`. The hook runs the repo verification flow, including `pnpm check`.
 - `FAST_COMMIT=1` skips the repo-wide `pnpm format` and `pnpm check` inside the pre-commit hook only. Use it when you intentionally want a faster commit path and are running equivalent targeted verification manually. It does not change CI and does not change what `pnpm check` itself does.
 - Also supported: `bun install` (keep `pnpm-lock.yaml` + Bun patching in sync when touching deps/patches).
-- Prefer Bun for TypeScript execution (scripts, dev, tests): `bun <file.ts>` / `bunx <tool>`.
+- Bun is optional for ad hoc desktop renderer work. Repo scripts are Rust, shell, Go, or Python.
 - Run desktop/gateway dev flows through the dedicated package scripts; do not reintroduce a public `crawclaw` command.
 - Node remains supported for running built output (`dist/*`) and production installs.
 - Mac packaging (dev): `scripts/package-mac-app.sh` defaults to current arch.
@@ -142,7 +140,7 @@
 
 ## Coding Style & Naming Conventions
 
-- Language: TypeScript (ESM). Prefer strict typing; avoid `any`.
+- Language: Rust for product runtime and repository automation; TypeScript remains scoped to the desktop renderer. Prefer strict typing there and avoid `any`.
 - Formatting/linting via Oxlint and Oxfmt.
 - Never add `@ts-nocheck` and do not add inline lint suppressions by default. Fix root causes first; only keep a suppression when the code is intentionally correct, the rule cannot express that safely, and the comment explains why.
 - Do not disable `no-explicit-any`; prefer real types, `unknown`, or a narrow adapter/helper instead. Update Oxlint/Oxfmt config only when required.
@@ -155,8 +153,7 @@
 - New runtime control-flow code should not branch on `error: string` or `reason: string` when a closed code union would be reasonable.
 - Dynamic import guardrail: do not mix `await import("x")` and static `import ... from "x"` for the same module in production code paths. If you need lazy loading, create a dedicated `*.runtime.ts` boundary (that re-exports from `x`) and dynamically import that boundary from lazy callers only.
 - Dynamic import verification: after refactors that touch lazy-loading/module boundaries, run `pnpm build` and check for `[INEFFECTIVE_DYNAMIC_IMPORT]` warnings before submitting.
-- Extension SDK self-import guardrail: inside an extension package, route internal imports through a local barrel such as `./api.ts` or `./runtime-api.ts`.
-- Extension package boundary guardrail: inside a bundled plugin package, avoid relative imports/exports that resolve outside that same package root unless they target a reviewed repo-private helper seam. If shared code belongs in the public SDK, add it to the Rust plugin SDK.
+- Extension package boundary guardrail: inside a bundled plugin package, avoid adding executable TypeScript/JavaScript runtime code. If shared behavior belongs in the public SDK, add it to the Rust plugin SDK.
 - Extension API surface rule: the Rust plugin SDK is the only public cross-package plugin authoring contract. Do not add new JavaScript package SDK subpaths.
 - Never share class behavior via prototype mutation (`applyPrototypeMixins`, `Object.defineProperty` on `.prototype`, or exporting `Class.prototype` for merges). Use explicit inheritance/composition (`A extends B extends C`) or helper composition so TypeScript can typecheck.
 - If this pattern is needed, stop and get explicit approval before shipping; default behavior is to split/refactor into an explicit class hierarchy and keep members strongly typed.
@@ -227,8 +224,7 @@
 - If you need local-only `.agents` ignores, use `.git/info/exclude` instead of repo `.gitignore`.
 - When adding a new `AGENTS.md` anywhere in the repo, also add a `CLAUDE.md` symlink pointing to it (example: `ln -s AGENTS.md CLAUDE.md`).
 - Signal: "update fly" => `fly ssh console -a flawd-bot -C "bash -lc 'cd /data/clawd/crawclaw && git pull --rebase origin main'"` then `fly machines restart e825232f34d058 -a flawd-bot`.
-- Terminal progress: use `src/terminal/progress.ts` (`osc-progress` + `@clack/prompts` spinner); don’t hand-roll spinners/bars.
-- Status output: keep tables + ANSI-safe wrapping (`src/terminal/table.ts`); `status --all` = read-only/pasteable, `status --deep` = probes.
+- Status output should stay read-only/pasteable, ANSI-safe, and owned by the Rust CLI/runtime surfaces.
 - Gateway currently runs only as the menubar app; there is no separate LaunchAgent/helper label installed. Restart via the CrawClaw Mac app or `scripts/restart-mac.sh`; to verify/kill use `launchctl print gui/$UID | grep crawclaw` rather than assuming a fixed label. **When debugging on macOS, start/stop the gateway via the app, not ad-hoc tmux sessions; kill any temporary tunnels before handoff.**
 - macOS logs: use `./scripts/clawlog.sh` to query unified logs for the CrawClaw subsystem; it supports follow/tail/category filters and expects passwordless sudo for `/usr/bin/log`.
 - If shared guardrails are available locally, review them; otherwise follow this repo's guidance.
@@ -241,7 +237,7 @@
 - iOS Team ID lookup: `security find-identity -p codesigning -v` → use Apple Development (…) TEAMID. Fallback: `defaults read com.apple.dt.Xcode IDEProvisioningTeamIdentifiers`.
 - A2UI bundle hash: `src/canvas-host/a2ui/.bundle.hash` is auto-generated; ignore unexpected changes, and only regenerate via `pnpm canvas:a2ui:bundle` (or `scripts/bundle-a2ui.sh`) when needed. Commit the hash as a separate commit.
 - Release signing/notary credentials are managed outside the repo; maintainers keep that setup in the private [maintainer release docs](https://github.com/crawclaw/maintainers/tree/main/release).
-- Crab palette: use the shared CLI palette in `src/terminal/palette.ts` (no hardcoded colors); apply palette to onboarding/config prompts and other TTY UI output as needed.
+- CLI colors and prompts should use shared Rust runtime helpers instead of hardcoded ANSI styling.
 - When asked to open a “session” file, open the Pi session logs under `~/.crawclaw/agents/<agentId>/sessions/*.jsonl` (use the `agent=<id>` value in the Runtime line of the system prompt; newest unless a specific ID is given), not the default `sessions.json`. If logs are needed from another machine, SSH via Tailscale and read the same path there.
 - Do not rebuild the macOS app over SSH; rebuilds must be run directly on the Mac.
 - Voice wake forwarding tips:

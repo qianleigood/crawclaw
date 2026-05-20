@@ -27,8 +27,7 @@
 "gateway":
   - changed-files:
       - any-glob-to-any-file:
-          - "src/gateway/**"
-          - "src/daemon/**"
+          - "crates/crawclaw-gateway/**"
           - "docs/gateway/**"
 
 "docs":
@@ -40,12 +39,13 @@
 "terminal":
   - changed-files:
       - any-glob-to-any-file:
-          - "src/terminal/**"
+          - "crates/crawclaw-runtime/src/main.rs"
+          - "crates/crawclaw-runtime/src/node_tool_runner.rs"
 
 "control":
   - changed-files:
       - any-glob-to-any-file:
-          - "src/control/**"
+          - "crates/crawclaw-runtime/**"
 
 "scripts":
   - changed-files:
@@ -55,7 +55,9 @@
 "agents":
   - changed-files:
       - any-glob-to-any-file:
-          - "src/agents/**"
+          - "crates/crawclaw-runtime/src/lib.rs"
+          - "crates/crawclaw-runtime/src/special_agents.rs"
+          - "crates/crawclaw-runtime/src/memory.rs"
 
 "security":
   - changed-files:

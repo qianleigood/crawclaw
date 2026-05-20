@@ -1,10 +1,5 @@
 # Query Context
 
-`query-context/**` owns prompt-identity, cache-contract, and prompt rendering pieces that decide
-when model context can be safely reused.
-
-Start here:
-
-- `cache-contract.ts`
-- `render.ts`
-- `types.ts`
+The old TypeScript query-context helpers have been removed. Prompt identity,
+context rendering, and cache-sensitive runtime decisions are Rust-owned in
+`crates/crawclaw-runtime`.

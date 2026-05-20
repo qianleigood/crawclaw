@@ -8,8 +8,7 @@ title: "Linux App"
 # Linux App
 
 The local Rust Gateway is supported on Linux. TypeScript and JavaScript remain
-for docs/build tooling and typed client helpers, not for the default product
-runtime path.
+only for the desktop renderer, not for the default product runtime path.
 
 Linux support is focused on the local Gateway, native plugins, and Gateway API
 clients.

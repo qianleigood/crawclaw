@@ -36,7 +36,6 @@ async fn main() {
         "desktop-check" => desktop_check(args),
         "desktop-stage" => desktop_stage(args),
         "docs-list" => docs_list(args),
-        "emit-base-config-schema" => emit_base_config_schema(args),
         "emit-bundled-capability-metadata" => emit_bundled_capability_metadata(args),
         "emit-bundled-provider-auth-env-vars" => emit_bundled_provider_auth_env_vars(args),
         "emit-config-doc-baseline" => emit_config_doc_baseline(args),
@@ -44,13 +43,41 @@ async fn main() {
         "emit-provider-runtime-constants" => emit_provider_runtime_constants(args),
         "emit-plugin-dependency-plan" => emit_plugin_dependency_plan(args),
         "emit-rust-tool-catalog" => emit_rust_tool_catalog(args),
+        "ghsa-patch" => ghsa_patch(args),
+        "github-labels-sync" => github_labels_sync(args),
+        "npm-package-metadata" => npm_package_metadata(args),
+        "npm-postpublish-verify" => npm_postpublish_verify(args),
+        "npm-publish-plan" => npm_publish_plan(args),
+        "npm-release-check" => npm_release_check(args),
         "package-artifacts" => package_artifacts(args),
         "package-build-native-artifacts" => package_build_native_artifacts(args),
         "package-postbuild" => package_postbuild(args),
         "package-prepack" => package_prepack(args),
         "package-release-check" => package_release_check(args),
         "package-write-build-metadata" => package_write_build_metadata(args),
+        "plugin-npm-release-check" => plugin_npm_release_check(args),
+        "plugin-npm-release-plan" => plugin_npm_release_plan(args),
+        "repo-check-no-conflict-markers" => repo_check_no_conflict_markers(args),
+        "repo-check-no-extension-src-imports" => repo_check_no_extension_src_imports(args),
+        "repo-check-no-register-http-handler" => repo_check_no_register_http_handler(args),
+        "repo-check-plugin-extension-import-boundary" => {
+            repo_check_plugin_extension_import_boundary(args)
+        }
+        "repo-check-runtime-module-boundaries" => repo_check_runtime_module_boundaries(args),
         "repo-check-ts-loc" => repo_check_ts_loc(args),
+        "repo-check-web-fetch-provider-boundaries" => {
+            repo_check_web_fetch_provider_boundaries(args)
+        }
+        "repo-check-web-search-provider-boundaries" => {
+            repo_check_web_search_provider_boundaries(args)
+        }
+        "repo-check-webhook-auth-body-order" => repo_check_webhook_auth_body_order(args),
+        "docs-check-i18n-glossary" => docs_check_i18n_glossary(args),
+        "docs-check-links" => docs_check_links(args),
+        "plugins-sync" => plugins_sync(args),
+        "run-oxlint" => run_oxlint(args),
+        "run-tsgo" => run_tsgo(args),
+        "run-typecheck" => run_typecheck(args),
         "status" => status(&args),
         "stage" => stage(args),
         "test-workspace" => test_workspace(args),
@@ -461,6 +488,191 @@ fn package_build_native_artifacts(args: Vec<String>) {
     }
 }
 
+fn npm_release_check(args: Vec<String>) {
+    let root = match parse_optional_root_arg(&args, "npm-release-check") {
+        Ok(root) => root,
+        Err(message) => {
+            eprintln!("{message}");
+            std::process::exit(2);
+        }
+    };
+    let env_lookup = |key: &str| env::var(key).ok();
+    match crawclaw_runtime::run_root_npm_release_check(root, &env_lookup) {
+        Ok(result) => {
+            println!(
+                "crawclaw-npm-release-check: validated {} release {} ({} day UTC delta{}{}).",
+                result.channel.as_str(),
+                result.version,
+                result.day_distance,
+                if result.metadata_only {
+                    "; metadata-only"
+                } else {
+                    ""
+                },
+                if result.release_tag_validated {
+                    ""
+                } else {
+                    "; release tag skipped outside release context"
+                }
+            );
+        }
+        Err(errors) => {
+            for error in errors {
+                eprintln!("crawclaw-npm-release-check: {error}");
+            }
+            std::process::exit(1);
+        }
+    }
+}
+
+fn npm_postpublish_verify(args: Vec<String>) {
+    if args.len() != 1 {
+        eprintln!("usage: crawclaw-runtime npm-postpublish-verify <version>");
+        std::process::exit(2);
+    }
+    match crawclaw_runtime::verify_published_npm_install(args[0].trim()) {
+        Ok(lines) => {
+            for line in lines {
+                println!("{line}");
+            }
+        }
+        Err(error) => {
+            eprintln!("crawclaw-npm-postpublish-verify: {error}");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn npm_package_metadata(args: Vec<String>) {
+    let package_dir = match parse_package_dir_arg(&args, "npm-package-metadata") {
+        Ok(package_dir) => package_dir,
+        Err(message) => {
+            eprintln!("{message}");
+            std::process::exit(2);
+        }
+    };
+    match crawclaw_runtime::read_package_metadata(package_dir) {
+        Ok((name, version)) => {
+            println!("{name}");
+            println!("{version}");
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn npm_publish_plan(args: Vec<String>) {
+    let mut version: Option<String> = None;
+    let mut root: Option<PathBuf> = None;
+    let mut package_dir: Option<PathBuf> = None;
+    let mut current_beta_version: Option<String> = None;
+    let mut requested_tag: Option<String> = None;
+    let mut publish_mode = "--dry-run".to_string();
+    let mut root_package = false;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--version" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--version requires a value");
+                    std::process::exit(2);
+                };
+                version = Some(value.clone());
+                index += 2;
+            }
+            "--root" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--root requires a value");
+                    std::process::exit(2);
+                };
+                root = Some(PathBuf::from(value));
+                index += 2;
+            }
+            "--package-dir" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--package-dir requires a value");
+                    std::process::exit(2);
+                };
+                package_dir = Some(PathBuf::from(value));
+                index += 2;
+            }
+            "--current-beta-version" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--current-beta-version requires a value");
+                    std::process::exit(2);
+                };
+                current_beta_version = Some(value.clone());
+                index += 2;
+            }
+            "--requested-tag" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--requested-tag requires a value");
+                    std::process::exit(2);
+                };
+                requested_tag = Some(value.clone());
+                index += 2;
+            }
+            "--publish-mode" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--publish-mode requires a value");
+                    std::process::exit(2);
+                };
+                publish_mode = value.clone();
+                index += 2;
+            }
+            "--root-package" => {
+                root_package = true;
+                index += 1;
+            }
+            other => {
+                eprintln!("unsupported npm-publish-plan option: {other}");
+                std::process::exit(2);
+            }
+        }
+    }
+
+    let version = match version {
+        Some(version) => version,
+        None => {
+            let package_dir = package_dir.or(root).unwrap_or_else(|| PathBuf::from("."));
+            match crawclaw_runtime::read_package_metadata(package_dir) {
+                Ok((_, version)) => version,
+                Err(error) => {
+                    eprintln!("{error}");
+                    std::process::exit(1);
+                }
+            }
+        }
+    };
+    let plan = if root_package {
+        crawclaw_runtime::resolve_root_npm_publish_plan(&version, requested_tag.as_deref())
+    } else {
+        crawclaw_runtime::resolve_plugin_npm_publish_plan(&version, current_beta_version.as_deref())
+    };
+    let plan = match plan {
+        Ok(plan) => plan,
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    };
+    let auth = crawclaw_runtime::resolve_npm_dist_tag_mirror_auth(
+        env::var("NODE_AUTH_TOKEN").ok().as_deref(),
+        env::var("NPM_TOKEN").ok().as_deref(),
+    );
+    let mirror_auth_required = crawclaw_runtime::should_require_npm_dist_tag_mirror_auth(
+        &publish_mode,
+        &plan.mirror_dist_tags,
+        auth.has_auth,
+    );
+    for line in crawclaw_runtime::format_npm_publish_plan_lines(&plan, &auth, mirror_auth_required)
+    {
+        println!("{line}");
+    }
+}
+
 fn package_prepack(args: Vec<String>) {
     let root = match parse_root_arg(&args) {
         Ok(root) => root,
@@ -472,6 +684,133 @@ fn package_prepack(args: Vec<String>) {
     if let Err(error) = crawclaw_runtime::run_package_prepack(root) {
         eprintln!("{error}");
         std::process::exit(1);
+    }
+}
+
+fn plugin_npm_release_check(args: Vec<String>) {
+    let (root, release_args) =
+        match parse_plugin_release_command_args(args, "plugin-npm-release-check") {
+            Ok(value) => value,
+            Err(message) => {
+                eprintln!("{message}");
+                std::process::exit(2);
+            }
+        };
+    let parsed = match crawclaw_runtime::parse_plugin_release_args(&release_args) {
+        Ok(parsed) => parsed,
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(2);
+        }
+    };
+    match crawclaw_runtime::select_publishable_plugin_packages(&root, &parsed) {
+        Ok(selected) => {
+            println!("plugin-npm-release-check: publishable plugin metadata looks OK.");
+            if parsed.base_ref.is_some() && parsed.head_ref.is_some() && selected.is_empty() {
+                println!(
+                    "  - no publishable plugin package changes detected between {} and {}",
+                    parsed.base_ref.unwrap_or_default(),
+                    parsed.head_ref.unwrap_or_default()
+                );
+            }
+            for plugin in selected {
+                println!(
+                    "  - {}@{} ({}, {})",
+                    plugin.package_name,
+                    plugin.version,
+                    plugin.channel.as_str(),
+                    plugin.extension_id
+                );
+            }
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn plugin_npm_release_plan(args: Vec<String>) {
+    let (root, release_args) =
+        match parse_plugin_release_command_args(args, "plugin-npm-release-plan") {
+            Ok(value) => value,
+            Err(message) => {
+                eprintln!("{message}");
+                std::process::exit(2);
+            }
+        };
+    let parsed = match crawclaw_runtime::parse_plugin_release_args(&release_args) {
+        Ok(parsed) => parsed,
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(2);
+        }
+    };
+    match crawclaw_runtime::collect_plugin_release_plan(&root, &parsed) {
+        Ok(plan) => println!(
+            "{}",
+            serde_json::to_string_pretty(&plan)
+                .unwrap_or_else(|error| format!("{{\"error\":\"{error}\"}}"))
+        ),
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn plugins_sync(args: Vec<String>) {
+    let root = match parse_optional_root_arg(&args, "plugins-sync") {
+        Ok(root) => root,
+        Err(message) => {
+            eprintln!("{message}");
+            std::process::exit(2);
+        }
+    };
+    match crawclaw_runtime::sync_plugin_versions(root) {
+        Ok(summary) => {
+            println!(
+                "Synced plugin versions to {}. Updated: {}. Changelogged: {}. Skipped: {}.",
+                summary.target_version,
+                summary.updated.len(),
+                summary.changelogged.len(),
+                summary.skipped.len()
+            );
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn run_oxlint(args: Vec<String>) {
+    exit_with_tool_result(crawclaw_runtime::run_oxlint(&args));
+}
+
+fn run_tsgo(args: Vec<String>) {
+    exit_with_tool_result(crawclaw_runtime::run_tsgo(&args));
+}
+
+fn run_typecheck(args: Vec<String>) {
+    exit_with_tool_result(crawclaw_runtime::run_typecheck(&args));
+}
+
+fn github_labels_sync(args: Vec<String>) {
+    exit_with_tool_result(crawclaw_runtime::run_github_labels_sync(&args));
+}
+
+fn ghsa_patch(args: Vec<String>) {
+    exit_with_tool_result(crawclaw_runtime::run_ghsa_patch(&args));
+}
+
+fn exit_with_tool_result(result: Result<i32, String>) {
+    match result {
+        Ok(code) => std::process::exit(code),
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
     }
 }
 
@@ -668,6 +1007,187 @@ fn repo_check_ts_loc(args: Vec<String>) {
     }
 }
 
+fn repo_check_no_conflict_markers(args: Vec<String>) {
+    let root = parse_repo_check_root_arg(args, "repo-check-no-conflict-markers");
+    finish_check_report(crawclaw_runtime::run_no_conflict_markers(root));
+}
+
+fn repo_check_runtime_module_boundaries(args: Vec<String>) {
+    let (root, json) =
+        parse_repo_check_root_json_args(args, "repo-check-runtime-module-boundaries");
+    finish_check_report(crawclaw_runtime::run_runtime_module_boundaries(root, json));
+}
+
+fn repo_check_plugin_extension_import_boundary(args: Vec<String>) {
+    let (root, json) =
+        parse_repo_check_root_json_args(args, "repo-check-plugin-extension-import-boundary");
+    finish_check_report(crawclaw_runtime::run_plugin_extension_import_boundary(
+        root, json,
+    ));
+}
+
+fn repo_check_no_extension_src_imports(args: Vec<String>) {
+    let root = parse_repo_check_root_arg(args, "repo-check-no-extension-src-imports");
+    finish_check_report(crawclaw_runtime::run_no_extension_src_imports(root));
+}
+
+fn repo_check_no_register_http_handler(args: Vec<String>) {
+    let root = parse_repo_check_root_arg(args, "repo-check-no-register-http-handler");
+    finish_check_report(crawclaw_runtime::run_no_register_http_handler(root));
+}
+
+fn repo_check_web_fetch_provider_boundaries(args: Vec<String>) {
+    let (root, json) =
+        parse_repo_check_root_json_args(args, "repo-check-web-fetch-provider-boundaries");
+    finish_check_report(crawclaw_runtime::run_web_fetch_provider_boundaries(
+        root, json,
+    ));
+}
+
+fn repo_check_web_search_provider_boundaries(args: Vec<String>) {
+    let (root, json) =
+        parse_repo_check_root_json_args(args, "repo-check-web-search-provider-boundaries");
+    finish_check_report(crawclaw_runtime::run_web_search_provider_boundaries(
+        root, json,
+    ));
+}
+
+fn repo_check_webhook_auth_body_order(args: Vec<String>) {
+    let root = parse_repo_check_root_arg(args, "repo-check-webhook-auth-body-order");
+    finish_check_report(crawclaw_runtime::run_webhook_auth_body_order(root));
+}
+
+fn docs_check_i18n_glossary(args: Vec<String>) {
+    let mut root = PathBuf::from(".");
+    let mut base: Option<String> = None;
+    let mut head: Option<String> = None;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--root" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--root requires a value");
+                    std::process::exit(2);
+                };
+                root = PathBuf::from(value);
+                index += 2;
+            }
+            "--base" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--base requires a value");
+                    std::process::exit(2);
+                };
+                base = Some(value.clone());
+                index += 2;
+            }
+            "--head" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--head requires a value");
+                    std::process::exit(2);
+                };
+                head = Some(value.clone());
+                index += 2;
+            }
+            other => {
+                eprintln!("unsupported docs-check-i18n-glossary option: {other}");
+                std::process::exit(2);
+            }
+        }
+    }
+    finish_check_report(crawclaw_runtime::run_docs_i18n_glossary(
+        root,
+        base.as_deref(),
+        head.as_deref(),
+    ));
+}
+
+fn docs_check_links(args: Vec<String>) {
+    let mut root = PathBuf::from(".");
+    let mut anchors = false;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--anchors" => {
+                anchors = true;
+                index += 1;
+            }
+            "--root" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--root requires a value");
+                    std::process::exit(2);
+                };
+                root = PathBuf::from(value);
+                index += 2;
+            }
+            other => {
+                eprintln!("unsupported docs-check-links option: {other}");
+                std::process::exit(2);
+            }
+        }
+    }
+    if anchors {
+        finish_check_report(crawclaw_runtime::run_docs_anchor_audit(root));
+    } else {
+        finish_check_report(crawclaw_runtime::run_docs_link_audit(root));
+    }
+}
+
+fn parse_repo_check_root_arg(args: Vec<String>, command: &str) -> PathBuf {
+    let (root, json) = parse_repo_check_root_json_args(args, command);
+    if json {
+        eprintln!("unsupported {command} option: --json");
+        std::process::exit(2);
+    }
+    root
+}
+
+fn parse_repo_check_root_json_args(args: Vec<String>, command: &str) -> (PathBuf, bool) {
+    let mut root = PathBuf::from(".");
+    let mut json = false;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--json" => {
+                json = true;
+                index += 1;
+            }
+            "--root" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--root requires a value");
+                    std::process::exit(2);
+                };
+                root = PathBuf::from(value);
+                index += 2;
+            }
+            other => {
+                eprintln!("unsupported {command} option: {other}");
+                std::process::exit(2);
+            }
+        }
+    }
+    (root, json)
+}
+
+fn finish_check_report(result: Result<crawclaw_runtime::CheckReport, String>) {
+    match result {
+        Ok(report) => {
+            if !report.stdout.is_empty() {
+                println!("{}", report.stdout.trim_end_matches('\n'));
+            }
+            if !report.stderr.is_empty() {
+                eprint!("{}", report.stderr);
+            }
+            if !report.ok {
+                std::process::exit(1);
+            }
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    }
+}
+
 fn parse_root_arg(args: &[String]) -> Result<PathBuf, String> {
     if args.len() != 2 || args[0] != "--root" {
         return Err(
@@ -690,70 +1210,43 @@ fn parse_optional_root_arg(args: &[String], command: &str) -> Result<PathBuf, St
     ))
 }
 
-fn emit_base_config_schema(args: Vec<String>) {
-    match run_emit_base_config_schema(args) {
-        Ok(Some(payload)) => println!("{payload}"),
-        Ok(None) => {}
-        Err(error) => {
-            eprintln!("{error}");
-            std::process::exit(1);
-        }
+fn parse_package_dir_arg(args: &[String], command: &str) -> Result<PathBuf, String> {
+    if args.len() == 2 && args[0] == "--package-dir" {
+        return Ok(PathBuf::from(&args[1]));
     }
+    Err(format!(
+        "usage: crawclaw-runtime {command} --package-dir <package-dir>"
+    ))
 }
 
-fn run_emit_base_config_schema(args: Vec<String>) -> Result<Option<String>, String> {
-    if args.len() == 2 && args[0] == "--generated-at" {
-        return crawclaw_runtime::base_config_schema_payload_json(&args[1]).map(Some);
-    }
-
-    let mut output: Option<PathBuf> = None;
-    let mut check = false;
+fn parse_plugin_release_command_args(
+    args: Vec<String>,
+    command: &str,
+) -> Result<(PathBuf, Vec<String>), String> {
+    let mut root = PathBuf::from(".");
+    let mut forwarded = Vec::new();
     let mut index = 0;
     while index < args.len() {
-        match args[index].as_str() {
-            "--check" => {
-                check = true;
-                index += 1;
-            }
-            "--write" => {
-                index += 1;
-            }
-            "--output" => {
-                let Some(value) = args.get(index + 1) else {
-                    return Err("--output requires a value".to_string());
-                };
-                output = Some(PathBuf::from(value));
-                index += 2;
-            }
-            other => {
-                return Err(format!(
-                    "unsupported emit-base-config-schema option: {other}"
-                ))
-            }
+        if args[index] == "--root" {
+            let Some(value) = args.get(index + 1) else {
+                return Err("--root requires a value".to_string());
+            };
+            root = PathBuf::from(value);
+            index += 2;
+            continue;
         }
+        forwarded.push(args[index].clone());
+        index += 1;
     }
-
-    let Some(output_path) = output else {
-        return Err(
-            "usage: crawclaw-runtime emit-base-config-schema --generated-at <iso8601> | --output <path> [--check|--write]"
-                .to_string(),
-        );
-    };
-    let result = crawclaw_runtime::write_base_config_schema_artifact(&output_path, check)?;
-    if check {
-        if result.changed {
-            return Err(format!(
-                "[base-config-schema] stale generated output at {}",
-                result.output_path.display()
-            ));
-        }
-    } else if result.wrote {
-        println!(
-            "[base-config-schema] wrote {}",
-            result.output_path.display()
-        );
+    if forwarded.first().is_some_and(|arg| arg == "--") {
+        forwarded.remove(0);
     }
-    Ok(None)
+    if forwarded.iter().any(|arg| arg == "--root") {
+        return Err(format!(
+            "usage: crawclaw-runtime {command} [--root <repo-root>] [plugin release options]"
+        ));
+    }
+    Ok((root, forwarded))
 }
 
 fn emit_config_doc_baseline(args: Vec<String>) {
@@ -797,7 +1290,7 @@ fn run_emit_config_doc_baseline(args: Vec<String>) -> Result<(), String> {
             other => {
                 return Err(format!(
                     "unsupported emit-config-doc-baseline option: {other}"
-                ))
+                ));
             }
         }
     }
@@ -1073,6 +1566,6 @@ fn runtime_root() -> PathBuf {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-plugin-dependency-plan [--check|--write] [--json-output <path>] [--jsonl-output <path>] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | emit-rust-tool-catalog --output <path> [--check|--write] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | package-build-native-artifacts --root <repo-root> | package-prepack --root <repo-root> | package-release-check --root <repo-root> | package-write-build-metadata --root <repo-root> [--build-info] | test-workspace [cargo-test-filter...] | tool <name> [json-input]"
+        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | docs-check-i18n-glossary [--root <repo-root>] [--base <rev>] [--head <rev>] | docs-check-links [--root <repo-root>] [--anchors] | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-plugin-dependency-plan [--check|--write] [--json-output <path>] [--jsonl-output <path>] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | emit-rust-tool-catalog --output <path> [--check|--write] | ghsa-patch --ghsa <GHSA-id-or-url> --summary <text> --severity <level> --description-file <path> --vulnerable-version-range <range> --patched-versions <range-or-null> | github-labels-sync [--root <repo-root>] [--check] | npm-package-metadata --package-dir <package-dir> | npm-publish-plan [--root <repo-root>|--package-dir <package-dir>|--version <version>] [--root-package] [--requested-tag <tag>] [--current-beta-version <version>] [--publish-mode <mode>] | npm-release-check [--root <repo-root>] | npm-postpublish-verify <version> | plugin-npm-release-check [--root <repo-root>] [plugin release options] | plugin-npm-release-plan [--root <repo-root>] [plugin release options] | plugins-sync [--root <repo-root>] | run-oxlint [args...] | run-tsgo [args...] | run-typecheck [args...] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | package-build-native-artifacts --root <repo-root> | package-prepack --root <repo-root> | package-release-check --root <repo-root> | package-write-build-metadata --root <repo-root> [--build-info] | repo-check-no-conflict-markers [--root <repo-root>] | repo-check-runtime-module-boundaries [--root <repo-root>] [--json] | repo-check-plugin-extension-import-boundary [--root <repo-root>] [--json] | repo-check-no-extension-src-imports [--root <repo-root>] | repo-check-no-register-http-handler [--root <repo-root>] | repo-check-web-fetch-provider-boundaries [--root <repo-root>] [--json] | repo-check-web-search-provider-boundaries [--root <repo-root>] [--json] | repo-check-webhook-auth-body-order [--root <repo-root>] | repo-check-ts-loc --root <repo-root> --max <lines> | test-workspace [cargo-test-filter...] | tool <name> [json-input]"
     );
 }

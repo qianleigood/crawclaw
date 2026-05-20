@@ -140,14 +140,11 @@ Use this wording consistently:
 
 Memory-heavy areas today include:
 
-- `src/memory`
-- `src/memory/engine`
-- `src/memory/durable`
-- `src/memory/experience`
+- Rust memory runtime, durable recall, experience, and compaction surfaces
 
 Skill-heavy areas today include:
 
-- `src/agents/skills`
+- Rust runtime skill discovery/config surfaces
 - `skills/`
 
 ## Decision Test

@@ -2,7 +2,6 @@
 
 use std::env;
 use std::path::PathBuf;
-use std::process::Command;
 
 use crawclaw_gateway::{call_local_gateway_method, run_gateway, GatewayBind, GatewayRunConfig};
 
@@ -97,7 +96,6 @@ fn emit_protocol_schema(args: Vec<String>) -> Result<(), String> {
 
 fn emit_protocol_artifacts(args: Vec<String>) -> Result<(), String> {
     let mut schema_output: Option<PathBuf> = None;
-    let mut schema_ts_output: Option<PathBuf> = None;
     let mut index = 0;
     while index < args.len() {
         match args[index].as_str() {
@@ -108,13 +106,6 @@ fn emit_protocol_artifacts(args: Vec<String>) -> Result<(), String> {
                 schema_output = Some(PathBuf::from(value));
                 index += 2;
             }
-            "--schema-ts-output" => {
-                let Some(value) = args.get(index + 1) else {
-                    return Err("--schema-ts-output requires a value".to_string());
-                };
-                schema_ts_output = Some(PathBuf::from(value));
-                index += 2;
-            }
             other => {
                 return Err(format!(
                     "unsupported emit-protocol-artifacts option: {other}"
@@ -123,22 +114,13 @@ fn emit_protocol_artifacts(args: Vec<String>) -> Result<(), String> {
         }
     }
     let schema_output = schema_output.ok_or_else(|| {
-        "usage: crawclaw-gateway emit-protocol-artifacts --schema-output <path> [--schema-ts-output <path>]"
-            .to_string()
+        "usage: crawclaw-gateway emit-protocol-artifacts --schema-output <path>".to_string()
     })?;
     write_protocol_artifact(
         &schema_output,
         crawclaw_gateway::gateway_protocol_schema_json(),
         "schema",
     )?;
-    if let Some(schema_ts_output) = schema_ts_output {
-        write_protocol_artifact(
-            &schema_ts_output,
-            &crawclaw_gateway::gateway_protocol_schema_ts()?,
-            "typescript schema",
-        )?;
-        format_protocol_typescript_artifact(&schema_ts_output)?;
-    }
     Ok(())
 }
 
@@ -158,47 +140,6 @@ fn write_protocol_artifact(output: &PathBuf, contents: &str, label: &str) -> Res
         )
     })?;
     println!("wrote {}", output.display());
-    Ok(())
-}
-
-fn format_protocol_typescript_artifact(output: &PathBuf) -> Result<(), String> {
-    let repo_root =
-        env::current_dir().map_err(|error| format!("failed to resolve current dir: {error}"))?;
-    let direct_formatter = repo_root
-        .join("node_modules")
-        .join(".bin")
-        .join(if cfg!(windows) { "oxfmt.cmd" } else { "oxfmt" });
-    let mut command = if direct_formatter.exists() {
-        let mut command = Command::new(direct_formatter);
-        command.arg("--write").arg(output);
-        command
-    } else {
-        let mut command = Command::new(if cfg!(windows) { "pnpm.cmd" } else { "pnpm" });
-        command.arg("exec").arg("oxfmt").arg("--write").arg(output);
-        command
-    };
-    let result = command
-        .current_dir(&repo_root)
-        .output()
-        .map_err(|error| format!("failed to launch protocol TypeScript formatter: {error}"))?;
-    if !result.status.success() {
-        let stderr = String::from_utf8_lossy(&result.stderr).trim().to_string();
-        let stdout = String::from_utf8_lossy(&result.stdout).trim().to_string();
-        let details = [stderr, stdout]
-            .into_iter()
-            .filter(|value| !value.is_empty())
-            .collect::<Vec<_>>()
-            .join("\n");
-        return Err(format!(
-            "failed to format protocol TypeScript artifact {}: {}",
-            output.display(),
-            if details.is_empty() {
-                result.status.to_string()
-            } else {
-                details
-            }
-        ));
-    }
     Ok(())
 }
 
@@ -250,6 +191,6 @@ fn exit_usage(message: &str) -> ! {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-gateway [--bind 127.0.0.1|0.0.0.0] [--port PORT] [--runtime-root PATH] | call --method <name> [--params-json JSON] | emit-protocol-schema --output <path> | emit-protocol-artifacts --schema-output <path> [--schema-ts-output <path>]"
+        "Usage: crawclaw-gateway [--bind 127.0.0.1|0.0.0.0] [--port PORT] [--runtime-root PATH] | call --method <name> [--params-json JSON] | emit-protocol-schema --output <path> | emit-protocol-artifacts --schema-output <path>"
     );
 }

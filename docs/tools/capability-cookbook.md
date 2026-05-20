@@ -75,13 +75,11 @@ Feature plugin:
 
 For a new capability, expect to touch these areas:
 
-- `src/<capability>/types.ts`
-- `src/<capability>/...registry/runtime.ts`
-- `src/plugins/types.ts`
-- `src/plugins/contracts/registry.ts`
+- `src/generated/plugins/bundled-capability-metadata.generated.json`
 - `crates/crawclaw-plugin-sdk/src/lib.rs`
 - `crates/crawclaw-plugin-host/src/lib.rs`
 - `crates/crawclaw-runtime/src/lib.rs`
+- the owning Rust crate for the capability contract/runtime
 - one or more bundled plugin packages
 - config/docs/tests
 
@@ -91,7 +89,7 @@ Before shipping a new capability, verify:
 
 - no channel/tool imports vendor code directly
 - the runtime helper is the shared path
-- at least one contract test asserts bundled ownership
+- at least one Rust contract test asserts bundled ownership
 - config docs name the new model/config key
 - plugin docs explain the ownership boundary
 

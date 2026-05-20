@@ -54,8 +54,7 @@ Lower max dimensions generally reduce token usage; higher dimensions preserve de
 
 Implementation:
 
-- `sanitizeSessionMessagesImages` in `src/agents/runtime-helpers/images.ts`
-- `sanitizeContentBlocksImages` in `src/agents/tool-images.ts`
+- Rust runtime context assembly sanitizes session and tool image payloads.
 - Max image side is configurable via `agents.defaults.imageMaxDimensionPx` (default: `1200`).
 
 ---

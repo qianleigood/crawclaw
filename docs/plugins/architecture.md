@@ -103,14 +103,13 @@ CrawClaw's plugin system has four layers:
 1. **Manifest + discovery**
    CrawClaw finds candidate plugins from configured paths, workspace roots,
    global extension roots, and bundled extensions. Discovery reads native
-   `crawclaw.plugin.json` manifests plus supported bundle manifests first.
+   `crawclaw.plugin.json` manifests through the Rust runtime registry.
 2. **Enablement + validation**
    Core decides whether a discovered plugin is enabled, disabled, blocked, or
    selected for an exclusive slot such as memory.
 3. **Runtime loading**
    CrawClaw reads plugin metadata and Rust native descriptors into a central
-   registry. Compatible bundles are normalized into registry records without
-   importing runtime code.
+   registry.
 4. **Surface consumption**
    The rest of CrawClaw reads the registry to expose Rust-owned capabilities,
    provider setup, Desktop surfaces, and Gateway API actions.
@@ -349,7 +348,7 @@ Keep capability registration public. Trim non-contract helper exports:
 At startup, CrawClaw does roughly this:
 
 1. discover candidate plugin roots
-2. read native or compatible bundle manifests and package metadata
+2. read native manifests and package metadata
 3. reject unsafe candidates
 4. normalize plugin config (`plugins.enabled`, `allow`, `deny`, `entries`,
    `slots`, `load.paths`)
@@ -366,7 +365,7 @@ ownership looks suspicious for non-bundled plugins.
 The manifest is the control-plane source of truth. CrawClaw uses it to:
 
 - identify the plugin
-- discover declared channels/skills/config schema or bundle capabilities
+- discover declared channels, skills, and config schema metadata
 - validate `plugins.entries.<id>.config`
 - augment browser-client labels/placeholders
 - show install/catalog metadata
@@ -547,13 +546,14 @@ JavaScript plugin SDK package exports have been removed from the npm package.
 - Bundled extension internals remain private. Core and tests should read
   manifest/package metadata and Rust/native descriptors for repo-owned
   packages; external plugins should use the Rust SDK.
-- Repo-private TypeScript helpers can exist only as implementation detail. They
-  are not a public SDK and must not be exported as npm package subpaths.
+- Repo-private TypeScript helpers are not part of the runtime boundary. Do not
+  add them as a replacement for Rust/native contracts.
 
 ## Message tool schemas
 
-Plugins should own channel-specific `describeMessageTool(...)` schema
-contributions. Keep provider-specific fields in the plugin, not in shared core.
+Plugins should own channel-specific message tool schema contributions through
+Rust/native descriptors. Keep provider-specific fields in the plugin, not in
+shared core.
 
 If a schema shape only makes sense for one provider, define it in that plugin's
 own source instead of promoting it into the shared SDK.
@@ -617,12 +617,12 @@ that should be user-managed instead of shipped in the Rust catalog.
 
 ## Read-only channel inspection
 
-If your plugin registers a channel, prefer implementing
-`plugin.config.inspectAccount(cfg, accountId)` alongside `resolveAccount(...)`.
+If your plugin registers a channel, expose read-only account inspection through
+native descriptor/status surfaces alongside runtime account resolution.
 
 Why:
 
-- `resolveAccount(...)` is the runtime path. It is allowed to assume credentials
+- Runtime account resolution is the runtime path. It is allowed to assume credentials
   are fully materialized and can fail fast when required secrets are missing.
 - Read-only command paths such as CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API,
   CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, and doctor/config
@@ -696,12 +696,12 @@ for a concrete file checklist and worked example.
 When you add a new capability, the implementation should usually touch these
 surfaces together:
 
-- core contract types in `src/<capability>/types.ts`
-- core runner/runtime helper in `src/<capability>/runtime.ts`
-- plugin API registration surface in `src/plugins/types.ts`
-- Rust/native descriptor exposure in the owning Rust crate when feature/channel
-  plugins need to consume runtime capabilities
-- ownership/contract assertions in `src/plugins/contracts/registry.ts`
+- Rust contract types in the owning crate
+- Rust/native descriptor exposure when feature/channel plugins need to consume
+  runtime capabilities
+- Gateway/runtime wiring when operators need a control-plane method or status
+  surface
+- ownership/contract assertions in the Rust-generated bundled capability metadata
 - operator/plugin docs in `docs/`
 
 If one of those surfaces is missing, that is usually a sign the capability is
@@ -709,31 +709,9 @@ not fully integrated yet.
 
 ### Capability template
 
-Minimal pattern:
-
-```ts
-// core contract
-export type VideoGenerationProviderPlugin = {
-  id: string;
-  label: string;
-  generateVideo: (req: VideoGenerationRequest) => Promise<VideoGenerationResult>;
-};
-
-// Native plugin descriptors are the runtime extension mechanism for new
-// provider-like capabilities.
-
-// shared runtime helper for feature/channel plugins
-const clip = await api.runtime.videoGeneration.generateFile({
-  prompt: "Show the robot walking through the lab.",
-  cfg,
-});
-```
-
-Contract test pattern:
-
-```ts
-expect(findVideoGenerationProviderIdsForPlugin("openai")).toEqual(["openai"]);
-```
+Use the Rust plugin SDK and native descriptor helpers as the template. Do not
+add a TypeScript registration callback or TypeScript contract test for new
+production capabilities.
 
 That keeps the rule simple:
 

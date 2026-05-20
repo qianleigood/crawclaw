@@ -33,7 +33,6 @@ This audit applies the current `skill-creator` standard:
   - `skills-optional/feishu-file-sender`
   - `skills-optional/feishu-office-toolkit`
   - `skills-optional/humanizer-zh`
-  - `skills-optional/minimax-pdf`
   - `skills-optional/redbook-skills`
   - `tavily-web-search-for-crawclaw`
   - `skills-optional/transnetv2-scene-detect`

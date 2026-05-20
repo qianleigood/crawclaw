@@ -1,6 +1,5 @@
 # Special Agents
 
-`special/**` is the shared substrate for maintenance, review, and memory-related background
-agents.
-
-Use this layer instead of introducing a private background-agent mechanism inside another domain.
+The old TypeScript special-agent substrate has been removed. Maintenance,
+review, and memory-related background agent behavior is Rust-owned in
+`crates/crawclaw-runtime`.

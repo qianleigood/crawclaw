@@ -13,31 +13,55 @@ mod config_contract;
 mod core_tools;
 pub mod cron;
 mod desktop_packaging;
+mod ghsa_patch;
+mod github_labels;
 pub mod memory;
 mod message_policy;
 mod native_plugin_registry;
+mod node_tool_runner;
+mod npm_release;
 mod package_build;
 mod package_release;
 mod plugin_dependency_plan;
+mod plugin_version_sync;
 mod provider_contract;
 mod repo_checks;
+mod repo_guardrails;
 pub mod special_agents;
 
 pub use config_contract::{
     base_config_schema_payload, base_config_schema_payload_json, config_doc_baseline_json,
-    config_doc_baseline_jsonl, write_base_config_schema_artifact,
-    write_config_doc_baseline_artifacts, BaseConfigSchemaWriteResult, ConfigDocBaselineWriteResult,
+    config_doc_baseline_jsonl, write_config_doc_baseline_artifacts, ConfigDocBaselineWriteResult,
 };
 use core_tools::build_pi_agent_rust_tool_registry;
 pub use desktop_packaging::{
     check_desktop_runtime_release_inputs, resolve_desktop_runtime_stage_paths,
     stage_desktop_tauri_runtime, DesktopRuntimeCheckOptions, DesktopRuntimeStagePaths,
 };
+pub use ghsa_patch::{parse_ghsa_id, run_ghsa_patch};
+pub use github_labels::{
+    collect_configured_label_names, parse_github_repo_remote, resolve_label_metadata,
+    run_github_labels_sync, LabelMetadata,
+};
 pub use message_policy::execute_message_policy_operation;
 pub use native_plugin_registry::{
     dispatch_native_service_lifecycle, invoke_native_plugin_operation, load_native_plugin_registry,
     with_native_runtime_context, NativePluginRegistry, NativePluginRegistryDiagnostic,
     NativePluginRuntime, NativeSidecarCommand, NativeToolRegistration,
+};
+pub use node_tool_runner::{
+    build_oxlint_invocation, build_tsgo_invocation, build_typecheck_invocation, run_oxlint,
+    run_tsgo, run_typecheck, ToolInvocation,
+};
+pub use npm_release::{
+    collect_plugin_release_plan, collect_publishable_plugin_packages, compare_release_versions,
+    format_npm_publish_plan_lines, parse_plugin_release_args, parse_release_version,
+    read_package_metadata, resolve_npm_dist_tag_mirror_auth, resolve_plugin_npm_publish_plan,
+    resolve_root_npm_publish_plan, run_root_npm_release_check, select_publishable_plugin_packages,
+    should_require_npm_dist_tag_mirror_auth, verify_published_npm_install, NpmDistTagMirrorAuth,
+    NpmPublishPlan, ParsedPluginReleaseArgs, ParsedReleaseVersion, PluginReleasePlan,
+    PluginReleasePlanItem, PluginReleaseSelectionMode, PublishablePluginPackage, ReleaseChannel,
+    RootNpmReleaseCheckResult,
 };
 pub use package_build::{
     list_bundled_plugin_pack_artifacts, list_static_package_asset_outputs,
@@ -52,6 +76,7 @@ pub use plugin_dependency_plan::{
     relative_to_repo as plugin_dependency_plan_relative_to_repo,
     write_plugin_dependency_plan_artifacts, PluginDependencyPlanWriteResult,
 };
+pub use plugin_version_sync::{sync_plugin_versions, PluginVersionSyncSummary};
 pub use provider_contract::{
     render_bundled_capability_metadata_module, render_bundled_provider_auth_env_var_module,
     render_provider_runtime_constants_module, write_bundled_capability_metadata_module,
@@ -59,6 +84,13 @@ pub use provider_contract::{
     GeneratedModuleWriteResult,
 };
 pub use repo_checks::{collect_ts_loc_offenders, render_docs_list, TsLocOffender};
+pub use repo_guardrails::{
+    run_docs_anchor_audit, run_docs_i18n_glossary, run_docs_link_audit, run_no_conflict_markers,
+    run_no_extension_src_imports, run_no_register_http_handler,
+    run_plugin_extension_import_boundary, run_runtime_module_boundaries,
+    run_web_fetch_provider_boundaries, run_web_search_provider_boundaries,
+    run_webhook_auth_body_order, CheckReport,
+};
 
 pub use crawclaw_channels::{
     canonical_agent_run_event_types, channel_contract_version, dispatch_native_channel_outbound,
@@ -3218,6 +3250,45 @@ mod tests {
         }
     }
 
+    fn collect_script_files(root: &Path, files: &mut Vec<PathBuf>) {
+        for entry in fs::read_dir(root).expect("read source directory") {
+            let entry = entry.expect("source directory entry");
+            let path = entry.path();
+            if path.is_dir() {
+                if path.file_name().is_some_and(|name| name == "node_modules") {
+                    continue;
+                }
+                collect_script_files(&path, files);
+            } else if path.is_file()
+                && path.extension().is_some_and(|ext| {
+                    matches!(
+                        ext.to_string_lossy().as_ref(),
+                        "ts" | "tsx" | "mts" | "cts" | "js" | "mjs" | "cjs"
+                    )
+                })
+            {
+                files.push(path);
+            }
+        }
+    }
+
+    fn tracked_files(root: &Path) -> Vec<String> {
+        let output = std::process::Command::new("git")
+            .args(["ls-files"])
+            .current_dir(root)
+            .output()
+            .expect("run git ls-files");
+        assert!(
+            output.status.success(),
+            "git ls-files failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .map(ToOwned::to_owned)
+            .collect()
+    }
+
     fn slash_path(path: &Path) -> String {
         path.to_string_lossy()
             .replace(std::path::MAIN_SEPARATOR, "/")
@@ -3250,6 +3321,49 @@ mod tests {
 
     fn is_ts_declaration(relative: &str) -> bool {
         relative.ends_with(".d.ts") || relative.ends_with(".d.tsx")
+    }
+
+    fn is_script_source(relative: &str) -> bool {
+        [".ts", ".tsx", ".mts", ".cts", ".js", ".mjs", ".cjs"]
+            .iter()
+            .any(|extension| relative.ends_with(extension))
+    }
+
+    fn is_allowed_desktop_script_surface(relative: &str) -> bool {
+        relative.starts_with("apps/crawclaw-desktop/src/")
+            || relative == "apps/crawclaw-desktop/vite.config.ts"
+    }
+
+    #[test]
+    fn rust_runtime_repo_guardrails_keep_non_desktop_script_sources_absent() {
+        let root = repo_root();
+        let existing = tracked_files(&root)
+            .into_iter()
+            .filter(|relative| root.join(relative).is_file())
+            .filter(|relative| is_script_source(relative))
+            .filter(|relative| !is_allowed_desktop_script_surface(relative))
+            .collect::<Vec<_>>();
+
+        assert!(
+            existing.is_empty(),
+            "non-desktop TypeScript/JavaScript sources came back: {existing:?}"
+        );
+    }
+
+    #[test]
+    fn rust_runtime_repo_guardrails_keep_legacy_src_script_runtime_absent() {
+        let root = repo_root();
+        let mut files = Vec::new();
+        collect_script_files(&root.join("src"), &mut files);
+        let existing = files
+            .into_iter()
+            .map(|file| slash_path(file.strip_prefix(&root).expect("relative source path")))
+            .collect::<Vec<_>>();
+
+        assert!(
+            existing.is_empty(),
+            "legacy TypeScript/JavaScript src runtime surfaces came back: {existing:?}"
+        );
     }
 
     #[test]
@@ -3304,6 +3418,48 @@ mod tests {
         assert!(
             hits.is_empty(),
             "removed TypeScript test environment toggles came back: {hits:?}"
+        );
+    }
+
+    #[test]
+    fn rust_runtime_repo_guardrails_keep_removed_ts_plugin_control_plane_absent() {
+        let root = repo_root();
+        let removed = [
+            "src/config/schema.ts",
+            "src/config/schema.shared.ts",
+            "src/config/schema.tags.ts",
+            "src/generated/config/schema.base.generated.json",
+            "src/plugins/bundle-config-shared.ts",
+            "src/plugins/bundle-lsp.ts",
+            "src/plugins/bundle-manifest.ts",
+            "src/plugins/bundle-mcp.ts",
+            "src/plugins/discovery.ts",
+            "src/plugins/manifest-registry.ts",
+            "src/plugins/manifest.ts",
+            "src/plugins/schema-validator.ts",
+            "scripts/crawclaw-npm-postpublish-verify.ts",
+            "scripts/crawclaw-npm-release-check.ts",
+            "scripts/ghsa-patch.mjs",
+            "scripts/lib/npm-publish-plan.mjs",
+            "scripts/lib/plugin-npm-release.ts",
+            "scripts/lib/local-heavy-check-runtime.mjs",
+            "scripts/plugin-npm-release-check.ts",
+            "scripts/plugin-npm-release-plan.ts",
+            "scripts/run-oxlint.mjs",
+            "scripts/run-tsgo.mjs",
+            "scripts/sync-labels.ts",
+            "scripts/sync-plugin-versions.ts",
+            "scripts/typecheck.mjs",
+        ];
+        let existing = removed
+            .iter()
+            .filter(|relative| root.join(relative).exists())
+            .copied()
+            .collect::<Vec<_>>();
+
+        assert!(
+            existing.is_empty(),
+            "removed TypeScript plugin/config control-plane surfaces came back: {existing:?}"
         );
     }
 

@@ -122,16 +122,14 @@ Use this wording consistently:
 
 Skill-heavy areas today include:
 
-- `src/agents/skills`
+- Rust runtime skill discovery/config surfaces
 - `skills/`
 
 Workflow-heavy areas today include:
 
-- `src/workflows`
 - Rust core `workflow` and `workflowize` tools
 - Rust Gateway workflow RPC handlers
-- `src/cron`
-- `src/hooks`
+- Rust cron and hook runtime surfaces
 
 ## Decision Test
 

@@ -6,12 +6,13 @@ on:
       - main
     paths:
       - ".github/workflows/plugin-npm-release.yml"
+      - "crates/crawclaw-runtime/Cargo.toml"
+      - "crates/crawclaw-runtime/src/lib.rs"
+      - "crates/crawclaw-runtime/src/main.rs"
+      - "crates/crawclaw-runtime/src/npm_release.rs"
       - "extensions/**"
       - "package.json"
-      - "scripts/lib/plugin-npm-release.ts"
       - "scripts/plugin-npm-publish.sh"
-      - "scripts/plugin-npm-release-check.ts"
-      - "scripts/plugin-npm-release-plan.ts"
   workflow_dispatch:
     inputs:
       publish_scope:
@@ -110,11 +111,11 @@ jobs:
             if [[ -n "${RELEASE_PLUGINS}" ]]; then
               plan_args+=(--plugins "${RELEASE_PLUGINS}")
             fi
-            node --import tsx scripts/plugin-npm-release-plan.ts "${plan_args[@]}" > .local/plugin-npm-release-plan.json
+            pnpm --silent release:plugins:npm:plan -- "${plan_args[@]}" > .local/plugin-npm-release-plan.json
           elif [[ -n "${BASE_REF}" ]]; then
-            node --import tsx scripts/plugin-npm-release-plan.ts --base-ref "${BASE_REF}" --head-ref "${HEAD_REF}" > .local/plugin-npm-release-plan.json
+            pnpm --silent release:plugins:npm:plan -- --base-ref "${BASE_REF}" --head-ref "${HEAD_REF}" > .local/plugin-npm-release-plan.json
           else
-            node --import tsx scripts/plugin-npm-release-plan.ts > .local/plugin-npm-release-plan.json
+            pnpm --silent release:plugins:npm:plan > .local/plugin-npm-release-plan.json
           fi
 
           cat .local/plugin-npm-release-plan.json

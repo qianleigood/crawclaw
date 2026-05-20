@@ -9,8 +9,7 @@ title: "Platforms"
 # Platforms
 
 CrawClaw Desktop runs the local Rust Gateway/runtime. TypeScript and JavaScript
-remain for the desktop renderer, docs/build tooling, and typed client helpers,
-not for the default product runtime path.
+remain only for the desktop renderer, not for the default product runtime path.
 
 CrawClaw focuses on the desktop app, local Rust Gateway, native plugins, and
 local integrations. Linux, macOS, and Windows are supported Gateway host targets

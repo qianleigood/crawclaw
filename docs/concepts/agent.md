@@ -68,8 +68,8 @@ Skills can be gated by config/env (see `skills` in [Gateway configuration](/gate
 ## Runtime boundaries
 
 The Rust agent runtime owns model selection, tool wiring, prompt assembly,
-session state, and transcript writes. TypeScript code on this path is limited
-to Gateway clients, channel projection, and UI-facing shells.
+session state, and transcript writes. TypeScript is limited to the desktop
+renderer and must not re-enter the agent runtime path.
 
 ## Task-backed runtime
 

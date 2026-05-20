@@ -215,9 +215,8 @@ See [CrawClaw Desktop or the local Gateway API Gateway API reference](/tools/plu
 ## Plugin API overview
 
 Plugins are discovered from `crawclaw.plugin.json` and Rust native descriptors.
-TypeScript package files are allowed for metadata, generated types, docs, and
-tests only; production runtime behavior does not run through a TypeScript
-callback.
+Package metadata stays declarative and non-executing; production runtime
+behavior does not run through a TypeScript callback.
 
 Common capability surfaces:
 
@@ -235,7 +234,7 @@ Rust.
 ## Related
 
 - [Building Plugins](/plugins/building-plugins) — create your own plugin
-- [Plugin Bundles](/plugins/bundles) — Codex/Claude/Cursor bundle compatibility
+- [Plugin Bundles](/plugins/bundles) — legacy bundle migration notes
 - [Plugin Manifest](/plugins/manifest) — manifest schema
 - [Plugin Internals](/plugins/architecture) — capability model and load pipeline
 - [Community Plugins](/plugins/community) — third-party listings

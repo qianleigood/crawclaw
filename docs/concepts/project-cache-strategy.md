@@ -9,8 +9,8 @@ title: Project Cache Strategy
 # Project Cache Strategy
 
 CrawClaw does not have one central cache service. It uses domain-owned caches
-across the Rust agent runtime, TypeScript projection helpers, web tools,
-memory, plugins, routing, gateway control plane, media, and UI.
+across the Rust agent runtime, native plugins, routing, Gateway control plane,
+media, and the desktop UI.
 
 The important review question is not “where is the Map.” It is:
 
@@ -19,11 +19,10 @@ The important review question is not “where is the Map.” It is:
 - how the cache expires or invalidates
 - how the relevant Rust/native gate proves the cache cannot cross user, session, provider, or config boundaries
 
-## Cache Governance Registry
+## Cache Governance
 
-The code-level inventory starts at `src/cache/governance.ts`.
-
-Each critical cache should have a `CacheGovernanceDescriptor` with:
+The old TypeScript cache governance registry has been removed. Each critical
+cache should now be documented and tested with its Rust/native owner, covering:
 
 - `owner`
 - `key`
@@ -31,14 +30,10 @@ Each critical cache should have a `CacheGovernanceDescriptor` with:
 - `invalidation`
 - `observability`
 
-Keep descriptor IDs unique and register critical mutable caches such as
-`config.sessions.store` and `agents.web-fetch.response` in this inventory.
+Keep identifiers stable in test names and docs when a cache crosses session,
+provider, account, or config boundaries.
 
 ## Query And Prompt Identity
-
-Primary code:
-
-- `src/agents/query-context/cache-contract.ts`
 
 This layer defines the query-layer cache envelope and hashes:
 
@@ -50,23 +45,12 @@ Tool inventory, thinking config, system prompt text, and fork context are part o
 
 ## Runtime Acceleration Caches
 
-Primary code:
-
-- `src/config/cache-utils.ts`
-- `src/agents/context-cache.ts`
-- `src/agents/bootstrap-cache.ts`
-- Rust AgentRuntime session and context caches
-
-These caches reduce repeated runtime work. They are usually short-lived, process-local, and scoped by TTL, session, or workspace.
-
-`src/config/cache-utils.ts` should stay a small primitive layer. Domain-specific invalidation belongs with the domain cache that owns the data.
+Rust AgentRuntime session and context caches reduce repeated runtime work. They
+are usually short-lived, process-local, and scoped by TTL, session, or
+workspace. Domain-specific invalidation belongs with the Rust/native owner of
+the data.
 
 ## Session Store Cache
-
-Primary code:
-
-- `src/config/sessions/store-cache.ts`
-- `src/config/sessions/store.ts`
 
 The session store cache has two parts:
 
@@ -82,7 +66,6 @@ persistence gate before changing the cache semantics.
 Primary code:
 
 - `crates/crawclaw-native-plugins/src/web.rs`
-- `src/cache/web-fetch-cache.ts`
 
 `web_fetch` caches Rust native fetch responses in process memory. Its cache key includes the requested URL, output shape, fetch settings, provider ID, sticky `sessionId`, and provider wait hints.
 
@@ -92,25 +75,19 @@ This is a security-sensitive cache. A rendered response for one sticky browser s
 
 Primary code:
 
-- `src/routing/resolve-route.ts`
-- `src/plugins/loader.ts`
-- `src/plugins/discovery.ts`
-- `src/plugins/manifest-registry.ts`
-- `src/gateway/model-pricing-cache.ts`
-- `src/infra/outbound/directory-cache.ts`
+- `crates/crawclaw-runtime/src/native_plugin_registry.rs`
+- `crates/crawclaw-gateway/src/lib.rs`
+- `crates/crawclaw-providers/src/lib.rs`
 
-Routing caches are keyed by config object plus content signatures for mutable config sections such as `bindings`, `agents`, and `session`. This lets routing stay fast for stable config while still detecting in-place mutations during tests or reload flows.
+Routing caches are keyed by config object plus content signatures for mutable
+config sections such as `bindings`, `agents`, and `session`. This lets routing
+stay fast for stable config while still detecting in-place mutations during
+tests or reload flows.
 
-Plugin discovery and manifest caches use short TTL windows to collapse bursty startup reloads. Loader registry caches use bounded entries and explicit clear functions.
+Native plugin discovery is owned by the Rust runtime registry. Loader registry
+caches use bounded entries and explicit clear functions.
 
 ## Memory And File Caches
-
-Primary code:
-
-- `src/memory/session-summary/store.ts`
-- `src/memory/engine/built-in-memory-runtime.ts`
-- `src/memory/durable/body-index.ts`
-- `src/media-understanding/attachments.cache.ts`
 
 These caches are domain-owned. File caches commonly use `mtimeMs + size` fingerprints, which are suitable for best-effort read acceleration but should not be treated as cryptographic content identity.
 

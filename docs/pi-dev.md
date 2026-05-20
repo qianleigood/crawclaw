@@ -9,7 +9,7 @@ read_when:
 # Agent Runtime Development Workflow
 
 This guide summarizes a sane workflow for working on CrawClaw's Rust-owned
-agent runtime and the remaining TypeScript projection surfaces around it.
+agent runtime.
 
 ## Type Checking and Linting
 

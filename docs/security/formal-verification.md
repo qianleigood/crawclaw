@@ -22,7 +22,7 @@ misconfiguration safety), under explicit assumptions.
 - Each claim has a runnable model-check over a finite state space.
 - Many claims have a paired **negative model** that produces a counterexample trace for a realistic bug class.
 
-**What this is not (yet):** a proof that “CrawClaw is secure in all respects” or that the full TypeScript implementation is correct.
+**What this is not (yet):** a proof that “CrawClaw is secure in all respects” or that the full Rust/native implementation is correct.
 
 ## Where the models live
 
@@ -30,7 +30,7 @@ Models are maintained in a separate repo: [vignesh07/crawclaw-formal-models](htt
 
 ## Important caveats
 
-- These are **models**, not the full TypeScript implementation. Drift between model and code is possible.
+- These are **models**, not the full Rust/native implementation. Drift between model and code is possible.
 - Results are bounded by the state space explored by TLC; “green” does not imply security beyond the modeled assumptions and bounds.
 - Some claims rely on explicit environmental assumptions (e.g., correct deployment, correct configuration inputs).
 

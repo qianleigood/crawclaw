@@ -40,12 +40,12 @@ CrawClaw has three public release lanes:
 - Run `pnpm build` before `pnpm release:check` so the expected `dist/*`
   release artifacts exist for the pack validation step
 - Run `pnpm release:check` before every tagged release
-- Run `RELEASE_TAG=vYYYY.M.D node --import tsx scripts/crawclaw-npm-release-check.ts`
-  (or the matching beta/correction tag) before approval
+- Run `RELEASE_TAG=vYYYY.M.D pnpm release:crawclaw:npm:check` (or the
+  matching beta/correction tag) before approval
 - After npm publish, run
-  `node --import tsx scripts/crawclaw-npm-postpublish-verify.ts YYYY.M.D`
-  (or the matching beta/correction version) to verify the published registry
-  install path in a fresh temp prefix
+  `pnpm release:crawclaw:npm:verify-published YYYY.M.D` (or the matching
+  beta/correction version) to verify the published registry install path in a
+  fresh temp prefix
 - Maintainer release automation now uses preflight-then-promote:
   - real npm publish must pass a successful npm `preflight_run_id`
   - stable npm releases default to `beta`
@@ -61,9 +61,9 @@ CrawClaw has three public release lanes:
   also checks the same temp-prefix upgrade path from `YYYY.M.D` to `YYYY.M.D-N`
   so release corrections cannot silently leave older global installs on the
   base stable payload
-- If the release work touched CI planning, regenerate and review the generated
-  check matrix via `node scripts/ci-write-manifest-outputs.mjs --workflow ci`
-  before approval so release notes do not describe a stale CI layout
+- If the release work touched CI planning, review the `preflight` manifest logic
+  in `.github/workflows/ci.yml` before approval so release notes do not describe
+  a stale CI layout
 - Stable macOS release readiness also includes the updater surfaces:
   - the GitHub release must end up with the packaged `.zip`, `.dmg`, and `.dSYM.zip`
   - `appcast.xml` on `main` must point at the new stable zip after publish
@@ -120,7 +120,7 @@ documented and operator-visible.
 ## Public references
 
 - [`.github/workflows/crawclaw-npm-release.yml`](https://github.com/qianleigood/crawclaw/blob/main/.github/workflows/crawclaw-npm-release.yml)
-- [`scripts/crawclaw-npm-release-check.ts`](https://github.com/qianleigood/crawclaw/blob/main/scripts/crawclaw-npm-release-check.ts)
+- [`crates/crawclaw-runtime/src/npm_release.rs`](https://github.com/qianleigood/crawclaw/blob/main/crates/crawclaw-runtime/src/npm_release.rs)
 - [`scripts/package-mac-dist.sh`](https://github.com/qianleigood/crawclaw/blob/main/scripts/package-mac-dist.sh)
 - [`scripts/make_appcast.sh`](https://github.com/qianleigood/crawclaw/blob/main/scripts/make_appcast.sh)
 

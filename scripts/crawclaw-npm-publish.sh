@@ -17,18 +17,18 @@ if [[ -n "${publish_target}" && -f "${publish_target}" ]]; then
   esac
 fi
 
-package_version="$(node -p "require('./package.json').version")"
+package_metadata="$(
+  cargo run --quiet -p crawclaw-runtime -- npm-package-metadata --package-dir . |
+    sed '/^\[bubbletea-macros\]/d'
+)"
+package_version="$(printf '%s\n' "${package_metadata}" | sed -n '2p')"
 mapfile -t publish_plan < <(
-  PACKAGE_VERSION="${package_version}" REQUESTED_PUBLISH_TAG="${CRAWCLAW_NPM_PUBLISH_TAG:-${CRAWCLAW_NPM_PUBLISH_TAG:-}}" \
-    node --import tsx --input-type=module <<'EOF'
-import { resolveNpmPublishPlan } from "./scripts/crawclaw-npm-release-check.ts";
-
-const requestedPublishTag =
-  process.env.REQUESTED_PUBLISH_TAG === "latest" ? "latest" : "beta";
-const plan = resolveNpmPublishPlan(process.env.PACKAGE_VERSION ?? "", undefined, requestedPublishTag);
-console.log(plan.channel);
-console.log(plan.publishTag);
-EOF
+  cargo run --quiet -p crawclaw-runtime -- npm-publish-plan \
+    --version "${package_version}" \
+    --root-package \
+    --requested-tag "${CRAWCLAW_NPM_PUBLISH_TAG:-beta}" \
+    --publish-mode "${mode}" |
+    sed '/^\[bubbletea-macros\]/d'
 )
 release_channel="${publish_plan[0]}"
 publish_tag="${publish_plan[1]}"

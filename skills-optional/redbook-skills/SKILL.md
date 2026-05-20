@@ -1,6 +1,6 @@
 ---
 name: redbook-skills
-description: 将图文/视频内容发布到小红书（XHS），并支持登录检查、二维码登录辅助、搜索笔记、获取详情、评论/回复、读取内容数据和多账号/多端口运行。默认使用 Node + Puppeteer 执行面；复杂筛选或历史兼容排障时回退 Python 控制面。
+description: 将图文/视频内容发布到小红书（XHS），并支持登录检查、二维码登录辅助、搜索笔记、获取详情、评论/回复、读取内容数据和多账号/多端口运行。使用 Python/CDP 控制面。
 ---
 
 # Redbook Skills
@@ -16,8 +16,7 @@ Use this as the main Xiaohongshu publishing and retrieval skill.
 
 ## Default execution model
 
-- Default: Node + Puppeteer via `./run-puppeteer.sh`
-- Fallback: Python control plane for legacy or complex filter/debug paths
+- Python/CDP control plane through `scripts/*.py`
 
 ## Mandatory workflow
 
@@ -35,10 +34,8 @@ Use this as the main Xiaohongshu publishing and retrieval skill.
 
 ## Read references as needed
 
-- `references/node-commands.md`
-  For the main Node/Puppeteer command set.
 - `references/python-legacy.md`
-  For fallback and compatibility flows.
+  For command flows and compatibility notes.
 - `references/risk-guard.md`
   For throttling, cooldown, and risk handling.
 - `references/multi-account.md`

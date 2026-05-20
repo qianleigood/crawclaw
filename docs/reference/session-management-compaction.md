@@ -62,7 +62,7 @@ Per agent, on the Gateway host:
 - Transcripts: `~/.crawclaw/agents/<agentId>/sessions/<sessionId>.jsonl`
   - Feishu topic sessions: `.../<sessionId>-topic-<threadId>.jsonl`
 
-CrawClaw resolves these via `src/config/sessions.ts`.
+CrawClaw resolves these via the Rust runtime session store.
 
 ---
 
@@ -137,7 +137,7 @@ Implementation detail: the reset and fork decision is owned by the Rust agent ru
 
 ## Session store schema (`sessions.json`)
 
-The store’s value type is `SessionEntry` in `src/config/sessions.ts`.
+The store’s value type is the Rust runtime `SessionEntry` contract.
 
 Key fields (not exhaustive):
 

@@ -107,21 +107,17 @@ Key docs:
 
 ## Repository Map
 
-| Path                                                       | Purpose                                                                             |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| [apps/crawclaw-desktop](apps/crawclaw-desktop)             | Tauri desktop app, desktop BFF, and UI workbench                                    |
-| [crates](crates)                                           | Rust Gateway, runtime, native-plugin, provider, and SDK crates                      |
-| [src/gateway](src/gateway)                                 | Gateway control plane, protocol, auth, health, pairing, and runtime services        |
-| [src/memory](src/memory)                                   | Durable memory, recall, summaries, compaction, and context assembly                 |
-| [src/workflows](src/workflows)                             | Workflow registry, n8n bridge, execution records, and workflow operations           |
-| [src/channels](src/channels)                               | Core channel implementation behind the channel/plugin boundary                      |
-| [src/plugins](src/plugins)                                 | Plugin discovery, manifests, loading, registry, and contract enforcement            |
-| [src/internal-plugin-helpers](src/internal-plugin-helpers) | Repo-private helpers for bundled plugin packaging paths                             |
-| [extensions](extensions)                                   | Bundled plugins for channels, providers, browser backends, speech, media, and tools |
-| [skills](skills)                                           | Shipped runtime skills                                                              |
-| [docs](docs)                                               | Mintlify documentation source                                                       |
-| [test](test)                                               | Shared test infrastructure and fixtures                                             |
-| [scripts](scripts)                                         | Build, release, generated baseline, and maintenance scripts                         |
+| Path                                           | Purpose                                                                             |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [apps/crawclaw-desktop](apps/crawclaw-desktop) | Tauri desktop app, desktop BFF, and UI workbench                                    |
+| [crates](crates)                               | Rust Gateway, runtime, native-plugin, provider, and SDK crates                      |
+| [src](src)                                     | Retained non-runtime metadata, generated JSON, and local boundary notes             |
+| [extensions](extensions)                       | Bundled plugins for channels, providers, browser backends, speech, media, and tools |
+| [packages](packages)                           | Workspace support packages                                                          |
+| [skills](skills)                               | Shipped runtime skills                                                              |
+| [docs](docs)                                   | Mintlify documentation source                                                       |
+| [test](test)                                   | Shared test infrastructure and fixtures                                             |
+| [scripts](scripts)                             | Shell, Go, and Python build/release/docs helpers                                    |
 
 ## Development
 

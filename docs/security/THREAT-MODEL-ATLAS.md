@@ -574,13 +574,12 @@ T-EXEC-002 → T-EXFIL-001 → External exfiltration
 
 ### 7.2 Key Security Files
 
-| Path                               | Purpose                     | Risk Level   |
-| ---------------------------------- | --------------------------- | ------------ |
-| `src/infra/exec-approvals.ts`      | Command approval logic      | **Critical** |
-| `src/gateway/auth.ts`              | Gateway authentication      | **Critical** |
-| `src/infra/net/ssrf.ts`            | SSRF protection             | **Critical** |
-| `src/security/external-content.ts` | Prompt injection mitigation | **Critical** |
-| `src/routing/resolve-route.ts`     | Session isolation           | **Medium**   |
+| Path                                            | Purpose                              | Risk Level   |
+| ----------------------------------------------- | ------------------------------------ | ------------ |
+| `crates/crawclaw-runtime/src/lib.rs`            | Runtime policy and tool flow         | **Critical** |
+| `crates/crawclaw-gateway/src/lib.rs`            | Gateway authentication               | **Critical** |
+| `crates/crawclaw-native-plugins/src/web.rs`     | Fetch and SSRF-sensitive web tooling | **Critical** |
+| `crates/crawclaw-runtime/src/message_policy.rs` | Message/session policy               | **Medium**   |
 
 ### 7.3 Glossary
 
