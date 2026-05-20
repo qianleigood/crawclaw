@@ -43,7 +43,6 @@ export function resolvePluginSkillDirs(params: {
       id: record.id,
       origin: record.origin,
       config: normalizedPlugins,
-      rootConfig: params.config,
     });
     if (!activationState.activated) {
       continue;

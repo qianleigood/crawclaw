@@ -183,7 +183,6 @@ export function loadEnabledClaudeBundleCommands(params: {
       id: record.id,
       origin: record.origin,
       config: normalizedPlugins,
-      rootConfig: params.cfg,
     });
     if (!activationState.activated) {
       continue;

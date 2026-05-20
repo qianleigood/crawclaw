@@ -668,7 +668,6 @@ function validateConfigObjectWithPluginsBase(
       id: pluginId,
       origin: record.origin,
       config: normalizedPlugins,
-      rootConfig: config,
     });
     let enabled = activationState.activated;
     let reason = activationState.reason;

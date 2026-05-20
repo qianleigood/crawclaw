@@ -170,7 +170,6 @@ function resolveExplicitPluginSelection(params: {
   id: string;
   origin: PluginOrigin;
   config: NormalizedPluginsConfig;
-  rootConfig?: CrawClawConfig;
 }): { explicitlyEnabled: boolean; reason?: string } {
   if (params.config.entries[params.id]?.enabled === true) {
     return { explicitlyEnabled: true, reason: "enabled in config" };
@@ -188,17 +187,14 @@ function resolvePluginActivationState(params: {
   id: string;
   origin: PluginOrigin;
   config: NormalizedPluginsConfig;
-  rootConfig?: CrawClawConfig;
   enabledByDefault?: boolean;
   sourceConfig?: NormalizedPluginsConfig;
-  sourceRootConfig?: CrawClawConfig;
   autoEnabledReason?: string;
 }): PluginActivationState {
   const explicitSelection = resolveExplicitPluginSelection({
     id: params.id,
     origin: params.origin,
     config: params.sourceConfig ?? params.config,
-    rootConfig: params.sourceRootConfig ?? params.rootConfig,
   });
 
   if (!params.config.enabled) {
@@ -314,10 +310,8 @@ export function resolveEffectivePluginActivationState(params: {
   id: string;
   origin: PluginOrigin;
   config: NormalizedPluginsConfig;
-  rootConfig?: CrawClawConfig;
   enabledByDefault?: boolean;
   sourceConfig?: NormalizedPluginsConfig;
-  sourceRootConfig?: CrawClawConfig;
   autoEnabledReason?: string;
 }): PluginActivationState {
   return resolvePluginActivationState(params);

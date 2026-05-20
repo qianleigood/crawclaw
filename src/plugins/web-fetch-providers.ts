@@ -18,7 +18,7 @@ export function resolveBundledPluginWebFetchProviders(params: {
   bundledAllowlistCompat?: boolean;
   onlyPluginIds?: readonly string[];
 }): PluginWebFetchProviderEntry[] {
-  const { config, normalized } = resolveBundledWebFetchResolutionConfig(params);
+  const { normalized } = resolveBundledWebFetchResolutionConfig(params);
   const onlyPluginIdSet =
     params.onlyPluginIds && params.onlyPluginIds.length > 0 ? new Set(params.onlyPluginIds) : null;
 
@@ -30,7 +30,6 @@ export function resolveBundledPluginWebFetchProviders(params: {
       id: provider.pluginId,
       origin: "bundled",
       config: normalized,
-      rootConfig: config,
     }).enabled;
   });
 }

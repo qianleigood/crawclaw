@@ -18,7 +18,7 @@ export function resolveBundledPluginWebSearchProviders(params: {
   bundledAllowlistCompat?: boolean;
   onlyPluginIds?: readonly string[];
 }): PluginWebSearchProviderEntry[] {
-  const { config, normalized } = resolveBundledWebSearchResolutionConfig(params);
+  const { normalized } = resolveBundledWebSearchResolutionConfig(params);
   const onlyPluginIdSet =
     params.onlyPluginIds && params.onlyPluginIds.length > 0 ? new Set(params.onlyPluginIds) : null;
 
@@ -30,7 +30,6 @@ export function resolveBundledPluginWebSearchProviders(params: {
       id: provider.pluginId,
       origin: "bundled",
       config: normalized,
-      rootConfig: config,
     }).activated;
   });
 }
