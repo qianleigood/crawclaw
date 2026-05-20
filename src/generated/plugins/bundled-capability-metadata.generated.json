@@ -394,6 +394,1918 @@
       "toolNames": []
     }
   ],
+  "bundledManifestRecords": [
+    {
+      "dirName": "amazon-bedrock",
+      "packageName": "@crawclaw/amazon-bedrock-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Amazon Bedrock provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "guardrail": {
+              "additionalProperties": false,
+              "properties": {
+                "guardrailIdentifier": {
+                  "type": "string"
+                },
+                "guardrailVersion": {
+                  "type": "string"
+                },
+                "streamProcessingMode": {
+                  "enum": [
+                    "sync",
+                    "async"
+                  ],
+                  "type": "string"
+                },
+                "trace": {
+                  "enum": [
+                    "enabled",
+                    "disabled",
+                    "enabled_full"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "guardrailIdentifier",
+                "guardrailVersion"
+              ],
+              "type": "object"
+            }
+          },
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "amazon-bedrock",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providers": [
+          "amazon-bedrock"
+        ]
+      }
+    },
+    {
+      "dirName": "anthropic",
+      "packageName": "@crawclaw/anthropic-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Anthropic provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "anthropic",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceHint": "Reuse a local Claude CLI login on this host",
+            "choiceId": "anthropic-cli",
+            "choiceLabel": "Anthropic Claude CLI",
+            "groupHint": "Claude CLI + setup-token + API key",
+            "groupId": "anthropic",
+            "groupLabel": "Anthropic",
+            "method": "cli",
+            "provider": "anthropic"
+          },
+          {
+            "choiceHint": "Run `claude setup-token` elsewhere, then paste the token here",
+            "choiceId": "token",
+            "choiceLabel": "Anthropic token (paste setup-token)",
+            "groupHint": "Claude CLI + setup-token + API key",
+            "groupId": "anthropic",
+            "groupLabel": "Anthropic",
+            "method": "setup-token",
+            "provider": "anthropic"
+          },
+          {
+            "choiceId": "apiKey",
+            "choiceLabel": "Anthropic API key",
+            "groupHint": "Claude CLI + setup-token + API key",
+            "groupId": "anthropic",
+            "groupLabel": "Anthropic",
+            "method": "api-key",
+            "provider": "anthropic"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "anthropic": [
+            "ANTHROPIC_OAUTH_TOKEN",
+            "ANTHROPIC_API_KEY"
+          ]
+        },
+        "providers": [
+          "anthropic"
+        ]
+      }
+    },
+    {
+      "dirName": "anthropic-vertex",
+      "packageName": "@crawclaw/anthropic-vertex-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Anthropic Vertex provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "anthropic-vertex",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providers": [
+          "anthropic-vertex"
+        ]
+      }
+    },
+    {
+      "dirName": "byteplus",
+      "packageName": "@crawclaw/byteplus-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw BytePlus provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "byteplus",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "byteplus-api-key",
+            "choiceLabel": "BytePlus API key",
+            "groupHint": "API key",
+            "groupId": "byteplus",
+            "groupLabel": "BytePlus",
+            "method": "api-key",
+            "provider": "byteplus"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "byteplus": [
+            "BYTEPLUS_API_KEY"
+          ]
+        },
+        "providers": [
+          "byteplus",
+          "byteplus-plan"
+        ]
+      }
+    },
+    {
+      "dirName": "chutes",
+      "packageName": "@crawclaw/chutes-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Chutes.ai provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "chutes",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceHint": "Open-source models including Llama, DeepSeek, and more",
+            "choiceId": "chutes-api-key",
+            "choiceLabel": "Chutes API key",
+            "groupHint": "API key",
+            "groupId": "chutes",
+            "groupLabel": "Chutes",
+            "method": "api-key",
+            "provider": "chutes"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "chutes": [
+            "CHUTES_API_KEY"
+          ]
+        },
+        "providers": [
+          "chutes"
+        ]
+      }
+    },
+    {
+      "dirName": "cloudflare-ai-gateway",
+      "packageName": "@crawclaw/cloudflare-ai-gateway-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Cloudflare AI Gateway provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "cloudflare-ai-gateway",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceHint": "Account ID + Gateway ID + API key",
+            "choiceId": "cloudflare-ai-gateway-api-key",
+            "choiceLabel": "Cloudflare AI Gateway",
+            "groupHint": "Account ID + Gateway ID + API key",
+            "groupId": "cloudflare-ai-gateway",
+            "groupLabel": "Cloudflare AI Gateway",
+            "method": "api-key",
+            "provider": "cloudflare-ai-gateway"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "cloudflare-ai-gateway": [
+            "CLOUDFLARE_AI_GATEWAY_API_KEY"
+          ]
+        },
+        "providers": [
+          "cloudflare-ai-gateway"
+        ]
+      }
+    },
+    {
+      "dirName": "comfyui",
+      "packageName": "@crawclaw/comfyui-plugin",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw local ComfyUI workflow builder plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "allowRemote": {
+              "type": "boolean"
+            },
+            "allowedInputDirs": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "baseUrl": {
+              "type": "string"
+            },
+            "maxPlanRepairAttempts": {
+              "type": "number"
+            },
+            "outputDir": {
+              "type": "string"
+            },
+            "requestTimeoutMs": {
+              "type": "number"
+            },
+            "runTimeoutMs": {
+              "type": "number"
+            },
+            "workflowsDir": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "contracts": {
+          "tools": [
+            "comfyui_workflow"
+          ]
+        },
+        "description": "Build, validate, run, and download local ComfyUI workflows.",
+        "enabledByDefault": true,
+        "id": "comfyui",
+        "name": "ComfyUI",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        }
+      }
+    },
+    {
+      "dirName": "copilot-proxy",
+      "packageName": "@crawclaw/copilot-proxy",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Copilot Proxy provider plugin",
+      "manifest": {
+        "autoEnableWhenConfiguredProviders": [
+          "copilot-proxy"
+        ],
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "copilot-proxy",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceHint": "Configure base URL + model ids",
+            "choiceId": "copilot-proxy",
+            "choiceLabel": "Copilot Proxy",
+            "groupHint": "GitHub + local proxy",
+            "groupId": "copilot",
+            "groupLabel": "Copilot",
+            "method": "local",
+            "provider": "copilot-proxy"
+          }
+        ],
+        "providers": [
+          "copilot-proxy"
+        ]
+      }
+    },
+    {
+      "dirName": "deepgram",
+      "packageName": "@crawclaw/deepgram-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Deepgram native provider metadata",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "id": "deepgram",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        }
+      }
+    },
+    {
+      "dirName": "deepseek",
+      "packageName": "@crawclaw/deepseek-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw DeepSeek provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "deepseek",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "deepseek-api-key",
+            "choiceLabel": "DeepSeek API key",
+            "groupHint": "API key",
+            "groupId": "deepseek",
+            "groupLabel": "DeepSeek",
+            "method": "api-key",
+            "provider": "deepseek"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "deepseek": [
+            "DEEPSEEK_API_KEY"
+          ]
+        },
+        "providers": [
+          "deepseek"
+        ]
+      }
+    },
+    {
+      "dirName": "fal",
+      "packageName": "@crawclaw/fal-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw fal provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "fal",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "fal-api-key",
+            "choiceLabel": "fal API key",
+            "groupHint": "Image generation",
+            "groupId": "fal",
+            "groupLabel": "fal",
+            "method": "api-key",
+            "provider": "fal"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "fal": [
+            "FAL_KEY"
+          ]
+        },
+        "providers": [
+          "fal"
+        ]
+      }
+    },
+    {
+      "dirName": "github-copilot",
+      "packageName": "@crawclaw/github-copilot-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw GitHub Copilot provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "github-copilot",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthEnvVars": {
+          "github-copilot": [
+            "COPILOT_GITHUB_TOKEN",
+            "GH_TOKEN",
+            "GITHUB_TOKEN"
+          ]
+        },
+        "providers": [
+          "github-copilot"
+        ]
+      }
+    },
+    {
+      "dirName": "google",
+      "packageName": "@crawclaw/google-plugin",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Google plugin",
+      "manifest": {
+        "autoEnableWhenConfiguredProviders": [
+          "google-gemini-cli"
+        ],
+        "enabledByDefault": true,
+        "id": "google",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "gemini-api-key",
+            "choiceLabel": "Google Gemini API key",
+            "groupHint": "Gemini API key",
+            "groupId": "google",
+            "groupLabel": "Google",
+            "method": "api-key",
+            "provider": "google"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "google": [
+            "GEMINI_API_KEY",
+            "GOOGLE_API_KEY"
+          ]
+        },
+        "providers": [
+          "google",
+          "google-gemini-cli"
+        ]
+      }
+    },
+    {
+      "dirName": "groq",
+      "packageName": "@crawclaw/groq-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Groq native provider metadata",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "id": "groq",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        }
+      }
+    },
+    {
+      "dirName": "huggingface",
+      "packageName": "@crawclaw/huggingface-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Hugging Face provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "huggingface",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceHint": "Inference API (HF token)",
+            "choiceId": "huggingface-api-key",
+            "choiceLabel": "Hugging Face API key",
+            "groupHint": "Inference API (HF token)",
+            "groupId": "huggingface",
+            "groupLabel": "Hugging Face",
+            "method": "api-key",
+            "provider": "huggingface"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "huggingface": [
+            "HUGGINGFACE_HUB_TOKEN",
+            "HF_TOKEN"
+          ]
+        },
+        "providers": [
+          "huggingface"
+        ]
+      }
+    },
+    {
+      "dirName": "kilocode",
+      "packageName": "@crawclaw/kilocode-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Kilo Gateway provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "kilocode",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceHint": "API key (OpenRouter-compatible)",
+            "choiceId": "kilocode-api-key",
+            "choiceLabel": "Kilo Gateway API key",
+            "groupHint": "API key (OpenRouter-compatible)",
+            "groupId": "kilocode",
+            "groupLabel": "Kilo Gateway",
+            "method": "api-key",
+            "provider": "kilocode"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "kilocode": [
+            "KILOCODE_API_KEY"
+          ]
+        },
+        "providers": [
+          "kilocode"
+        ]
+      }
+    },
+    {
+      "dirName": "kimi-coding",
+      "packageName": "@crawclaw/kimi-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Kimi provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "kimi",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "kimi-code-api-key",
+            "choiceLabel": "Kimi Code API key (subscription)",
+            "groupHint": "Kimi K2.5",
+            "groupId": "moonshot",
+            "groupLabel": "Moonshot AI (Kimi K2.5)",
+            "method": "api-key",
+            "provider": "kimi"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "kimi": [
+            "KIMI_API_KEY",
+            "KIMICODE_API_KEY"
+          ],
+          "kimi-coding": [
+            "KIMI_API_KEY",
+            "KIMICODE_API_KEY"
+          ]
+        },
+        "providers": [
+          "kimi",
+          "kimi-coding"
+        ]
+      }
+    },
+    {
+      "dirName": "litellm",
+      "packageName": "@crawclaw/litellm-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw LiteLLM provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "litellm",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceHint": "Unified gateway for 100+ LLM providers",
+            "choiceId": "litellm-api-key",
+            "choiceLabel": "LiteLLM API key",
+            "groupHint": "Unified LLM gateway (100+ providers)",
+            "groupId": "litellm",
+            "groupLabel": "LiteLLM",
+            "method": "api-key",
+            "provider": "litellm"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "litellm": [
+            "LITELLM_API_KEY"
+          ]
+        },
+        "providers": [
+          "litellm"
+        ]
+      }
+    },
+    {
+      "dirName": "llm-task",
+      "packageName": "@crawclaw/llm-task",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw JSON-only LLM task plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "allowedModels": {
+              "description": "Allowlist of provider/model keys like openai-codex/gpt-5.2.",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "defaultAuthProfileId": {
+              "type": "string"
+            },
+            "defaultModel": {
+              "type": "string"
+            },
+            "defaultProvider": {
+              "type": "string"
+            },
+            "maxTokens": {
+              "type": "number"
+            },
+            "timeoutMs": {
+              "type": "number"
+            }
+          },
+          "type": "object"
+        },
+        "contracts": {
+          "tools": [
+            "llm-task"
+          ]
+        },
+        "description": "Generic JSON-only LLM tool for structured tasks callable from workflows.",
+        "id": "llm-task",
+        "name": "LLM Task",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        }
+      }
+    },
+    {
+      "dirName": "lobster",
+      "packageName": "@crawclaw/lobster",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "Lobster workflow tool plugin (typed pipelines + resumable approvals)",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "contracts": {
+          "tools": [
+            "lobster"
+          ]
+        },
+        "description": "Typed workflow tool with resumable approvals.",
+        "id": "lobster",
+        "name": "Lobster",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        }
+      }
+    },
+    {
+      "dirName": "microsoft-foundry",
+      "packageName": "@crawclaw/microsoft-foundry",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Microsoft Foundry provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "microsoft-foundry",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceHint": "Use your Azure login — no API key needed",
+            "choiceId": "microsoft-foundry-entra",
+            "choiceLabel": "Microsoft Foundry (Entra ID / az login)",
+            "groupHint": "Entra ID + API key",
+            "groupId": "microsoft-foundry",
+            "groupLabel": "Microsoft Foundry",
+            "method": "entra-id",
+            "provider": "microsoft-foundry"
+          },
+          {
+            "choiceHint": "Use an Azure OpenAI API key directly",
+            "choiceId": "microsoft-foundry-apikey",
+            "choiceLabel": "Microsoft Foundry (API key)",
+            "groupHint": "Entra ID + API key",
+            "groupId": "microsoft-foundry",
+            "groupLabel": "Microsoft Foundry",
+            "method": "api-key",
+            "provider": "microsoft-foundry"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "microsoft-foundry": [
+            "AZURE_OPENAI_API_KEY"
+          ]
+        },
+        "providers": [
+          "microsoft-foundry"
+        ]
+      }
+    },
+    {
+      "dirName": "minimax",
+      "packageName": "@crawclaw/minimax-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw MiniMax provider and OAuth plugin",
+      "manifest": {
+        "autoEnableWhenConfiguredProviders": [
+          "minimax",
+          "minimax-portal"
+        ],
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "minimax",
+        "legacyPluginIds": [
+          "minimax-portal-auth"
+        ],
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceHint": "Global endpoint - api.minimax.io",
+            "choiceId": "minimax-global-api",
+            "choiceLabel": "MiniMax API key (Global)",
+            "groupHint": "M2.7 (recommended)",
+            "groupId": "minimax",
+            "groupLabel": "MiniMax",
+            "method": "api-global",
+            "provider": "minimax"
+          },
+          {
+            "choiceHint": "CN endpoint - api.minimaxi.com",
+            "choiceId": "minimax-cn-api",
+            "choiceLabel": "MiniMax API key (CN)",
+            "groupHint": "M2.7 (recommended)",
+            "groupId": "minimax",
+            "groupLabel": "MiniMax",
+            "method": "api-cn",
+            "provider": "minimax"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "minimax": [
+            "MINIMAX_API_KEY"
+          ],
+          "minimax-portal": [
+            "MINIMAX_OAUTH_TOKEN",
+            "MINIMAX_API_KEY"
+          ]
+        },
+        "providers": [
+          "minimax",
+          "minimax-portal"
+        ]
+      }
+    },
+    {
+      "dirName": "mistral",
+      "packageName": "@crawclaw/mistral-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Mistral provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "mistral",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "mistral-api-key",
+            "choiceLabel": "Mistral API key",
+            "groupHint": "API key",
+            "groupId": "mistral",
+            "groupLabel": "Mistral AI",
+            "method": "api-key",
+            "provider": "mistral"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "mistral": [
+            "MISTRAL_API_KEY"
+          ]
+        },
+        "providers": [
+          "mistral"
+        ]
+      }
+    },
+    {
+      "dirName": "modelstudio",
+      "packageName": "@crawclaw/modelstudio-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Model Studio provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "modelstudio",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceHint": "Endpoint: dashscope.aliyuncs.com",
+            "choiceId": "modelstudio-standard-api-key-cn",
+            "choiceLabel": "Standard API Key for China (pay-as-you-go)",
+            "groupHint": "Standard / Coding Plan (CN / Global)",
+            "groupId": "modelstudio",
+            "groupLabel": "Qwen (Alibaba Cloud Model Studio)",
+            "method": "standard-api-key-cn",
+            "provider": "modelstudio"
+          },
+          {
+            "choiceHint": "Endpoint: dashscope-intl.aliyuncs.com",
+            "choiceId": "modelstudio-standard-api-key",
+            "choiceLabel": "Standard API Key for Global/Intl (pay-as-you-go)",
+            "groupHint": "Standard / Coding Plan (CN / Global)",
+            "groupId": "modelstudio",
+            "groupLabel": "Qwen (Alibaba Cloud Model Studio)",
+            "method": "standard-api-key",
+            "provider": "modelstudio"
+          },
+          {
+            "choiceHint": "Endpoint: coding.dashscope.aliyuncs.com",
+            "choiceId": "modelstudio-api-key-cn",
+            "choiceLabel": "Coding Plan API Key for China (subscription)",
+            "groupHint": "Standard / Coding Plan (CN / Global)",
+            "groupId": "modelstudio",
+            "groupLabel": "Qwen (Alibaba Cloud Model Studio)",
+            "method": "api-key-cn",
+            "provider": "modelstudio"
+          },
+          {
+            "choiceHint": "Endpoint: coding-intl.dashscope.aliyuncs.com",
+            "choiceId": "modelstudio-api-key",
+            "choiceLabel": "Coding Plan API Key for Global/Intl (subscription)",
+            "groupHint": "Standard / Coding Plan (CN / Global)",
+            "groupId": "modelstudio",
+            "groupLabel": "Qwen (Alibaba Cloud Model Studio)",
+            "method": "api-key",
+            "provider": "modelstudio"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "modelstudio": [
+            "MODELSTUDIO_API_KEY"
+          ]
+        },
+        "providers": [
+          "modelstudio"
+        ]
+      }
+    },
+    {
+      "dirName": "moonshot",
+      "packageName": "@crawclaw/moonshot-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Moonshot provider plugin",
+      "manifest": {
+        "enabledByDefault": true,
+        "id": "moonshot",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "moonshot-api-key",
+            "choiceLabel": "Moonshot API key (.ai)",
+            "groupHint": "Kimi K2.5",
+            "groupId": "moonshot",
+            "groupLabel": "Moonshot AI (Kimi K2.5)",
+            "method": "api-key",
+            "provider": "moonshot"
+          },
+          {
+            "choiceId": "moonshot-api-key-cn",
+            "choiceLabel": "Moonshot API key (.cn)",
+            "groupHint": "Kimi K2.5",
+            "groupId": "moonshot",
+            "groupLabel": "Moonshot AI (Kimi K2.5)",
+            "method": "api-key-cn",
+            "provider": "moonshot"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "moonshot": [
+            "MOONSHOT_API_KEY"
+          ]
+        },
+        "providers": [
+          "moonshot"
+        ]
+      }
+    },
+    {
+      "dirName": "nvidia",
+      "packageName": "@crawclaw/nvidia-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw NVIDIA provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "nvidia",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthEnvVars": {
+          "nvidia": [
+            "NVIDIA_API_KEY"
+          ]
+        },
+        "providers": [
+          "nvidia"
+        ]
+      }
+    },
+    {
+      "dirName": "ollama",
+      "packageName": "@crawclaw/ollama-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Ollama provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "ollama",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceHint": "Cloud and local open models",
+            "choiceId": "ollama",
+            "choiceLabel": "Ollama",
+            "groupHint": "Cloud and local open models",
+            "groupId": "ollama",
+            "groupLabel": "Ollama",
+            "method": "local",
+            "provider": "ollama"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "ollama": [
+            "OLLAMA_API_KEY"
+          ]
+        },
+        "providers": [
+          "ollama"
+        ]
+      }
+    },
+    {
+      "dirName": "openai",
+      "packageName": "@crawclaw/openai-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw OpenAI provider plugins",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "openai",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "openai-api-key",
+            "choiceLabel": "OpenAI API key",
+            "groupHint": "OpenAI API key",
+            "groupId": "openai",
+            "groupLabel": "OpenAI",
+            "method": "api-key",
+            "provider": "openai"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "openai": [
+            "OPENAI_API_KEY"
+          ]
+        },
+        "providers": [
+          "openai",
+          "openai-codex"
+        ]
+      }
+    },
+    {
+      "dirName": "opencode",
+      "packageName": "@crawclaw/opencode-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw OpenCode Zen provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "opencode",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "opencode-zen",
+            "choiceLabel": "OpenCode Zen catalog",
+            "groupHint": "Shared API key for Zen + Go catalogs",
+            "groupId": "opencode",
+            "groupLabel": "OpenCode",
+            "method": "api-key",
+            "provider": "opencode"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "opencode": [
+            "OPENCODE_API_KEY",
+            "OPENCODE_ZEN_API_KEY"
+          ]
+        },
+        "providers": [
+          "opencode"
+        ]
+      }
+    },
+    {
+      "dirName": "opencode-go",
+      "packageName": "@crawclaw/opencode-go-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw OpenCode Go provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "opencode-go",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "opencode-go",
+            "choiceLabel": "OpenCode Go catalog",
+            "groupHint": "Shared API key for Zen + Go catalogs",
+            "groupId": "opencode",
+            "groupLabel": "OpenCode",
+            "method": "api-key",
+            "provider": "opencode-go"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "opencode-go": [
+            "OPENCODE_API_KEY",
+            "OPENCODE_ZEN_API_KEY"
+          ]
+        },
+        "providers": [
+          "opencode-go"
+        ]
+      }
+    },
+    {
+      "dirName": "openrouter",
+      "packageName": "@crawclaw/openrouter-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw OpenRouter provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "openrouter",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "openrouter-api-key",
+            "choiceLabel": "OpenRouter API key",
+            "groupHint": "API key",
+            "groupId": "openrouter",
+            "groupLabel": "OpenRouter",
+            "method": "api-key",
+            "provider": "openrouter"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "openrouter": [
+            "OPENROUTER_API_KEY"
+          ]
+        },
+        "providers": [
+          "openrouter"
+        ]
+      }
+    },
+    {
+      "dirName": "qianfan",
+      "packageName": "@crawclaw/qianfan-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Qianfan provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "qianfan",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "qianfan-api-key",
+            "choiceLabel": "Qianfan API key",
+            "groupHint": "API key",
+            "groupId": "qianfan",
+            "groupLabel": "Qianfan",
+            "method": "api-key",
+            "provider": "qianfan"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "qianfan": [
+            "QIANFAN_API_KEY"
+          ]
+        },
+        "providers": [
+          "qianfan"
+        ]
+      }
+    },
+    {
+      "dirName": "qwen3-tts",
+      "packageName": "@crawclaw/qwen3-tts-speech",
+      "packageVersion": "2026.5.3",
+      "packageDescription": "CrawClaw Qwen3-TTS speech provider",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "qwen3-tts",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        }
+      }
+    },
+    {
+      "dirName": "searxng",
+      "packageName": "@crawclaw/searxng-plugin",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw SearXNG plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "webSearch": {
+              "additionalProperties": false,
+              "properties": {
+                "autoStart": {
+                  "type": "boolean"
+                },
+                "baseUrl": {
+                  "type": [
+                    "string",
+                    "object"
+                  ]
+                },
+                "categories": {
+                  "type": "string"
+                },
+                "healthPath": {
+                  "type": "string"
+                },
+                "host": {
+                  "type": "string"
+                },
+                "language": {
+                  "type": "string"
+                },
+                "port": {
+                  "type": "number"
+                },
+                "startupTimeoutMs": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        },
+        "contracts": {
+          "webSearchProviders": [
+            "searxng"
+          ]
+        },
+        "enabledByDefault": true,
+        "id": "searxng",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "uiHints": {
+          "webSearch.autoStart": {
+            "help": "Start the bundled local SearXNG sidecar when web_search needs it.",
+            "label": "Auto-start managed daemon"
+          },
+          "webSearch.baseUrl": {
+            "help": "Optional override for the managed local SearXNG URL, such as http://127.0.0.1:3210 or https://search.example.com/searxng.",
+            "label": "SearXNG Base URL"
+          },
+          "webSearch.categories": {
+            "help": "Optional comma-separated categories such as general, news, or science.",
+            "label": "SearXNG Categories"
+          },
+          "webSearch.healthPath": {
+            "help": "HTTP path CrawClaw probes before starting the managed local SearXNG sidecar.",
+            "label": "Managed daemon health path"
+          },
+          "webSearch.host": {
+            "help": "Loopback host used for the managed local SearXNG sidecar.",
+            "label": "Managed daemon host"
+          },
+          "webSearch.language": {
+            "help": "Optional language code for results such as en, de, or fr.",
+            "label": "SearXNG Language"
+          },
+          "webSearch.port": {
+            "help": "Loopback port used for the managed local SearXNG sidecar.",
+            "label": "Managed daemon port"
+          },
+          "webSearch.startupTimeoutMs": {
+            "help": "How long CrawClaw waits for the managed local SearXNG sidecar to become ready.",
+            "label": "Managed daemon startup timeout"
+          }
+        }
+      }
+    },
+    {
+      "dirName": "sglang",
+      "packageName": "@crawclaw/sglang-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw SGLang provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "sglang",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceHint": "Fast self-hosted OpenAI-compatible server",
+            "choiceId": "sglang",
+            "choiceLabel": "SGLang",
+            "groupHint": "Fast self-hosted server",
+            "groupId": "sglang",
+            "groupLabel": "SGLang",
+            "method": "custom",
+            "provider": "sglang"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "sglang": [
+            "SGLANG_API_KEY"
+          ]
+        },
+        "providers": [
+          "sglang"
+        ]
+      }
+    },
+    {
+      "dirName": "spider-fetch",
+      "packageName": "@crawclaw/spider-fetch-plugin",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Spider web fetch plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {
+            "webFetch": {
+              "additionalProperties": false,
+              "properties": {
+                "maxChars": {
+                  "type": "number"
+                },
+                "render": {
+                  "enum": [
+                    "auto",
+                    "never",
+                    "dynamic",
+                    "stealth"
+                  ],
+                  "type": "string"
+                },
+                "timeoutSeconds": {
+                  "type": "number"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        },
+        "contracts": {
+          "webFetchProviders": [
+            "spider"
+          ]
+        },
+        "enabledByDefault": true,
+        "id": "spider-fetch",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "uiHints": {
+          "webFetch.maxChars": {
+            "help": "Maximum extracted characters returned by the Spider fetch provider.",
+            "label": "Spider Fetch Max Characters"
+          },
+          "webFetch.render": {
+            "help": "Default render mode for web_fetch requests when the tool input does not specify one.",
+            "label": "Spider Fetch Render Mode"
+          },
+          "webFetch.timeoutSeconds": {
+            "help": "Maximum time CrawClaw waits for static HTTP or Spider browser-rendered fetches.",
+            "label": "Spider Fetch Timeout"
+          }
+        }
+      }
+    },
+    {
+      "dirName": "synthetic",
+      "packageName": "@crawclaw/synthetic-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Synthetic provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "synthetic",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "synthetic-api-key",
+            "choiceLabel": "Synthetic API key",
+            "groupHint": "Anthropic-compatible (multi-model)",
+            "groupId": "synthetic",
+            "groupLabel": "Synthetic",
+            "method": "api-key",
+            "provider": "synthetic"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "synthetic": [
+            "SYNTHETIC_API_KEY"
+          ]
+        },
+        "providers": [
+          "synthetic"
+        ]
+      }
+    },
+    {
+      "dirName": "together",
+      "packageName": "@crawclaw/together-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Together provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "together",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "together-api-key",
+            "choiceLabel": "Together AI API key",
+            "groupHint": "API key",
+            "groupId": "together",
+            "groupLabel": "Together AI",
+            "method": "api-key",
+            "provider": "together"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "together": [
+            "TOGETHER_API_KEY"
+          ]
+        },
+        "providers": [
+          "together"
+        ]
+      }
+    },
+    {
+      "dirName": "venice",
+      "packageName": "@crawclaw/venice-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Venice provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "venice",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "venice-api-key",
+            "choiceLabel": "Venice AI API key",
+            "groupHint": "Privacy-focused (uncensored models)",
+            "groupId": "venice",
+            "groupLabel": "Venice AI",
+            "method": "api-key",
+            "provider": "venice"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "venice": [
+            "VENICE_API_KEY"
+          ]
+        },
+        "providers": [
+          "venice"
+        ]
+      }
+    },
+    {
+      "dirName": "vercel-ai-gateway",
+      "packageName": "@crawclaw/vercel-ai-gateway-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Vercel AI Gateway provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "vercel-ai-gateway",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "ai-gateway-api-key",
+            "choiceLabel": "Vercel AI Gateway API key",
+            "groupHint": "API key",
+            "groupId": "ai-gateway",
+            "groupLabel": "Vercel AI Gateway",
+            "method": "api-key",
+            "provider": "vercel-ai-gateway"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "vercel-ai-gateway": [
+            "AI_GATEWAY_API_KEY"
+          ]
+        },
+        "providers": [
+          "vercel-ai-gateway"
+        ]
+      }
+    },
+    {
+      "dirName": "vllm",
+      "packageName": "@crawclaw/vllm-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw vLLM provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "vllm",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceHint": "Local/self-hosted OpenAI-compatible server",
+            "choiceId": "vllm",
+            "choiceLabel": "vLLM",
+            "groupHint": "Local/self-hosted OpenAI-compatible",
+            "groupId": "vllm",
+            "groupLabel": "vLLM",
+            "method": "custom",
+            "provider": "vllm"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "vllm": [
+            "VLLM_API_KEY"
+          ]
+        },
+        "providers": [
+          "vllm"
+        ]
+      }
+    },
+    {
+      "dirName": "volcengine",
+      "packageName": "@crawclaw/volcengine-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Volcengine provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "volcengine",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "volcengine-api-key",
+            "choiceLabel": "Volcano Engine API key",
+            "groupHint": "API key",
+            "groupId": "volcengine",
+            "groupLabel": "Volcano Engine",
+            "method": "api-key",
+            "provider": "volcengine"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "volcengine": [
+            "VOLCANO_ENGINE_API_KEY"
+          ]
+        },
+        "providers": [
+          "volcengine",
+          "volcengine-plan"
+        ]
+      }
+    },
+    {
+      "dirName": "xai",
+      "packageName": "@crawclaw/xai-plugin",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw xAI plugin",
+      "manifest": {
+        "enabledByDefault": true,
+        "id": "xai",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "xai-api-key",
+            "choiceLabel": "xAI API key",
+            "groupHint": "API key",
+            "groupId": "xai",
+            "groupLabel": "xAI (Grok)",
+            "method": "api-key",
+            "provider": "xai"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "xai": [
+            "XAI_API_KEY"
+          ]
+        },
+        "providers": [
+          "xai"
+        ]
+      }
+    },
+    {
+      "dirName": "xiaomi",
+      "packageName": "@crawclaw/xiaomi-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Xiaomi provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "xiaomi",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "xiaomi-api-key",
+            "choiceLabel": "Xiaomi API key",
+            "groupHint": "API key",
+            "groupId": "xiaomi",
+            "groupLabel": "Xiaomi",
+            "method": "api-key",
+            "provider": "xiaomi"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "xiaomi": [
+            "XIAOMI_API_KEY"
+          ]
+        },
+        "providers": [
+          "xiaomi"
+        ]
+      }
+    },
+    {
+      "dirName": "zai",
+      "packageName": "@crawclaw/zai-provider",
+      "packageVersion": "2026.4.1-beta.1",
+      "packageDescription": "CrawClaw Z.AI provider plugin",
+      "manifest": {
+        "configSchema": {
+          "additionalProperties": false,
+          "properties": {},
+          "type": "object"
+        },
+        "enabledByDefault": true,
+        "id": "zai",
+        "native": {
+          "bin": "crawclaw-native-plugins",
+          "protocol": "crawclaw-native-plugin-jsonrpc",
+          "schemaVersion": 1
+        },
+        "providerAuthChoices": [
+          {
+            "choiceId": "zai-api-key",
+            "choiceLabel": "Z.AI API key",
+            "groupHint": "GLM Coding Plan / Global / CN",
+            "groupId": "zai",
+            "groupLabel": "Z.AI",
+            "method": "api-key",
+            "provider": "zai"
+          },
+          {
+            "choiceHint": "GLM Coding Plan Global (api.z.ai)",
+            "choiceId": "zai-coding-global",
+            "choiceLabel": "Coding-Plan-Global",
+            "groupHint": "GLM Coding Plan / Global / CN",
+            "groupId": "zai",
+            "groupLabel": "Z.AI",
+            "method": "coding-global",
+            "provider": "zai"
+          },
+          {
+            "choiceHint": "GLM Coding Plan CN (open.bigmodel.cn)",
+            "choiceId": "zai-coding-cn",
+            "choiceLabel": "Coding-Plan-CN",
+            "groupHint": "GLM Coding Plan / Global / CN",
+            "groupId": "zai",
+            "groupLabel": "Z.AI",
+            "method": "coding-cn",
+            "provider": "zai"
+          },
+          {
+            "choiceHint": "Z.AI Global (api.z.ai)",
+            "choiceId": "zai-global",
+            "choiceLabel": "Global",
+            "groupHint": "GLM Coding Plan / Global / CN",
+            "groupId": "zai",
+            "groupLabel": "Z.AI",
+            "method": "global",
+            "provider": "zai"
+          },
+          {
+            "choiceHint": "Z.AI CN (open.bigmodel.cn)",
+            "choiceId": "zai-cn",
+            "choiceLabel": "CN",
+            "groupHint": "GLM Coding Plan / Global / CN",
+            "groupId": "zai",
+            "groupLabel": "Z.AI",
+            "method": "cn",
+            "provider": "zai"
+          }
+        ],
+        "providerAuthEnvVars": {
+          "zai": [
+            "ZAI_API_KEY",
+            "Z_AI_API_KEY"
+          ]
+        },
+        "providers": [
+          "zai"
+        ]
+      }
+    }
+  ],
   "nativeWebSearchProviders": [
     {
       "pluginId": "searxng",

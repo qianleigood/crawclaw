@@ -76,6 +76,7 @@ function shouldUseDiscoveryCache(env: NodeJS.ProcessEnv): boolean {
 function buildDiscoveryCacheKey(params: {
   workspaceDir?: string;
   extraPaths?: string[];
+  includeBundled: boolean;
   ownershipUid?: number | null;
   env: NodeJS.ProcessEnv;
 }): string {
@@ -88,7 +89,7 @@ function buildDiscoveryCacheKey(params: {
   const configExtensionsRoot = roots.global ?? "";
   const bundledRoot = roots.stock ?? "";
   const ownershipUid = params.ownershipUid ?? currentUid();
-  return `${workspaceKey}::${ownershipUid ?? "none"}::${configExtensionsRoot}::${bundledRoot}::${JSON.stringify(loadPaths)}`;
+  return `${workspaceKey}::${ownershipUid ?? "none"}::${configExtensionsRoot}::${bundledRoot}::${params.includeBundled ? "bundled" : "no-bundled"}::${JSON.stringify(loadPaths)}`;
 }
 
 function currentUid(overrideUid?: number | null): number | null {
@@ -592,15 +593,18 @@ function discoverFromPath(params: {
 export function discoverCrawClawPlugins(params: {
   workspaceDir?: string;
   extraPaths?: string[];
+  includeBundled?: boolean;
   ownershipUid?: number | null;
   cache?: boolean;
   env?: NodeJS.ProcessEnv;
 }): PluginDiscoveryResult {
   const env = params.env ?? process.env;
+  const includeBundled = params.includeBundled !== false;
   const cacheEnabled = params.cache !== false && shouldUseDiscoveryCache(env);
   const cacheKey = buildDiscoveryCacheKey({
     workspaceDir: params.workspaceDir,
     extraPaths: params.extraPaths,
+    includeBundled,
     ownershipUid: params.ownershipUid,
     env,
   });
@@ -650,7 +654,7 @@ export function discoverCrawClawPlugins(params: {
     });
   }
 
-  if (roots.stock) {
+  if (includeBundled && roots.stock) {
     discoverInDirectory({
       dir: roots.stock,
       origin: "bundled",

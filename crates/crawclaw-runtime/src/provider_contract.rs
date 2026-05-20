@@ -68,11 +68,25 @@ struct BundledNativeSpeechProviderMetadataEntry {
 #[serde(rename_all = "camelCase")]
 struct BundledCapabilityMetadataJsonPayload {
     plugin_contract_snapshots: Vec<BundledCapabilityMetadataEntry>,
+    bundled_manifest_records: Vec<BundledManifestRegistryEntry>,
     native_web_search_providers: Vec<BundledNativeWebProviderMetadataEntry>,
     native_web_fetch_providers: Vec<BundledNativeWebProviderMetadataEntry>,
     native_speech_providers: Vec<BundledNativeSpeechProviderMetadataEntry>,
     legacy_plugin_id_aliases: BTreeMap<String, String>,
     auto_enable_provider_plugin_ids: BTreeMap<String, String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct BundledManifestRegistryEntry {
+    dir_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    package_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    package_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    package_description: Option<String>,
+    manifest: serde_json::Value,
 }
 
 impl BundledCapabilityMetadataEntry {
@@ -467,12 +481,92 @@ fn bundled_capability_metadata_json_payload() -> BundledCapabilityMetadataJsonPa
     let native_metadata = bundled_native_provider_metadata_payload();
     BundledCapabilityMetadataJsonPayload {
         plugin_contract_snapshots,
+        bundled_manifest_records: bundled_manifest_registry_records(),
         native_web_search_providers: native_metadata.web_search_providers,
         native_web_fetch_providers: native_metadata.web_fetch_providers,
         native_speech_providers: native_metadata.speech_providers,
         legacy_plugin_id_aliases,
         auto_enable_provider_plugin_ids,
     }
+}
+
+fn bundled_manifest_registry_records() -> Vec<BundledManifestRegistryEntry> {
+    let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let extensions_root = repo_root.join("extensions");
+    let Ok(entries) = fs::read_dir(&extensions_root) else {
+        return Vec::new();
+    };
+    let mut records = Vec::new();
+    for entry in entries.flatten() {
+        let Ok(file_type) = entry.file_type() else {
+            continue;
+        };
+        if !file_type.is_dir() {
+            continue;
+        }
+        let dir_name = entry.file_name().to_string_lossy().to_string();
+        let plugin_dir = entry.path();
+        let manifest_path = plugin_dir.join("crawclaw.plugin.json");
+        if !manifest_path.exists() {
+            continue;
+        }
+        let manifest = read_json_value(&manifest_path);
+        if manifest
+            .get("native")
+            .and_then(serde_json::Value::as_object)
+            .is_none()
+        {
+            continue;
+        }
+        let package_json = read_json_value_optional(&plugin_dir.join("package.json"));
+        records.push(BundledManifestRegistryEntry {
+            dir_name,
+            package_name: package_json
+                .as_ref()
+                .and_then(|value| value.get("name"))
+                .and_then(serde_json::Value::as_str)
+                .map(ToOwned::to_owned),
+            package_version: package_json
+                .as_ref()
+                .and_then(|value| value.get("version"))
+                .and_then(serde_json::Value::as_str)
+                .map(ToOwned::to_owned),
+            package_description: package_json
+                .as_ref()
+                .and_then(|value| value.get("description"))
+                .and_then(serde_json::Value::as_str)
+                .map(ToOwned::to_owned),
+            manifest,
+        });
+    }
+    records.sort_by(|left, right| {
+        value_string(&left.manifest, "id")
+            .cmp(&value_string(&right.manifest, "id"))
+            .then_with(|| left.dir_name.cmp(&right.dir_name))
+    });
+    records
+}
+
+fn read_json_value(path: &Path) -> serde_json::Value {
+    let raw = fs::read_to_string(path)
+        .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
+    serde_json::from_str(&raw)
+        .unwrap_or_else(|error| panic!("failed to parse {}: {error}", path.display()))
+}
+
+fn read_json_value_optional(path: &Path) -> Option<serde_json::Value> {
+    if !path.exists() {
+        return None;
+    }
+    Some(read_json_value(path))
+}
+
+fn value_string(value: &serde_json::Value, key: &str) -> String {
+    value
+        .get(key)
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default()
+        .to_string()
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -633,6 +727,25 @@ mod tests {
         }));
         assert_eq!(payload["legacyPluginIdAliases"]["minimax-portal-auth"], "minimax");
         assert_eq!(payload["autoEnableProviderPluginIds"]["google-gemini-cli"], "google");
+    }
+
+    #[test]
+    fn bundled_capability_metadata_includes_native_manifest_registry_records() {
+        let source = render_bundled_capability_metadata_module();
+        let payload: serde_json::Value = serde_json::from_str(&source).unwrap();
+        let records = payload["bundledManifestRecords"].as_array().unwrap();
+        assert_eq!(records.len(), 45);
+        let openai = records
+            .iter()
+            .find(|entry| entry["manifest"]["id"] == "openai")
+            .unwrap();
+        assert_eq!(openai["dirName"], "openai");
+        assert_eq!(openai["packageName"], "@crawclaw/openai-provider");
+        assert_eq!(openai["manifest"]["enabledByDefault"], true);
+        assert!(openai["manifest"]["configSchema"].is_object());
+        assert!(records
+            .iter()
+            .all(|entry| entry["manifest"]["native"].is_object()));
     }
 
     #[test]

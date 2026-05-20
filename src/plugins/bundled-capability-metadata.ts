@@ -1,4 +1,5 @@
 import BUNDLED_CAPABILITY_METADATA_JSON from "../generated/plugins/bundled-capability-metadata.generated.json" with { type: "json" };
+import type { PluginManifest } from "./manifest.js";
 
 export type BundledPluginContractSnapshot = {
   pluginId: string;
@@ -35,8 +36,17 @@ export type BundledNativeSpeechProviderMetadata = {
   synthesize: BundledNativeProviderInvocation;
 };
 
+export type BundledManifestRegistryRecord = {
+  dirName: string;
+  packageName?: string;
+  packageVersion?: string;
+  packageDescription?: string;
+  manifest: PluginManifest;
+};
+
 type BundledCapabilityMetadataPayload = {
   pluginContractSnapshots: BundledPluginContractSnapshot[];
+  bundledManifestRecords: BundledManifestRegistryRecord[];
   nativeWebSearchProviders: BundledNativeWebProviderMetadata[];
   nativeWebFetchProviders: BundledNativeWebProviderMetadata[];
   nativeSpeechProviders: BundledNativeSpeechProviderMetadata[];
@@ -49,6 +59,9 @@ const GENERATED_BUNDLED_CAPABILITY_METADATA =
 
 export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS: readonly BundledPluginContractSnapshot[] =
   GENERATED_BUNDLED_CAPABILITY_METADATA.pluginContractSnapshots;
+
+export const BUNDLED_MANIFEST_REGISTRY_RECORDS: readonly BundledManifestRegistryRecord[] =
+  GENERATED_BUNDLED_CAPABILITY_METADATA.bundledManifestRecords;
 
 export const BUNDLED_NATIVE_WEB_SEARCH_PROVIDERS: readonly BundledNativeWebProviderMetadata[] =
   GENERATED_BUNDLED_CAPABILITY_METADATA.nativeWebSearchProviders;

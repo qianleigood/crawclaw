@@ -4,10 +4,17 @@ import type { CrawClawConfig } from "../config/config.js";
 import { resolveUserPath } from "../utils.js";
 import { resolveCompatibilityHostVersion } from "../version.js";
 import { loadBundleManifest } from "./bundle-manifest.js";
+import { BUNDLED_MANIFEST_REGISTRY_RECORDS } from "./bundled-capability-metadata.js";
+import { resolveBundledPluginsDir } from "./bundled-dir.js";
 import { normalizePluginsConfig, type NormalizedPluginsConfig } from "./config-state.js";
-import { discoverCrawClawPlugins, type PluginCandidate } from "./discovery.js";
+import {
+  discoverCrawClawPlugins,
+  type PluginCandidate,
+  type PluginDiscoveryResult,
+} from "./discovery.js";
 import {
   loadPluginManifest,
+  PLUGIN_MANIFEST_FILENAME,
   type PluginManifest,
   type PluginManifestContracts,
 } from "./manifest.js";
@@ -286,6 +293,59 @@ function resolveDuplicatePrecedenceRank(params: {
   return 4;
 }
 
+function resolveBundledManifestCandidates(env: NodeJS.ProcessEnv): PluginCandidate[] {
+  const bundledRoot = resolveBundledPluginsDir(env);
+  if (!bundledRoot) {
+    return [];
+  }
+  return BUNDLED_MANIFEST_REGISTRY_RECORDS.flatMap((record) => {
+    const rootDir = path.resolve(bundledRoot, record.dirName);
+    const manifestPath = path.join(rootDir, PLUGIN_MANIFEST_FILENAME);
+    if (!fs.existsSync(manifestPath)) {
+      return [];
+    }
+    return [
+      {
+        idHint: record.manifest.id,
+        source: manifestPath,
+        rootDir: safeRealpathSync(rootDir) ?? rootDir,
+        origin: "bundled",
+        format: "native",
+        packageName: record.packageName,
+        packageVersion: record.packageVersion,
+        packageDescription: record.packageDescription,
+        packageDir: rootDir,
+        bundledManifest: record.manifest,
+        bundledManifestPath: manifestPath,
+      } satisfies PluginCandidate,
+    ];
+  });
+}
+
+function combineDiscoveredAndBundledCandidates(params: {
+  workspaceDir?: string;
+  extraPaths: string[];
+  cache?: boolean;
+  env: NodeJS.ProcessEnv;
+}): PluginDiscoveryResult {
+  const discovery = discoverCrawClawPlugins({
+    workspaceDir: params.workspaceDir,
+    extraPaths: params.extraPaths,
+    includeBundled: false,
+    cache: params.cache,
+    env: params.env,
+  });
+  const generatedBundled = resolveBundledManifestCandidates(params.env);
+  return {
+    candidates: [
+      ...discovery.candidates.filter((candidate) => candidate.origin !== "global"),
+      ...generatedBundled,
+      ...discovery.candidates.filter((candidate) => candidate.origin === "global"),
+    ],
+    diagnostics: discovery.diagnostics,
+  };
+}
+
 export function loadPluginManifestRegistry(
   params: {
     config?: CrawClawConfig;
@@ -313,7 +373,7 @@ export function loadPluginManifestRegistry(
         candidates: params.candidates,
         diagnostics: params.diagnostics ?? [],
       }
-    : discoverCrawClawPlugins({
+    : combineDiscoveredAndBundledCandidates({
         workspaceDir: params.workspaceDir,
         extraPaths: normalized.loadPaths,
         cache: params.cache,
