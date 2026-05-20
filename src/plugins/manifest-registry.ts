@@ -331,7 +331,6 @@ function combineDiscoveredAndBundledCandidates(params: {
   const discovery = discoverCrawClawPlugins({
     workspaceDir: params.workspaceDir,
     extraPaths: params.extraPaths,
-    includeBundled: false,
     cache: params.cache,
     env: params.env,
   });

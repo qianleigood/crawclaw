@@ -76,7 +76,6 @@ function shouldUseDiscoveryCache(env: NodeJS.ProcessEnv): boolean {
 function buildDiscoveryCacheKey(params: {
   workspaceDir?: string;
   extraPaths?: string[];
-  includeBundled: boolean;
   ownershipUid?: number | null;
   env: NodeJS.ProcessEnv;
 }): string {
@@ -87,9 +86,8 @@ function buildDiscoveryCacheKey(params: {
   });
   const workspaceKey = roots.workspace ?? "";
   const configExtensionsRoot = roots.global ?? "";
-  const bundledRoot = roots.stock ?? "";
   const ownershipUid = params.ownershipUid ?? currentUid();
-  return `${workspaceKey}::${ownershipUid ?? "none"}::${configExtensionsRoot}::${bundledRoot}::${params.includeBundled ? "bundled" : "no-bundled"}::${JSON.stringify(loadPaths)}`;
+  return `${workspaceKey}::${ownershipUid ?? "none"}::${configExtensionsRoot}::${JSON.stringify(loadPaths)}`;
 }
 
 function currentUid(overrideUid?: number | null): number | null {
@@ -162,7 +160,7 @@ function checkPathStatAndPermissions(params: {
       continue;
     }
     seen.add(normalized);
-    let stat = safeStatSync(targetPath);
+    const stat = safeStatSync(targetPath);
     if (!stat) {
       return {
         reason: "path_stat_failed",
@@ -171,28 +169,7 @@ function checkPathStatAndPermissions(params: {
         targetPath,
       };
     }
-    let modeBits = stat.mode & 0o777;
-    if ((modeBits & 0o002) !== 0 && params.origin === "bundled") {
-      // npm/global installs can create package-managed extension dirs without
-      // directory entries in the tarball, which may widen them to 0777.
-      // Tighten bundled dirs in place before applying the normal safety gate.
-      try {
-        fs.chmodSync(targetPath, modeBits & ~0o022);
-        const repairedStat = safeStatSync(targetPath);
-        if (!repairedStat) {
-          return {
-            reason: "path_stat_failed",
-            sourcePath: params.source,
-            rootPath: params.rootDir,
-            targetPath,
-          };
-        }
-        stat = repairedStat;
-        modeBits = repairedStat.mode & 0o777;
-      } catch {
-        // Fall through to the normal block path below when repair is not possible.
-      }
-    }
+    const modeBits = stat.mode & 0o777;
     if ((modeBits & 0o002) !== 0) {
       return {
         reason: "path_world_writable",
@@ -593,18 +570,15 @@ function discoverFromPath(params: {
 export function discoverCrawClawPlugins(params: {
   workspaceDir?: string;
   extraPaths?: string[];
-  includeBundled?: boolean;
   ownershipUid?: number | null;
   cache?: boolean;
   env?: NodeJS.ProcessEnv;
 }): PluginDiscoveryResult {
   const env = params.env ?? process.env;
-  const includeBundled = params.includeBundled !== false;
   const cacheEnabled = params.cache !== false && shouldUseDiscoveryCache(env);
   const cacheKey = buildDiscoveryCacheKey({
     workspaceDir: params.workspaceDir,
     extraPaths: params.extraPaths,
-    includeBundled,
     ownershipUid: params.ownershipUid,
     env,
   });
@@ -654,18 +628,7 @@ export function discoverCrawClawPlugins(params: {
     });
   }
 
-  if (includeBundled && roots.stock) {
-    discoverInDirectory({
-      dir: roots.stock,
-      origin: "bundled",
-      ownershipUid: params.ownershipUid,
-      candidates,
-      diagnostics,
-      seen,
-    });
-  }
-
-  // Keep auto-discovered global extensions behind bundled plugins.
+  // Keep auto-discovered global extensions behind explicit config and workspace plugins.
   // Users can still intentionally override via plugins.load.paths (origin=config).
   discoverInDirectory({
     dir: roots.global,
