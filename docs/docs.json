@@ -765,12 +765,7 @@
               },
               {
                 "group": "Maintenance",
-                "pages": [
-                  "install/updating",
-                  "install/migrating",
-                  "install/uninstall",
-                  "install/development-channels"
-                ]
+                "pages": ["install/updating", "install/migrating", "install/uninstall"]
               }
             ]
           },
@@ -779,14 +774,14 @@
             "groups": [
               {
                 "group": "Overview",
-                "pages": ["channels/index"]
+                "pages": ["concepts/messages"]
               },
               {
                 "group": "Configuration",
                 "pages": [
-                  "channels/pairing",
-                  "channels/channel-routing",
-                  "channels/troubleshooting"
+                  "gateway/security/index",
+                  "concepts/multi-agent",
+                  "gateway/troubleshooting"
                 ]
               }
             ]
@@ -1157,7 +1152,6 @@
                   "help/debugging",
                   "help/testing",
                   "help/scripts",
-                  "debug/node-issue",
                   "debug/claude-code-architecture",
                   "debug/run-loop-lifecycle-spine",
                   "debug/claude-memory-refactor",
@@ -1242,10 +1236,6 @@
                   "zh-CN/install/railway",
                   "zh-CN/install/northflank"
                 ]
-              },
-              {
-                "group": "高级",
-                "pages": ["zh-CN/install/development-channels"]
               }
             ]
           },
@@ -1254,14 +1244,14 @@
             "groups": [
               {
                 "group": "概览",
-                "pages": ["zh-CN/channels/index"]
+                "pages": ["zh-CN/concepts/messages"]
               },
               {
                 "group": "配置",
                 "pages": [
-                  "zh-CN/channels/pairing",
-                  "zh-CN/channels/channel-routing",
-                  "zh-CN/channels/troubleshooting"
+                  "zh-CN/gateway/security/index",
+                  "zh-CN/concepts/multi-agent",
+                  "zh-CN/gateway/troubleshooting"
                 ]
               }
             ]
