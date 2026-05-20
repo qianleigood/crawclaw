@@ -1,6 +1,5 @@
 import { normalizeProviderId } from "../agents/model-selection.js";
 import { BUNDLED_AUTO_ENABLE_PROVIDER_PLUGIN_IDS } from "../plugins/bundled-capability-metadata.js";
-import type { PluginManifestRegistry } from "../plugins/manifest-registry.js";
 import { isRecord } from "../utils.js";
 import type { CrawClawConfig } from "./config.js";
 import { ensurePluginAllowlisted } from "./plugins-allowlist.js";
@@ -77,10 +76,8 @@ function enablePluginEntry(cfg: CrawClawConfig, pluginId: string): CrawClawConfi
 export function applyPluginAutoEnable(params: {
   config?: CrawClawConfig;
   env?: NodeJS.ProcessEnv;
-  manifestRegistry?: PluginManifestRegistry;
 }): PluginAutoEnableResult {
   void params.env;
-  void params.manifestRegistry;
   let config = params.config ?? ({} as CrawClawConfig);
   const changes: string[] = [];
   const autoEnabledReasons = new Map<string, string[]>();

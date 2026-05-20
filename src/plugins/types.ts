@@ -227,6 +227,8 @@ export type CrawClawPluginCommandDefinition = {
 
 export type PluginOrigin = "bundled" | "global" | "workspace" | "config";
 
+export type PluginActivationSource = "disabled" | "explicit" | "auto" | "default";
+
 export type PluginFormat = "crawclaw" | "bundle" | "native";
 
 export type PluginBundleFormat = "codex" | "claude" | "cursor";

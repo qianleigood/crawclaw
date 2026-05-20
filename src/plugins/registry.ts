@@ -1,5 +1,4 @@
 import type { HookEntry } from "../hooks/types.js";
-import type { PluginActivationSource } from "./config-state.js";
 import { createEmptyPluginRegistry } from "./registry-empty.js";
 import type {
   WebFetchProviderPlugin,
@@ -11,6 +10,7 @@ import type {
   PluginLogger,
   PluginKind,
   PluginOrigin,
+  PluginActivationSource,
   WebSearchProviderPlugin,
 } from "./types.js";
 

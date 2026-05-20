@@ -4,9 +4,7 @@ import {
   BUNDLED_PROVIDER_PLUGIN_ID_ALIASES,
 } from "./bundled-capability-metadata.js";
 import { defaultSlotIdForKey, hasKind } from "./slots.js";
-import type { PluginKind, PluginOrigin } from "./types.js";
-
-export type PluginActivationSource = "disabled" | "explicit" | "auto" | "default";
+import type { PluginActivationSource, PluginKind, PluginOrigin } from "./types.js";
 
 export type PluginActivationState = {
   enabled: boolean;
