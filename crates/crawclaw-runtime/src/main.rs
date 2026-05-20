@@ -46,6 +46,8 @@ async fn main() {
         "package-artifacts" => package_artifacts(args),
         "package-build-native-artifacts" => package_build_native_artifacts(args),
         "package-postbuild" => package_postbuild(args),
+        "package-prepack" => package_prepack(args),
+        "package-release-check" => package_release_check(args),
         "package-write-build-metadata" => package_write_build_metadata(args),
         "status" => status(&args),
         "stage" => stage(args),
@@ -433,6 +435,46 @@ fn package_build_native_artifacts(args: Vec<String>) {
     }
 }
 
+fn package_prepack(args: Vec<String>) {
+    let root = match parse_root_arg(&args) {
+        Ok(root) => root,
+        Err(message) => {
+            eprintln!("{message}");
+            std::process::exit(2);
+        }
+    };
+    if let Err(error) = crawclaw_runtime::run_package_prepack(root) {
+        eprintln!("{error}");
+        std::process::exit(1);
+    }
+}
+
+fn package_release_check(args: Vec<String>) {
+    let root = match parse_root_arg(&args) {
+        Ok(root) => root,
+        Err(message) => {
+            eprintln!("{message}");
+            std::process::exit(2);
+        }
+    };
+    match crawclaw_runtime::collect_package_release_check_errors(root) {
+        Ok(errors) => {
+            if errors.is_empty() {
+                println!("release-check: npm pack contents look OK.");
+                return;
+            }
+            for line in crawclaw_runtime::format_package_release_check_errors(&errors) {
+                eprintln!("{line}");
+            }
+            std::process::exit(1);
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    }
+}
+
 fn package_write_build_metadata(args: Vec<String>) {
     let mut include_build_info = false;
     let mut root_args = Vec::new();
@@ -551,7 +593,7 @@ fn package_artifacts(args: Vec<String>) {
 fn parse_root_arg(args: &[String]) -> Result<PathBuf, String> {
     if args.len() != 2 || args[0] != "--root" {
         return Err(
-            "usage: crawclaw-runtime desktop-stage|desktop-check|package-postbuild|package-build-native-artifacts|package-write-build-metadata --root <repo-root>"
+            "usage: crawclaw-runtime desktop-stage|desktop-check|package-postbuild|package-build-native-artifacts|package-prepack|package-release-check|package-write-build-metadata --root <repo-root>"
                 .to_string(),
         );
     }
@@ -941,6 +983,6 @@ fn runtime_root() -> PathBuf {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-plugin-dependency-plan [--check|--write] [--json-output <path>] [--jsonl-output <path>] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | emit-rust-tool-catalog --output <path> [--check|--write] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | package-build-native-artifacts --root <repo-root> | package-write-build-metadata --root <repo-root> [--build-info] | test-workspace [cargo-test-filter...] | tool <name> [json-input]"
+        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-plugin-dependency-plan [--check|--write] [--json-output <path>] [--jsonl-output <path>] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | emit-rust-tool-catalog --output <path> [--check|--write] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | package-build-native-artifacts --root <repo-root> | package-prepack --root <repo-root> | package-release-check --root <repo-root> | package-write-build-metadata --root <repo-root> [--build-info] | test-workspace [cargo-test-filter...] | tool <name> [json-input]"
     );
 }
