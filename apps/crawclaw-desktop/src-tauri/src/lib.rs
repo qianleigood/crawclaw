@@ -1,3 +1,4 @@
+pub mod desktop_contract;
 pub mod gateway;
 pub mod models;
 pub mod runtime_engine;

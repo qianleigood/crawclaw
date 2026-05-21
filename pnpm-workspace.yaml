@@ -7,21 +7,15 @@ minimumReleaseAge: 2880
 
 minimumReleaseAgeExclude:
   - "crawclaw"
-  - "@mariozechner/*"
   - "@typescript/native-preview*"
   - "@oxlint/*"
   - "@oxfmt/*"
-  - "sqlite-vec"
-  - "sqlite-vec-*"
 
 onlyBuiltDependencies:
-  - "@lydell/node-pty"
-  - "@napi-rs/canvas"
   - authenticate-pam
   - esbuild
   - node-llama-cpp
   - protobufjs
-  - sharp
 
 ignoredBuiltDependencies:
   - koffi

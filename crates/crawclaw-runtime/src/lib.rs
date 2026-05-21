@@ -3335,6 +3335,373 @@ mod tests {
     }
 
     #[test]
+    fn rust_runtime_repo_guardrails_keep_desktop_renderer_fixture_runtime_absent() {
+        let root = repo_root();
+        let source_path = root.join("apps/crawclaw-desktop/src/desktop-api.ts");
+        let source = fs::read_to_string(&source_path).expect("read desktop API client");
+        let forbidden_needles = [
+            "createDesktopFixtureState",
+            "VITE_CRAWCLAW_DESKTOP_FIXTURE",
+            "mode: 'fixture'",
+            "fixtureState",
+            "mutateFixture",
+            "searchFixture",
+            "fixture-session",
+        ];
+        let hits = forbidden_needles
+            .into_iter()
+            .filter(|needle| source.contains(needle))
+            .collect::<Vec<_>>();
+
+        assert!(
+            hits.is_empty(),
+            "removed TypeScript desktop fixture runtime came back: {hits:?}"
+        );
+    }
+
+    #[test]
+    fn rust_runtime_repo_guardrails_keep_desktop_api_barrel_thin() {
+        let root = repo_root();
+        let source_path = root.join("apps/crawclaw-desktop/src/desktop-api.ts");
+        let source = fs::read_to_string(&source_path).expect("read desktop API barrel");
+        let forbidden_needles = [
+            "await fetch(",
+            "new EventSource",
+            "invoke<",
+            "interface DesktopApiContext",
+            "let apiContext",
+            "function requestDesktop",
+            "export interface",
+        ];
+        let hits = forbidden_needles
+            .into_iter()
+            .filter(|needle| source.contains(needle))
+            .collect::<Vec<_>>();
+
+        assert!(
+            hits.is_empty(),
+            "desktop-api.ts must stay a thin barrel around Rust-owned contract and api modules: {hits:?}"
+        );
+        assert!(
+            source.contains("./generated/desktop-api-contract.generated"),
+            "desktop-api.ts must re-export the Rust-generated desktop API contract"
+        );
+        assert!(
+            source.contains("./api/desktop-client")
+                && source.contains("./api/desktop-events")
+                && source.contains("./api/desktop-initial-state")
+                && source.contains("./api/desktop-transport"),
+            "desktop-api.ts must re-export focused desktop API modules"
+        );
+    }
+
+    #[test]
+    fn rust_runtime_repo_guardrails_keep_desktop_memory_view_split() {
+        let root = repo_root();
+        let app_path = root.join("apps/crawclaw-desktop/src/App.tsx");
+        let memory_view_path = root.join("apps/crawclaw-desktop/src/views/memory-workspace.tsx");
+        let app_source = fs::read_to_string(&app_path).expect("read desktop app");
+        assert!(
+            memory_view_path.is_file(),
+            "desktop memory workspace view must live in apps/crawclaw-desktop/src/views/memory-workspace.tsx"
+        );
+        assert!(
+            !app_source.contains("const renderMemoryWorkspace"),
+            "App.tsx should compose MemoryWorkspace instead of owning the memory workspace render tree"
+        );
+        let forbidden_needles = [
+            "blankMemoryDraft",
+            "memoryDraft",
+            "isMemoryFormOpen",
+            "isMemoryEditing",
+            "visibleMemories",
+            "selectedMemory",
+            "submitMemory",
+            "saveMemoryEdit",
+        ];
+        let hits = forbidden_needles
+            .into_iter()
+            .filter(|needle| app_source.contains(needle))
+            .collect::<Vec<_>>();
+
+        assert!(
+            hits.is_empty(),
+            "memory workspace form/edit/search state must stay inside memory-workspace.tsx, not App.tsx: {hits:?}"
+        );
+    }
+
+    #[test]
+    fn rust_runtime_repo_guardrails_keep_desktop_plugins_view_split() {
+        let root = repo_root();
+        let app_path = root.join("apps/crawclaw-desktop/src/App.tsx");
+        let plugins_view_path = root.join("apps/crawclaw-desktop/src/views/plugins-workspace.tsx");
+        let app_source = fs::read_to_string(&app_path).expect("read desktop app");
+        assert!(
+            plugins_view_path.is_file(),
+            "desktop plugins workspace view must live in apps/crawclaw-desktop/src/views/plugins-workspace.tsx"
+        );
+        assert!(
+            !app_source.contains("const renderPluginWorkspace"),
+            "App.tsx should compose PluginsWorkspace instead of owning the plugins workspace render tree"
+        );
+        let forbidden_needles = [
+            "PluginSkillDialogPhase",
+            "pluginSourceFilter",
+            "pluginStatusFilter",
+            "pluginSearchQuery",
+            "pluginSkillAddress",
+            "pluginSkillDialogPhase",
+            "pluginSkillInstallStatuses",
+            "visiblePluginSkills",
+            "submitPluginSkill",
+            "deriveSkillFromAddress",
+            "formatSkillAddressSource",
+        ];
+        let hits = forbidden_needles
+            .into_iter()
+            .filter(|needle| app_source.contains(needle))
+            .collect::<Vec<_>>();
+
+        assert!(
+            hits.is_empty(),
+            "plugin workspace search/filter/dialog state must stay inside plugins-workspace.tsx, not App.tsx: {hits:?}"
+        );
+    }
+
+    #[test]
+    fn rust_runtime_repo_guardrails_keep_desktop_settings_view_split() {
+        let root = repo_root();
+        let app_path = root.join("apps/crawclaw-desktop/src/App.tsx");
+        let settings_view_path = root.join("apps/crawclaw-desktop/src/views/settings-workspace.tsx");
+        let app_source = fs::read_to_string(&app_path).expect("read desktop app");
+        assert!(
+            settings_view_path.is_file(),
+            "desktop settings workspace view must live in apps/crawclaw-desktop/src/views/settings-workspace.tsx"
+        );
+        assert!(
+            !app_source.contains("const renderSettingsWorkspace")
+                && !app_source.contains("const renderSettingsSidebar"),
+            "App.tsx should compose SettingsWorkspace and SettingsSidebar instead of owning settings render trees"
+        );
+        let forbidden_needles = [
+            "settingsUi",
+            "isAddingModel",
+            "modelDraftName",
+            "setSettingsValue",
+            "toggleSettingsValue",
+            "submitCustomModel",
+        ];
+        let hits = forbidden_needles
+            .into_iter()
+            .filter(|needle| app_source.contains(needle))
+            .collect::<Vec<_>>();
+
+        assert!(
+            hits.is_empty(),
+            "settings workspace form and local UI state must stay inside settings-workspace.tsx, not App.tsx: {hits:?}"
+        );
+    }
+
+    #[test]
+    fn rust_runtime_repo_guardrails_keep_desktop_agent_view_split() {
+        let root = repo_root();
+        let app_path = root.join("apps/crawclaw-desktop/src/App.tsx");
+        let agent_view_path = root.join("apps/crawclaw-desktop/src/views/agent-workspace.tsx");
+        let agent_wizard_path =
+            root.join("apps/crawclaw-desktop/src/views/agent-create-wizard.tsx");
+        let agent_wizard_model_path =
+            root.join("apps/crawclaw-desktop/src/views/agent-create-wizard-model.ts");
+        let agent_wizard_steps_path =
+            root.join("apps/crawclaw-desktop/src/views/agent-create-wizard-steps.tsx");
+        let agent_wizard_channel_step_path =
+            root.join("apps/crawclaw-desktop/src/views/agent-create-wizard-channel-step.tsx");
+        let agent_wizard_voice_step_path =
+            root.join("apps/crawclaw-desktop/src/views/agent-create-wizard-voice-step.tsx");
+        let app_source = fs::read_to_string(&app_path).expect("read desktop app");
+        let agent_source = fs::read_to_string(&agent_view_path).expect("read agent workspace");
+        let agent_wizard_source =
+            fs::read_to_string(&agent_wizard_path).expect("read agent create wizard");
+        let agent_wizard_steps_source =
+            fs::read_to_string(&agent_wizard_steps_path).unwrap_or_default();
+        assert!(
+            agent_view_path.is_file(),
+            "desktop agent workspace view must live in apps/crawclaw-desktop/src/views/agent-workspace.tsx"
+        );
+        assert!(
+            agent_wizard_path.is_file(),
+            "desktop agent creation wizard must live in apps/crawclaw-desktop/src/views/agent-create-wizard.tsx"
+        );
+        assert!(
+            agent_wizard_model_path.is_file(),
+            "desktop agent creation wizard model helpers must live in apps/crawclaw-desktop/src/views/agent-create-wizard-model.ts"
+        );
+        assert!(
+            agent_wizard_steps_path.is_file(),
+            "desktop agent creation wizard step renderers must live in apps/crawclaw-desktop/src/views/agent-create-wizard-steps.tsx"
+        );
+        assert!(
+            agent_wizard_channel_step_path.is_file(),
+            "desktop agent channel wizard step must live in apps/crawclaw-desktop/src/views/agent-create-wizard-channel-step.tsx"
+        );
+        assert!(
+            agent_wizard_voice_step_path.is_file(),
+            "desktop agent voice wizard step must live in apps/crawclaw-desktop/src/views/agent-create-wizard-voice-step.tsx"
+        );
+        assert!(
+            !app_source.contains("const renderAgentWorkspace")
+                && !app_source.contains("const renderAgentCreateWizard"),
+            "App.tsx should compose AgentWorkspace instead of owning agent workspace and wizard render trees"
+        );
+        let forbidden_needles = [
+            "AgentCreateDraft",
+            "agentWizardSteps",
+            "createAgentDraft",
+            "renderAgentCreateWizard",
+            "renderAgentWizardStepContent",
+            "renderAgentChannelConfig",
+        ];
+        let hits = forbidden_needles
+            .into_iter()
+            .filter(|needle| agent_source.contains(needle))
+            .collect::<Vec<_>>();
+
+        assert!(
+            hits.is_empty(),
+            "agent creation wizard state and render tree must stay inside agent-create-wizard.tsx, not agent-workspace.tsx: {hits:?}"
+        );
+        let forbidden_wizard_model_declarations = [
+            "const agentWizardSteps =",
+            "const agentVoiceSourceOptions =",
+            "type AgentCreateDraft =",
+            "function createAgentDraft",
+            "function createAgentAvatar",
+            "function deriveAgentDraftRole",
+            "function generateAgentAvatarDraft",
+        ];
+        let declaration_hits = forbidden_wizard_model_declarations
+            .into_iter()
+            .filter(|needle| agent_wizard_source.contains(needle))
+            .collect::<Vec<_>>();
+
+        assert!(
+            declaration_hits.is_empty(),
+            "agent creation wizard pure model data and derivation helpers must stay in agent-create-wizard-model.ts, not agent-create-wizard.tsx: {declaration_hits:?}"
+        );
+        let forbidden_wizard_step_render_needles = [
+            "renderAgentWizardStepContent",
+            "renderAgentChannelConfig",
+            "agent-create-wizard__identity",
+            "agent-create-wizard__voice-source",
+            "agent-create-wizard__channel-layout",
+            "agent-create-wizard__model-layout",
+            "agent-create-wizard__summary",
+        ];
+        let step_render_hits = forbidden_wizard_step_render_needles
+            .into_iter()
+            .filter(|needle| agent_wizard_source.contains(needle))
+            .collect::<Vec<_>>();
+
+        assert!(
+            step_render_hits.is_empty(),
+            "agent creation wizard step render trees must stay in agent-create-wizard-steps.tsx, not agent-create-wizard.tsx: {step_render_hits:?}"
+        );
+        let forbidden_nested_step_needles = [
+            "renderAgentChannelConfig",
+            "agent-create-wizard__channel-layout",
+            "agent-create-wizard__voice-source",
+            "agent-create-wizard__voice-presets",
+            "agent-create-wizard__voice-clone",
+        ];
+        let nested_step_hits = forbidden_nested_step_needles
+            .into_iter()
+            .filter(|needle| agent_wizard_steps_source.contains(needle))
+            .collect::<Vec<_>>();
+
+        assert!(
+            nested_step_hits.is_empty(),
+            "agent wizard channel and voice step internals must live in their dedicated step files, not agent-create-wizard-steps.tsx: {nested_step_hits:?}"
+        );
+    }
+
+    #[test]
+    fn rust_runtime_repo_guardrails_keep_desktop_chat_view_split() {
+        let root = repo_root();
+        let app_path = root.join("apps/crawclaw-desktop/src/App.tsx");
+        let chat_view_path = root.join("apps/crawclaw-desktop/src/views/chat-workspace.tsx");
+        let chat_model_path =
+            root.join("apps/crawclaw-desktop/src/views/chat-workspace-model.ts");
+        let chat_media_preview_path =
+            root.join("apps/crawclaw-desktop/src/views/chat-media-preview.tsx");
+        let chat_thread_path = root.join("apps/crawclaw-desktop/src/views/chat-thread.tsx");
+        let app_source = fs::read_to_string(&app_path).expect("read desktop app");
+        let chat_source = fs::read_to_string(&chat_view_path).expect("read chat workspace");
+        assert!(
+            chat_view_path.is_file(),
+            "desktop chat workspace view must live in apps/crawclaw-desktop/src/views/chat-workspace.tsx"
+        );
+        assert!(
+            chat_model_path.is_file(),
+            "desktop chat workspace model helpers must live in apps/crawclaw-desktop/src/views/chat-workspace-model.ts"
+        );
+        assert!(
+            chat_media_preview_path.is_file(),
+            "desktop chat media preview overlays must live in apps/crawclaw-desktop/src/views/chat-media-preview.tsx"
+        );
+        assert!(
+            chat_thread_path.is_file(),
+            "desktop chat thread render tree must live in apps/crawclaw-desktop/src/views/chat-thread.tsx"
+        );
+        let forbidden_needles = [
+            "ChatAvatar",
+            "batchImageTiles",
+            "ImagePreview",
+            "videoPreviewStartSeconds",
+            "isAttachmentMenuOpen",
+            "isCommandMenuOpen",
+            "isListening",
+            "imagePreview",
+            "videoCurrentSeconds",
+            "visibleSlashCommands",
+            "visibleSkillCommands",
+            "submitDraft",
+            "chat-thread",
+            "media-stack",
+            "Composer",
+        ];
+        let hits = forbidden_needles
+            .into_iter()
+            .filter(|needle| app_source.contains(needle))
+            .collect::<Vec<_>>();
+
+        assert!(
+            hits.is_empty(),
+            "chat/media/composer state and render tree must stay inside chat-workspace.tsx, not App.tsx: {hits:?}"
+        );
+        let forbidden_chat_workspace_needles = [
+            "const batchImageTiles =",
+            "type ImagePreview =",
+            "const formatVideoTime =",
+            "function ChatAvatar",
+            "video-preview-overlay",
+            "image-preview-overlay",
+            "className=\"chat-thread\"",
+            "className=\"media-stack\"",
+            "className=\"execution-stack\"",
+            "className=\"workflow-stack\"",
+            "className=\"chat-message voice-message\"",
+        ];
+        let chat_hits = forbidden_chat_workspace_needles
+            .into_iter()
+            .filter(|needle| chat_source.contains(needle))
+            .collect::<Vec<_>>();
+
+        assert!(
+            chat_hits.is_empty(),
+            "chat model helpers, preview overlays, and static thread render tree must be split out of chat-workspace.tsx: {chat_hits:?}"
+        );
+    }
+
+    #[test]
     fn rust_runtime_repo_guardrails_keep_non_desktop_script_sources_absent() {
         let root = repo_root();
         let existing = tracked_files(&root)

@@ -1,0 +1,316 @@
+import type {
+  AddAgentSkillInput,
+  AddPluginSkillInput,
+  BootstrapResponse,
+  CreateAgentInput,
+  CreateMemoryItemInput,
+  DesktopPreferences,
+  DesktopSessionHistoryResponse,
+  DesktopSessionMutationResponse,
+  DesktopSessionsResponse,
+  DesktopState,
+  DesktopSubagentsResponse,
+  MemoryFilter,
+  PermissionStatus,
+  SearchSuggestion,
+  UpdateAgentInput,
+  UpdateMemoryItemPatch,
+} from '../generated/desktop-api-contract.generated'
+import {
+  ensureDesktopApiContext,
+  requestDesktop,
+  requestDesktopState,
+  resolveDesktopApiBaseUrl,
+  setDesktopApiContext,
+} from './desktop-transport'
+
+export async function loadBootstrap(): Promise<BootstrapResponse> {
+  const baseUrl = await resolveDesktopApiBaseUrl()
+  if (!baseUrl) {
+    throw new Error('CrawClaw Desktop Gateway URL is not available.')
+  }
+
+  const response = await fetch(`${baseUrl}/api/desktop/bootstrap`)
+  if (!response.ok) {
+    throw new Error(`Unable to load /api/desktop/bootstrap: HTTP ${response.status}`)
+  }
+
+  const bootstrap = (await response.json()) as BootstrapResponse
+  setDesktopApiContext({
+    api: bootstrap.api,
+    baseUrl,
+  })
+  return bootstrap
+}
+
+export async function loadDesktopState(): Promise<DesktopState> {
+  const context = await ensureContext()
+  return requestDesktopState(context, '/api/desktop/state')
+}
+
+export async function searchDesktop(query: string): Promise<SearchSuggestion[]> {
+  const context = await ensureContext()
+  const response = await requestDesktop<SearchSuggestion[]>(
+    context,
+    `/api/desktop/search?q=${encodeURIComponent(query)}`,
+  )
+  return response
+}
+
+export async function selectNav(navId: string): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/navigation/select', {
+    body: { navId },
+    method: 'POST',
+  })
+}
+
+export async function selectThread(threadId: string): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/threads/select', {
+    body: { threadId },
+    method: 'POST',
+  })
+}
+
+export async function pinThread(threadId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/threads/${encodeURIComponent(threadId)}/pin`, {
+    method: 'POST',
+  })
+}
+
+export async function unpinThread(threadId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/threads/${encodeURIComponent(threadId)}/unpin`, {
+    method: 'POST',
+  })
+}
+
+export async function renameThread(threadId: string, title: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/threads/${encodeURIComponent(threadId)}/rename`, {
+    body: { title },
+    method: 'PATCH',
+  })
+}
+
+export async function archiveThread(threadId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/threads/${encodeURIComponent(threadId)}/archive`, {
+    method: 'POST',
+  })
+}
+
+export async function listSessions(): Promise<DesktopSessionsResponse> {
+  const context = await ensureContext()
+  return requestDesktop<DesktopSessionsResponse>(context, '/api/desktop/sessions')
+}
+
+export async function loadSessionHistory(threadId: string): Promise<DesktopSessionHistoryResponse> {
+  const context = await ensureContext()
+  return requestDesktop<DesktopSessionHistoryResponse>(
+    context,
+    `/api/desktop/sessions/${encodeURIComponent(threadId)}/history`,
+  )
+}
+
+export async function spawnSession(input: {
+  task: string
+  label?: string
+  parentSessionKey?: string
+}): Promise<DesktopSessionMutationResponse> {
+  const context = await ensureContext()
+  return requestDesktop<DesktopSessionMutationResponse>(context, '/api/desktop/sessions/spawn', {
+    body: JSON.stringify(input),
+    method: 'POST',
+  })
+}
+
+export async function sendSession(sessionKey: string, message: string): Promise<DesktopSessionMutationResponse> {
+  const context = await ensureContext()
+  return requestDesktop<DesktopSessionMutationResponse>(context, '/api/desktop/sessions/send', {
+    body: JSON.stringify({ message, sessionKey }),
+    method: 'POST',
+  })
+}
+
+export async function yieldSession(sessionKey: string): Promise<DesktopSessionMutationResponse> {
+  const context = await ensureContext()
+  return requestDesktop<DesktopSessionMutationResponse>(context, '/api/desktop/sessions/yield', {
+    body: JSON.stringify({ sessionKey }),
+    method: 'POST',
+  })
+}
+
+export async function listSubagents(parentSessionKey?: string): Promise<DesktopSubagentsResponse> {
+  const context = await ensureContext()
+  const query = parentSessionKey ? `?parentSessionKey=${encodeURIComponent(parentSessionKey)}` : ''
+  return requestDesktop<DesktopSubagentsResponse>(context, `/api/desktop/subagents${query}`)
+}
+
+export async function sendMessage(text: string): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/messages', {
+    body: { text },
+    method: 'POST',
+  })
+}
+
+export async function abortMessage(): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/messages/abort', {
+    method: 'POST',
+  })
+}
+
+export async function steerMessage(text: string): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/messages/steer', {
+    body: { text },
+    method: 'POST',
+  })
+}
+
+export async function decidePermission(requestId: string, decision: Exclude<PermissionStatus, 'pending'>): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/permissions/${encodeURIComponent(requestId)}/decision`, {
+    body: { decision },
+    method: 'POST',
+  })
+}
+
+export async function updatePreferences(patch: Partial<Pick<DesktopPreferences, 'permissionMode' | 'selectedModel' | 'selectedThinking'>>): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/preferences', {
+    body: patch,
+    method: 'PATCH',
+  })
+}
+
+export async function togglePluginTool(toolId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/plugins/tools/${encodeURIComponent(toolId)}/toggle`, {
+    method: 'POST',
+  })
+}
+
+export async function togglePluginSkill(skillId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/plugins/skills/${encodeURIComponent(skillId)}/toggle`, {
+    method: 'POST',
+  })
+}
+
+export async function invokePluginTool(pluginId: string, toolId: string, input: unknown = {}): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/plugins/${encodeURIComponent(pluginId)}/tools/${encodeURIComponent(toolId)}/invoke`, {
+    body: { input },
+    method: 'POST',
+  })
+}
+
+export async function addPluginSkill(skill: AddPluginSkillInput): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/plugins/skills', {
+    body: skill,
+    method: 'POST',
+  })
+}
+
+export async function selectAgent(agentId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/agents/${encodeURIComponent(agentId)}/select`, {
+    method: 'POST',
+  })
+}
+
+export async function createAgent(agent: CreateAgentInput): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/agents', {
+    body: agent,
+    method: 'POST',
+  })
+}
+
+export async function updateAgent(agentId: string, patch: UpdateAgentInput): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/agents/${encodeURIComponent(agentId)}`, {
+    body: patch,
+    method: 'PATCH',
+  })
+}
+
+export async function toggleAgentTool(agentId: string, toolId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/agents/${encodeURIComponent(agentId)}/tools/${encodeURIComponent(toolId)}/toggle`, {
+    method: 'POST',
+  })
+}
+
+export async function toggleAgentSkill(agentId: string, skillId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/agents/${encodeURIComponent(agentId)}/skills/${encodeURIComponent(skillId)}/toggle`, {
+    method: 'POST',
+  })
+}
+
+export async function addAgentSkill(agentId: string, skill: AddAgentSkillInput): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/agents/${encodeURIComponent(agentId)}/skills`, {
+    body: skill,
+    method: 'POST',
+  })
+}
+
+export async function selectMemoryItem(itemId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/memory/items/${encodeURIComponent(itemId)}/select`, {
+    method: 'POST',
+  })
+}
+
+export async function selectMemoryAgent(agentId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/memory/agents/${encodeURIComponent(agentId)}/select`, {
+    method: 'POST',
+  })
+}
+
+export async function setMemoryQuery(query: string): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/memory/query', {
+    body: { query },
+    method: 'PATCH',
+  })
+}
+
+export async function setMemoryFilter(filter: MemoryFilter): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/memory/filter', {
+    body: { filter },
+    method: 'PATCH',
+  })
+}
+
+export async function createMemoryItem(input: CreateMemoryItemInput): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/memory/items', {
+    body: input,
+    method: 'POST',
+  })
+}
+
+export async function updateMemoryItem(itemId: string, patch: UpdateMemoryItemPatch): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/memory/items/${encodeURIComponent(itemId)}`, {
+    body: patch,
+    method: 'PATCH',
+  })
+}
+
+export async function archiveMemoryItem(itemId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/memory/items/${encodeURIComponent(itemId)}/archive`, {
+    method: 'POST',
+  })
+}
+
+export async function runMemoryDream(agentId?: string): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/memory/dream/run', {
+    body: agentId ? { agentId } : {},
+    method: 'POST',
+  })
+}
+
+async function mutateDesktopState(
+  path: string,
+  request: {
+    body?: unknown
+    method: 'PATCH' | 'POST'
+  },
+): Promise<DesktopState> {
+  const context = await ensureContext()
+  return requestDesktopState(context, path, {
+    body: request.body ? JSON.stringify(request.body) : undefined,
+    method: request.method,
+  })
+}
+
+async function ensureContext() {
+  return ensureDesktopApiContext(async () => {
+    await loadBootstrap()
+  })
+}

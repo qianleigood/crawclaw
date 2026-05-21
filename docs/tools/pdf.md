@@ -72,14 +72,12 @@ Fallback mode is used for non-native providers.
 Flow:
 
 1. Extract text from selected pages (up to `agents.defaults.pdfMaxPages`, default `20`).
-2. If extracted text length is below `200` chars, render selected pages to PNG images and include them.
-3. Send extracted content plus prompt to the selected model.
+2. Send extracted text plus the prompt to the selected model.
 
 Fallback details:
 
-- Page image extraction uses a pixel budget of `4,000,000`.
-- If the target model does not support image input and there is no extractable text, the tool errors.
-- Extraction fallback requires `pdfjs-dist` (and `@napi-rs/canvas` for image rendering).
+- If there is no extractable text, the tool errors.
+- Extraction fallback is handled by the Rust runtime and does not require Node PDF packages.
 
 ## Config
 
