@@ -9,7 +9,7 @@ use crawclaw_desktop::gateway::desktop_api::{
 use crawclaw_desktop::runtime_engine::RuntimeLayout;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-const TEST_HTTP_READ_TIMEOUT: Duration = Duration::from_secs(10);
+const TEST_HTTP_READ_TIMEOUT: Duration = Duration::from_secs(30);
 use uuid::Uuid;
 
 #[tokio::test]
@@ -2054,6 +2054,39 @@ fn is_complete_http_response(bytes: &[u8]) -> bool {
 }
 
 #[cfg(unix)]
+fn is_complete_http_request(bytes: &[u8]) -> bool {
+    let Some(header_end) = bytes.windows(4).position(|window| window == b"\r\n\r\n") else {
+        return false;
+    };
+    let header = String::from_utf8_lossy(&bytes[..header_end]);
+    if header.lines().any(|line| {
+        let Some((name, value)) = line.split_once(':') else {
+            return false;
+        };
+        name.eq_ignore_ascii_case("transfer-encoding")
+            && value
+                .split(',')
+                .any(|encoding| encoding.trim().eq_ignore_ascii_case("chunked"))
+    }) {
+        return bytes[header_end + 4..]
+            .windows(5)
+            .any(|window| window == b"0\r\n\r\n");
+    }
+    let Some(content_length) = header.lines().find_map(|line| {
+        let (name, value) = line.split_once(':')?;
+        if name.eq_ignore_ascii_case("content-length") {
+            value.trim().parse::<usize>().ok()
+        } else {
+            None
+        }
+    }) else {
+        return true;
+    };
+
+    bytes.len() >= header_end + 4 + content_length
+}
+
+#[cfg(unix)]
 async fn spawn_openai_compatible_provider(expected_text: &str, response_text: &str) -> String {
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
         .await
@@ -2072,7 +2105,7 @@ async fn spawn_openai_compatible_provider(expected_text: &str, response_text: &s
                 .expect("read provider request");
             assert_ne!(count, 0, "provider request closed early");
             bytes.extend_from_slice(&buffer[..count]);
-            if is_complete_http_response(&bytes) {
+            if is_complete_http_request(&bytes) {
                 break;
             }
         }

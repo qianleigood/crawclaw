@@ -2472,11 +2472,11 @@ pub fn default_model_options() -> Vec<String> {
 
 mod transport;
 pub(crate) use transport::non_empty;
+pub use transport::*;
 #[cfg(test)]
 pub(crate) use transport::{
     is_implemented_native_provider_transport, openai_compatible_chat_completions_url,
 };
-pub use transport::*;
 
 #[cfg(test)]
 mod tests {
