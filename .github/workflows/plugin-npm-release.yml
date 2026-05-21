@@ -10,6 +10,7 @@ on:
       - "crates/crawclaw-runtime/src/lib.rs"
       - "crates/crawclaw-runtime/src/main.rs"
       - "crates/crawclaw-runtime/src/npm_release.rs"
+      - "crates/crawclaw-repo-tools/**"
       - "extensions/**"
       - "package.json"
       - "scripts/plugin-npm-publish.sh"

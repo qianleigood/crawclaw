@@ -1,3 +1,10 @@
+//! Desktop plugin read-model and catalog helpers.
+//!
+//! This crate does not host JavaScript plugin runtime behavior. It exposes the
+//! Rust-native plugin and channel read models that desktop and maintainer
+//! checks consume while runtime execution stays in the native plugin, channel,
+//! provider, and Gateway crates.
+
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;

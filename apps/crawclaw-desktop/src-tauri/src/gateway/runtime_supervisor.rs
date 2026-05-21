@@ -23,8 +23,6 @@ impl RuntimeSupervisor {
             runtime_root: inspected.runtime_root,
             binary_path: inspected.binary_path,
             compat: inspected.compat,
-            node_path: String::new(),
-            entrypoint_path: String::new(),
         })
     }
 

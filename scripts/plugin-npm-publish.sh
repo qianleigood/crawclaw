@@ -16,14 +16,14 @@ if [[ -z "${package_dir}" ]]; then
 fi
 
 package_metadata="$(
-  cargo run --quiet -p crawclaw-runtime -- npm-package-metadata --package-dir "${package_dir}" |
+  cargo run --quiet -p crawclaw-repo-tools -- npm-package-metadata --package-dir "${package_dir}" |
     sed '/^\[bubbletea-macros\]/d'
 )"
 package_name="$(printf '%s\n' "${package_metadata}" | sed -n '1p')"
 package_version="$(printf '%s\n' "${package_metadata}" | sed -n '2p')"
 current_beta_version="$(npm view "${package_name}" dist-tags.beta 2>/dev/null || true)"
 publish_plan_output="$(
-  cargo run --quiet -p crawclaw-runtime -- npm-publish-plan \
+  cargo run --quiet -p crawclaw-repo-tools -- npm-publish-plan \
     --version "${package_version}" \
     --current-beta-version "${current_beta_version}" \
     --publish-mode "${mode}" |

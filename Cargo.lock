@@ -1573,6 +1573,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "crawclaw-repo-tools"
+version = "2026.5.3"
+dependencies = [
+ "crawclaw-providers",
+ "crawclaw-runtime",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "crawclaw-runtime"
 version = "2026.5.3"
 dependencies = [

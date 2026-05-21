@@ -83,8 +83,10 @@ If there is an MCP server or feature `mcporter` does not support yet, please ope
 
 ### Setup
 
-CrawClaw is currently terminal-first by design.
-This keeps setup explicit: users see docs, auth, permissions, and security posture up front.
+CrawClaw is desktop-first and local-first by design.
+The desktop app and local Gateway keep setup explicit: users see docs, auth,
+permissions, and security posture up front while the product runtime stays
+behind one Rust-owned boundary.
 
 Long term, we want easier onboarding flows as hardening matures.
 We do not want convenience wrappers that hide critical security decisions from users.

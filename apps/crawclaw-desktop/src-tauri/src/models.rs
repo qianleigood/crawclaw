@@ -10,10 +10,6 @@ pub struct RuntimeStatus {
     pub runtime_root: String,
     pub binary_path: String,
     pub compat: RuntimeCompatStatus,
-    #[serde(default)]
-    pub node_path: String,
-    #[serde(default)]
-    pub entrypoint_path: String,
 }
 
 #[derive(Clone, Debug, Serialize)]

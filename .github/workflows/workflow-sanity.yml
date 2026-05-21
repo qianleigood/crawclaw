@@ -76,7 +76,7 @@ jobs:
         run: python3 scripts/check-composite-action-input-interpolation.py
 
       - name: Disallow tracked merge conflict markers
-        run: cargo run -q -p crawclaw-runtime -- repo-check-no-conflict-markers --root .
+        run: cargo run -q -p crawclaw-repo-tools -- repo-check-no-conflict-markers --root .
 
   generated-doc-baselines:
     if: github.event_name == 'workflow_dispatch'

@@ -18,12 +18,12 @@ if [[ -n "${publish_target}" && -f "${publish_target}" ]]; then
 fi
 
 package_metadata="$(
-  cargo run --quiet -p crawclaw-runtime -- npm-package-metadata --package-dir . |
+  cargo run --quiet -p crawclaw-repo-tools -- npm-package-metadata --package-dir . |
     sed '/^\[bubbletea-macros\]/d'
 )"
 package_version="$(printf '%s\n' "${package_metadata}" | sed -n '2p')"
 mapfile -t publish_plan < <(
-  cargo run --quiet -p crawclaw-runtime -- npm-publish-plan \
+  cargo run --quiet -p crawclaw-repo-tools -- npm-publish-plan \
     --version "${package_version}" \
     --root-package \
     --requested-tag "${CRAWCLAW_NPM_PUBLISH_TAG:-beta}" \

@@ -8,6 +8,7 @@ members = [
   "crates/crawclaw-plugin-sdk",
   "crates/crawclaw-plugin-host",
   "crates/crawclaw-providers",
+  "crates/crawclaw-repo-tools",
   "crates/crawclaw-runtime",
 ]
 resolver = "2"

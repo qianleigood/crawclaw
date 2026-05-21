@@ -189,7 +189,7 @@ esac
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
     assert_eq!(json["runtime"]["status"], "ready");
-    assert_eq!(json["runtime"]["nodePath"], "");
+    assert!(json["runtime"].get("nodePath").is_none());
     assert_eq!(json["desktopState"]["activeNavId"], "new-chat");
     assert_eq!(
         json["desktopState"]["agentWorkspace"]["agents"]

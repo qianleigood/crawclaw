@@ -41,6 +41,7 @@
 "terminal":
   - changed-files:
       - any-glob-to-any-file:
+          - "crates/crawclaw-repo-tools/**"
           - "crates/crawclaw-runtime/src/main.rs"
           - "crates/crawclaw-runtime/src/node_tool_runner.rs"
 
@@ -48,6 +49,7 @@
   - changed-files:
       - any-glob-to-any-file:
           - "crates/crawclaw-runtime/**"
+          - "crates/crawclaw-repo-tools/**"
 
 "scripts":
   - changed-files:

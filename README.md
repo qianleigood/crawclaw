@@ -66,8 +66,8 @@ Start here:
 - **Memory runtime**: context assembly, compaction, durable extraction, recall,
   session summaries, and maintenance flows.
 - **Plugin ecosystem**: plugins add channels, providers, tools, skills, speech,
-  image generation, browser backends, setup flows, and runtime hooks through the
-  plugin SDK.
+  image generation, browser backends, setup flows, and native capability
+  contracts through the plugin SDK.
 
 Useful references:
 
@@ -113,7 +113,7 @@ Key docs:
 | [crates](crates)                               | Rust Gateway, runtime, native-plugin, provider, and SDK crates                      |
 | [src](src)                                     | Retained non-runtime metadata, generated JSON, and local boundary notes             |
 | [extensions](extensions)                       | Bundled plugins for channels, providers, browser backends, speech, media, and tools |
-| [packages](packages)                           | Workspace support packages                                                          |
+| [packages](packages)                           | Reserved workspace support package slot                                             |
 | [skills](skills)                               | Shipped runtime skills                                                              |
 | [docs](docs)                                   | Mintlify documentation source                                                       |
 | [test](test)                                   | Shared test infrastructure and fixtures                                             |

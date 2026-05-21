@@ -31,7 +31,7 @@ These surfaces are product runtime surfaces and should stay Rust/native-owned:
 Production desktop packages must embed the Rust runtime binaries under
 `runtime/crawclaw/bin/` and must not stage a public `crawclaw` CLI binary, a
 default JavaScript plugin runtime, or a QuickJS fallback. The release check in
-`crates/crawclaw-runtime` is the guardrail for that bundle shape and is exposed
+`crates/crawclaw-repo-tools` is the guardrail for that bundle shape and is exposed
 through `pnpm desktop:tauri:stage-runtime` and
 `pnpm desktop:tauri:release-check`.
 

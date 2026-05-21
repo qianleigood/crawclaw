@@ -17,7 +17,7 @@ The short version:
 - `apps/crawclaw-desktop/` is the desktop application
 - `src/` is retained non-runtime metadata, generated JSON, and local boundary notes
 - `extensions/` is the bundled plugin metadata ecosystem
-- `packages/` contains support package placeholders that do not fit the runtime crates
+- `packages/` is a reserved workspace support package slot, not runtime core
 - `docs/` contains both product docs and maintainer-facing design material
 - `scripts/` and `.github/` are the delivery layer
 - `test/` is shared test infrastructure
@@ -32,7 +32,8 @@ The main product runtime lives under Rust crates.
 Primary domains:
 
 - `crates/crawclaw-gateway`: control plane, auth, protocol, and Gateway services
-- `crates/crawclaw-runtime`: agent, memory, automation, config, secrets, tools, hooks, packaging, and repo checks
+- `crates/crawclaw-runtime`: agent, memory, automation, tools, native plugin execution, and runtime state
+- `crates/crawclaw-repo-tools`: build, release, docs, generated baselines, and repo guardrail commands
 - `crates/crawclaw-native-plugins`: native plugin descriptors and operations
 - `crates/crawclaw-providers`: provider metadata and transport contracts
 - `crates/crawclaw-plugin-sdk`: public Rust plugin SDK
@@ -69,16 +70,14 @@ of optional skills and recipes, not a core runtime tree.
 
 ## Support Packages
 
-`packages/` is for packages that do not belong in the main runtime tree but are
-still part of the monorepo.
+`packages/` is intentionally reserved but currently should stay empty except
+for its boundary note. New support packages should not be added by default.
+First decide whether the code belongs under:
 
-New packages should not be added here by default without first deciding whether
-they are:
-
-- runtime core
-- extension ecosystem
-- app-sidecar
-- internal support package
+- `crates/` for runtime core or Rust repo tooling
+- `extensions/` for the plugin ecosystem
+- `apps/` for app or sidecar product code
+- `scripts/` for shell, Go, or Python delivery helpers
 
 ## Documentation Layer
 

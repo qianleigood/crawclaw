@@ -27,7 +27,5 @@ pub fn runtime_status_from_native(status: crawclaw_runtime::NativeRuntimeStatus)
         runtime_root: status.runtime_root,
         binary_path: status.binary_path,
         compat: status.compat,
-        node_path: String::new(),
-        entrypoint_path: String::new(),
     }
 }

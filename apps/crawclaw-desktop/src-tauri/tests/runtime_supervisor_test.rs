@@ -26,8 +26,6 @@ async fn runtime_supervisor_reports_native_runtime_ready_without_cli_probe() {
 
     assert_eq!(status.status, RuntimeStatusValue::Ready);
     assert_eq!(status.binary_path, layout.binary_path.to_string_lossy());
-    assert_eq!(status.node_path, "");
-    assert_eq!(status.entrypoint_path, "");
 }
 
 #[tokio::test]

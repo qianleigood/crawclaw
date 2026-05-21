@@ -46,7 +46,8 @@ cargo test -q -p crawclaw-gateway
 
 ## Repository contract tests
 
-Bundled plugin contracts verify registration ownership and descriptor shape:
+Bundled plugin contracts verify registration ownership, descriptor shape, and
+the desktop plugin read model:
 
 ```bash
 cargo test -q -p crawclaw-plugin-host

@@ -64,8 +64,6 @@ export interface RuntimeStatus {
     mode: 'none'
     detail: string
   }
-  nodePath: string
-  entrypointPath: string
 }
 
 export interface DesktopAppInfo {
