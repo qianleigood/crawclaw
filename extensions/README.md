@@ -2,7 +2,7 @@
 
 This directory is the CrawClaw capability ecosystem layer.
 
-It is not the same thing as the main runtime under `src/`.
+It is not the same thing as the Rust product runtime under `crates/`.
 
 Typical extension roles here include:
 
@@ -14,8 +14,10 @@ Typical extension roles here include:
 
 Practical reading order:
 
-1. Read `src/` if you want to understand the product runtime.
-2. Read `extensions/` if you want to understand how CrawClaw is extended.
+1. Read `crates/` if you want to understand the product runtime.
+2. Read `apps/crawclaw-desktop/` if you want to understand the desktop app.
+3. Read `extensions/` if you want to understand how CrawClaw is extended.
+4. Read `src/generated/` when you need generated metadata consumed by docs and checks.
 
 This directory is intentionally broad, but maintainers should treat it as a
 single conceptual layer: product extensions, not core runtime code.

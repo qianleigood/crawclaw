@@ -770,6 +770,28 @@ esac
     assert_eq!(feishu_fields[0]["value"], "cli_a");
     assert_eq!(feishu_fields[1]["secret"], true);
     assert_eq!(feishu_fields[4]["value"], "keep");
+
+    let esp32 = channels
+        .iter()
+        .find(|channel| channel["id"] == "esp32")
+        .expect("esp32 channel");
+    let esp32_fields = esp32["config"]["fields"].as_array().expect("esp32 fields");
+    assert_eq!(
+        esp32_fields
+            .iter()
+            .map(|field| field["id"].as_str().expect("field id"))
+            .collect::<Vec<_>>(),
+        vec![
+            "brokerMode",
+            "bindHost",
+            "advertisedHost",
+            "port",
+            "udpPort",
+            "otaPath",
+            "wakeWord"
+        ]
+    );
+    assert_eq!(esp32_fields[4]["value"], "1884");
 }
 
 #[cfg(unix)]
@@ -837,7 +859,7 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
-async fn gateway_native_unsupported_mutation_returns_501_without_running_node_bridge() {
+async fn gateway_rejects_unknown_desktop_mutation_without_running_node_bridge() {
     let server = start_gateway_server(GatewayConfig {
         app_name: "CrawClaw Desktop".to_string(),
         app_version: "test".to_string(),
@@ -867,7 +889,7 @@ esac
     )
     .await;
 
-    assert_eq!(status, 501);
+    assert_eq!(status, 404);
 }
 
 #[cfg(unix)]

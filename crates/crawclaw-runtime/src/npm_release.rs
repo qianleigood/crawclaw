@@ -1395,4 +1395,41 @@ mod tests {
             false
         ));
     }
+
+    #[test]
+    fn root_release_metadata_rejects_public_node_entrypoints() {
+        let pkg = RootPackageJson {
+            value: serde_json::json!({
+                "name": "crawclaw",
+                "version": "2026.5.20",
+                "description": "CrawClaw",
+                "license": "MIT",
+                "repository": { "url": "git+https://github.com/qianleigood/crawclaw.git" },
+                "bin": { "crawclaw": "dist/cli.js" },
+                "main": "dist/index.js",
+                "exports": {
+                    ".": "./dist/index.js",
+                    "./cli-entry": "./dist/cli-entry.js"
+                },
+                "files": [
+                    "crawclaw.mjs",
+                    "dist/",
+                    "scripts/npm-runner.mjs"
+                ],
+                "scripts": { "postinstall": "node scripts/postinstall.js" },
+                "peerDependencies": { "node-llama-cpp": "3.18.1" },
+                "peerDependenciesMeta": { "node-llama-cpp": { "optional": true } }
+            }),
+        };
+
+        let errors = collect_release_package_metadata_errors(&pkg).join("\n");
+        assert!(errors.contains("must not expose public crawclaw CLI bin"));
+        assert!(errors.contains("must not expose a root Node main entry"));
+        assert!(errors.contains("must not expose root JS library entry"));
+        assert!(errors.contains("must not expose legacy \"./cli-entry\""));
+        assert!(errors.contains("must not include the legacy Node entry file"));
+        assert!(errors.contains("must not include the legacy dist JS runtime tree"));
+        assert!(errors.contains("must not include install-time Node helper scripts"));
+        assert!(errors.contains("must not run a postinstall script"));
+    }
 }

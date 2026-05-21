@@ -366,6 +366,31 @@ pub const BUNDLED_PROVIDER_PLUGINS: &[BundledProviderPlugin] = &[
     },
 ];
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct BundledProviderPluginContractOverride {
+    plugin_id: &'static str,
+    legacy_plugin_ids: &'static [&'static str],
+    auto_enable_when_configured_providers: &'static [&'static str],
+}
+
+const BUNDLED_PROVIDER_PLUGIN_CONTRACT_OVERRIDES: &[BundledProviderPluginContractOverride] = &[
+    BundledProviderPluginContractOverride {
+        plugin_id: "copilot-proxy",
+        legacy_plugin_ids: &[],
+        auto_enable_when_configured_providers: &["copilot-proxy"],
+    },
+    BundledProviderPluginContractOverride {
+        plugin_id: "google",
+        legacy_plugin_ids: &[],
+        auto_enable_when_configured_providers: &["google-gemini-cli"],
+    },
+    BundledProviderPluginContractOverride {
+        plugin_id: "minimax",
+        legacy_plugin_ids: &["minimax-portal-auth"],
+        auto_enable_when_configured_providers: &["minimax", "minimax-portal"],
+    },
+];
+
 const BUNDLED_PROVIDER_PLUGIN_MANIFESTS: &[(&str, &str)] = &[
     (
         "amazon-bedrock",
@@ -1881,21 +1906,16 @@ pub fn bundled_provider_plugins() -> Vec<BundledProviderPlugin> {
 }
 
 pub fn bundled_provider_plugin_metadata() -> Vec<BundledProviderPluginMetadata> {
-    BUNDLED_PROVIDER_PLUGIN_MANIFESTS
+    BUNDLED_PROVIDER_PLUGINS
         .iter()
-        .map(|(plugin_id, raw)| parse_bundled_provider_plugin_metadata(plugin_id, raw))
+        .map(bundled_provider_plugin_metadata_from_catalog)
         .collect()
 }
 
 pub fn bundled_provider_plugin_contract_metadata() -> Vec<BundledProviderPluginContractMetadata> {
-    BUNDLED_PROVIDER_PLUGIN_MANIFESTS
+    BUNDLED_PROVIDER_PLUGINS
         .iter()
-        .map(|(plugin_id, raw)| parse_bundled_provider_plugin_contract_metadata(plugin_id, raw))
-        .filter(|entry| {
-            !entry.provider_ids.is_empty()
-                || !entry.legacy_plugin_ids.is_empty()
-                || !entry.auto_enable_when_configured_providers.is_empty()
-        })
+        .map(bundled_provider_plugin_contract_metadata_from_catalog)
         .collect()
 }
 
@@ -1946,9 +1966,9 @@ pub fn provider_model_normalization_metadata() -> ProviderModelNormalizationMeta
 }
 
 pub fn bundled_provider_descriptors() -> Vec<BundledProviderDescriptor> {
-    BUNDLED_PROVIDER_PLUGIN_MANIFESTS
+    BUNDLED_PROVIDER_PLUGINS
         .iter()
-        .flat_map(|(plugin_id, raw)| parse_bundled_provider_descriptors(plugin_id, raw))
+        .flat_map(bundled_provider_descriptors_from_catalog)
         .collect()
 }
 
@@ -2244,42 +2264,26 @@ fn config_lookup_child(key: &str, path: &str, label: &str) -> Value {
     json!({ "key": key, "path": path, "label": label })
 }
 
-fn parse_bundled_provider_plugin_metadata(
-    plugin_id: &str,
-    raw: &str,
+fn bundled_provider_plugin_metadata_from_catalog(
+    plugin: &BundledProviderPlugin,
 ) -> BundledProviderPluginMetadata {
-    let manifest = serde_json::from_str::<Value>(raw).unwrap_or_else(|_| json!({}));
-    let providers = manifest
-        .get("providers")
-        .and_then(Value::as_array)
-        .map(|values| {
-            values
-                .iter()
-                .filter_map(Value::as_str)
-                .map(ToOwned::to_owned)
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-    let auth_env_vars = manifest
-        .get("providerAuthEnvVars")
-        .cloned()
-        .unwrap_or_else(|| json!({}));
-    let auth_choices = manifest
-        .get("providerAuthChoices")
-        .cloned()
-        .unwrap_or_else(|| json!([]));
+    let providers = plugin
+        .providers
+        .iter()
+        .map(|provider| (*provider).to_string())
+        .collect::<Vec<_>>();
     let chat = providers.iter().any(|provider| {
         NATIVE_PROVIDER_TRANSPORTS
             .iter()
             .any(|entry| entry.id == provider)
     });
-    let image_generation = plugin_id == "fal";
-    let media_understanding = matches!(plugin_id, "openai");
+    let image_generation = plugin.plugin_id == "fal";
+    let media_understanding = matches!(plugin.plugin_id, "openai");
     BundledProviderPluginMetadata {
-        plugin_id: plugin_id.to_string(),
+        plugin_id: plugin.plugin_id.to_string(),
         providers,
-        auth_env_vars,
-        auth_choices,
+        auth_env_vars: bundled_provider_auth_env_vars_json(plugin.providers),
+        auth_choices: bundled_provider_auth_choices_json(plugin.plugin_id),
         capabilities: BundledProviderPluginCapabilities {
             chat,
             non_chat: !chat,
@@ -2289,20 +2293,52 @@ fn parse_bundled_provider_plugin_metadata(
     }
 }
 
-fn parse_bundled_provider_plugin_contract_metadata(
-    plugin_id: &str,
-    raw: &str,
+fn bundled_provider_plugin_contract_metadata_from_catalog(
+    plugin: &BundledProviderPlugin,
 ) -> BundledProviderPluginContractMetadata {
-    let manifest = serde_json::from_str::<Value>(raw).unwrap_or_else(|_| json!({}));
+    let override_entry = BUNDLED_PROVIDER_PLUGIN_CONTRACT_OVERRIDES
+        .iter()
+        .find(|entry| entry.plugin_id == plugin.plugin_id);
     BundledProviderPluginContractMetadata {
-        plugin_id: plugin_id.to_string(),
-        provider_ids: string_array_field(&manifest, "providers"),
-        legacy_plugin_ids: string_array_field(&manifest, "legacyPluginIds"),
-        auto_enable_when_configured_providers: string_array_field(
-            &manifest,
-            "autoEnableWhenConfiguredProviders",
-        ),
+        plugin_id: plugin.plugin_id.to_string(),
+        provider_ids: plugin
+            .providers
+            .iter()
+            .map(|provider| (*provider).to_string())
+            .collect(),
+        legacy_plugin_ids: override_entry
+            .map(|entry| entry.legacy_plugin_ids)
+            .unwrap_or_default()
+            .iter()
+            .map(|value| (*value).to_string())
+            .collect(),
+        auto_enable_when_configured_providers: override_entry
+            .map(|entry| entry.auto_enable_when_configured_providers)
+            .unwrap_or_default()
+            .iter()
+            .map(|value| (*value).to_string())
+            .collect(),
     }
+}
+
+fn bundled_provider_auth_env_vars_json(providers: &[&str]) -> Value {
+    let entries = providers
+        .iter()
+        .filter_map(|provider| {
+            bundled_provider_auth_env_vars_for(provider)
+                .map(|env_vars| ((*provider).to_string(), json!(env_vars)))
+        })
+        .collect::<serde_json::Map<_, _>>();
+    Value::Object(entries)
+}
+
+fn bundled_provider_auth_choices_json(plugin_id: &str) -> Value {
+    BUNDLED_PROVIDER_PLUGIN_MANIFESTS
+        .iter()
+        .find(|(entry_plugin_id, _)| *entry_plugin_id == plugin_id)
+        .and_then(|(_, raw)| serde_json::from_str::<Value>(raw).ok())
+        .and_then(|manifest| manifest.get("providerAuthChoices").cloned())
+        .unwrap_or_else(|| json!([]))
 }
 
 fn parse_bundled_provider_auth_choices(
@@ -2354,28 +2390,15 @@ fn string_field(value: &Value, key: &str) -> Option<String> {
         .map(ToOwned::to_owned)
 }
 
-fn string_array_field(value: &Value, key: &str) -> Vec<String> {
-    value
-        .get(key)
-        .and_then(Value::as_array)
-        .map(|values| {
-            values
-                .iter()
-                .filter_map(Value::as_str)
-                .map(str::trim)
-                .filter(|raw| !raw.is_empty())
-                .map(ToOwned::to_owned)
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
-fn parse_bundled_provider_descriptors(
-    plugin_id: &str,
-    raw: &str,
+fn bundled_provider_descriptors_from_catalog(
+    plugin: &BundledProviderPlugin,
 ) -> Vec<BundledProviderDescriptor> {
-    let metadata = parse_bundled_provider_plugin_metadata(plugin_id, raw);
-    let auth_methods = parse_bundled_provider_auth_choices(plugin_id, raw);
+    let metadata = bundled_provider_plugin_metadata_from_catalog(plugin);
+    let auth_methods = BUNDLED_PROVIDER_PLUGIN_MANIFESTS
+        .iter()
+        .find(|(plugin_id, _)| *plugin_id == plugin.plugin_id)
+        .map(|(plugin_id, raw)| parse_bundled_provider_auth_choices(plugin_id, raw))
+        .unwrap_or_default();
     metadata
         .providers
         .iter()
@@ -2392,7 +2415,7 @@ fn parse_bundled_provider_descriptors(
             BundledProviderDescriptor {
                 plugin_id: metadata.plugin_id.clone(),
                 provider: provider.clone(),
-                kind: bundled_provider_kind(plugin_id, transport.is_some()),
+                kind: bundled_provider_kind(plugin.plugin_id, transport.is_some()),
                 transport: transport.map(|entry| entry.transport.to_string()),
                 default_model: default_model.map(|entry| entry.model.to_string()),
                 auth_env_vars,
@@ -3820,6 +3843,21 @@ mod tests {
     fn bundled_provider_plugin_contract_metadata_covers_manifest_contracts() {
         let metadata = bundled_provider_plugin_contract_metadata();
         assert_eq!(metadata.len(), bundled_provider_plugins().len());
+        let actual = metadata
+            .iter()
+            .map(|entry| {
+                (
+                    entry.plugin_id.clone(),
+                    (
+                        entry.provider_ids.clone(),
+                        entry.legacy_plugin_ids.clone(),
+                        entry.auto_enable_when_configured_providers.clone(),
+                    ),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+
+        assert_eq!(actual, collect_manifest_provider_contract_metadata());
 
         let google = metadata
             .iter()
@@ -4761,6 +4799,58 @@ mod tests {
         }
 
         entries
+    }
+
+    fn collect_manifest_provider_contract_metadata(
+    ) -> BTreeMap<String, (Vec<String>, Vec<String>, Vec<String>)> {
+        let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let extensions_dir = repo_root.join("extensions");
+        let mut entries = BTreeMap::new();
+
+        for item in fs::read_dir(extensions_dir).expect("extensions dir") {
+            let manifest_path = item
+                .expect("extension dir")
+                .path()
+                .join("crawclaw.plugin.json");
+            if !manifest_path.is_file() {
+                continue;
+            }
+            let manifest = fs::read_to_string(&manifest_path).expect("manifest");
+            let manifest: Value = serde_json::from_str(&manifest).expect("manifest json");
+            let Some(plugin_id) = manifest.get("id").and_then(Value::as_str).map(str::trim) else {
+                continue;
+            };
+            let providers = string_array_manifest_field(&manifest, "providers");
+            if plugin_id.is_empty() || providers.is_empty() {
+                continue;
+            }
+            entries.insert(
+                plugin_id.to_string(),
+                (
+                    providers,
+                    string_array_manifest_field(&manifest, "legacyPluginIds"),
+                    string_array_manifest_field(&manifest, "autoEnableWhenConfiguredProviders"),
+                ),
+            );
+        }
+
+        entries
+    }
+
+    fn string_array_manifest_field(value: &Value, key: &str) -> Vec<String> {
+        value
+            .get(key)
+            .and_then(Value::as_array)
+            .map(|values| {
+                values
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .map(str::to_string)
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 
     fn serve_once(response_body: &'static str) -> (String, mpsc::Receiver<String>) {

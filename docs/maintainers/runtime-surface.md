@@ -35,6 +35,12 @@ default JavaScript plugin runtime, or a QuickJS fallback. The release check in
 through `pnpm desktop:tauri:stage-runtime` and
 `pnpm desktop:tauri:release-check`.
 
+Managed browser automation is also platform-scoped at staging time. The desktop
+runtime copies only the host `agent-browser` binary into
+`runtime/crawclaw/runtimes/browser/bin/` and records that selected platform,
+architecture, and binary name in the runtime manifest. Do not copy the full npm
+package bin directory or stage other platform binaries into the desktop bundle.
+
 ## Allowed TypeScript and JavaScript surfaces
 
 The following TypeScript and JavaScript surfaces are allowed by design:

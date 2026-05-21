@@ -451,6 +451,9 @@ fn stage_agent_browser_runtime(
             "provider": "agent-browser",
             "runtime": "rust-native-binary",
             "version": AGENT_BROWSER_VERSION,
+            "platform": platform,
+            "arch": arch,
+            "binaryName": paths.binary_path.file_name().and_then(OsStr::to_str).unwrap_or("agent-browser"),
             "binaryPath": relative_slash_path(&paths.runtime_dir, &paths.binary_path),
             "sourcePackage": "agent-browser"
         }),
@@ -461,7 +464,10 @@ fn stage_agent_browser_runtime(
             "sourcePackage": "agent-browser",
             "version": AGENT_BROWSER_VERSION,
             "npmSpec": format!("agent-browser@{AGENT_BROWSER_VERSION}"),
-            "runtime": "rust-native-binary"
+            "runtime": "rust-native-binary",
+            "platform": platform,
+            "arch": arch,
+            "binaryName": paths.binary_path.file_name().and_then(OsStr::to_str).unwrap_or("agent-browser")
         }),
     )?;
     if !paths.license_path.exists() {
@@ -653,6 +659,12 @@ fn assert_agent_browser_runtime_tree(runtime_root: &Path, label: &str) -> Result
         "rust-native-binary",
         &format!("{label} agent-browser manifest runtime"),
     )?;
+    assert_json_string_eq(
+        manifest.get("binaryName"),
+        &platform_binary_name("agent-browser", &current_platform()),
+        &format!("{label} agent-browser manifest binaryName"),
+    )?;
+    assert_agent_browser_runtime_pruned_to_host_platform(&paths.bin_dir, label)?;
     let source_lock = read_json(&paths.source_lock_path)?;
     assert_json_string_eq(
         source_lock.get("sourcePackage"),
@@ -663,7 +675,53 @@ fn assert_agent_browser_runtime_tree(runtime_root: &Path, label: &str) -> Result
         source_lock.get("runtime"),
         "rust-native-binary",
         &format!("{label} agent-browser runtime lock"),
+    )?;
+    assert_json_string_eq(
+        source_lock.get("binaryName"),
+        &platform_binary_name("agent-browser", &current_platform()),
+        &format!("{label} agent-browser source lock binaryName"),
     )
+}
+
+fn assert_agent_browser_runtime_pruned_to_host_platform(
+    bin_dir: &Path,
+    label: &str,
+) -> Result<(), String> {
+    let expected = platform_binary_name("agent-browser", &current_platform());
+    let expected_path = bin_dir.join(&expected);
+    assert_executable_file(
+        &expected_path,
+        &format!("{label} host agent-browser binary"),
+    )?;
+    let mut extras = Vec::new();
+    for entry in fs::read_dir(bin_dir)
+        .map_err(|error| format!("failed to read {}: {error}", bin_dir.display()))?
+    {
+        let entry = entry
+            .map_err(|error| format!("failed to read {} entry: {error}", bin_dir.display()))?;
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let file_name = path.file_name().and_then(OsStr::to_str).unwrap_or_default();
+        if file_name == expected {
+            continue;
+        }
+        if file_name == "agent-browser"
+            || file_name == "agent-browser.exe"
+            || file_name.starts_with("agent-browser-")
+        {
+            extras.push(path.display().to_string());
+        }
+    }
+    if extras.is_empty() {
+        return Ok(());
+    }
+    extras.sort();
+    Err(format!(
+        "{label} agent-browser runtime must include only the host platform binary {expected}; remove extra packaged binaries: {}",
+        extras.join(", ")
+    ))
 }
 
 fn assert_provider_transport_manifest(manifest_path: &Path, label: &str) -> Result<(), String> {

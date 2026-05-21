@@ -1,6 +1,9 @@
 fn main() {
     let mut args = std::env::args().skip(1).collect::<Vec<_>>();
-    if args.first().is_some_and(|arg| arg == "emit-desktop-api-contract") {
+    if args
+        .first()
+        .is_some_and(|arg| arg == "emit-desktop-api-contract")
+    {
         args.remove(0);
         emit_desktop_api_contract(args);
         return;
@@ -55,7 +58,10 @@ fn emit_desktop_api_contract(args: Vec<String>) {
                     std::process::exit(1);
                 }
             } else if result.wrote {
-                println!("[desktop-api-contract] wrote {}", result.output_path.display());
+                println!(
+                    "[desktop-api-contract] wrote {}",
+                    result.output_path.display()
+                );
             }
         }
         Err(error) => {

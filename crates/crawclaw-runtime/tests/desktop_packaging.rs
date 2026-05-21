@@ -98,10 +98,35 @@ fn rejects_plugin_sdk_artifacts_in_embedded_runtime() {
     );
 }
 
+#[test]
+fn rejects_extra_agent_browser_platform_binaries() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    write_release_fixture(
+        temp.path(),
+        FixtureOptions {
+            extra_agent_browser_platform_binary: true,
+            ..FixtureOptions::default()
+        },
+    );
+
+    let mut options = DesktopRuntimeCheckOptions::new(temp.path());
+    options.check_generated_paths = false;
+    options.check_packaged_bundle = false;
+    options.smoke_commands = false;
+
+    let error = check_desktop_runtime_release_inputs(&options)
+        .expect_err("extra agent-browser binary rejected");
+    assert!(
+        error.contains("agent-browser runtime must include only the host platform binary"),
+        "{error}"
+    );
+}
+
 #[derive(Default)]
 struct FixtureOptions {
     node_runtime_entrypoint: bool,
     plugin_sdk_runtime_artifact: bool,
+    extra_agent_browser_platform_binary: bool,
 }
 
 fn write_release_fixture(root: &Path, options: FixtureOptions) {
@@ -170,7 +195,10 @@ fn write_release_fixture(root: &Path, options: FixtureOptions) {
         &json!({ "readModel": true, "jsPluginRuntime": "none" }),
     );
     write_searxng_runtime(&paths.runtime_root);
-    write_agent_browser_runtime(&paths.runtime_root);
+    write_agent_browser_runtime(
+        &paths.runtime_root,
+        options.extra_agent_browser_platform_binary,
+    );
 
     if options.node_runtime_entrypoint {
         fs::write(paths.runtime_root.join("crawclaw.mjs"), "export {};\n").expect("node entry");
@@ -211,21 +239,38 @@ fn write_searxng_runtime(runtime_root: &Path) {
     );
 }
 
-fn write_agent_browser_runtime(runtime_root: &Path) {
+fn write_agent_browser_runtime(runtime_root: &Path, extra_platform_binary: bool) {
     let runtime_dir = runtime_root.join("runtimes/browser");
     fs::create_dir_all(runtime_dir.join("bin")).expect("browser dir");
-    write_executable(&runtime_dir.join(if cfg!(windows) {
+    let binary_name = if cfg!(windows) {
         "bin/agent-browser.exe"
     } else {
         "bin/agent-browser"
-    }));
+    };
+    write_executable(&runtime_dir.join(binary_name));
+    if extra_platform_binary {
+        write_executable(&runtime_dir.join(if cfg!(target_os = "macos") {
+            "bin/agent-browser-linux-x64"
+        } else {
+            "bin/agent-browser-darwin-arm64"
+        }));
+    }
     write_json(
         runtime_dir.join("manifest.json"),
-        &json!({ "id": "agent-browser", "runtime": "rust-native-binary", "provider": "agent-browser" }),
+        &json!({
+            "id": "agent-browser",
+            "runtime": "rust-native-binary",
+            "provider": "agent-browser",
+            "binaryName": Path::new(binary_name).file_name().and_then(|name| name.to_str()).unwrap()
+        }),
     );
     write_json(
         runtime_dir.join("source.lock.json"),
-        &json!({ "sourcePackage": "agent-browser", "runtime": "rust-native-binary" }),
+        &json!({
+            "sourcePackage": "agent-browser",
+            "runtime": "rust-native-binary",
+            "binaryName": Path::new(binary_name).file_name().and_then(|name| name.to_str()).unwrap()
+        }),
     );
     fs::write(runtime_dir.join("LICENSE"), "license\n").expect("license");
 }

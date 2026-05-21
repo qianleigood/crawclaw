@@ -88,6 +88,10 @@
     "target": "ESP32"
   },
   {
+    "source": "ESP32 Desktop Assistant",
+    "target": "ESP32 桌面助手"
+  },
+  {
     "source": "TuriX CUA",
     "target": "TuriX CUA"
   },
@@ -338,6 +342,14 @@
   {
     "source": "Runtime surface",
     "target": "运行时边界"
+  },
+  {
+    "source": "Provider and plugin metadata drift",
+    "target": "提供商和插件元数据漂移"
+  },
+  {
+    "source": "Provider and Plugin Metadata Drift",
+    "target": "提供商和插件元数据漂移"
   },
   {
     "source": "Plugin Setup",

@@ -1,7 +1,7 @@
 # Packages
 
 This directory contains support packages that do not fit cleanly inside the
-main runtime tree under `src/` and are not modeled as extensions under
+Rust product runtime under `crates/` and are not modeled as extensions under
 `extensions/`.
 
 Use `packages/` for:
@@ -12,7 +12,7 @@ Use `packages/` for:
 
 Do not add a new package here by default. First decide whether it belongs to:
 
-- `src/` for runtime core
+- `crates/` for runtime core
 - `extensions/` for capability ecosystem packages
-- `ui/` for interface code
+- `apps/crawclaw-desktop/` for desktop interface code
 - `apps/` or `experiments/` if it is actually a sidecar product

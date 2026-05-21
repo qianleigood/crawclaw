@@ -81,7 +81,10 @@ Desktop release assets are built for:
 | Windows  | `nsis` installer |
 | Linux    | `AppImage`       |
 
-Platform-sensitive features may still differ by OS. The app queries `/api/desktop/capabilities` and disables unsupported actions with the backend-provided reason instead of hiding the route entirely.
+Platform-sensitive features may still differ by OS. The app reads runtime and
+feature state from the desktop bootstrap, state, runtime, and event endpoints,
+then disables unsupported actions with the backend-provided reason instead of
+hiding the route entirely.
 
 ## Gateway runtime
 

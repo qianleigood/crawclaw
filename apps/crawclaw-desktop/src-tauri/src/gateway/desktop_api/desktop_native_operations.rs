@@ -1,0 +1,785 @@
+use super::*;
+
+pub(super) async fn run_native_state_mutation(
+    state: &GatewayState,
+    operation: &str,
+    input: Value,
+) -> Result<Json<DesktopState>, StatusCode> {
+    if state.runtime_supervisor.status().status != crate::models::RuntimeStatusValue::Ready {
+        return Err(StatusCode::SERVICE_UNAVAILABLE);
+    }
+    apply_native_operation(state, operation, input).await
+}
+
+pub(super) async fn apply_native_operation(
+    state: &GatewayState,
+    operation: &str,
+    input: Value,
+) -> Result<Json<DesktopState>, StatusCode> {
+    match operation {
+        "send_message" => {
+            let text = string_field(&input, "text").ok_or(StatusCode::BAD_REQUEST)?;
+            let thread_id = {
+                let desktop_state = state.desktop_state.read().await;
+                active_thread_id(&desktop_state)
+                    .unwrap_or_else(|| format!("thread-{}", Uuid::new_v4().simple()))
+            };
+            let send_result = state
+                .agent_runtime
+                .send_message(thread_id, text)
+                .await
+                .map_err(|error| {
+                    let _ = state.events.send(DesktopEvent::OperationFailed {
+                        code: error.code().to_string(),
+                        message: error.message().to_string(),
+                    });
+                    agent_runtime_error_status(&error)
+                })?;
+            {
+                let mut desktop_state = state.desktop_state.write().await;
+                if !has_thread(&desktop_state, &send_result.thread_id) {
+                    desktop_state.sidebar.threads.insert(
+                        0,
+                        SidebarThread {
+                            id: send_result.thread_id.clone(),
+                            title: title_from_message(&send_result.user_text),
+                            time: "刚刚".to_string(),
+                            active: true,
+                            agent_avatar: true,
+                        },
+                    );
+                }
+                desktop_state
+                    .conversation
+                    .result_items
+                    .push(format!("用户: {}", send_result.user_text));
+                desktop_state
+                    .conversation
+                    .result_items
+                    .push(send_result.assistant_text.clone());
+            }
+            let _ = state.events.send(DesktopEvent::SessionStarted {
+                thread_id: send_result.thread_id.clone(),
+            });
+            let _ = state.events.send(DesktopEvent::MessageDelta {
+                thread_id: send_result.thread_id.clone(),
+                text: send_result.assistant_text.clone(),
+            });
+            let _ = state.events.send(DesktopEvent::MessageFinal {
+                thread_id: send_result.thread_id,
+                text: send_result.assistant_text,
+            });
+            emit_state_changed(state).await
+        }
+        "abort_message" | "steer_message" => {
+            if operation == "steer_message" {
+                let _ = string_field(&input, "text").ok_or(StatusCode::BAD_REQUEST)?;
+            }
+            emit_operation_failed(
+                state,
+                "no_active_message",
+                "No active Rust desktop message generation is running.",
+            );
+            Err(StatusCode::CONFLICT)
+        }
+        "create_agent" => {
+            let name = string_field(&input, "name").unwrap_or_else(|| "New Agent".to_string());
+            let role = string_field(&input, "role").unwrap_or_else(|| "Agent".to_string());
+            let description = string_field(&input, "description").unwrap_or_default();
+            let channels = match agent_channels_from_input(&input) {
+                Ok(channels) => channels,
+                Err(message) => {
+                    emit_operation_failed(state, "invalid_channel", message);
+                    return Err(StatusCode::BAD_REQUEST);
+                }
+            };
+            let id = format!("agent-{}", Uuid::new_v4().simple());
+            let agent = agent_profile(id.clone(), name, role, description, channels);
+            persist_agent_profile(state, &agent)?;
+            {
+                let mut desktop_state = state.desktop_state.write().await;
+                desktop_state.agent_workspace.selected_agent_id = id.clone();
+                desktop_state.memory_workspace.selected_agent_id = id.clone();
+                desktop_state.agent_workspace.agents.push(agent);
+            }
+            emit_state_changed(state).await
+        }
+        "update_agent" => {
+            let agent_id = string_field(&input, "agentId").ok_or(StatusCode::BAD_REQUEST)?;
+            let mut updated_agent = {
+                let desktop_state = state.desktop_state.read().await;
+                desktop_state
+                    .agent_workspace
+                    .agents
+                    .iter()
+                    .find(|agent| agent.id == agent_id)
+                    .cloned()
+                    .ok_or(StatusCode::NOT_FOUND)?
+            };
+            if let Some(name) = string_field(&input, "name") {
+                updated_agent.name = name;
+            }
+            if let Some(role) = string_field(&input, "role") {
+                updated_agent.role = role;
+            }
+            if let Some(description) = string_field(&input, "description") {
+                updated_agent.description = description;
+            }
+            persist_agent_profile(state, &updated_agent)?;
+            {
+                let mut desktop_state = state.desktop_state.write().await;
+                if let Some(agent) = desktop_state
+                    .agent_workspace
+                    .agents
+                    .iter_mut()
+                    .find(|agent| agent.id == agent_id)
+                {
+                    *agent = updated_agent;
+                }
+            }
+            emit_state_changed(state).await
+        }
+        "create_memory_item" => {
+            let title = string_field(&input, "title").ok_or(StatusCode::BAD_REQUEST)?;
+            let summary = string_field(&input, "summary").unwrap_or_default();
+            let content = string_field(&input, "content").unwrap_or_default();
+            let category = string_field(&input, "category").unwrap_or_else(|| "其他".to_string());
+            let source = string_field(&input, "source").unwrap_or_else(|| "Desktop".to_string());
+            let id = format!("memory-{}", Uuid::new_v4().simple());
+            let default_agent_id = state
+                .desktop_state
+                .read()
+                .await
+                .memory_workspace
+                .selected_agent_id
+                .clone();
+            let item = MemoryItem {
+                id: id.clone(),
+                agent_id: string_field(&input, "agentId")
+                    .filter(|value| !value.is_empty())
+                    .unwrap_or(default_agent_id),
+                title,
+                summary,
+                content,
+                category,
+                tags: string_array_field(&input, "tags"),
+                source,
+                updated_at: "刚刚".to_string(),
+                archived: false,
+            };
+            persist_memory_item(state, &item)?;
+            {
+                let mut desktop_state = state.desktop_state.write().await;
+                desktop_state.memory_workspace.selected_item_id = id.clone();
+                desktop_state.memory_workspace.items.push(item);
+            }
+            emit_state_changed(state).await
+        }
+        "archive_memory_item" => {
+            let item_id = string_field(&input, "itemId").ok_or(StatusCode::BAD_REQUEST)?;
+            let mut item = {
+                let desktop_state = state.desktop_state.read().await;
+                desktop_state
+                    .memory_workspace
+                    .items
+                    .iter()
+                    .find(|item| item.id == item_id)
+                    .cloned()
+                    .ok_or(StatusCode::NOT_FOUND)?
+            };
+            item.archived = true;
+            item.updated_at = "刚刚".to_string();
+            state
+                .memory_store
+                .archive_item(&item_id)
+                .map_err(|error| memory_store_status(state, error))?;
+            {
+                let mut desktop_state = state.desktop_state.write().await;
+                if let Some(item) = desktop_state
+                    .memory_workspace
+                    .items
+                    .iter_mut()
+                    .find(|item| item.id == item_id)
+                {
+                    item.archived = true;
+                }
+            }
+            emit_state_changed(state).await
+        }
+        "update_memory_item" => {
+            let item_id = string_field(&input, "itemId").ok_or(StatusCode::BAD_REQUEST)?;
+            let mut updated_item = {
+                let desktop_state = state.desktop_state.read().await;
+                desktop_state
+                    .memory_workspace
+                    .items
+                    .iter()
+                    .find(|item| item.id == item_id)
+                    .cloned()
+                    .ok_or(StatusCode::NOT_FOUND)?
+            };
+            if let Some(title) = string_field(&input, "title") {
+                updated_item.title = title;
+            }
+            if let Some(summary) = string_field(&input, "summary") {
+                updated_item.summary = summary;
+            }
+            if let Some(content) = string_field(&input, "content") {
+                updated_item.content = content;
+            }
+            if let Some(category) = string_field(&input, "category") {
+                updated_item.category = category;
+            }
+            updated_item.updated_at = "刚刚".to_string();
+            persist_memory_item(state, &updated_item)?;
+            {
+                let mut desktop_state = state.desktop_state.write().await;
+                if let Some(item) = desktop_state
+                    .memory_workspace
+                    .items
+                    .iter_mut()
+                    .find(|item| item.id == item_id)
+                {
+                    *item = updated_item;
+                }
+            }
+            emit_state_changed(state).await
+        }
+        "add_plugin_skill" => {
+            let name = string_field(&input, "name").ok_or(StatusCode::BAD_REQUEST)?;
+            let trigger = normalize_skill_trigger(
+                string_field(&input, "trigger").unwrap_or_else(|| name.clone()),
+            );
+            let skill = PluginHostSkill {
+                id: format!("plugin-skill-{}", Uuid::new_v4().simple()),
+                name,
+                trigger,
+                description: string_field(&input, "description").unwrap_or_default(),
+                status: "enabled".to_string(),
+                source: "desktop".to_string(),
+                icon: "sparkles".to_string(),
+                open: false,
+            };
+            let skill = add_custom_plugin_skill(&state.runtime_root, skill)
+                .map_err(|error| plugin_host_status(state, error))?;
+            {
+                let mut desktop_state = state.desktop_state.write().await;
+                if let Some(existing) = desktop_state
+                    .plugins_workspace
+                    .skills
+                    .iter_mut()
+                    .find(|existing| existing.trigger == skill.trigger || existing.id == skill.id)
+                {
+                    *existing = plugin_skill(skill);
+                } else {
+                    desktop_state
+                        .plugins_workspace
+                        .skills
+                        .push(plugin_skill(skill));
+                }
+                desktop_state.active_nav_id = "plugins".to_string();
+            }
+            emit_state_changed(state).await
+        }
+        "invoke_plugin_tool" => invoke_plugin_tool_operation(state, input).await,
+        "add_agent_skill" => {
+            let agent_id = string_field(&input, "agentId").ok_or(StatusCode::BAD_REQUEST)?;
+            let mut agent = {
+                let desktop_state = state.desktop_state.read().await;
+                desktop_state
+                    .agent_workspace
+                    .agents
+                    .iter()
+                    .find(|agent| agent.id == agent_id)
+                    .cloned()
+                    .ok_or(StatusCode::NOT_FOUND)?
+            };
+            let name = string_field(&input, "name").ok_or(StatusCode::BAD_REQUEST)?;
+            let trigger = normalize_skill_trigger(
+                string_field(&input, "trigger").unwrap_or_else(|| name.clone()),
+            );
+            let skill = AgentSkill {
+                id: format!("agent-skill-{}", Uuid::new_v4().simple()),
+                name,
+                trigger,
+                description: string_field(&input, "description").unwrap_or_default(),
+                status: "enabled".to_string(),
+                source: "desktop".to_string(),
+                icon: "sparkles".to_string(),
+                open: false,
+                enabled: true,
+            };
+            if let Some(existing) = agent
+                .skills
+                .iter_mut()
+                .find(|existing| existing.trigger == skill.trigger)
+            {
+                *existing = skill;
+            } else {
+                agent.skills.push(skill);
+            }
+            persist_agent_profile(state, &agent)?;
+            {
+                let mut desktop_state = state.desktop_state.write().await;
+                if let Some(existing) = desktop_state
+                    .agent_workspace
+                    .agents
+                    .iter_mut()
+                    .find(|existing| existing.id == agent_id)
+                {
+                    *existing = agent;
+                }
+            }
+            emit_state_changed(state).await
+        }
+        "run_memory_dream" => {
+            let selected_agent_id = {
+                let desktop_state = state.desktop_state.read().await;
+                string_field(&input, "agentId")
+                    .unwrap_or_else(|| desktop_state.memory_workspace.selected_agent_id.clone())
+            };
+            let agent = {
+                let desktop_state = state.desktop_state.read().await;
+                desktop_state
+                    .agent_workspace
+                    .agents
+                    .iter()
+                    .find(|agent| agent.id == selected_agent_id)
+                    .cloned()
+                    .ok_or(StatusCode::NOT_FOUND)?
+            };
+            let definition =
+                find_special_agent("dream").ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+            let run_id = format!("desktop-dream-{}", Uuid::new_v4());
+            let session_key = format!("special:dream:{run_id}");
+            let mut options = BTreeMap::new();
+            options.insert(
+                "specialAgent".to_string(),
+                json!({
+                    "kind": definition.id,
+                    "spawnSource": definition.spawn_source,
+                    "executionMode": definition.execution_mode,
+                    "transcriptPolicy": definition.transcript_policy,
+                    "parentContextPolicy": definition.parent_context_policy,
+                    "timeoutSeconds": definition.timeout_seconds,
+                    "maxTurns": definition.max_turns
+                }),
+            );
+            let dream_result = state
+                .agent_runtime
+                .run_turn(AgentRunRequest {
+                    run_id,
+                    agent_id: "dream".to_string(),
+                    session_key: session_key.clone(),
+                    inbound: ChannelInboundEnvelope {
+                        channel: "desktop".to_string(),
+                        account_id: Some("desktop".to_string()),
+                        from: "desktop".to_string(),
+                        to: "agent:dream".to_string(),
+                        chat_type: ChannelChatType::Direct,
+                        body: format!("Run memory dream for agent {}", agent.id),
+                        raw_body: Some("desktop memory dream".to_string()),
+                        message_id: Some(format!("{session_key}:input")),
+                        thread_id: Some(session_key),
+                        media_urls: Vec::new(),
+                        metadata: BTreeMap::new(),
+                    },
+                    model: AgentModelSelection {
+                        provider: "configured".to_string(),
+                        model: "configured".to_string(),
+                        reasoning_level: None,
+                    },
+                    enabled_tools: definition
+                        .tool_allowlist
+                        .iter()
+                        .map(|tool| (*tool).to_string())
+                        .collect(),
+                    options,
+                })
+                .await
+                .map_err(|error| {
+                    eprintln!("[desktop-gateway] memory dream failed: {}", error.message());
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?;
+            {
+                let mut desktop_state = state.desktop_state.write().await;
+                desktop_state.active_nav_id = "memory".to_string();
+                desktop_state.memory_workspace.selected_agent_id = agent.id.clone();
+                desktop_state.memory_workspace.query.clear();
+                desktop_state.memory_workspace.filter = "全部".to_string();
+                desktop_state.memory_workspace.selected_item_id =
+                    first_visible_memory_item_id(&desktop_state, &agent.id).unwrap_or_default();
+                desktop_state.memory_workspace.dream.status = "completed".to_string();
+                desktop_state.memory_workspace.dream.agent_id = agent.id;
+                desktop_state.memory_workspace.dream.message = format!(
+                    "{} 的记忆整理已由 Rust special-agent 完成：{}",
+                    agent.name, dream_result.run_id
+                );
+                desktop_state.memory_workspace.dream.last_run_at = "刚刚".to_string();
+            }
+            emit_state_changed(state).await
+        }
+        "pin_thread" | "unpin_thread" | "rename_thread" | "archive_thread" => {
+            update_thread_operation(state, operation, input).await
+        }
+        "toggle_plugin_tool"
+        | "toggle_plugin_skill"
+        | "toggle_agent_tool"
+        | "toggle_agent_skill" => toggle_operation(state, operation, input).await,
+        _ => {
+            let _ = state.events.send(DesktopEvent::OperationFailed {
+                code: "unsupported".to_string(),
+                message: format!("Desktop operation is not supported by Rust runtime: {operation}"),
+            });
+            Err(StatusCode::NOT_IMPLEMENTED)
+        }
+    }
+}
+
+pub(super) fn agent_runtime_error_status(error: &AgentRuntimeError) -> StatusCode {
+    match error {
+        AgentRuntimeError::ProviderUnavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
+        AgentRuntimeError::UnsupportedProvider(_) => StatusCode::NOT_IMPLEMENTED,
+        AgentRuntimeError::ProviderFailed(_) | AgentRuntimeError::TranscriptFailed(_) => {
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
+    }
+}
+
+pub(super) fn plugin_tool(tool: PluginHostTool) -> PluginTool {
+    PluginTool {
+        id: tool.id,
+        name: tool.name,
+        description: tool.description,
+        status: tool.status,
+        permission: tool.permission,
+        icon: tool.icon,
+        open: tool.open,
+    }
+}
+
+pub(super) fn plugin_skill(skill: PluginHostSkill) -> PluginSkill {
+    PluginSkill {
+        id: skill.id,
+        name: skill.name,
+        trigger: skill.trigger,
+        description: skill.description,
+        status: skill.status,
+        source: skill.source,
+        icon: skill.icon,
+        open: skill.open,
+    }
+}
+
+pub(super) async fn update_thread_operation(
+    state: &GatewayState,
+    operation: &str,
+    input: Value,
+) -> Result<Json<DesktopState>, StatusCode> {
+    let thread_id = string_field(&input, "threadId").ok_or(StatusCode::BAD_REQUEST)?;
+    let title = if operation == "rename_thread" {
+        Some(string_field(&input, "title").ok_or(StatusCode::BAD_REQUEST)?)
+    } else {
+        None
+    };
+    {
+        let desktop_state = state.desktop_state.read().await;
+        if !has_thread(&desktop_state, &thread_id) {
+            return Err(StatusCode::NOT_FOUND);
+        }
+    }
+    match operation {
+        "pin_thread" => state
+            .session_store
+            .set_thread_pinned(&thread_id, true)
+            .map_err(|error| session_store_status(state, error))?,
+        "unpin_thread" => state
+            .session_store
+            .set_thread_pinned(&thread_id, false)
+            .map_err(|error| session_store_status(state, error))?,
+        "rename_thread" => state
+            .session_store
+            .rename_thread(&thread_id, title.as_deref().unwrap_or_default())
+            .map_err(|error| session_store_status(state, error))?,
+        "archive_thread" => state
+            .session_store
+            .archive_thread(&thread_id)
+            .map_err(|error| session_store_status(state, error))?,
+        _ => {}
+    }
+    let mut next_thread_id = None;
+    {
+        let mut desktop_state = state.desktop_state.write().await;
+        match operation {
+            "pin_thread" => {
+                if let Some(thread) = remove_thread(&mut desktop_state.sidebar.threads, &thread_id)
+                {
+                    desktop_state.sidebar.pinned_threads.push(thread);
+                }
+            }
+            "unpin_thread" => {
+                if let Some(thread) =
+                    remove_thread(&mut desktop_state.sidebar.pinned_threads, &thread_id)
+                {
+                    desktop_state.sidebar.threads.insert(0, thread);
+                }
+            }
+            "rename_thread" => {
+                let title = title.expect("rename title validated");
+                rename_thread(&mut desktop_state.sidebar.threads, &thread_id, &title);
+                rename_thread(
+                    &mut desktop_state.sidebar.pinned_threads,
+                    &thread_id,
+                    &title,
+                );
+                rename_thread(
+                    &mut desktop_state.sidebar.discussion_threads,
+                    &thread_id,
+                    &title,
+                );
+            }
+            "archive_thread" => {
+                remove_thread(&mut desktop_state.sidebar.threads, &thread_id);
+                remove_thread(&mut desktop_state.sidebar.pinned_threads, &thread_id);
+                if active_thread_id(&desktop_state).is_none() {
+                    next_thread_id = activate_first_visible_thread(&mut desktop_state);
+                    if next_thread_id.is_none() {
+                        desktop_state.conversation.result_items.clear();
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    if let Some(thread_id) = next_thread_id {
+        if let Some(session) = state
+            .session_store
+            .load_session(&thread_id)
+            .map_err(|error| session_store_status(state, error))?
+        {
+            state.desktop_state.write().await.conversation.result_items = session.result_items;
+        }
+    }
+    emit_state_changed(state).await
+}
+
+pub(super) async fn toggle_operation(
+    state: &GatewayState,
+    operation: &str,
+    input: Value,
+) -> Result<Json<DesktopState>, StatusCode> {
+    if operation == "toggle_agent_tool" || operation == "toggle_agent_skill" {
+        return toggle_agent_operation(state, operation, input).await;
+    }
+    let mut changed = false;
+    {
+        let mut desktop_state = state.desktop_state.write().await;
+        match operation {
+            "toggle_plugin_tool" => {
+                let tool_id = string_field(&input, "toolId").ok_or(StatusCode::BAD_REQUEST)?;
+                if let Some(tool) = desktop_state
+                    .plugins_workspace
+                    .tools
+                    .iter_mut()
+                    .find(|tool| tool.id == tool_id)
+                {
+                    tool.open = toggle_plugin_tool_open(&state.runtime_root, &tool_id)
+                        .map_err(|error| plugin_host_status(state, error))?;
+                    changed = true;
+                }
+            }
+            "toggle_plugin_skill" => {
+                let skill_id = string_field(&input, "skillId").ok_or(StatusCode::BAD_REQUEST)?;
+                if let Some(skill) = desktop_state
+                    .plugins_workspace
+                    .skills
+                    .iter_mut()
+                    .find(|skill| skill.id == skill_id)
+                {
+                    skill.open = toggle_plugin_skill_open(&state.runtime_root, &skill_id)
+                        .map_err(|error| plugin_host_status(state, error))?;
+                    changed = true;
+                }
+            }
+            _ => {}
+        }
+    }
+    if !changed {
+        return Err(StatusCode::NOT_FOUND);
+    }
+    emit_state_changed(state).await
+}
+
+pub(super) async fn toggle_agent_operation(
+    state: &GatewayState,
+    operation: &str,
+    input: Value,
+) -> Result<Json<DesktopState>, StatusCode> {
+    let agent_id = string_field(&input, "agentId").ok_or(StatusCode::BAD_REQUEST)?;
+    let mut agent = {
+        let desktop_state = state.desktop_state.read().await;
+        desktop_state
+            .agent_workspace
+            .agents
+            .iter()
+            .find(|agent| agent.id == agent_id)
+            .cloned()
+            .ok_or(StatusCode::NOT_FOUND)?
+    };
+    let changed = match operation {
+        "toggle_agent_tool" => {
+            let tool_id = string_field(&input, "toolId").ok_or(StatusCode::BAD_REQUEST)?;
+            if let Some(tool) = agent.tools.iter_mut().find(|tool| tool.id == tool_id) {
+                tool.enabled = !tool.enabled;
+                true
+            } else {
+                false
+            }
+        }
+        "toggle_agent_skill" => {
+            let skill_id = string_field(&input, "skillId").ok_or(StatusCode::BAD_REQUEST)?;
+            if let Some(skill) = agent.skills.iter_mut().find(|skill| skill.id == skill_id) {
+                skill.enabled = !skill.enabled;
+                true
+            } else {
+                false
+            }
+        }
+        _ => false,
+    };
+    if !changed {
+        return Err(StatusCode::NOT_FOUND);
+    }
+    persist_agent_profile(state, &agent)?;
+    {
+        let mut desktop_state = state.desktop_state.write().await;
+        if let Some(existing) = desktop_state
+            .agent_workspace
+            .agents
+            .iter_mut()
+            .find(|existing| existing.id == agent_id)
+        {
+            *existing = agent;
+        }
+    }
+    emit_state_changed(state).await
+}
+
+pub(super) fn parse_json_body(body: Bytes) -> Result<Value, StatusCode> {
+    if body.is_empty() {
+        return Ok(json!({}));
+    }
+    serde_json::from_slice(&body).map_err(|_| StatusCode::BAD_REQUEST)
+}
+
+pub(super) fn with_string(input: Value, key: &str, value: &str) -> Value {
+    let mut object = match input {
+        Value::Object(object) => object,
+        _ => Map::new(),
+    };
+    object.insert(key.to_string(), Value::String(value.to_string()));
+    Value::Object(object)
+}
+
+pub(super) fn string_field(input: &Value, key: &str) -> Option<String> {
+    input
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+}
+
+pub(super) fn string_array_field(input: &Value, key: &str) -> Vec<String> {
+    input
+        .get(key)
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(ToOwned::to_owned)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+pub(super) fn normalize_skill_trigger(trigger: String) -> String {
+    let trigger = trigger.trim();
+    if trigger.starts_with('@') {
+        trigger.to_string()
+    } else {
+        format!("@{trigger}")
+    }
+}
+
+pub(super) fn active_thread_id(desktop_state: &DesktopState) -> Option<String> {
+    desktop_state
+        .sidebar
+        .pinned_threads
+        .iter()
+        .chain(desktop_state.sidebar.threads.iter())
+        .chain(desktop_state.sidebar.discussion_threads.iter())
+        .find(|thread| thread.active)
+        .map(|thread| thread.id.clone())
+}
+
+pub(super) fn first_visible_memory_item_id(
+    desktop_state: &DesktopState,
+    agent_id: &str,
+) -> Option<String> {
+    desktop_state
+        .memory_workspace
+        .items
+        .iter()
+        .find(|item| item.agent_id == agent_id && !item.archived)
+        .map(|item| item.id.clone())
+}
+
+pub(super) fn activate_first_visible_thread(desktop_state: &mut DesktopState) -> Option<String> {
+    for thread in desktop_state
+        .sidebar
+        .pinned_threads
+        .iter_mut()
+        .chain(desktop_state.sidebar.threads.iter_mut())
+        .chain(desktop_state.sidebar.discussion_threads.iter_mut())
+    {
+        thread.active = true;
+        return Some(thread.id.clone());
+    }
+    None
+}
+
+pub(super) fn has_thread(desktop_state: &DesktopState, thread_id: &str) -> bool {
+    desktop_state
+        .sidebar
+        .pinned_threads
+        .iter()
+        .chain(desktop_state.sidebar.threads.iter())
+        .chain(desktop_state.sidebar.discussion_threads.iter())
+        .any(|thread| thread.id == thread_id)
+}
+
+pub(super) fn remove_thread(
+    threads: &mut Vec<SidebarThread>,
+    thread_id: &str,
+) -> Option<SidebarThread> {
+    let index = threads.iter().position(|thread| thread.id == thread_id)?;
+    Some(threads.remove(index))
+}
+
+pub(super) fn rename_thread(threads: &mut [SidebarThread], thread_id: &str, title: &str) {
+    if let Some(thread) = threads.iter_mut().find(|thread| thread.id == thread_id) {
+        thread.title = title.to_string();
+    }
+}
+
+pub(super) fn title_from_message(text: &str) -> String {
+    let mut title = text.chars().take(32).collect::<String>();
+    if text.chars().count() > 32 {
+        title.push_str("...");
+    }
+    title
+}

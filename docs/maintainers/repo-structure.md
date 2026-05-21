@@ -134,8 +134,8 @@ under an explicit umbrella such as `apps/` or `experiments/`.
 
 - It exists because the published npm package and some release paths require it.
 - It should not be used to explain the source architecture.
-- If you are trying to understand how the system works, start from `src/`,
-  `extensions/`, and `docs/`, not `dist/`.
+- If you are trying to understand how the system works, start from `crates/`,
+  `apps/crawclaw-desktop/`, `extensions/`, and `src/generated/`, not `dist/`.
 
 ## Current Cleanup Direction
 
@@ -144,6 +144,7 @@ The current recommended cleanup order is:
 1. Make structure explicit with docs and directory READMEs.
 2. Reduce root-directory ambiguity by reclassifying sidecar and catalog directories.
 3. Split maintainer docs from user-facing docs more cleanly.
-4. Only then consider deeper source-tree moves inside `src/`.
+4. Only then consider deeper moves for generated metadata or retained boundary
+   notes inside `src/`.
 
 This keeps release/build risk low while still improving maintainability.

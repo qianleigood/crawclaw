@@ -13,6 +13,7 @@ title: Maintainers Docs
 ## Core Maintainer Docs
 
 - [Plugin dependency maintenance](/maintainers/plugin-dependency-maintenance)
+- [Provider and plugin metadata drift](/maintainers/provider-plugin-metadata-drift)
 - [Repository structure](/maintainers/repo-structure)
 - [Runtime surface](/maintainers/runtime-surface)
 - [Skills catalog](/maintainers/skills-catalog)
