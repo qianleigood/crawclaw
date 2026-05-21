@@ -1,0 +1,18 @@
+{
+  "name": "crawclaw-esp32-assistant",
+  "hardwareTarget": "ESP32-S3-BOX-3",
+  "upstream": {
+    "repo": "https://github.com/78/xiaozhi-esp32.git",
+    "ref": "v2.2.6",
+    "commit": "49ac8a6da399f27a9546d4f73640b7f86c24bac6"
+  },
+  "transport": {
+    "mode": "mqtt-udp",
+    "mqttTopics": "crawclaw/esp32/{deviceId}/hello|event|state|command",
+    "audioCodec": "opus"
+  },
+  "gateway": {
+    "otaPath": "/api/esp32/ota",
+    "defaultPort": 18789
+  }
+}

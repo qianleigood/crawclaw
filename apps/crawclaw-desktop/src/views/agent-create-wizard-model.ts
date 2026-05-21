@@ -126,7 +126,11 @@ export function createAgentChannelConfig(id: string): AgentChannelConfig {
         fields: [
           { id: 'brokerMode', label: 'Broker Mode', secret: false, value: 'managed' },
           { id: 'bindHost', label: 'Bind Host', secret: false, value: '127.0.0.1' },
+          { id: 'advertisedHost', label: 'Advertised Host', secret: false, value: '' },
           { id: 'port', label: 'Port', secret: false, value: '1883' },
+          { id: 'udpPort', label: 'UDP Port', secret: false, value: '1884' },
+          { id: 'otaPath', label: 'OTA Path', secret: false, value: '/api/esp32/ota' },
+          { id: 'wakeWord', label: 'Wake Word', secret: false, value: 'true' },
         ],
         groupPolicy: 'open',
         target: '',

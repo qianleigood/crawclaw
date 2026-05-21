@@ -1,0 +1,3 @@
+# Copy this file to sdkconfig.local and set the CrawClaw desktop Gateway host
+# reachable from the ESP32 Wi-Fi network.
+CONFIG_OTA_URL="http://<gateway-lan-ip>:18789/api/esp32/ota"

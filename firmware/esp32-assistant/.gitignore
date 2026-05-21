@@ -1,0 +1,7 @@
+upstream/
+build/
+sdkconfig
+sdkconfig.old
+profiles/esp-box-3/sdkconfig.local
+*.log
+__pycache__/

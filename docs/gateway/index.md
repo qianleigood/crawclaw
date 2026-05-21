@@ -16,6 +16,9 @@ Use this page for day-1 startup and day-2 operations of the local Rust Gateway r
   <Card title="Configuration" icon="sliders" href="/gateway/configuration">
     Task-oriented setup guide + full configuration reference.
   </Card>
+  <Card title="ESP32 Desktop Assistant" icon="cpu" href="/gateway/esp32-desktop-assistant">
+    ESP32-S3-BOX-3 firmware, pairing, MQTT, and UDP voice transport.
+  </Card>
   <Card title="Secrets management" icon="key-round" href="/gateway/secrets">
     SecretRef contract, runtime snapshot behavior, and migrate/reload operations.
   </Card>

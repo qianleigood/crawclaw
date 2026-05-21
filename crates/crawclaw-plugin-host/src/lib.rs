@@ -38,7 +38,11 @@ const DDINGTALK_FIELDS: &[NativeChannelConfigField] = &[
 const ESP32_FIELDS: &[NativeChannelConfigField] = &[
     channel_field("brokerMode", "Broker Mode", false, "managed"),
     channel_field("bindHost", "Bind Host", false, "127.0.0.1"),
+    channel_field("advertisedHost", "Advertised Host", false, ""),
     channel_field("port", "Port", false, "1883"),
+    channel_field("udpPort", "UDP Port", false, "1884"),
+    channel_field("otaPath", "OTA Path", false, "/api/esp32/ota"),
+    channel_field("wakeWord", "Wake Word", false, "true"),
 ];
 
 const QQBOT_FIELDS: &[NativeChannelConfigField] = &[
@@ -505,7 +509,15 @@ mod tests {
                 .iter()
                 .map(|field| field.id)
                 .collect::<Vec<_>>(),
-            vec!["brokerMode", "bindHost", "port"]
+            vec![
+                "brokerMode",
+                "bindHost",
+                "advertisedHost",
+                "port",
+                "udpPort",
+                "otaPath",
+                "wakeWord"
+            ]
         );
     }
 

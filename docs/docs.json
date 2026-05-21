@@ -1024,6 +1024,7 @@
                       "gateway/configuration",
                       "gateway/configuration-reference",
                       "gateway/configuration-examples",
+                      "gateway/esp32-desktop-assistant",
                       "gateway/authentication",
                       "auth-credential-semantics",
                       "gateway/secrets",

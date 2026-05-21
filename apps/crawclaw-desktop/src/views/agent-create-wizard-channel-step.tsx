@@ -24,7 +24,7 @@ export function AgentChannelStep({
   updateAgentDraftChannelField,
 }: AgentChannelStepProps) {
   const renderAgentChannelConfigField = (channel: AgentChannelBinding, field: AgentChannelConfigField) => {
-    if (field.id === 'markdownSupport') {
+    if (field.id === 'markdownSupport' || field.id === 'wakeWord') {
       return (
         <label className="agent-create-wizard__channel-toggle" key={field.id}>
           <input
@@ -91,7 +91,13 @@ export function AgentChannelStep({
             <input
               aria-label={`${channel.label} 默认目标`}
               onChange={(event) => updateAgentDraftChannelConfig(channel.id, { target: event.currentTarget.value })}
-              placeholder={channel.id === 'feishu' ? 'open_chat_id / user_id' : '会话、群或频道 ID'}
+              placeholder={
+                channel.id === 'feishu'
+                  ? 'open_chat_id / user_id'
+                  : channel.id === 'esp32'
+                    ? 'deviceId，留空则配对后选择'
+                    : '会话、群或频道 ID'
+              }
               value={config.target}
             />
           </label>

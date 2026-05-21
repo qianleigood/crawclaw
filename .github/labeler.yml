@@ -12,7 +12,9 @@
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/esp32/**"
+          - "firmware/esp32-assistant/**"
           - "docs/channels/esp32.md"
+          - "docs/gateway/esp32-desktop-assistant.md"
 "channel: qqbot":
   - changed-files:
       - any-glob-to-any-file:
