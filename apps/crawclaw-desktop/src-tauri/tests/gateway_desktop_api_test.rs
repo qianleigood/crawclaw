@@ -639,6 +639,56 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
+async fn gateway_failed_plugin_invocation_emits_structured_tool_result_state() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-native-plugin-tool-error-message",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let mut events = tokio::net::TcpStream::connect(server.addr)
+        .await
+        .expect("connect events");
+    events
+        .write_all(
+            b"GET /api/desktop/events?sessionToken=session HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n",
+        )
+        .await
+        .expect("write events request");
+    let _ = read_stream_until(&mut events, "event: runtime").await;
+
+    let body = r#"{"input":{}}"#;
+    let request_body = format!(
+        "POST /api/desktop/plugins/qwen3-tts/tools/missing_tool/invoke HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        body.len(),
+        body
+    );
+    let (status, _) = request(server.addr, &request_body).await;
+
+    assert_eq!(status, 500);
+    let events = read_stream_until(&mut events, "event: stateChanged").await;
+    assert!(events.contains(r#""kind":"toolResult""#));
+    assert!(events.contains(r#""toolId":"missing_tool""#));
+    assert!(events.contains(r#""ok":false"#));
+    assert!(events.contains("does not expose tool"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn gateway_invokes_searxng_tool_through_rust_native_plugin() {
     let runtime_layout = create_runtime_fixture(
         "desktop-native-searxng-plugin",

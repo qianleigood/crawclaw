@@ -46,6 +46,7 @@ pub(super) async fn invoke_plugin_tool_operation(
                         error.clone(),
                     ));
             }
+            let _ = emit_state_changed(state).await;
             return Err(plugin_host_status(state, PluginHostError::Invalid(error)));
         }
         None => {
@@ -68,6 +69,7 @@ pub(super) async fn invoke_plugin_tool_operation(
                         error.clone(),
                     ));
             }
+            let _ = emit_state_changed(state).await;
             return Err(plugin_host_status(state, PluginHostError::Invalid(error)));
         }
     };
