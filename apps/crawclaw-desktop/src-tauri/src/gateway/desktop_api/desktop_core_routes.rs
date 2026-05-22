@@ -15,8 +15,8 @@ use crate::models::{
 };
 
 use super::{
-    authorize_headers, authorize_token, emit_state_changed, run_native_state_mutation,
-    session_store_status, DesktopNativeMutation, GatewayState,
+    apply_session_conversation, authorize_headers, authorize_token, emit_state_changed,
+    run_native_state_mutation, session_store_status, DesktopNativeMutation, GatewayState,
 };
 
 #[derive(Deserialize)]
@@ -188,7 +188,7 @@ pub(super) async fn select_thread(
             thread.active = thread.id == payload.thread_id;
         }
         if let Some(session) = selected_session {
-            desktop_state.conversation.result_items = session.result_items;
+            apply_session_conversation(&mut desktop_state, &session.thread_id, &session);
         }
     }
     emit_state_changed(&state).await

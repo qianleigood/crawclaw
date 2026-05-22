@@ -366,6 +366,15 @@ fn apply_session_records(desktop_state: &mut DesktopState, sessions: Vec<Desktop
     desktop_state.conversation.result_items = selected_result_items;
 }
 
+fn apply_session_conversation(
+    desktop_state: &mut DesktopState,
+    thread_id: &str,
+    session: &DesktopSessionRecord,
+) {
+    desktop_state.conversation.messages = conversation_messages_from_session(thread_id, session);
+    desktop_state.conversation.result_items = session.result_items.clone();
+}
+
 fn conversation_messages_from_session(
     thread_id: &str,
     session: &DesktopSessionRecord,

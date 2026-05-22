@@ -1635,6 +1635,13 @@ esac
     assert_eq!(json["sidebar"]["threads"][1]["active"], true);
     assert_eq!(json["conversation"]["resultItems"][0], "用户: second user");
     assert_eq!(json["conversation"]["resultItems"][1], "second assistant");
+    assert_eq!(json["conversation"]["messages"][0]["kind"], "user");
+    assert_eq!(json["conversation"]["messages"][0]["text"], "second user");
+    assert_eq!(json["conversation"]["messages"][1]["kind"], "assistant");
+    assert_eq!(
+        json["conversation"]["messages"][1]["text"],
+        "second assistant"
+    );
 }
 
 #[cfg(unix)]
@@ -1685,6 +1692,13 @@ esac
     assert_eq!(json["sidebar"]["threads"][0]["active"], true);
     assert_eq!(json["conversation"]["resultItems"][0], "用户: second user");
     assert_eq!(json["conversation"]["resultItems"][1], "second assistant");
+    assert_eq!(json["conversation"]["messages"][0]["kind"], "user");
+    assert_eq!(json["conversation"]["messages"][0]["text"], "second user");
+    assert_eq!(json["conversation"]["messages"][1]["kind"], "assistant");
+    assert_eq!(
+        json["conversation"]["messages"][1]["text"],
+        "second assistant"
+    );
 
     let restarted_server = start_gateway_server(GatewayConfig {
         app_name: "CrawClaw Desktop".to_string(),

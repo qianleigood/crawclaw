@@ -567,6 +567,7 @@ pub(super) async fn update_thread_operation(
                 if active_thread_id(&desktop_state).is_none() {
                     next_thread_id = activate_first_visible_thread(&mut desktop_state);
                     if next_thread_id.is_none() {
+                        desktop_state.conversation.messages.clear();
                         desktop_state.conversation.result_items.clear();
                     }
                 }
@@ -579,7 +580,8 @@ pub(super) async fn update_thread_operation(
             .load_session(&thread_id)
             .map_err(|error| session_store_status(state, error))?
         {
-            state.desktop_state.write().await.conversation.result_items = session.result_items;
+            let mut desktop_state = state.desktop_state.write().await;
+            apply_session_conversation(&mut desktop_state, &session.thread_id, &session);
         }
     }
     emit_state_changed(state).await
