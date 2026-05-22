@@ -266,6 +266,16 @@ impl AgentRuntime {
             .await
     }
 
+    pub async fn send_message_with_model_selection(
+        &self,
+        thread_id: String,
+        user_text: String,
+        model_selection: AgentModelSelection,
+    ) -> Result<AgentSendResult, AgentRuntimeError> {
+        self.send_message_with_model(thread_id, user_text, Some(&model_selection), &[])
+            .await
+    }
+
     async fn send_message_with_model(
         &self,
         thread_id: String,

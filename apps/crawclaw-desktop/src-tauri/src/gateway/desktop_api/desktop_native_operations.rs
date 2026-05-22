@@ -53,12 +53,19 @@ pub(super) async fn apply_native_operation(
     match operation {
         DesktopNativeMutation::SendMessage => {
             let text = string_field(&input, "text").ok_or(StatusCode::BAD_REQUEST)?;
-            let thread_id = {
+            let (thread_id, model_selection) = {
                 let desktop_state = state.desktop_state.read().await;
-                active_thread_id(&desktop_state)
-                    .unwrap_or_else(|| format!("thread-{}", Uuid::new_v4().simple()))
+                (
+                    active_thread_id(&desktop_state)
+                        .unwrap_or_else(|| format!("thread-{}", Uuid::new_v4().simple())),
+                    model_selection_from_preferences(&desktop_state.preferences),
+                )
             };
-            let send_result = match state.agent_runtime.send_message(thread_id, text).await {
+            let send_result = match state
+                .agent_runtime
+                .send_message_with_model_selection(thread_id, text, model_selection)
+                .await
+            {
                 Ok(send_result) => send_result,
                 Err(error) => {
                     let _ = state.events.send(DesktopEvent::OperationFailed {
@@ -486,6 +493,29 @@ pub(super) fn agent_runtime_error_status(error: &AgentRuntimeError) -> StatusCod
         AgentRuntimeError::ProviderFailed(_) | AgentRuntimeError::TranscriptFailed(_) => {
             StatusCode::INTERNAL_SERVER_ERROR
         }
+    }
+}
+
+fn model_selection_from_preferences(preferences: &DesktopPreferences) -> AgentModelSelection {
+    let selected_model = preferences.selected_model.trim();
+    let (provider, model) = selected_model
+        .split_once('/')
+        .map(|(provider, model)| (provider.trim(), model.trim()))
+        .unwrap_or(("configured", selected_model));
+
+    AgentModelSelection {
+        provider: non_empty_model_part(provider),
+        model: non_empty_model_part(model),
+        reasoning_level: Some(preferences.selected_thinking.trim().to_string())
+            .filter(|value| !value.is_empty()),
+    }
+}
+
+fn non_empty_model_part(value: &str) -> String {
+    if value.is_empty() {
+        "configured".to_string()
+    } else {
+        value.to_string()
     }
 }
 

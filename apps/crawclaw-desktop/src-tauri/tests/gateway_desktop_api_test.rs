@@ -1436,6 +1436,68 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
+async fn gateway_send_message_uses_selected_desktop_model() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-send-selected-model",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let provider_base_url = spawn_openai_compatible_provider_with_model(
+        "hello minimax",
+        "minimax reply",
+        "MiniMax-M2.7-highspeed",
+    )
+    .await;
+    write_openai_compatible_provider_config(&runtime_layout, &provider_base_url);
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let preferences_body = r#"{"selectedModel":"MiniMax-M2.7-highspeed"}"#;
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "PATCH /api/desktop/preferences HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            preferences_body.len(),
+            preferences_body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+
+    let body = r#"{"text":"hello minimax"}"#;
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/messages HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        ),
+    )
+    .await;
+
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("conversation messages")
+        .iter()
+        .any(|message| message["kind"] == "assistant" && message["text"] == "minimax reply"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn gateway_session_subagent_routes_are_rust_backed() {
     let runtime_layout = create_runtime_fixture(
         "desktop-session-subagents",
@@ -2330,12 +2392,36 @@ fn is_complete_http_request(bytes: &[u8]) -> bool {
 
 #[cfg(unix)]
 async fn spawn_openai_compatible_provider(expected_text: &str, response_text: &str) -> String {
+    spawn_openai_compatible_provider_with_optional_model(expected_text, response_text, None).await
+}
+
+#[cfg(unix)]
+async fn spawn_openai_compatible_provider_with_model(
+    expected_text: &str,
+    response_text: &str,
+    expected_model: &str,
+) -> String {
+    spawn_openai_compatible_provider_with_optional_model(
+        expected_text,
+        response_text,
+        Some(expected_model),
+    )
+    .await
+}
+
+#[cfg(unix)]
+async fn spawn_openai_compatible_provider_with_optional_model(
+    expected_text: &str,
+    response_text: &str,
+    expected_model: Option<&str>,
+) -> String {
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
         .await
         .expect("bind provider");
     let addr = listener.local_addr().expect("provider addr");
     let expected_text = expected_text.to_string();
     let response_text = response_text.to_string();
+    let expected_model = expected_model.map(str::to_string);
     tokio::spawn(async move {
         let (mut stream, _) = listener.accept().await.expect("accept provider request");
         let mut bytes = Vec::new();
@@ -2354,6 +2440,9 @@ async fn spawn_openai_compatible_provider(expected_text: &str, response_text: &s
         let request = String::from_utf8_lossy(&bytes);
         assert!(request.starts_with("POST /v1/chat/completions "));
         assert!(request.contains(&format!(r#""content":"{expected_text}""#)));
+        if let Some(expected_model) = expected_model {
+            assert!(request.contains(&format!(r#""model":"{expected_model}""#)));
+        }
         assert!(request
             .to_lowercase()
             .contains("authorization: bearer test-key"));
