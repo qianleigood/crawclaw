@@ -170,7 +170,7 @@ export async function decidePermission(requestId: string, decision: Exclude<Perm
   })
 }
 
-export async function updatePreferences(patch: Partial<Pick<DesktopPreferences, 'permissionMode' | 'selectedModel' | 'selectedThinking'>>): Promise<DesktopState> {
+export async function updatePreferences(patch: Partial<DesktopPreferences>): Promise<DesktopState> {
   return mutateDesktopState('/api/desktop/preferences', {
     body: patch,
     method: 'PATCH',

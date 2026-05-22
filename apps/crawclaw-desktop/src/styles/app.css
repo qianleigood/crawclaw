@@ -894,6 +894,32 @@
   line-height: 1.4;
 }
 
+.settings-row-status {
+  width: fit-content;
+  min-height: 21px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.settings-row-status.is-active {
+  background: rgba(52, 199, 89, 0.12);
+  color: #248a3d;
+}
+
+.settings-row-status.is-preview {
+  background: rgba(10, 132, 255, 0.12);
+  color: var(--accent);
+}
+
+.settings-row-status.is-planned {
+  background: rgba(60, 60, 67, 0.08);
+  color: var(--text-tertiary);
+}
+
 .settings-select-control {
   width: min(100%, 310px);
   justify-self: end;
@@ -965,6 +991,11 @@
   border-color: rgba(10, 132, 255, 0.24);
   background: rgba(10, 132, 255, 0.14);
   color: var(--accent);
+}
+
+.settings-switch:disabled {
+  cursor: default;
+  opacity: 0.58;
 }
 
 .settings-value-pill,

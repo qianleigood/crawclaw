@@ -40,6 +40,7 @@ import {
   updateMemoryItem,
   updatePreferences,
   type AddPluginSkillInput,
+  type DesktopPreferences,
   type DesktopIconKey,
   type DesktopState,
   type PluginSkill,
@@ -162,6 +163,56 @@ function addPluginSkillLocally(state: DesktopState, input: AddPluginSkillInput):
   }
 }
 
+function mergeDesktopPreferences(
+  preferences: DesktopPreferences,
+  patch: Partial<DesktopPreferences>,
+): DesktopPreferences {
+  const next: DesktopPreferences = {
+    ...preferences,
+    ...patch,
+    advancedDefaults: patch.advancedDefaults
+      ? { ...preferences.advancedDefaults, ...patch.advancedDefaults }
+      : preferences.advancedDefaults,
+    confirmationDefaults: patch.confirmationDefaults
+      ? { ...preferences.confirmationDefaults, ...patch.confirmationDefaults }
+      : preferences.confirmationDefaults,
+    memoryDefaults: patch.memoryDefaults
+      ? { ...preferences.memoryDefaults, ...patch.memoryDefaults }
+      : preferences.memoryDefaults,
+    notificationDefaults: patch.notificationDefaults
+      ? { ...preferences.notificationDefaults, ...patch.notificationDefaults }
+      : preferences.notificationDefaults,
+    privacyDefaults: patch.privacyDefaults
+      ? { ...preferences.privacyDefaults, ...patch.privacyDefaults }
+      : preferences.privacyDefaults,
+    taskDefaults: patch.taskDefaults
+      ? { ...preferences.taskDefaults, ...patch.taskDefaults }
+      : preferences.taskDefaults,
+    uiDefaults: patch.uiDefaults
+      ? { ...preferences.uiDefaults, ...patch.uiDefaults }
+      : preferences.uiDefaults,
+  }
+
+  const aliasesChanged = patch.selectedModel !== undefined
+    || patch.selectedThinking !== undefined
+    || patch.permissionMode !== undefined
+
+  if (aliasesChanged) {
+    next.taskDefaults = {
+      ...next.taskDefaults,
+      permissionMode: next.permissionMode,
+      selectedModel: next.selectedModel,
+      selectedThinking: next.selectedThinking,
+    }
+  } else if (patch.taskDefaults) {
+    next.permissionMode = next.taskDefaults.permissionMode
+    next.selectedModel = next.taskDefaults.selectedModel
+    next.selectedThinking = next.taskDefaults.selectedThinking
+  }
+
+  return next
+}
+
 export default function App() {
   const {
     applyDesktopState,
@@ -180,9 +231,7 @@ export default function App() {
   const activeNavPanel = activeNavId === 'new-chat' ? null : navPanels[activeNavId]
   const runtimeChecks = desktopState.conversation.runtimeChecks
   const memoryWorkspace = desktopState.memoryWorkspace
-  const permissionMode = desktopState.preferences.permissionMode
   const selectedModel = desktopState.preferences.selectedModel
-  const selectedThinking = desktopState.preferences.selectedThinking
   const modelOptions = Array.from(new Set([
     ...desktopState.preferences.modelOptions,
     ...customModelOptions,
@@ -200,10 +249,7 @@ export default function App() {
   const applyPreferenceUpdate = (patch: Parameters<typeof updatePreferences>[0]) => {
     setDesktopState((state) => ({
       ...state,
-      preferences: {
-        ...state.preferences,
-        ...patch,
-      },
+      preferences: mergeDesktopPreferences(state.preferences, patch),
     }))
     void applyDesktopState(() => updatePreferences(patch))
   }
@@ -370,12 +416,8 @@ export default function App() {
                   applyPreferenceUpdate({ selectedModel: modelName })
                 }}
                 onPreferenceUpdate={applyPreferenceUpdate}
-                permissionMode={permissionMode}
-                permissionModeOptions={desktopState.preferences.permissionModeOptions}
+                preferences={desktopState.preferences}
                 runtimeStatus={runtimeChecks.find((item) => item.label === 'Runtime')?.value ?? '未知'}
-                selectedModel={selectedModel}
-                selectedThinking={selectedThinking}
-                thinkingOptions={desktopState.preferences.thinkingOptions}
               />
             ) : activeNavPanel ? (
               <div className="nav-workspace-panel">
