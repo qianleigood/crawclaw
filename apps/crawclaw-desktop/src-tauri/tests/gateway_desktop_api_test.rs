@@ -1219,11 +1219,15 @@ esac
     assert_eq!(preferences["selectedModel"], "ollama/local");
     assert_eq!(preferences["selectedThinking"], "low");
     assert_eq!(preferences["permissionMode"], "只读模式");
+    assert_eq!(preferences["taskDefaults"]["selectedModel"], "ollama/local");
+    assert_eq!(preferences["taskDefaults"]["selectedThinking"], "low");
+    assert_eq!(preferences["taskDefaults"]["permissionMode"], "只读模式");
     assert_eq!(preferences["taskDefaults"]["allowTools"], false);
     assert_eq!(preferences["confirmationDefaults"]["confirmCommands"], false);
     assert_eq!(preferences["notificationDefaults"]["notificationSound"], true);
     assert_eq!(preferences["uiDefaults"]["defaultPage"], "记忆");
     assert_eq!(preferences["memoryDefaults"]["memoryDreamFrequency"], "每天");
+    assert_eq!(preferences["privacyDefaults"]["dataLocation"], "本机默认位置");
     assert_eq!(preferences["advancedDefaults"]["logLevel"], "详细");
 }
 
