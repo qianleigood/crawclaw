@@ -8,6 +8,7 @@ use axum::body::Bytes;
 use axum::http::{HeaderMap, Method, StatusCode};
 use axum::routing::{get, patch, post};
 use axum::{Json, Router};
+use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Map, Value};
 use tokio::net::TcpListener;
 use tokio::sync::{broadcast, RwLock};
@@ -34,9 +35,10 @@ use crate::gateway::desktop_state::initial_desktop_state;
 use crate::gateway::runtime_supervisor::RuntimeSupervisor;
 use crate::models::{
     AgentAvatarProfile, AgentChannelBinding, AgentChannelConfig, AgentChannelConfigField,
-    AgentEmotionProfile, AgentProfile, AgentSkill, AgentVoiceConfig, DesktopApiInfo,
-    DesktopAppInfo, DesktopEvent, DesktopPreferences, DesktopState, MemoryItem, PluginSkill,
-    PluginTool, RuntimeCheck, SidebarThread,
+    AgentEmotionProfile, AgentProfile, AgentSkill, AgentVoiceConfig, ConfirmationDefaults,
+    DesktopApiInfo, DesktopAppInfo, DesktopEvent, DesktopPreferences, DesktopState, MemoryDefaults,
+    MemoryItem, NotificationDefaults, PluginSkill, PluginTool, PrivacyDefaults, RuntimeCheck,
+    SidebarThread, TaskDefaults, UiDefaults, AdvancedDefaults,
 };
 use crate::runtime_engine::RuntimeLayout;
 
@@ -213,6 +215,57 @@ fn merge_persisted_preferences(
             desktop_state.preferences.selected_model = preferences.selected_model;
             desktop_state.preferences.selected_thinking = preferences.selected_thinking;
             desktop_state.preferences.permission_mode = preferences.permission_mode;
+            let task_defaults_loaded = merge_persisted_preference_group::<TaskDefaults>(
+                desktop_state,
+                preferences.task_defaults,
+                "taskDefaults",
+                |preferences, task_defaults| preferences.task_defaults = task_defaults,
+            );
+            merge_persisted_preference_group::<ConfirmationDefaults>(
+                desktop_state,
+                preferences.confirmation_defaults,
+                "confirmationDefaults",
+                |preferences, confirmation_defaults| {
+                    preferences.confirmation_defaults = confirmation_defaults;
+                },
+            );
+            merge_persisted_preference_group::<NotificationDefaults>(
+                desktop_state,
+                preferences.notification_defaults,
+                "notificationDefaults",
+                |preferences, notification_defaults| {
+                    preferences.notification_defaults = notification_defaults;
+                },
+            );
+            merge_persisted_preference_group::<UiDefaults>(
+                desktop_state,
+                preferences.ui_defaults,
+                "uiDefaults",
+                |preferences, ui_defaults| preferences.ui_defaults = ui_defaults,
+            );
+            merge_persisted_preference_group::<MemoryDefaults>(
+                desktop_state,
+                preferences.memory_defaults,
+                "memoryDefaults",
+                |preferences, memory_defaults| preferences.memory_defaults = memory_defaults,
+            );
+            merge_persisted_preference_group::<PrivacyDefaults>(
+                desktop_state,
+                preferences.privacy_defaults,
+                "privacyDefaults",
+                |preferences, privacy_defaults| preferences.privacy_defaults = privacy_defaults,
+            );
+            merge_persisted_preference_group::<AdvancedDefaults>(
+                desktop_state,
+                preferences.advanced_defaults,
+                "advancedDefaults",
+                |preferences, advanced_defaults| preferences.advanced_defaults = advanced_defaults,
+            );
+            if task_defaults_loaded {
+                sync_preference_aliases_from_task_defaults(&mut desktop_state.preferences);
+            } else {
+                sync_task_defaults_from_preference_aliases(&mut desktop_state.preferences);
+            }
         }
         Ok(None) => {}
         Err(error) => desktop_state
@@ -224,6 +277,46 @@ fn merge_persisted_preferences(
                 tone: "error".to_string(),
             }),
     }
+}
+
+fn merge_persisted_preference_group<T>(
+    desktop_state: &mut DesktopState,
+    value: Value,
+    field: &str,
+    apply: impl FnOnce(&mut DesktopPreferences, T),
+) -> bool
+where
+    T: DeserializeOwned,
+{
+    if value.is_null() {
+        return false;
+    }
+    match serde_json::from_value::<T>(value) {
+        Ok(group) => {
+            apply(&mut desktop_state.preferences, group);
+            true
+        }
+        Err(error) => {
+            desktop_state.conversation.runtime_checks.push(RuntimeCheck {
+                label: "Desktop preferences store".to_string(),
+                value: format!("Invalid desktop preferences field {field}: {error}"),
+                tone: "error".to_string(),
+            });
+            false
+        }
+    }
+}
+
+pub(super) fn sync_preference_aliases_from_task_defaults(preferences: &mut DesktopPreferences) {
+    preferences.selected_model = preferences.task_defaults.selected_model.clone();
+    preferences.selected_thinking = preferences.task_defaults.selected_thinking.clone();
+    preferences.permission_mode = preferences.task_defaults.permission_mode.clone();
+}
+
+pub(super) fn sync_task_defaults_from_preference_aliases(preferences: &mut DesktopPreferences) {
+    preferences.task_defaults.selected_model = preferences.selected_model.clone();
+    preferences.task_defaults.selected_thinking = preferences.selected_thinking.clone();
+    preferences.task_defaults.permission_mode = preferences.permission_mode.clone();
 }
 
 fn merge_persisted_sessions(desktop_state: &mut DesktopState, session_store: &DesktopSessionStore) {
@@ -476,14 +569,58 @@ fn persist_desktop_preferences(
     state: &GatewayState,
     preferences: &DesktopPreferences,
 ) -> Result<(), StatusCode> {
+    let mut preferences = preferences.clone();
+    sync_preference_aliases_from_task_defaults(&mut preferences);
     state
         .preferences_store
         .save_preferences(&DesktopPreferencesRecord {
             selected_model: preferences.selected_model.clone(),
             selected_thinking: preferences.selected_thinking.clone(),
             permission_mode: preferences.permission_mode.clone(),
+            task_defaults: preference_group_value(state, "taskDefaults", &preferences.task_defaults)?,
+            confirmation_defaults: preference_group_value(
+                state,
+                "confirmationDefaults",
+                &preferences.confirmation_defaults,
+            )?,
+            notification_defaults: preference_group_value(
+                state,
+                "notificationDefaults",
+                &preferences.notification_defaults,
+            )?,
+            ui_defaults: preference_group_value(state, "uiDefaults", &preferences.ui_defaults)?,
+            memory_defaults: preference_group_value(
+                state,
+                "memoryDefaults",
+                &preferences.memory_defaults,
+            )?,
+            privacy_defaults: preference_group_value(
+                state,
+                "privacyDefaults",
+                &preferences.privacy_defaults,
+            )?,
+            advanced_defaults: preference_group_value(
+                state,
+                "advancedDefaults",
+                &preferences.advanced_defaults,
+            )?,
         })
         .map_err(|error| preferences_store_status(state, error))
+}
+
+fn preference_group_value<T: Serialize>(
+    state: &GatewayState,
+    field: &str,
+    value: &T,
+) -> Result<Value, StatusCode> {
+    serde_json::to_value(value).map_err(|error| {
+        preferences_store_status(
+            state,
+            DesktopPreferencesStoreError::Invalid(format!(
+                "Failed to serialize desktop preferences field {field}: {error}"
+            )),
+        )
+    })
 }
 
 fn agent_store_status(state: &GatewayState, error: DesktopAgentStoreError) -> StatusCode {

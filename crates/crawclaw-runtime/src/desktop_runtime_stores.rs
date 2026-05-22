@@ -37,6 +37,20 @@ pub struct DesktopPreferencesRecord {
     pub selected_model: String,
     pub selected_thinking: String,
     pub permission_mode: String,
+    #[serde(default)]
+    pub task_defaults: serde_json::Value,
+    #[serde(default)]
+    pub confirmation_defaults: serde_json::Value,
+    #[serde(default)]
+    pub notification_defaults: serde_json::Value,
+    #[serde(default)]
+    pub ui_defaults: serde_json::Value,
+    #[serde(default)]
+    pub memory_defaults: serde_json::Value,
+    #[serde(default)]
+    pub privacy_defaults: serde_json::Value,
+    #[serde(default)]
+    pub advanced_defaults: serde_json::Value,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

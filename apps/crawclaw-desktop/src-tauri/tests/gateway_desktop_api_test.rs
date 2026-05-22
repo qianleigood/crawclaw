@@ -1159,6 +1159,76 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
+async fn gateway_expanded_preferences_persist_through_rust_runtime_store() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-expanded-preferences-store",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let body = r#"{
+      "taskDefaults":{"selectedModel":"ollama/local","selectedThinking":"low","permissionMode":"只读模式","responseSpeed":"更快","allowTools":false,"showReasoningSummary":true},
+      "confirmationDefaults":{"confirmFileChanges":false,"confirmCommands":false,"confirmExternalApps":true,"confirmHighRisk":true},
+      "notificationDefaults":{"notifyTaskDone":true,"notifyConfirmNeeded":true,"notifyDreamDone":false,"notifyAutomationFailed":true,"notificationSound":true},
+      "uiDefaults":{"defaultPage":"记忆","language":"中文","appearance":"深色","launchAtLogin":true,"showInMenuBar":false},
+      "memoryDefaults":{"rememberPreferences":true,"rememberProjectContext":false,"memoryDreamEnabled":true,"memoryDreamFrequency":"每天","memoryCleanupConfirmation":"仅重要记忆"},
+      "privacyDefaults":{"dataLocation":"本机默认位置"},
+      "advancedDefaults":{"logLevel":"详细"}
+    }"#;
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "PATCH /api/desktop/preferences HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+
+    let restarted_server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("restarted gateway should start");
+    let (status, body) = request(
+        restarted_server.addr,
+        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
+    let preferences = &json["desktopState"]["preferences"];
+    assert_eq!(preferences["selectedModel"], "ollama/local");
+    assert_eq!(preferences["selectedThinking"], "low");
+    assert_eq!(preferences["permissionMode"], "只读模式");
+    assert_eq!(preferences["taskDefaults"]["allowTools"], false);
+    assert_eq!(preferences["confirmationDefaults"]["confirmCommands"], false);
+    assert_eq!(preferences["notificationDefaults"]["notificationSound"], true);
+    assert_eq!(preferences["uiDefaults"]["defaultPage"], "记忆");
+    assert_eq!(preferences["memoryDefaults"]["memoryDreamFrequency"], "每天");
+    assert_eq!(preferences["advancedDefaults"]["logLevel"], "详细");
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn gateway_send_message_is_rust_backed_and_streams_session_events() {
     let runtime_layout = create_runtime_fixture(
         "desktop-send-message",

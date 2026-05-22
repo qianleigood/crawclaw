@@ -1,7 +1,9 @@
 use crate::models::{
-    AgentWorkspaceState, ConversationState, DesktopPreferences, DesktopState, MemoryDreamState,
-    MemoryWorkspaceState, NavItem, PermissionRequest, PermissionStatus, PluginsWorkspaceState,
-    RuntimeCheck, RuntimeStatus, RuntimeStatusValue, SidebarState,
+    AdvancedDefaults, AgentWorkspaceState, ConfirmationDefaults, ConversationState,
+    DesktopPreferences, DesktopState, MemoryDefaults, MemoryDreamState, MemoryWorkspaceState,
+    NavItem, NotificationDefaults, PermissionRequest, PermissionStatus, PluginsWorkspaceState,
+    PrivacyDefaults, RuntimeCheck, RuntimeStatus, RuntimeStatusValue, SidebarState, TaskDefaults,
+    UiDefaults,
 };
 
 pub fn initial_desktop_state(runtime: &RuntimeStatus) -> DesktopState {
@@ -69,6 +71,13 @@ pub fn initial_desktop_state(runtime: &RuntimeStatus) -> DesktopState {
             selected_model: "gpt-5.5".to_string(),
             selected_thinking: "high".to_string(),
             permission_mode: "工作区模式".to_string(),
+            task_defaults: task_defaults(),
+            confirmation_defaults: confirmation_defaults(),
+            notification_defaults: notification_defaults(),
+            ui_defaults: ui_defaults(),
+            memory_defaults: memory_defaults(),
+            privacy_defaults: privacy_defaults(),
+            advanced_defaults: advanced_defaults(),
             model_options: crawclaw_providers::default_model_options(),
             provider_descriptors: serde_json::to_value(
                 crawclaw_providers::bundled_provider_descriptors(),
@@ -98,6 +107,68 @@ pub fn initial_desktop_state(runtime: &RuntimeStatus) -> DesktopState {
             status: PermissionStatus::Denied,
         },
         search_suggestions: Vec::new(),
+    }
+}
+
+fn task_defaults() -> TaskDefaults {
+    TaskDefaults {
+        selected_model: "gpt-5.5".to_string(),
+        selected_thinking: "high".to_string(),
+        permission_mode: "工作区模式".to_string(),
+        response_speed: "标准".to_string(),
+        allow_tools: true,
+        show_reasoning_summary: false,
+    }
+}
+
+fn confirmation_defaults() -> ConfirmationDefaults {
+    ConfirmationDefaults {
+        confirm_file_changes: true,
+        confirm_commands: true,
+        confirm_external_apps: true,
+        confirm_high_risk: true,
+    }
+}
+
+fn notification_defaults() -> NotificationDefaults {
+    NotificationDefaults {
+        notify_task_done: true,
+        notify_confirm_needed: true,
+        notify_dream_done: true,
+        notify_automation_failed: true,
+        notification_sound: false,
+    }
+}
+
+fn ui_defaults() -> UiDefaults {
+    UiDefaults {
+        default_page: "新对话".to_string(),
+        language: "中文".to_string(),
+        appearance: "跟随系统".to_string(),
+        launch_at_login: false,
+        show_in_menu_bar: true,
+    }
+}
+
+fn memory_defaults() -> MemoryDefaults {
+    MemoryDefaults {
+        remember_preferences: true,
+        remember_project_context: true,
+        memory_dream_enabled: true,
+        memory_dream_frequency: "空闲时".to_string(),
+        memory_cleanup_confirmation: "每次确认".to_string(),
+    }
+}
+
+fn privacy_defaults() -> PrivacyDefaults {
+    PrivacyDefaults {
+        data_location: "本机默认位置".to_string(),
+    }
+}
+
+fn advanced_defaults() -> AdvancedDefaults {
+    AdvancedDefaults {
+        log_level: "标准".to_string(),
     }
 }
 

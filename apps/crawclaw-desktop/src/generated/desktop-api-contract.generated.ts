@@ -326,10 +326,65 @@ export interface AddPluginSkillInput {
   description: string
 }
 
+export interface TaskDefaults {
+  selectedModel: string
+  selectedThinking: string
+  permissionMode: string
+  responseSpeed: string
+  allowTools: boolean
+  showReasoningSummary: boolean
+}
+
+export interface ConfirmationDefaults {
+  confirmFileChanges: boolean
+  confirmCommands: boolean
+  confirmExternalApps: boolean
+  confirmHighRisk: boolean
+}
+
+export interface NotificationDefaults {
+  notifyTaskDone: boolean
+  notifyConfirmNeeded: boolean
+  notifyDreamDone: boolean
+  notifyAutomationFailed: boolean
+  notificationSound: boolean
+}
+
+export interface UiDefaults {
+  defaultPage: string
+  language: string
+  appearance: string
+  launchAtLogin: boolean
+  showInMenuBar: boolean
+}
+
+export interface MemoryDefaults {
+  rememberPreferences: boolean
+  rememberProjectContext: boolean
+  memoryDreamEnabled: boolean
+  memoryDreamFrequency: string
+  memoryCleanupConfirmation: string
+}
+
+export interface PrivacyDefaults {
+  dataLocation: string
+}
+
+export interface AdvancedDefaults {
+  logLevel: string
+}
+
 export interface DesktopPreferences {
   selectedModel: string
   selectedThinking: string
   permissionMode: string
+  taskDefaults: TaskDefaults
+  confirmationDefaults: ConfirmationDefaults
+  notificationDefaults: NotificationDefaults
+  uiDefaults: UiDefaults
+  memoryDefaults: MemoryDefaults
+  privacyDefaults: PrivacyDefaults
+  advancedDefaults: AdvancedDefaults
   modelOptions: string[]
   providerDescriptors: unknown[]
   providerSetupOptions: unknown[]

@@ -521,10 +521,79 @@ pub struct AddPluginSkillInput {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct TaskDefaults {
+    pub selected_model: String,
+    pub selected_thinking: String,
+    pub permission_mode: String,
+    pub response_speed: String,
+    pub allow_tools: bool,
+    pub show_reasoning_summary: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ConfirmationDefaults {
+    pub confirm_file_changes: bool,
+    pub confirm_commands: bool,
+    pub confirm_external_apps: bool,
+    pub confirm_high_risk: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationDefaults {
+    pub notify_task_done: bool,
+    pub notify_confirm_needed: bool,
+    pub notify_dream_done: bool,
+    pub notify_automation_failed: bool,
+    pub notification_sound: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct UiDefaults {
+    pub default_page: String,
+    pub language: String,
+    pub appearance: String,
+    pub launch_at_login: bool,
+    pub show_in_menu_bar: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct MemoryDefaults {
+    pub remember_preferences: bool,
+    pub remember_project_context: bool,
+    pub memory_dream_enabled: bool,
+    pub memory_dream_frequency: String,
+    pub memory_cleanup_confirmation: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct PrivacyDefaults {
+    pub data_location: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AdvancedDefaults {
+    pub log_level: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct DesktopPreferences {
     pub selected_model: String,
     pub selected_thinking: String,
     pub permission_mode: String,
+    pub task_defaults: TaskDefaults,
+    pub confirmation_defaults: ConfirmationDefaults,
+    pub notification_defaults: NotificationDefaults,
+    pub ui_defaults: UiDefaults,
+    pub memory_defaults: MemoryDefaults,
+    pub privacy_defaults: PrivacyDefaults,
+    pub advanced_defaults: AdvancedDefaults,
     pub model_options: Vec<String>,
     #[serde(default)]
     pub provider_descriptors: serde_json::Value,
