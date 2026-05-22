@@ -58,7 +58,15 @@ pub struct DesktopSessionRecord {
     pub thread_id: String,
     pub title: String,
     pub pinned: bool,
+    pub messages: Vec<DesktopConversationMessageRecord>,
     pub result_items: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DesktopConversationMessageRecord {
+    pub kind: String,
+    pub text: String,
+    pub source: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -413,13 +421,19 @@ impl DesktopSessionStore {
                         .unwrap_or_else(|| thread_id.clone())
                 });
             let result_items = transcript_entries
-                .into_iter()
+                .iter()
+                .cloned()
                 .filter_map(transcript_result_item)
+                .collect();
+            let messages = transcript_entries
+                .into_iter()
+                .filter_map(transcript_message_record)
                 .collect();
             sessions.push(DesktopSessionRecord {
                 thread_id,
                 title,
                 pinned: metadata.map(|metadata| metadata.pinned).unwrap_or(false),
+                messages,
                 result_items,
             });
         }
@@ -997,6 +1011,25 @@ pub(super) fn transcript_result_item(entry: DesktopTranscriptEntry) -> Option<St
         "assistant" => Some(content.to_string()),
         role => Some(format!("{role}: {content}")),
     }
+}
+
+pub(super) fn transcript_message_record(
+    entry: DesktopTranscriptEntry,
+) -> Option<DesktopConversationMessageRecord> {
+    let content = entry.content.trim();
+    if content.is_empty() {
+        return None;
+    }
+    let kind = match entry.role.as_str() {
+        "user" => "user",
+        "assistant" => "assistant",
+        _ => "status",
+    };
+    Some(DesktopConversationMessageRecord {
+        kind: kind.to_string(),
+        text: content.to_string(),
+        source: entry.source,
+    })
 }
 
 pub(super) fn title_from_transcript_text(text: &str) -> String {

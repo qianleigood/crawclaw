@@ -1482,6 +1482,22 @@ esac
         json["desktopState"]["conversation"]["resultItems"][1],
         "persisted assistant reply"
     );
+    assert_eq!(
+        json["desktopState"]["conversation"]["messages"][0]["kind"],
+        "user"
+    );
+    assert_eq!(
+        json["desktopState"]["conversation"]["messages"][0]["text"],
+        "remember this session"
+    );
+    assert_eq!(
+        json["desktopState"]["conversation"]["messages"][1]["kind"],
+        "assistant"
+    );
+    assert_eq!(
+        json["desktopState"]["conversation"]["messages"][1]["text"],
+        "persisted assistant reply"
+    );
 }
 
 #[cfg(unix)]

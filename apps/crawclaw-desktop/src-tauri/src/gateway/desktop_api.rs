@@ -36,9 +36,9 @@ use crate::gateway::runtime_supervisor::RuntimeSupervisor;
 use crate::models::{
     AgentAvatarProfile, AgentChannelBinding, AgentChannelConfig, AgentChannelConfigField,
     AgentEmotionProfile, AgentProfile, AgentSkill, AgentVoiceConfig, ConfirmationDefaults,
-    DesktopApiInfo, DesktopAppInfo, DesktopEvent, DesktopPreferences, DesktopState, MemoryDefaults,
-    MemoryItem, NotificationDefaults, PluginSkill, PluginTool, PrivacyDefaults, RuntimeCheck,
-    SidebarThread, TaskDefaults, UiDefaults, AdvancedDefaults,
+    ConversationMessage, DesktopApiInfo, DesktopAppInfo, DesktopEvent, DesktopPreferences,
+    DesktopState, MemoryDefaults, MemoryItem, NotificationDefaults, PluginSkill, PluginTool,
+    PrivacyDefaults, RuntimeCheck, SidebarThread, TaskDefaults, UiDefaults, AdvancedDefaults,
 };
 use crate::runtime_engine::RuntimeLayout;
 
@@ -338,13 +338,15 @@ fn apply_session_records(desktop_state: &mut DesktopState, sessions: Vec<Desktop
         return;
     }
     let mut selected_result_items = Vec::new();
+    let mut selected_messages = Vec::new();
     let mut has_active_thread = false;
     desktop_state.sidebar.pinned_threads.clear();
     desktop_state.sidebar.threads.clear();
     for session in sessions {
         let active = !has_active_thread;
         if active {
-            selected_result_items = session.result_items;
+            selected_messages = conversation_messages_from_session(&session.thread_id, &session);
+            selected_result_items = session.result_items.clone();
             has_active_thread = true;
         }
         let thread = SidebarThread {
@@ -360,7 +362,41 @@ fn apply_session_records(desktop_state: &mut DesktopState, sessions: Vec<Desktop
             desktop_state.sidebar.threads.push(thread);
         }
     }
+    desktop_state.conversation.messages = selected_messages;
     desktop_state.conversation.result_items = selected_result_items;
+}
+
+fn conversation_messages_from_session(
+    thread_id: &str,
+    session: &DesktopSessionRecord,
+) -> Vec<ConversationMessage> {
+    session
+        .messages
+        .iter()
+        .enumerate()
+        .map(|(index, message)| {
+            let id = format!("{thread_id}-message-{index}");
+            match message.kind.as_str() {
+                "user" => ConversationMessage::User {
+                    id,
+                    text: message.text.clone(),
+                    created_at: "已保存".to_string(),
+                },
+                "assistant" => ConversationMessage::Assistant {
+                    id,
+                    text: message.text.clone(),
+                    created_at: "已保存".to_string(),
+                },
+                _ => ConversationMessage::Status {
+                    id,
+                    title: message.kind.clone(),
+                    detail: message.text.clone(),
+                    tone: "neutral".to_string(),
+                    created_at: "已保存".to_string(),
+                },
+            }
+        })
+        .collect()
 }
 
 fn merge_persisted_memory_items(
