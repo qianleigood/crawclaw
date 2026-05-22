@@ -1286,6 +1286,15 @@ esac
         .expect("result items")
         .iter()
         .any(|item| item.as_str() == Some("provider says hello")));
+    let messages = json["conversation"]["messages"]
+        .as_array()
+        .expect("conversation messages");
+    assert!(messages
+        .iter()
+        .any(|message| message["kind"] == "user" && message["text"] == "hello from desktop"));
+    assert!(messages.iter().any(|message| {
+        message["kind"] == "assistant" && message["text"] == "provider says hello"
+    }));
     let thread_id = json["sidebar"]["threads"][0]["id"]
         .as_str()
         .expect("thread id");
@@ -1770,7 +1779,7 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
-async fn gateway_send_message_without_provider_returns_503_and_operation_failed() {
+async fn gateway_send_message_provider_failure_returns_typed_failure() {
     let server = start_gateway_server(GatewayConfig {
         app_name: "CrawClaw Desktop".to_string(),
         app_version: "test".to_string(),
@@ -1812,6 +1821,19 @@ esac
     .await;
 
     assert_eq!(status, 503);
+    let (status, body) = request(
+        server.addr,
+        "GET /api/desktop/state HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("conversation messages")
+        .iter()
+        .any(|message| message["kind"] == "error"
+            && message["code"] == "provider_unavailable"));
     let events = read_stream_until(&mut events, "event: operationFailed").await;
     assert!(events.contains("event: operationFailed"));
     assert!(events.contains("provider_unavailable"));

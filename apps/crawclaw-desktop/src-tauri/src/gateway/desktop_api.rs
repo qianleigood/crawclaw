@@ -408,6 +408,36 @@ fn conversation_messages_from_session(
         .collect()
 }
 
+fn now_message_id(prefix: &str) -> String {
+    format!("{prefix}-{}", Uuid::new_v4().simple())
+}
+
+fn conversation_user_message(text: String) -> ConversationMessage {
+    ConversationMessage::User {
+        id: now_message_id("user"),
+        text,
+        created_at: "刚刚".to_string(),
+    }
+}
+
+fn conversation_assistant_message(text: String) -> ConversationMessage {
+    ConversationMessage::Assistant {
+        id: now_message_id("assistant"),
+        text,
+        created_at: "刚刚".to_string(),
+    }
+}
+
+fn conversation_error_message(code: &str, detail: String) -> ConversationMessage {
+    ConversationMessage::Error {
+        id: now_message_id("error"),
+        code: code.to_string(),
+        title: "任务失败".to_string(),
+        detail,
+        created_at: "刚刚".to_string(),
+    }
+}
+
 fn merge_persisted_memory_items(
     desktop_state: &mut DesktopState,
     memory_store: &DesktopMemoryStore,

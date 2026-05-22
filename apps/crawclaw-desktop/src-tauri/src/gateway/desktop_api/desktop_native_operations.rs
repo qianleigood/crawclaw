@@ -58,17 +58,26 @@ pub(super) async fn apply_native_operation(
                 active_thread_id(&desktop_state)
                     .unwrap_or_else(|| format!("thread-{}", Uuid::new_v4().simple()))
             };
-            let send_result = state
-                .agent_runtime
-                .send_message(thread_id, text)
-                .await
-                .map_err(|error| {
+            let send_result = match state.agent_runtime.send_message(thread_id, text).await {
+                Ok(send_result) => send_result,
+                Err(error) => {
                     let _ = state.events.send(DesktopEvent::OperationFailed {
                         code: error.code().to_string(),
                         message: error.message().to_string(),
                     });
-                    agent_runtime_error_status(&error)
-                })?;
+                    {
+                        let mut desktop_state = state.desktop_state.write().await;
+                        desktop_state
+                            .conversation
+                            .messages
+                            .push(conversation_error_message(
+                                error.code(),
+                                error.message().to_string(),
+                            ));
+                    }
+                    return Err(agent_runtime_error_status(&error));
+                }
+            };
             {
                 let mut desktop_state = state.desktop_state.write().await;
                 if !has_thread(&desktop_state, &send_result.thread_id) {
@@ -91,6 +100,16 @@ pub(super) async fn apply_native_operation(
                     .conversation
                     .result_items
                     .push(send_result.assistant_text.clone());
+                desktop_state
+                    .conversation
+                    .messages
+                    .push(conversation_user_message(send_result.user_text.clone()));
+                desktop_state
+                    .conversation
+                    .messages
+                    .push(conversation_assistant_message(
+                        send_result.assistant_text.clone(),
+                    ));
             }
             let _ = state.events.send(DesktopEvent::SessionStarted {
                 thread_id: send_result.thread_id.clone(),
