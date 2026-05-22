@@ -416,27 +416,17 @@ pub fn run_docs_anchor_audit(root: impl AsRef<Path>) -> Result<CheckReport, Stri
     }
 
     let temp_dir = prepare_anchor_audit_docs_dir(&docs_dir)?;
-    let status = Command::new("mint")
-        .args(["broken-links", "--check-anchors"])
-        .current_dir(&temp_dir)
-        .status();
-    let status = match status {
-        Ok(status) => status,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Command::new("pnpm")
-            .args(["dlx", "mint", "broken-links", "--check-anchors"])
-            .current_dir(&temp_dir)
-            .status()
-            .map_err(|error| format!("failed to run mint anchor audit fallback: {error}"))?,
-        Err(error) => {
-            let _ = fs::remove_dir_all(&temp_dir);
-            return Err(format!("failed to run mint anchor audit: {error}"));
-        }
-    };
+    let status = crate::node_tooling::run_pnpm_dlx_with_node_major(
+        &temp_dir,
+        22,
+        &["mint", "broken-links", "--check-anchors"],
+    );
     let _ = fs::remove_dir_all(&temp_dir);
+    let status = status?;
     Ok(CheckReport {
         stdout: String::new(),
         stderr: String::new(),
-        ok: status.success(),
+        ok: status == 0,
     })
 }
 

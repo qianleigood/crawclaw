@@ -43,10 +43,10 @@ exported, therefore it is frozen."
 
 Current guidance:
 
-- **existing external plugins:** keep hook-based integrations working; treat
-  this as the compatibility baseline
+- **existing external plugins:** keep manifest and documented Rust SDK
+  contracts stable; avoid breaking published plugin metadata casually
 - **new bundled/native plugins:** prefer explicit capability registration over
-  vendor-specific reach-ins or new hook-only designs
+  vendor-specific reach-ins
 - **external plugins adopting capability registration:** allowed, but treat the
   capability-specific helper surfaces as evolving unless docs explicitly mark a
   contract as stable
@@ -54,10 +54,9 @@ Current guidance:
 Practical rule:
 
 - capability registration APIs are the intended direction
-- legacy hooks remain the safest no-breakage path for external plugins during
-  the transition
-- exported helper subpaths are not all equal; prefer the narrow documented
-  contract, not incidental helper exports
+- public authoring contracts live in manifest metadata and the Rust plugin SDK
+- exported helper surfaces are not all equal; prefer the narrow documented
+  contract, not incidental internal helpers
 
 ### Plugin shapes
 
@@ -68,23 +67,23 @@ registration behavior (not just static metadata):
   provider-only plugin like `mistral`)
 - **hybrid-capability** -- registers multiple capability types (for example
   `openai` owns text inference, media understanding, and image generation)
-- **hook-only** -- registers only hooks (typed or custom), no capabilities,
-  tools, commands, or services
 - **non-capability** -- registers tools, commands, services, or routes but no
   capabilities
 
 Use CrawClaw Desktop or the local Gateway API to see a plugin's shape and capability
-breakdown. See [Gateway API reference](/tools/plugin#inspect) for details.
+breakdown. See [Gateway API reference](/tools/plugin#gateway-api-reference) for details.
 
 ### Runtime hooks
 
 TypeScript typed runtime hooks have been removed. Provider/model resolution,
 prompt assembly, and agent lifecycle behavior now run through the Rust provider
-catalog and Rust agent runtime.
+catalog and Rust agent runtime. Channel configuration and delivery metadata live
+in `crates/crawclaw-channels`; desktop plugin read models live in
+`crates/crawclaw-plugin-host`.
 
 ### Compatibility signals
 
-When you run CrawClaw Desktop or the local Gateway API or CrawClaw Desktop or the local Gateway API, you may see
+When you run CrawClaw Desktop or the local Gateway API, you may see
 one of these labels:
 
 | Signal                     | Meaning                                                      |
@@ -93,8 +92,7 @@ one of these labels:
 | **compatibility advisory** | Plugin uses a supported-but-older pattern (e.g. `hook-only`) |
 | **hard error**             | Config is invalid or plugin failed to load                   |
 
-`hook-only` is advisory only. These signals also appear in
-CrawClaw Desktop or the local Gateway API and CrawClaw Desktop or the local Gateway API.
+These signals also appear in CrawClaw Desktop and Gateway diagnostics.
 
 ## Architecture overview
 
@@ -128,9 +126,10 @@ build UI/schema hints before the full runtime is active.
 
 TypeScript channel plugins are no longer a production contract. The shared
 message tool and channel control plane now route through Rust-native channel
-descriptors and adapter contracts. Runtime capabilities such as providers,
-tools, commands, hooks, services, speech, media, web fetch, and web search are
-owned by Rust native registries or Rust Gateway/runtime code.
+descriptors and adapter contracts in `crates/crawclaw-channels`. Runtime
+capabilities such as providers, tools, commands, services, speech, media, web
+fetch, and web search are owned by Rust native registries or Rust
+Gateway/runtime code.
 
 See [Load pipeline](#load-pipeline) for the full startup sequence.
 

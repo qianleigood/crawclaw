@@ -4,9 +4,9 @@
   "version": "../package.json",
   "identifier": "ai.crawclaw.desktop",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "cargo run -q -p crawclaw-repo-tools -- desktop-renderer dev",
     "devUrl": "http://127.0.0.1:1420",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "cargo run -q -p crawclaw-repo-tools -- desktop-renderer build",
     "frontendDist": "../dist"
   },
   "app": {

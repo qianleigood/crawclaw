@@ -9,7 +9,9 @@ title: "Tests"
 
 - Full testing kit: [Testing](/help/testing)
 
-- `pnpm test`: runs the Rust workspace tests through `crawclaw-runtime test-workspace`.
+- `pnpm test`: runs the Rust workspace tests through `crawclaw-repo-tools test-workspace`.
+- `cargo run -q -p crawclaw-repo-tools -- check --profile rust-core`: Rust guardrails plus workspace tests.
+- `cargo run -q -p crawclaw-repo-tools -- check --profile local`: local desktop contract, TypeScript, lint, and boundary checks.
 - The Rust runner sets a conservative stack size and serial Rust test threads so desktop and native runtime integration tests do not race shared local resources.
 - For focused debugging, run Cargo directly, for example `cargo test -p crawclaw-runtime <filter>`.
 

@@ -1,7 +1,7 @@
 ---
-summary: "WebSocket gateway architecture, components, and client flows"
+summary: "Desktop-first local Gateway architecture, Rust runtime boundaries, and client flows"
 read_when:
-  - Working on gateway protocol, clients, or transports
+  - Working on Gateway protocol, desktop runtime, clients, or transports
 title: "Gateway Architecture"
 ---
 
@@ -9,105 +9,102 @@ title: "Gateway Architecture"
 
 ## Overview
 
-- A single long‑lived **Gateway** owns all messaging surfaces (Weixin via
-  Baileys, Feishu via grammY, Feishu, community chat, native channel, Weixin).
-- Control-plane clients (CLI, automations, and browser-authenticated clients) connect to the
-  Gateway over **WebSocket** on the configured bind host (default
-  `127.0.0.1:18789`).
-- One Gateway per host; it is the only place that opens a Weixin session.
+CrawClaw is desktop-first and local-first. CrawClaw Desktop owns setup, status,
+logs, diagnostics, plugin visibility, and the local Gateway lifecycle. The
+Gateway is the local control plane for HTTP, WebSocket, OpenAI-compatible APIs,
+channel routing, sessions, auth, and runtime state.
+
+The product runtime is Rust-owned:
+
+- `crates/crawclaw-gateway` owns Gateway protocol, auth, HTTP/WS services, and
+  client-facing API boundaries.
+- `crates/crawclaw-runtime` owns the agent loop, memory, cron, runtime tools,
+  native plugin registry wiring, runtime layout, and runtime status.
+- `crates/crawclaw-providers` owns provider metadata, model normalization, and
+  native provider request/stream parsing.
+- `crates/crawclaw-channels` owns native channel descriptors, delivery
+  capabilities, and desktop channel configuration metadata.
+- `crates/crawclaw-plugin-sdk` is the public Rust plugin authoring contract.
+
+TypeScript remains in the desktop renderer, docs hosted tooling, and npm
+packaging surface where it is intentionally part of the UI/build workflow. Node
+and npm are now routed through the repo-tools adapter layer; they are not the
+production plugin runtime contract.
 
 ## Components and flows
 
-### Gateway (daemon)
+### CrawClaw Desktop
 
-- Maintains provider connections.
-- Exposes a typed WS API (requests, responses, server‑push events).
-- Validates inbound frames against JSON Schema.
-- Emits events like `agent`, `chat`, `presence`, `health`, `heartbeat`, `cron`.
+- Starts and supervises the local Gateway/runtime binaries.
+- Reads desktop API state from `/api/desktop/*`.
+- Presents provider, plugin, channel, session, memory, and diagnostic surfaces.
+- Uses generated desktop API types from the Rust/Tauri contract.
 
-### Clients
+### Gateway
 
-- One WS connection per client.
-- Send requests (`health`, `status`, `send`, `agent`, `system-presence`).
-- Subscribe to events (`tick`, `agent`, `presence`, `shutdown`).
+- Exposes HTTP, WebSocket, and OpenAI-compatible endpoints.
+- Applies local auth, pairing, allowlists, and routing policy.
+- Normalizes channel messages into typed runtime requests.
+- Emits desktop and protocol events for status, messages, sessions, and runtime
+  updates.
 
-## Connection lifecycle (single client)
+### Runtime
+
+- Executes agent turns, memory operations, cron jobs, runtime tools, and native
+  plugin operations.
+- Reads provider and channel contracts from Rust crates.
+- Keeps repo/build/release tooling out of the product runtime crate.
+
+### Maintainer tooling
+
+Build, release, docs checks, generated baseline emitters, GitHub helpers, and
+Node/npm tool wrappers live in `crates/crawclaw-repo-tools`. The preferred
+maintainer entrypoints are aggregate profiles such as
+`crawclaw-repo-tools check --profile local`,
+`crawclaw-repo-tools build --profile package`, and
+`crawclaw-repo-tools release-check`. That crate may call product crates to read
+catalogs or stage artifacts, but product runtime code does not own maintainer
+command implementations.
+
+## Local client flow
 
 ```mermaid
 sequenceDiagram
-    participant Client
+    participant Desktop
     participant Gateway
+    participant Runtime
+    participant Provider
 
-    Client->>Gateway: req:connect
-    Gateway-->>Client: res (ok)
-    Note right of Gateway: or res error + close
-    Note left of Client: payload=hello-ok<br>snapshot: presence + health
-
-    Gateway-->>Client: event:presence
-    Gateway-->>Client: event:tick
-
-    Client->>Gateway: req:agent
-    Gateway-->>Client: res:agent<br>ack {runId, status:"accepted"}
-    Gateway-->>Client: event:agent<br>(streaming)
-    Gateway-->>Client: res:agent<br>final {runId, status, summary}
+    Desktop->>Gateway: HTTP /api/desktop/messages
+    Gateway->>Runtime: agent run request
+    Runtime->>Provider: native provider request
+    Provider-->>Runtime: response or stream delta
+    Runtime-->>Gateway: run events and final reply
+    Gateway-->>Desktop: desktop state and event stream
 ```
 
-## Wire protocol (summary)
+## Wire protocol summary
 
-- Transport: WebSocket, text frames with JSON payloads.
-- First frame **must** be `connect`.
-- After handshake:
-  - Requests: `{type:"req", id, method, params}` → `{type:"res", id, ok, payload|error}`
-  - Events: `{type:"event", event, payload, seq?, stateVersion?}`
-- If `CRAWCLAW_GATEWAY_TOKEN` (or `--token`) is set, `connect.params.auth.token`
-  must match or the socket closes.
-- Idempotency keys are required for side‑effecting methods (`send`, `agent`) to
-  safely retry; the server keeps a short‑lived dedupe cache.
+- WebSocket clients connect with the Gateway protocol handshake.
+- HTTP desktop clients use `/api/desktop/*`.
+- OpenAI-compatible clients use local Gateway compatibility endpoints.
+- Protocol changes are owned by the Rust Gateway contract and generated schema.
 
-## Local trust
-
-- WS clients authenticate through the configured Gateway auth mode.
-- Local loopback setups can run with less friction, but non-loopback binds should keep token,
-  password, or trusted-proxy auth configured.
-- Gateway auth (`gateway.auth.*`) still applies to **all** connections, local or
-  remote.
-
-Details: [Gateway protocol](/gateway/protocol), [Pairing](/channels/pairing),
+Details: [Gateway protocol](/gateway/protocol), [Channels](/channels),
 [Security](/gateway/security).
-
-## Protocol typing and codegen
-
-- Rust Gateway owns protocol metadata and the packaged JSON Schema snapshot.
-- JSON Schema is emitted from the Rust Gateway contract snapshot.
-- Swift models are generated from the JSON Schema.
-
-## Remote access
-
-- Preferred: Tailscale or VPN.
-- Alternative: SSH tunnel
-
-  ```bash
-  ssh -N -L 18789:127.0.0.1:18789 user@host
-  ```
-
-- The same handshake + auth token apply over the tunnel.
-- TLS + optional pinning can be enabled for WS in remote setups.
-
-## Operations snapshot
-
-- Start: CrawClaw Desktop or the local Gateway API (foreground, logs to stdout).
-- Health: `health` over WS (also included in `hello-ok`).
-- Supervision: launchd/systemd for auto‑restart.
 
 ## Invariants
 
-- Exactly one Gateway controls a single Baileys session per host.
-- Handshake is mandatory; any non‑JSON or non‑connect first frame is a hard close.
-- Events are not replayed; clients must refresh on gaps.
+- CrawClaw Desktop is the primary user entrypoint.
+- The local Gateway is the product control-plane boundary.
+- Public plugin authoring goes through manifest metadata and the Rust plugin SDK.
+- Native provider and channel behavior stays in Rust-owned contracts.
+- Repository automation belongs in `crawclaw-repo-tools`, not `crawclaw-runtime`.
 
 ## Related
 
-- [Agent Loop](/concepts/agent-loop) — detailed agent execution cycle
-- [Gateway Protocol](/gateway/protocol) — WebSocket protocol contract
-- [Queue](/concepts/queue) — command queue and concurrency
-- [Security](/gateway/security) — trust model and hardening
+- [Agent Loop](/concepts/agent-loop)
+- [Gateway Protocol](/gateway/protocol)
+- [Channels](/channels)
+- [Queue](/concepts/queue)
+- [Security](/gateway/security)

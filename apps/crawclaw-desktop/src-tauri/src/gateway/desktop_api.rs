@@ -14,13 +14,13 @@ use tokio::sync::{broadcast, RwLock};
 use tower_http::cors::{Any, CorsLayer};
 use uuid::Uuid;
 
+use crawclaw_channels::{is_desktop_or_native_channel_id, native_channel, NativeChannelDefinition};
 use crawclaw_native_plugins::comfyui::handle_comfyui;
 use crawclaw_native_plugins::qwen3_tts::{build_synthesis_payload, synthesize_qwen3_tts};
 use crawclaw_native_plugins::web::{run_searxng_search, run_spider_fetch};
 use crawclaw_plugin_host::{
-    add_custom_plugin_skill, is_desktop_or_native_channel_id, load_plugin_manifest, native_channel,
-    toggle_plugin_skill_open, toggle_plugin_tool_open, NativeChannelDefinition, PluginHostError,
-    PluginHostSkill, PluginHostTool,
+    add_custom_plugin_skill, load_plugin_manifest, toggle_plugin_skill_open,
+    toggle_plugin_tool_open, PluginHostError, PluginHostSkill, PluginHostTool,
 };
 use crawclaw_runtime::{
     special_agents::find_special_agent, AgentModelSelection, AgentRunRequest, AgentRuntime,
@@ -67,7 +67,7 @@ use self::desktop_mutation_routes::{
 };
 use self::desktop_native_operations::{
     active_thread_id, parse_json_body, plugin_skill, plugin_tool, run_native_state_mutation,
-    string_field, with_string,
+    string_field, with_string, DesktopNativeMutation, ThreadMutation, ToggleMutation,
 };
 use self::desktop_plugin_operations::invoke_plugin_tool_operation;
 use self::desktop_session_routes::{

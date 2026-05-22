@@ -9,24 +9,11 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-mod config_contract;
 mod core_tools;
 pub mod cron;
-mod desktop_packaging;
-mod ghsa_patch;
-mod github_labels;
 pub mod memory;
 mod message_policy;
 mod native_plugin_registry;
-mod node_tool_runner;
-mod npm_release;
-mod package_build;
-mod package_release;
-mod plugin_dependency_plan;
-mod plugin_version_sync;
-mod provider_contract;
-mod repo_checks;
-mod repo_guardrails;
 pub mod special_agents;
 
 mod agent_provider_bridge;
@@ -40,67 +27,12 @@ pub use self::agent_runtime_types::*;
 pub use self::desktop_runtime_stores::*;
 pub use self::runtime_tool_catalog::*;
 
-pub use config_contract::{
-    base_config_schema_payload, base_config_schema_payload_json, config_doc_baseline_json,
-    config_doc_baseline_jsonl, write_config_doc_baseline_artifacts, ConfigDocBaselineWriteResult,
-};
 use core_tools::build_pi_agent_rust_tool_registry;
-pub use desktop_packaging::{
-    check_desktop_runtime_release_inputs, resolve_desktop_runtime_stage_paths,
-    stage_desktop_tauri_runtime, DesktopRuntimeCheckOptions, DesktopRuntimeStagePaths,
-};
-pub use ghsa_patch::{parse_ghsa_id, run_ghsa_patch};
-pub use github_labels::{
-    collect_configured_label_names, parse_github_repo_remote, resolve_label_metadata,
-    run_github_labels_sync, LabelMetadata,
-};
 pub use message_policy::execute_message_policy_operation;
 pub use native_plugin_registry::{
     dispatch_native_service_lifecycle, invoke_native_plugin_operation, load_native_plugin_registry,
     with_native_runtime_context, NativePluginRegistry, NativePluginRegistryDiagnostic,
     NativePluginRuntime, NativeSidecarCommand, NativeToolRegistration,
-};
-pub use node_tool_runner::{
-    build_oxlint_invocation, build_tsgo_invocation, build_typecheck_invocation, run_oxlint,
-    run_tsgo, run_typecheck, ToolInvocation,
-};
-pub use npm_release::{
-    collect_plugin_release_plan, collect_publishable_plugin_packages, compare_release_versions,
-    format_npm_publish_plan_lines, parse_plugin_release_args, parse_release_version,
-    read_package_metadata, resolve_npm_dist_tag_mirror_auth, resolve_plugin_npm_publish_plan,
-    resolve_root_npm_publish_plan, run_root_npm_release_check, select_publishable_plugin_packages,
-    should_require_npm_dist_tag_mirror_auth, verify_published_npm_install, NpmDistTagMirrorAuth,
-    NpmPublishPlan, ParsedPluginReleaseArgs, ParsedReleaseVersion, PluginReleasePlan,
-    PluginReleasePlanItem, PluginReleaseSelectionMode, PublishablePluginPackage, ReleaseChannel,
-    RootNpmReleaseCheckResult,
-};
-pub use package_build::{
-    list_bundled_plugin_pack_artifacts, list_static_package_asset_outputs,
-    stage_native_binary_artifacts, stage_package_postbuild, write_package_build_metadata,
-    StaticPackageAsset,
-};
-pub use package_release::{
-    collect_package_release_check_errors, format_package_release_check_errors, run_package_prepack,
-    PackagePrepackOutcome, PackageReleaseCheckErrors,
-};
-pub use plugin_dependency_plan::{
-    relative_to_repo as plugin_dependency_plan_relative_to_repo,
-    write_plugin_dependency_plan_artifacts, PluginDependencyPlanWriteResult,
-};
-pub use plugin_version_sync::{sync_plugin_versions, PluginVersionSyncSummary};
-pub use provider_contract::{
-    render_bundled_capability_metadata_module, render_bundled_provider_auth_env_var_module,
-    render_provider_runtime_constants_module, write_bundled_capability_metadata_module,
-    write_bundled_provider_auth_env_var_module, write_provider_runtime_constants_module,
-    GeneratedModuleWriteResult,
-};
-pub use repo_checks::{collect_ts_loc_offenders, render_docs_list, TsLocOffender};
-pub use repo_guardrails::{
-    run_docs_anchor_audit, run_docs_i18n_glossary, run_docs_link_audit, run_no_conflict_markers,
-    run_no_extension_src_imports, run_no_register_http_handler,
-    run_plugin_extension_import_boundary, run_runtime_module_boundaries,
-    run_web_fetch_provider_boundaries, run_web_search_provider_boundaries,
-    run_webhook_auth_body_order, CheckReport,
 };
 
 pub use crawclaw_channels::{
@@ -296,7 +228,7 @@ pub fn stage_desktop_runtime_manifests(output: &Path) -> Result<(), String> {
         &channels_dir.join("manifest.json"),
         &json!({
             "implementation": "rust-native",
-            "channels": crawclaw_plugin_host::native_channels(),
+            "channels": crawclaw_channels::native_channels(),
         }),
     )?;
     write_json_file(
@@ -318,7 +250,7 @@ pub fn stage_desktop_runtime_manifests(output: &Path) -> Result<(), String> {
         &json!({
             "readModel": true,
             "jsPluginRuntime": "none",
-            "nativeChannels": crawclaw_plugin_host::native_channel_ids(),
+            "nativeChannels": crawclaw_channels::native_channel_ids(),
         }),
     )?;
     Ok(())

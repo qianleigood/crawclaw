@@ -15,7 +15,7 @@ plugin registry, and Gateway/runtime contracts instead of relying on removed
 JavaScript SDK test helpers.
 
 <Tip>
-  Provider examples live in [Provider Configuration](/plugins/sdk-provider-plugins#step-6-test).
+  Provider examples live in [Provider Configuration](/plugins/sdk-provider-plugins#add-a-provider).
 </Tip>
 
 ## Rust SDK tests

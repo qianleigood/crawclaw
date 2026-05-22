@@ -1,0 +1,89 @@
+---
+read_when:
+  - 你想要了解任务流与后台任务的关系
+  - 你在发布说明或文档中遇到任务流
+  - 你想要检查或管理持久流程状态
+summary: 任务流是后台任务之上的流程编排层
+title: 任务流
+x-i18n:
+  generated_at: "2026-05-22T02:57:58Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 22cb437039d73015e2a2ef77fd659a2cd419c15df3be970e105863758687d242
+  source_path: automation/taskflow.md
+  workflow: 15
+---
+
+# 任务流
+
+任务流是位于[后台任务](/automation/tasks)之上的流程编排底层。它管理持久的多步骤流程，拥有自己的状态、版本跟踪和同步语义，而单个任务仍然是分离工作的单元。
+
+## 何时使用任务流
+
+当工作涉及多个顺序或分支步骤，且需要在网关重启之间保持持久进度跟踪时使用任务流。对于单个后台操作，普通的[任务](/automation/tasks)就足够了。
+
+| 场景                          | 使用           |
+| ----------------------------- | -------------- |
+| 单个后台作业                  | 普通任务       |
+| 多步骤管道（A 然后 B 然后 C） | 任务流（托管） |
+| 观察外部创建的任务            | 任务流（镜像） |
+| 一次性提醒                    | Cron 作业      |
+
+## 同步模式
+
+### 托管模式
+
+任务流拥有端到端的生命周期。它将任务创建为流程步骤，驱动它们完成，并自动推进流程状态。
+
+示例：每周报告流程，包括（1）收集数据、（2）生成报告、（3）发送报告。任务流将每个步骤创建为后台任务，等待完成后进入下一步。
+
+```
+Flow: weekly-report
+  Step 1: gather-data     → task created → succeeded
+  Step 2: generate-report → task created → succeeded
+  Step 3: deliver         → task created → running
+```
+
+### 镜像模式
+
+任务流观察外部创建的任务，在不接管任务创建的情况下保持流程状态同步。当任务来自 cron 作业、Desktop 和 Gateway API 操作或其他来源，且你希望将它们的进度统一视图为流程时，这很有用。
+
+示例：三个独立的 cron 作业，共同组成“早晨运维”例程。镜像流程跟踪它们的集体进度，而不控制它们何时或如何运行。
+
+## 持久状态和版本跟踪
+
+每个流程都会持久化自己的状态并跟踪版本，以便进度在网关重启后仍然保留。版本跟踪支持冲突检测，防止多个来源同时尝试推进同一流程。
+
+## 取消行为
+
+Gateway API 的 task-flow 取消会在流程上设置一个持久取消意图。流程内的活跃任务将被取消，不会启动新步骤。取消意图在重启后仍然保留，因此已取消的流程即使网关在所有子任务终止前重启，也会保持取消状态。
+
+## Desktop 和 Gateway API 操作
+
+```bash
+# List active and recent flows
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+
+# Show details for a specific flow
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+
+# Cancel a running flow and its active tasks
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+```
+
+| 命令     | 描述                               |
+| -------- | ---------------------------------- |
+| 列出流程 | 显示已跟踪的流程及其状态和同步模式 |
+| 显示流程 | 按流程 ID 或查找键检查单个流程     |
+| 取消流程 | 取消正在运行的流程及其活跃任务     |
+
+## 流程与任务的关系
+
+流程协调任务，而不是替代它们。单个流程在其生命周期内可能驱动多个后台任务。使用 Desktop 或 Gateway API 检查单个任务记录和协调流程。
+
+## 相关
+
+- [后台任务](/automation/tasks) — 流程协调的分离工作账本
+- [后台任务](/automation/tasks) — 任务流自动化的 API 参考
+- [自动化概览](/automation) — 所有自动化机制一览
+- [Cron 作业](/automation/cron-jobs) — 可能为流程提供输入的计划任务

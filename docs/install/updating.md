@@ -26,7 +26,7 @@ To switch channels or target a specific version:
 # Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-See [Development channels](/install/development-channels) for channel semantics.
+See [Auto-updater](#auto-updater) for channel semantics.
 
 ## Alternative: re-run the installer
 

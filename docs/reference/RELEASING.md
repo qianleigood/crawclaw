@@ -37,9 +37,10 @@ CrawClaw has three public release lanes:
 
 ## Release preflight
 
-- Run `pnpm build` before `pnpm release:check` so the expected `dist/*`
-  release artifacts exist for the pack validation step
-- Run `pnpm release:check` before every tagged release
+- Run `cargo run --quiet --release -p crawclaw-repo-tools -- build --profile package` before release checks so the expected `dist/*` release artifacts exist for the pack validation step
+- Run `cargo run --quiet -p crawclaw-repo-tools -- release-check` before every tagged release
+- The compatibility aliases `pnpm build` and `pnpm release:check` remain valid,
+  but release automation should prefer the repo-tools commands.
 - Run `RELEASE_TAG=vYYYY.M.D pnpm release:crawclaw:npm:check` (or the
   matching beta/correction tag) before approval
 - After npm publish, run
@@ -120,7 +121,7 @@ documented and operator-visible.
 ## Public references
 
 - [`.github/workflows/crawclaw-npm-release.yml`](https://github.com/qianleigood/crawclaw/blob/main/.github/workflows/crawclaw-npm-release.yml)
-- [`crates/crawclaw-runtime/src/npm_release.rs`](https://github.com/qianleigood/crawclaw/blob/main/crates/crawclaw-runtime/src/npm_release.rs)
+- [`crates/crawclaw-repo-tools/src/npm_release.rs`](https://github.com/qianleigood/crawclaw/blob/main/crates/crawclaw-repo-tools/src/npm_release.rs)
 - [`scripts/package-mac-dist.sh`](https://github.com/qianleigood/crawclaw/blob/main/scripts/package-mac-dist.sh)
 - [`scripts/make_appcast.sh`](https://github.com/qianleigood/crawclaw/blob/main/scripts/make_appcast.sh)
 

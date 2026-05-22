@@ -15,89 +15,56 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="MIT License"></a>
 </p>
 
-**CrawClaw** 是一个自托管的 AI agent Gateway。它用一个本地或服务器进程，把聊天渠道、Gateway 客户端、模型 provider、工具、记忆、自动化和插件连接到你自己控制的运行时里。
+**CrawClaw** 是一个 desktop-first、local-first 的 AI Gateway。CrawClaw
+Desktop 负责配置、模型、插件、会话、诊断、日志和本地 Gateway 生命周期；本地
+Gateway API 仍然是自动化和集成的控制面。
 
-如果你希望助手可以从飞书、钉钉、QQ Bot、Weixin、WebChat、终端 UI 或自定义 Gateway 客户端访问，同时配置和运行状态仍留在自己的机器上，CrawClaw 就适合这个场景。
+公开的 `crawclaw` 命令不再是推荐用户入口。源码开发、发布校验和 npm 分发仍然保留
+Node/npm，但它们现在只是 repo tooling adapter，不是产品 runtime boundary。
 
 ## 快速开始
 
 要求：
 
-- 推荐 Node **24**
-- 支持 Node **22.14+**
 - 一个模型 provider 账号或 API key
 
-本地桌面使用场景，优先从
+从
 [GitHub Releases](https://github.com/qianleigood/crawclaw/releases) 安装
-**CrawClaw Desktop**。桌面 app 会内置 CrawClaw runtime，初始化
-`~/.crawclaw`，安装并启动本机 Gateway 服务，然后打开连接本机 Gateway 的管理界面。
-
-下面的 CLI 流程适合高级本机控制、headless 和服务器部署。
-
-使用推荐安装脚本：
-
-```bash
-curl -fsSL https://crawclaw.ai/install.sh | bash
-```
-
-Windows PowerShell：
-
-```powershell
-iwr -useb https://crawclaw.ai/install.ps1 | iex
-```
-
-运行 onboarding 并安装本地 Gateway 服务：
-
-```bash
-crawclaw onboard --install-daemon
-```
-
-检查 Gateway 并开始聊天：
-
-```bash
-crawclaw gateway status
-crawclaw agent --message "hello"
-```
+**CrawClaw Desktop**。桌面 app 会内置 Rust Gateway/runtime/native-plugin
+二进制，初始化 `~/.crawclaw`，启动本机 Gateway，并打开连接本机 Gateway 的管理界面。
 
 文档：
 
 - [快速开始](https://docs.crawclaw.ai/start/getting-started)
-- [安装](https://docs.crawclaw.ai/install)
-- [Onboarding](https://docs.crawclaw.ai/start/wizard)
-- [Gateway Runbook](https://docs.crawclaw.ai/gateway)
+- [桌面安装](https://docs.crawclaw.ai/install/desktop)
+- [Gateway Protocol](https://docs.crawclaw.ai/gateway/protocol)
 - [故障排查](https://docs.crawclaw.ai/gateway/troubleshooting)
 
-## 安装方式
-
-如果你已经自行管理 Node，也可以用 npm 或 pnpm：
-
-```bash
-npm install -g crawclaw@latest
-crawclaw onboard --install-daemon
-```
-
-```bash
-pnpm add -g crawclaw@latest
-pnpm approve-builds -g
-crawclaw onboard --install-daemon
-```
-
-贡献者从源码运行：
+## 源码开发
 
 ```bash
 git clone https://github.com/qianleigood/crawclaw.git
 cd crawclaw
 pnpm install
-pnpm build
-pnpm crawclaw onboard
+pnpm desktop:tauri:stage-runtime
+pnpm desktop:tauri:dev
 ```
 
-更多安装路径：
+常用本地检查：
 
-- [Nix](https://docs.crawclaw.ai/install/nix)
-- [云服务器和 VPS 部署](https://docs.crawclaw.ai/install)
-- [更新](https://docs.crawclaw.ai/install/updating)
-- [卸载](https://docs.crawclaw.ai/install/uninstall)
+```bash
+pnpm check        # cargo run -q -p crawclaw-repo-tools -- check --profile local
+pnpm test
+pnpm build        # cargo run --quiet --release -p crawclaw-repo-tools -- build --profile package
+```
+
+文档和生成基线：
+
+```bash
+pnpm check:docs   # cargo run -q -p crawclaw-repo-tools -- check --profile docs-core
+pnpm docs:check-links
+pnpm config:docs:check
+```
 
 ## 可以连接什么
 
@@ -123,7 +90,7 @@ CrawClaw 以消息渠道为优先入口。QuickStart 和主渠道选择器优先
 - **Tools and skills**：内置工具覆盖 shell 执行、文件编辑、浏览器自动化、web search/fetch、消息、媒体、cron、sessions 和 device nodes。Skills 负责告诉 agent 何时以及如何使用这些工具。
 - **Memory runtime**：context assembly、compaction、durable extraction、recall、session summaries 和维护流程是运行时服务。
 - **Automation**：scheduled tasks、background tasks、task flows、hooks、standing orders 和 main-session wakes 取代临时的 heartbeat 风格自动化。
-- **插件生态**：插件通过 plugin SDK 添加渠道、providers、tools、skills、speech、image generation、浏览器后端、setup flows 和 runtime hooks。
+- **插件生态**：插件通过 manifest metadata、native descriptors 和 Rust plugin SDK 添加渠道、providers、tools、skills、speech、image generation、浏览器后端和 setup flows。
 
 常用参考：
 
@@ -138,7 +105,7 @@ CrawClaw 以消息渠道为优先入口。QuickStart 和主渠道选择器优先
 ```mermaid
 flowchart LR
   Channels["Chat channels"] --> Gateway["Gateway"]
-  Clients["CLI, WebChat, custom clients"] --> Gateway
+  Clients["Desktop, WebChat, custom Gateway clients"] --> Gateway
   Nodes["Paired nodes"] --> Gateway
   Gateway --> Agent["Agent runtime"]
   Agent --> Tools["Typed tools and policy"]
@@ -168,7 +135,7 @@ Gateway 是核心边界。客户端和渠道连接 Gateway；agent runtime 位�
 | [crates](crates)                               | Rust Gateway、runtime、native-plugin、provider 和 SDK crates           |
 | [src](src)                                     | 保留的非 runtime metadata、generated JSON 和本地边界说明               |
 | [extensions](extensions)                       | 渠道、providers、浏览器后端、speech、media 和 tools 的 bundled plugins |
-| [packages](packages)                           | workspace 支持包                                                       |
+| [packages](packages)                           | 预留 workspace 支持包槽位，不是 runtime package tree                   |
 | [skills](skills)                               | 随包发布的 runtime skills                                              |
 | [docs](docs)                                   | Mintlify 文档源文件                                                    |
 | [test](test)                                   | 共享测试基础设施和 fixtures                                            |
@@ -181,17 +148,15 @@ Gateway 是核心边界。客户端和渠道连接 Gateway；agent runtime 位�
 
 ## 开发
 
-安装依赖：
+Node/npm 是源码开发、桌面 renderer、文档 hosted tooling 和 npm 发布的 adapter；
+Rust runtime 与 `crawclaw-repo-tools` 才是主控入口。
+
+从源码运行桌面 app：
 
 ```bash
 pnpm install
-```
-
-从源码运行 CLI：
-
-```bash
-pnpm crawclaw --help
-pnpm crawclaw gateway status
+pnpm desktop:tauri:stage-runtime
+pnpm desktop:tauri:dev
 ```
 
 常用本地检查：
@@ -213,7 +178,6 @@ pnpm config:docs:check
 更多：
 
 - [测试指南](https://docs.crawclaw.ai/help/testing)
-- [CLI Reference](https://docs.crawclaw.ai/cli)
 - [Configuration Reference](https://docs.crawclaw.ai/gateway/configuration-reference)
 - [Building Plugins](https://docs.crawclaw.ai/plugins/building-plugins)
 

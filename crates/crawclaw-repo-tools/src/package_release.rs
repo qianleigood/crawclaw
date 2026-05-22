@@ -2,11 +2,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use serde::Deserialize;
 use serde_json::Value;
 
+use crate::node_tooling::{run_npm_output, run_pnpm_script};
 use crate::package_build::{list_bundled_plugin_pack_artifacts, list_static_package_asset_outputs};
 
 const PREPACK_PREPARED_ENV: &str = "CRAWCLAW_PREPACK_PREPARED";
@@ -100,22 +100,11 @@ pub fn run_package_prepack(root_dir: impl AsRef<Path>) -> Result<PackagePrepackO
         ));
     }
 
-    let pnpm_command = if cfg!(windows) { "pnpm.cmd" } else { "pnpm" };
-    let status = Command::new(pnpm_command)
-        .arg("build")
-        .current_dir(&root_dir)
-        .status()
-        .map_err(|error| format!("prepack: failed to run pnpm build: {error}"))?;
-    if status.success() {
+    let status = run_pnpm_script(&root_dir, "build")?;
+    if status == 0 {
         Ok(PackagePrepackOutcome::RanBuild)
     } else {
-        Err(format!(
-            "prepack: pnpm build failed with status {}",
-            status
-                .code()
-                .map(|code| code.to_string())
-                .unwrap_or_else(|| "?".to_string())
-        ))
+        Err(format!("prepack: pnpm build failed with status {status}"))
     }
 }
 
@@ -168,7 +157,7 @@ pub fn format_package_release_check_errors(errors: &PackageReleaseCheckErrors) -
             .any(|path| path == "dist/build-info.json" || path.starts_with("dist/"))
         {
             lines.push(
-                "release-check: build artifacts are missing. Run `pnpm build` before `pnpm release:check`."
+                "release-check: build artifacts are missing. Run `crawclaw-repo-tools build --profile package` before `crawclaw-repo-tools release-check`."
                     .to_string(),
             );
         }
@@ -494,11 +483,10 @@ fn validate_min_host_version(raw: Option<&Value>) -> Option<&'static str> {
 }
 
 fn run_npm_pack_dry(root_dir: &Path) -> Result<Vec<PackResult>, String> {
-    let output = Command::new("npm")
-        .args(["pack", "--dry-run", "--json", "--ignore-scripts"])
-        .current_dir(root_dir)
-        .output()
-        .map_err(|error| format!("release-check: failed to run npm pack: {error}"))?;
+    let output = run_npm_output(
+        &["pack", "--dry-run", "--json", "--ignore-scripts"],
+        root_dir,
+    )?;
     if !output.status.success() {
         return Err(format!(
             "release-check: npm pack failed with status {}: {}",

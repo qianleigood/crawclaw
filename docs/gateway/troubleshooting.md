@@ -117,7 +117,7 @@ Use `error.details.code` from the failed `connect` response to pick the next act
 | Detail code           | Meaning                                        | Recommended action                                                                 |
 | --------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------- |
 | `AUTH_TOKEN_MISSING`  | Client did not send a required shared token.   | Set the client token to match CrawClaw Desktop or the local Gateway API and retry. |
-| `AUTH_TOKEN_MISMATCH` | Shared token did not match gateway auth token. | Run the [token drift recovery checklist](/network#token-drift-recovery-checklist). |
+| `AUTH_TOKEN_MISMATCH` | Shared token did not match gateway auth token. | Check the current Gateway auth details in this table and refresh the client token. |
 
 Related:
 

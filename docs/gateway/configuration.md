@@ -42,7 +42,7 @@ See the [full reference](/gateway/configuration-reference) for every available f
     Automation should use the local Gateway API. Prefer typed JSON methods over shelling out to a command wrapper.
   </Tab>
   <Tab title="Direct edit">
-    Edit `~/.crawclaw/crawclaw.json` directly. The Gateway watches the file and applies changes automatically (see [hot reload](#config-hot-reload)).
+    Edit `~/.crawclaw/crawclaw.json` directly. The Gateway watches the file and applies changes automatically.
   </Tab>
 </Tabs>
 
@@ -211,10 +211,14 @@ When validation fails:
 
   </Accordion>
 
+  <Accordion title="Enable sandbox isolation">
+    Run agent sessions in isolated Docker containers:
+
     ```json5
     {
       agents: {
         defaults: {
+          sandbox: {
             mode: "non-main",  // off | non-main | all
             scope: "agent",    // session | agent | shared
           },
@@ -222,6 +226,10 @@ When validation fails:
       },
     }
     ```
+
+    Build the image first: `scripts/sandbox-setup.sh`
+
+    See [Security](/gateway/security) for the full guide.
 
   </Accordion>
 

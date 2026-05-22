@@ -3,7 +3,7 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
-use crawclaw_runtime::{
+use crawclaw_repo_tools::{
     check_desktop_runtime_release_inputs, resolve_desktop_runtime_stage_paths,
     DesktopRuntimeCheckOptions,
 };

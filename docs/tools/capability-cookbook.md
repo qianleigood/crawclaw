@@ -78,6 +78,7 @@ For a new capability, expect to touch these areas:
 - `src/generated/plugins/bundled-capability-metadata.generated.json`
 - `crates/crawclaw-plugin-sdk/src/lib.rs`
 - `crates/crawclaw-plugin-host/src/lib.rs` for desktop plugin read-model updates
+- `crates/crawclaw-channels/src/lib.rs` for native channel descriptors and desktop channel config metadata
 - `crates/crawclaw-runtime/src/lib.rs`
 - the owning Rust crate for the capability contract/runtime
 - one or more bundled plugin packages

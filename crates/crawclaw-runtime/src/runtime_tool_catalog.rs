@@ -513,10 +513,17 @@ pub fn render_rust_tool_catalog_artifact() -> String {
     )
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RustToolCatalogWriteResult {
+    pub changed: bool,
+    pub wrote: bool,
+    pub output_path: PathBuf,
+}
+
 pub fn write_rust_tool_catalog_artifact(
     output_path: impl AsRef<Path>,
     check: bool,
-) -> Result<GeneratedModuleWriteResult, String> {
+) -> Result<RustToolCatalogWriteResult, String> {
     let output_path = output_path.as_ref().to_path_buf();
     let next = render_rust_tool_catalog_artifact();
     let current = match fs::read_to_string(&output_path) {
@@ -526,7 +533,7 @@ pub fn write_rust_tool_catalog_artifact(
     };
     let changed = current.as_deref() != Some(next.as_str());
     if check {
-        return Ok(GeneratedModuleWriteResult {
+        return Ok(RustToolCatalogWriteResult {
             changed,
             wrote: false,
             output_path,
@@ -540,7 +547,7 @@ pub fn write_rust_tool_catalog_artifact(
         fs::write(&output_path, next)
             .map_err(|error| format!("failed to write {}: {error}", output_path.display()))?;
     }
-    Ok(GeneratedModuleWriteResult {
+    Ok(RustToolCatalogWriteResult {
         changed,
         wrote: changed,
         output_path,

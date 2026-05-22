@@ -351,7 +351,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     pnpm build
     ```
 
-    Docs: [Update](/install/updating), [Development channels](/install/development-channels),
+    Docs: [Update](/install/updating), [auto-updater channels](/install/updating#auto-updater),
     [Install](/install).
 
   </Accordion>
@@ -1074,16 +1074,23 @@ for usage/billing and raise limits as needed.
 </AccordionGroup>
 
 <AccordionGroup>
+  <Accordion title="Do you have dedicated sandbox docs?">
     Yes. See [Security](/gateway/security).
   </Accordion>
 
+  <Accordion title="Can I keep DMs private but use one agent for public groups in a sandbox?">
     Yes - if your private traffic is **DMs** and your public traffic is **groups**.
 
+    Use `agents.defaults.sandbox.mode: "non-main"` so group/channel sessions run in Docker while the main DM session stays on the host. Then use `tools.sandbox.tools` to limit which tools are available inside sandboxed sessions.
 
     Setup walkthrough + example config: [Groups: personal DMs + public groups](/channels/groups#pattern-personal-dms-public-groups-single-agent)
 
+    Key config reference: [Gateway configuration](/gateway/configuration#enable-sandbox-isolation)
+
   </Accordion>
 
+  <Accordion title="How do I bind-mount a host folder into the sandbox?">
+    Set `agents.defaults.sandbox.docker.binds` to `["host:path:mode"]` (for example `"/home/user/src:/src:ro"`). Global and per-agent binds are merged; per-agent binds are ignored when `scope: "shared"`. Use `:ro` for sensitive content and remember that binds bypass filesystem isolation. See [Security](/gateway/security) for security notes.
   </Accordion>
 
   <Accordion title="How does memory work?">
@@ -2264,7 +2271,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
 
   </Accordion>
 
-<Accordion title='Why does CrawClaw Desktop or the local Gateway API
+  <Accordion title="Why does the process look alive but RPC is unavailable?">
 Because process state and API reachability are different checks. The RPC probe connects to the Gateway WebSocket and calls `status`.
 
     Use CrawClaw Desktop or the local Gateway API and trust these lines:
@@ -2275,7 +2282,7 @@ Because process state and API reachability are different checks. The RPC probe c
 
   </Accordion>
 
-  <Accordion title='Why does CrawClaw Desktop or the local Gateway API)" and "Config (service)" different?'>
+  <Accordion title='Why are "Config (file)" and "Config (service)" different?'>
     You're editing one config file while the service is running another (often a `--profile` / `CRAWCLAW_STATE_DIR` mismatch).
 
     Fix:

@@ -137,7 +137,7 @@ fn parse_args(args: &[String]) -> Result<GithubLabelsOptions, String> {
 }
 
 fn github_labels_usage() -> String {
-    "usage: crawclaw-runtime github-labels-sync [--root <repo-root>] [--check]".to_string()
+    "usage: crawclaw-repo-tools github-labels-sync [--root <repo-root>] [--check]".to_string()
 }
 
 fn extract_label_names(contents: &str) -> Vec<String> {

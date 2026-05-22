@@ -1,5 +1,5 @@
 {
-  "generatedBy": "crawclaw-runtime emit-config-doc-baseline",
+  "generatedBy": "crawclaw-repo-tools emit-config-doc-baseline",
   "entries": [
     {
       "path": "acp",

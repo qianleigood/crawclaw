@@ -102,10 +102,10 @@ jobs:
       - name: Check
         env:
           CRAWCLAW_LOCAL_CHECK: "0"
-        run: pnpm check
+        run: cargo run -q -p crawclaw-repo-tools -- check --profile local
 
       - name: Build
-        run: pnpm build
+        run: cargo run --quiet --release -p crawclaw-repo-tools -- build --profile package
 
       - name: Validate release tag and package metadata
         if: ${{ inputs.preflight_run_id == '' }}
@@ -124,7 +124,7 @@ jobs:
           pnpm release:crawclaw:npm:check
 
       - name: Verify release contents
-        run: pnpm release:check
+        run: cargo run --quiet -p crawclaw-repo-tools -- release-check
 
       - name: Pack prepared npm tarball
         id: packed_tarball

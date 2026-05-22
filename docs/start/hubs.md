@@ -112,7 +112,7 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Plugins overview](/tools/plugin)
 - [Building plugins](/plugins/building-plugins)
 - [Plugin manifest](/plugins/manifest)
-- [Agent tools](/plugins/building-plugins#registering-agent-tools)
+- [Agent tools](/plugins/building-plugins#runtime-capabilities)
 - [Plugin bundles](/plugins/bundles)
 - [Community plugins](/plugins/community)
 - [Capability cookbook](/tools/capability-cookbook)

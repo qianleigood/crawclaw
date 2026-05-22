@@ -32,12 +32,12 @@ The main product runtime lives under Rust crates.
 Primary domains:
 
 - `crates/crawclaw-gateway`: control plane, auth, protocol, and Gateway services
-- `crates/crawclaw-runtime`: agent, memory, automation, tools, native plugin execution, and runtime state
-- `crates/crawclaw-repo-tools`: build, release, docs, generated baselines, and repo guardrail commands
+- `crates/crawclaw-runtime`: agent loop, memory, cron, runtime tools, native plugin registry wiring, runtime layout, and runtime status
+- `crates/crawclaw-repo-tools`: build, release, docs checks, generated baselines, repo guardrails, GitHub helpers, and Node/npm tooling adapters
 - `crates/crawclaw-native-plugins`: native plugin descriptors and operations
-- `crates/crawclaw-providers`: provider metadata and transport contracts
+- `crates/crawclaw-providers`: provider catalog, auth/setup metadata, model normalization, request building, and response/stream parsing
 - `crates/crawclaw-plugin-sdk`: public Rust plugin SDK
-- `crates/crawclaw-channels`: native channel contracts
+- `crates/crawclaw-channels`: native channel contracts, capability descriptors, and desktop channel configuration catalog
 
 When people say “the product code”, they usually mean `crates/` plus the
 desktop shell under `apps/crawclaw-desktop/`.
@@ -105,6 +105,23 @@ These paths form the build/release/delivery system:
 This layer is operationally critical, but it is not the same thing as the
 runtime architecture.
 
+The Rust entrypoint for this layer is `crates/crawclaw-repo-tools`. Product
+runtime crates may expose catalogs or staging helpers that maintainer tooling
+reads, but build, release, docs, and guardrail command implementations should
+not live in `crates/crawclaw-runtime`.
+
+`package.json` keeps pnpm compatibility aliases for contributors and CI, but the
+canonical implementation now lives behind repo-tools profiles:
+
+- `check --profile local|ci|rust-core|desktop-renderer|docs-core|docs-hosted`
+- `build --profile package|strict-smoke|desktop-renderer`
+- `release-check`
+- `desktop-renderer dev|build|tauri-dev|tauri-build`
+
+Node/npm still exist for the desktop renderer, docs hosted tooling, and npm
+pack/publish boundaries. They should be called through the repo-tools adapter
+when a Rust orchestration path exists.
+
 ## Test Infrastructure
 
 `test/` is shared test infrastructure.
@@ -140,10 +157,11 @@ under an explicit umbrella such as `apps/` or `experiments/`.
 
 The current recommended cleanup order is:
 
-1. Make structure explicit with docs and directory READMEs.
-2. Reduce root-directory ambiguity by reclassifying sidecar and catalog directories.
-3. Split maintainer docs from user-facing docs more cleanly.
-4. Only then consider deeper moves for generated metadata or retained boundary
+1. Keep product runtime code and repository automation in separate crates.
+2. Make structure explicit with docs and directory READMEs.
+3. Reduce root-directory ambiguity by reclassifying sidecar and catalog directories.
+4. Split maintainer docs from user-facing docs more cleanly.
+5. Only then consider deeper moves for generated metadata or retained boundary
    notes inside `src/`.
 
 This keeps release/build risk low while still improving maintainability.

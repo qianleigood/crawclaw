@@ -1,11 +1,15 @@
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitStatus, Stdio};
+use std::process::{Command, Stdio};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime};
 
 use serde_json::{json, Value};
+
+use crate::node_tooling::{
+    current_env, node_program, resolve_node_modules_bin, run_tool_invocation, ToolInvocation,
+};
 
 const DEFAULT_LOCAL_GO_GC: &str = "30";
 const DEFAULT_LOCAL_GO_MEMORY_LIMIT: &str = "3GiB";
@@ -13,13 +17,6 @@ const DEFAULT_LOCK_TIMEOUT_MS: u64 = 10 * 60 * 1000;
 const DEFAULT_LOCK_POLL_MS: u64 = 500;
 const DEFAULT_STALE_LOCK_MS: u64 = 30 * 1000;
 const DEFAULT_TSGO_PROJECT: &str = "apps/crawclaw-desktop/tsconfig.json";
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ToolInvocation {
-    pub program: PathBuf,
-    pub args: Vec<String>,
-    pub env: Vec<(String, String)>,
-}
 
 pub fn build_tsgo_invocation(args: &[String], env_vars: &[(String, String)]) -> ToolInvocation {
     let mut next_args = args.to_vec();
@@ -44,7 +41,7 @@ pub fn build_tsgo_invocation(args: &[String], env_vars: &[(String, String)]) -> 
     }
 
     ToolInvocation {
-        program: tool_bin_path("tsgo"),
+        program: resolve_node_modules_bin("tsgo"),
         args: next_args,
         env: next_env,
     }
@@ -59,7 +56,7 @@ pub fn build_oxlint_invocation(args: &[String], env_vars: &[(String, String)]) -
     }
 
     ToolInvocation {
-        program: tool_bin_path("oxlint"),
+        program: resolve_node_modules_bin("oxlint"),
         args: next_args,
         env: env_vars.to_vec(),
     }
@@ -82,7 +79,7 @@ pub fn build_typecheck_invocation(
     final_args.extend(args.iter().cloned());
 
     ToolInvocation {
-        program: PathBuf::from(if cfg!(windows) { "node.exe" } else { "node" }),
+        program: node_program(),
         args: final_args,
         env: env_vars.to_vec(),
     }
@@ -97,7 +94,7 @@ pub fn run_oxlint(args: &[String]) -> Result<i32, String> {
 }
 
 pub fn run_typecheck(args: &[String]) -> Result<i32, String> {
-    run_tool(build_typecheck_invocation(args, &current_env()))
+    run_tool_invocation(build_typecheck_invocation(args, &current_env()))
 }
 
 fn run_with_optional_lock(tool_name: &str, invocation: ToolInvocation) -> Result<i32, String> {
@@ -110,46 +107,7 @@ fn run_with_optional_lock(tool_name: &str, invocation: ToolInvocation) -> Result
     } else {
         None
     };
-    run_tool(invocation)
-}
-
-fn run_tool(invocation: ToolInvocation) -> Result<i32, String> {
-    let status = command_from_invocation(&invocation)
-        .status()
-        .map_err(|error| {
-            format!(
-                "failed to run {} {}: {error}",
-                invocation.program.display(),
-                invocation.args.join(" ")
-            )
-        })?;
-    Ok(exit_code(status))
-}
-
-fn command_from_invocation(invocation: &ToolInvocation) -> Command {
-    let mut command = Command::new(&invocation.program);
-    command.args(&invocation.args);
-    command.envs(invocation.env.iter().map(|(key, value)| (key, value)));
-    command.stdin(Stdio::inherit());
-    command.stdout(Stdio::inherit());
-    command.stderr(Stdio::inherit());
-    command
-}
-
-fn exit_code(status: ExitStatus) -> i32 {
-    status.code().unwrap_or(1)
-}
-
-fn current_env() -> Vec<(String, String)> {
-    env::vars().collect()
-}
-
-fn tool_bin_path(name: &str) -> PathBuf {
-    let mut path = PathBuf::from("node_modules").join(".bin").join(name);
-    if cfg!(windows) {
-        path.set_extension("cmd");
-    }
-    path
+    run_tool_invocation(invocation)
 }
 
 fn is_local_check_enabled(env_vars: &[(String, String)]) -> bool {

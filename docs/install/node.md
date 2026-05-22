@@ -12,8 +12,10 @@ Desktop users do not need a global `crawclaw` command or a manually configured
 Node install. CrawClaw Desktop bundles the Rust runtime and managed native
 runtime resources it needs.
 
-Repository development still uses **Node 24.x or newer** for TypeScript tooling,
-tests, docs checks, and packaging scripts. Node 24 is the stable baseline.
+Repository development still uses **Node 24.x or 25.x** for the desktop
+renderer, hosted docs tooling, and npm pack/publish boundaries. Those calls are
+centralized behind `crawclaw-repo-tools` Node/npm adapters so the Rust runtime
+and repo-tools profiles remain the architectural control plane.
 
 ## Check your version
 
@@ -21,7 +23,9 @@ tests, docs checks, and packaging scripts. Node 24 is the stable baseline.
 node -v
 ```
 
-Use Node 24+ before running repository commands such as `pnpm install`, `pnpm build`, or desktop staging scripts.
+Use Node 24.x or 25.x before running repository commands that install
+dependencies, build the desktop renderer, run hosted docs checks, or validate
+npm package contents.
 
 ## Install Node for development
 
@@ -51,4 +55,12 @@ Use pnpm from the repository root:
 ```bash
 corepack enable
 pnpm install
+```
+
+The common pnpm commands are compatibility aliases:
+
+```bash
+pnpm check         # repo-tools check --profile local
+pnpm build         # repo-tools build --profile package
+pnpm release:check # repo-tools release-check
 ```

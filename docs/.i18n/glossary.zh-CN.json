@@ -600,7 +600,47 @@
     "target": "改进中心 UI v2.1 方案"
   },
   {
+    "source": "Background tasks",
+    "target": "后台任务"
+  },
+  {
+    "source": "Runtime lifecycle spine",
+    "target": "运行时生命周期主线"
+  },
+  {
+    "source": "/gateway/troubleshooting#gateway-runtime-not-reachable",
+    "target": "/gateway/troubleshooting#gateway-runtime-not-reachable"
+  },
+  {
     "source": "Web",
     "target": "Web"
+  },
+  {
+    "source": "repo-tools",
+    "target": "repo-tools"
+  },
+  {
+    "source": "Node/npm",
+    "target": "Node/npm"
+  },
+  {
+    "source": "docs-core",
+    "target": "docs-core"
+  },
+  {
+    "source": "docs-hosted",
+    "target": "docs-hosted"
+  },
+  {
+    "source": "rust-core",
+    "target": "rust-core"
+  },
+  {
+    "source": "desktop-renderer",
+    "target": "desktop-renderer"
+  },
+  {
+    "source": "release-check",
+    "target": "release-check"
   }
 ]

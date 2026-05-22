@@ -244,36 +244,8 @@
       "destination": "/tools/browser-linux-troubleshooting"
     },
     {
-      "source": "/channels",
-      "destination": "/concepts/messages"
-    },
-    {
       "source": "/channels/index",
-      "destination": "/concepts/messages"
-    },
-    {
-      "source": "/channels/pairing",
-      "destination": "/gateway/security"
-    },
-    {
-      "source": "/channels/channel-routing",
-      "destination": "/concepts/multi-agent"
-    },
-    {
-      "source": "/channels/group-messages",
-      "destination": "/concepts/messages"
-    },
-    {
-      "source": "/channels/groups",
-      "destination": "/concepts/messages"
-    },
-    {
-      "source": "/channels/broadcast-groups",
-      "destination": "/concepts/messages"
-    },
-    {
-      "source": "/channels/troubleshooting",
-      "destination": "/gateway/troubleshooting"
+      "destination": "/channels"
     },
     {
       "source": "/bun",
@@ -774,14 +746,25 @@
             "groups": [
               {
                 "group": "Overview",
-                "pages": ["concepts/messages"]
+                "pages": [
+                  "channels/index",
+                  "channels/pairing",
+                  "channels/channel-routing",
+                  "channels/groups",
+                  "channels/group-messages",
+                  "channels/broadcast-groups",
+                  "channels/troubleshooting"
+                ]
               },
               {
-                "group": "Configuration",
+                "group": "Native channels",
                 "pages": [
-                  "gateway/security/index",
-                  "concepts/multi-agent",
-                  "gateway/troubleshooting"
+                  "channels/ddingtalk",
+                  "channels/feishu",
+                  "channels/esp32",
+                  "channels/qqbot",
+                  "channels/weixin",
+                  "channels/location"
                 ]
               }
             ]

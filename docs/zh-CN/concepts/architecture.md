@@ -1,128 +1,97 @@
 ---
 read_when:
-  - 正在开发 Gateway 网关协议、客户端或传输层
-summary: WebSocket Gateway 网关架构、组件和客户端流程
-title: Gateway 网关架构
+  - Working on Gateway protocol, desktop runtime, clients, or transports
+summary: Desktop-first local Gateway architecture, Rust runtime boundaries, and client flows
+title: Gateway 架构
 x-i18n:
-  generated_at: "2026-02-03T07:45:55Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: c636d5d8a5e628067432b30671466309e3d630b106d413f1708765bf2a9399a1
+  generated_at: "2026-05-22T04:20:44Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: c3ca4c044ad5f9153d5ed367019fc8308e02ec50b1146ed9dde5c188c245773b
   source_path: concepts/architecture.md
   workflow: 15
 ---
 
-# Gateway 网关架构
-
-最后更新：2026-01-22
+# Gateway 架构
 
 ## 概述
 
-<Note>
-这篇只讲 **Gateway 控制平面** 本身。  
-如果你要看整个仓库的项目级分层，请先读 [项目整体架构总览](/concepts/project-architecture-overview)；如果你要看目录和依赖边界，请继续读 [目录与边界规划](/concepts/project-directory-boundaries)。
-</Note>
+CrawClaw 以 Desktop 为核心，采用本地优先架构。CrawClaw Desktop 负责设置、状态、日志、诊断、插件可见性和本地 Gateway 网关生命周期。Gateway 网关是本地控制平面，提供 HTTP、WebSocket、OpenAI 兼容 API、渠道路由、会话、凭证和运行时状态。
 
-- 单个长期运行的 **Gateway 网关**拥有所有消息平台（通过 Baileys 的 Weixin、通过 grammY 的 Feishu、DingTalk、QQBot、Feishu、Weixin）。
-- 控制平面客户端（CLI、自动化、浏览器来源客户端）通过配置的绑定主机（默认 `127.0.0.1:18789`）上的 **WebSocket** 连接到 Gateway 网关。
-- **节点**（macOS/无头设备）也通过 **WebSocket** 连接，但声明 `role: node` 并带有明确的能力/命令。
-- 每台主机一个 Gateway 网关；它是唯一打开 Weixin 会话的位置。
+产品运行时归 Rust 所有：
+
+- `crates/crawclaw-gateway` 负责 Gateway 协议、凭证、HTTP/WS 服务和面向客户端的 API 边界。
+- `crates/crawclaw-runtime` 负责智能体循环、记忆、cron、运行时工具、本机插件注册接线、运行时布局和运行时状态。
+- `crates/crawclaw-providers` 负责提供商元数据、模型规范化和本机提供商请求/流解析。
+- `crates/crawclaw-channels` 负责本机渠道描述符、投递能力和 Desktop 渠道配置元数据。
+- `crates/crawclaw-plugin-sdk` 是公开的 Rust 插件编写契约。
+
+TypeScript 保留在 Desktop 渲染器、文档托管工具和 npm 打包层中，因为它是有意成为 UI/构建工作流的一部分。Node 和 npm 现已通过 repo-tools 适配器层路由；它们不是生产插件运行时契约。
 
 ## 组件和流程
 
-### Gateway 网关（守护进程）
+### CrawClaw Desktop
 
-- 维护提供商连接。
-- 暴露类型化的 WS API（请求、响应、服务器推送事件）。
-- 根据 JSON Schema 验证入站帧。
-- 发出事件如 `agent`、`chat`、`presence`、`health`、`heartbeat`、`cron`。
+- 启动并监督本地 Gateway 网关/运行时二进制文件。
+- 从 `/api/desktop/*` 读取 Desktop API 状态。
+- 展示提供商、插件、渠道、会话、记忆和诊断界面。
+- 使用 Rust/Tauri 契约生成的 Desktop API 类型。
 
-### 客户端（CLI / 自动化 / 浏览器来源客户端）
+### Gateway 网关
 
-- 每个客户端一个 WS 连接。
-- 发送请求（`health`、`status`、`send`、`agent`、`system-presence`）。
-- 订阅事件（`tick`、`agent`、`presence`、`shutdown`）。
+- 暴露 HTTP、WebSocket 和 OpenAI 兼容端点。
+- 应用本地凭证、配对、允许列表和路由策略。
+- 将渠道消息规范化为类型化运行时请求。
+- 发出状态、消息、会话和运行时更新的 Desktop 和协议事件。
 
-### 节点（macOS / 无头设备）
+### 运行时
 
-- 以 `role: node` 连接到**同一个 WS 服务器**。
-- 在 `connect` 中提供设备身份；配对是**基于设备**的（角色为 `node`），批准存储在设备配对存储中。
-- 暴露命令如 `canvas.*`、`camera.*`、`screen.record`、`location.get`。
+- 执行智能体轮次、记忆操作、cron 作业、运行时工具和本机插件操作。
+- 从 Rust crate 读取提供商和渠道契约。
+- 将 repo/构建/发布工具保留在产品运行时 crate 之外。
 
-协议详情：
+### 维护者工具
 
-- [Gateway 网关协议](/gateway/protocol)
+构建、发布、文档检查、生成的基线发射器、GitHub 辅助工具和 Node/npm 工具包装器位于 `crates/crawclaw-repo-tools` 中。首选维护者入口点是聚合 profile，如 `crawclaw-repo-tools check --profile local`、`crawclaw-repo-tools build --profile package` 和 `crawclaw-repo-tools release-check`。该 crate 可以调用产品 crate 来读取目录或暂存工件，但产品运行时代码不拥有维护者命令实现。
 
-## 连接生命周期（单个客户端）
+## 本地客户端流程
 
+```mermaid
+sequenceDiagram
+    participant Desktop
+    participant Gateway
+    participant Runtime
+    participant Provider
+
+    Desktop->>Gateway: HTTP /api/desktop/messages
+    Gateway->>Runtime: agent run request
+    Runtime->>Provider: native provider request
+    Provider-->>Runtime: response or stream delta
+    Runtime-->>Gateway: run events and final reply
+    Gateway-->>Desktop: desktop state and event stream
 ```
-Client                    Gateway
-  |                          |
-  |---- req:connect -------->|
-  |<------ res (ok) ---------|   (or res error + close)
-  |   (payload=hello-ok carries snapshot: presence + health)
-  |                          |
-  |<------ event:presence ---|
-  |<------ event:tick -------|
-  |                          |
-  |------- req:agent ------->|
-  |<------ res:agent --------|   (ack: {runId,status:"accepted"})
-  |<------ event:agent ------|   (streaming)
-  |<------ res:agent --------|   (final: {runId,status,summary})
-  |                          |
-```
 
-## 线路协议（摘要）
+## 线协议摘要
 
-- 传输：WebSocket，带 JSON 载荷的文本帧。
-- 第一帧**必须**是 `connect`。
-- 握手后：
-  - 请求：`{type:"req", id, method, params}` → `{type:"res", id, ok, payload|error}`
-  - 事件：`{type:"event", event, payload, seq?, stateVersion?}`
-- 如果设置了 `CRAWCLAW_GATEWAY_TOKEN`（或 `--token`），`connect.params.auth.token` 必须匹配，否则套接字关闭。
-- 有副作用的方法（`send`、`agent`）需要幂等键以安全重试；服务器保持短期去重缓存。
-- 节点必须在 `connect` 中包含 `role: "node"` 以及能力/命令/权限。
+- WebSocket 客户端通过 Gateway 协议握手连接。
+- HTTP Desktop 客户端使用 `/api/desktop/*`。
+- OpenAI 兼容客户端使用本地 Gateway 兼容端点。
+- 协议变更归 Rust Gateway 契约和生成的 schema 所有。
 
-## 配对 + 本地信任
+详情：[Gateway 协议](/gateway/protocol)、[渠道](/channels)、[安全](/gateway/security)。
 
-- 所有 WS 客户端（操作员 + 节点）在 `connect` 时包含**设备身份**。
-- 新设备 ID 需要配对批准；Gateway 网关为后续连接颁发**设备令牌**。
-- **本地**连接（loopback 或 Gateway 网关主机自身的 tailnet 地址）可以自动批准以保持同主机用户体验流畅。
-- **非本地**连接必须签名 `connect.challenge` nonce 并需要明确批准。
-- Gateway 网关认证（`gateway.auth.*`）仍适用于**所有**连接，无论本地还是远程。
+## 不变式
 
-详情：[Gateway 网关协议](/gateway/protocol)、[配对](/channels/pairing)、[安全](/gateway/security)。
+- CrawClaw Desktop 是主要用户入口。
+- 本地 Gateway 网关是产品控制平面边界。
+- 公共插件编写通过清单元数据和 Rust 插件 SDK 完成。
+- 本机提供商和渠道行为保留在 Rust 拥有的契约中。
+- 仓库自动化属于 `crawclaw-repo-tools`，不属于 `crawclaw-runtime`。
 
-## 协议类型和代码生成
+## 相关
 
-- TypeBox 模式定义协议。
-- 从这些模式生成 JSON Schema。
-- 从 JSON Schema 生成 Swift 模型。
-
-## 远程访问
-
-- 推荐：Tailscale 或 VPN。
-- 替代方案：SSH 隧道
-  ```bash
-  ssh -N -L 18789:127.0.0.1:18789 user@host
-  ```
-- 相同的握手 + 认证令牌适用于隧道连接。
-- 远程设置中可以为 WS 启用 TLS + 可选的证书固定。
-
-## 操作快照
-
-- 启动：`crawclaw gateway`（前台，日志输出到 stdout）。
-- 健康检查：通过 WS 的 `health`（也包含在 `hello-ok` 中）。
-- 监控：使用 launchd/systemd 自动重启。
-
-## 不变量
-
-- 每台主机恰好一个 Gateway 网关控制单个 Baileys 会话。
-- 握手是强制的；任何非 JSON 或非 connect 的第一帧都会导致硬关闭。
-- 事件不会重放；客户端必须在出现间隙时刷新。
-
-## 延伸阅读
-
-- [项目整体架构总览](/concepts/project-architecture-overview)
-- [目录与边界规划](/concepts/project-directory-boundaries)
-- [智能体运行时](/concepts/agent)
+- [智能体循环](/concepts/agent-loop)
+- [Gateway 协议](/gateway/protocol)
+- [渠道](/channels)
+- [队列](/concepts/queue)
+- [安全](/gateway/security)

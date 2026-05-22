@@ -329,7 +329,7 @@ mod tests {
             serde_json::from_str(config_doc_baseline_json()).expect("config baseline JSON");
         assert_eq!(
             baseline["generatedBy"],
-            "crawclaw-runtime emit-config-doc-baseline"
+            "crawclaw-repo-tools emit-config-doc-baseline"
         );
         let entries = baseline["entries"].as_array().expect("baseline entries");
         assert!(entries.iter().any(|entry| {
@@ -363,7 +363,7 @@ mod tests {
             serde_json::from_str(lines.next().expect("meta line")).expect("meta JSON");
         assert_eq!(
             meta["generatedBy"],
-            "crawclaw-runtime emit-config-doc-baseline"
+            "crawclaw-repo-tools emit-config-doc-baseline"
         );
         assert_eq!(meta["totalPaths"], entries.len());
     }

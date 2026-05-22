@@ -77,6 +77,6 @@ Flows coordinate tasks, not replace them. A single flow may drive multiple backg
 ## Related
 
 - [Background Tasks](/automation/tasks) — the detached work ledger that flows coordinate
-- [Gateway tasks](/gateway/protocol#tasks) — API reference for task flow automation
+- [Background tasks](/automation/tasks) — API reference for task flow automation
 - [Automation Overview](/automation) — all automation mechanisms at a glance
 - [Cron Jobs](/automation/cron-jobs) — scheduled jobs that may feed into flows

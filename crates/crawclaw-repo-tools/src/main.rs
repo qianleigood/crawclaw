@@ -1,6 +1,6 @@
 use std::env;
 use std::io::{self, BufRead, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use serde::Deserialize;
@@ -33,7 +33,10 @@ async fn main() {
     }
 
     match args.remove(0).as_str() {
+        "build" => build(args),
+        "check" => check(args),
         "desktop-check" => desktop_check(args),
+        "desktop-renderer" => desktop_renderer(args),
         "desktop-stage" => desktop_stage(args),
         "docs-list" => docs_list(args),
         "emit-bundled-capability-metadata" => emit_bundled_capability_metadata(args),
@@ -72,6 +75,7 @@ async fn main() {
             repo_check_web_search_provider_boundaries(args)
         }
         "repo-check-webhook-auth-body-order" => repo_check_webhook_auth_body_order(args),
+        "release-check" => release_check(args),
         "docs-check-i18n-glossary" => docs_check_i18n_glossary(args),
         "docs-check-links" => docs_check_links(args),
         "plugins-sync" => plugins_sync(args),
@@ -86,6 +90,432 @@ async fn main() {
             eprintln!("unsupported crawclaw-repo-tools command: {command}");
             std::process::exit(2);
         }
+    }
+}
+
+fn check(args: Vec<String>) {
+    let (profile, root) = parse_profile_and_optional_root_arg(
+        &args,
+        "check",
+        &[
+            "local",
+            "ci",
+            "rust-core",
+            "desktop-renderer",
+            "docs-core",
+            "docs-hosted",
+        ],
+    );
+    let result = match profile.as_str() {
+        "local" | "ci" => run_local_check_profile(&root),
+        "rust-core" => run_rust_core_check_profile(&root),
+        "desktop-renderer" => run_desktop_renderer_build(&root),
+        "docs-core" => run_docs_core_check_profile(&root),
+        "docs-hosted" => run_docs_hosted_check_profile(&root),
+        _ => unreachable!("profile parser validated check profile"),
+    };
+    exit_with_result(result);
+}
+
+fn build(args: Vec<String>) {
+    let (profile, root) = parse_profile_and_optional_root_arg(
+        &args,
+        "build",
+        &["package", "strict-smoke", "desktop-renderer"],
+    );
+    let result = match profile.as_str() {
+        "package" => run_package_build_profile(&root, true),
+        "strict-smoke" => run_package_build_profile(&root, false),
+        "desktop-renderer" => run_desktop_renderer_build(&root),
+        _ => unreachable!("profile parser validated build profile"),
+    };
+    exit_with_result(result);
+}
+
+fn release_check(args: Vec<String>) {
+    let root = match parse_optional_root_arg(&args, "release-check") {
+        Ok(root) => normalize_repo_root_arg(root),
+        Err(message) => {
+            eprintln!("{message}");
+            std::process::exit(2);
+        }
+    };
+    exit_with_result(run_release_check_profile(&root));
+}
+
+fn desktop_renderer(args: Vec<String>) {
+    let (command, root) = match parse_desktop_renderer_arg(args) {
+        Ok(value) => value,
+        Err(message) => {
+            eprintln!("{message}");
+            std::process::exit(2);
+        }
+    };
+    let result = match command.as_str() {
+        "dev" => run_desktop_renderer_script(&root, "dev"),
+        "build" => run_desktop_renderer_build(&root),
+        "tauri-dev" => run_desktop_tauri_command(&root, "tauri:dev", false),
+        "tauri-build" => run_desktop_tauri_command(&root, "tauri:build", true),
+        _ => unreachable!("desktop renderer parser validated command"),
+    };
+    exit_with_result(result);
+}
+
+fn run_local_check_profile(root: &Path) -> Result<(), String> {
+    run_check_report_step(
+        "repo-check-no-conflict-markers",
+        crawclaw_repo_tools::run_no_conflict_markers(root),
+    )?;
+    run_command_step(
+        "desktop-contract-check",
+        "cargo",
+        &[
+            "run",
+            "--manifest-path",
+            "apps/crawclaw-desktop/src-tauri/Cargo.toml",
+            "--",
+            "emit-desktop-api-contract",
+            "--output",
+            "apps/crawclaw-desktop/src/generated/desktop-api-contract.generated.ts",
+            "--check",
+        ],
+        root,
+    )?;
+    run_exit_code_step("tsgo", crawclaw_repo_tools::run_tsgo(&[]))?;
+    run_exit_code_step("oxlint", crawclaw_repo_tools::run_oxlint(&[]))?;
+    run_check_report_step(
+        "runtime-module-boundaries",
+        crawclaw_repo_tools::run_runtime_module_boundaries(root, false),
+    )?;
+    run_check_report_step(
+        "web-search-provider-boundaries",
+        crawclaw_repo_tools::run_web_search_provider_boundaries(root, false),
+    )?;
+    run_check_report_step(
+        "plugin-extension-import-boundary",
+        crawclaw_repo_tools::run_plugin_extension_import_boundary(root, false),
+    )?;
+    run_check_report_step(
+        "no-extension-src-imports",
+        crawclaw_repo_tools::run_no_extension_src_imports(root),
+    )?;
+    run_check_report_step(
+        "webhook-auth-body-order",
+        crawclaw_repo_tools::run_webhook_auth_body_order(root),
+    )?;
+    Ok(())
+}
+
+fn run_rust_core_check_profile(root: &Path) -> Result<(), String> {
+    run_check_report_step(
+        "repo-check-no-conflict-markers",
+        crawclaw_repo_tools::run_no_conflict_markers(root),
+    )?;
+    run_check_report_step(
+        "runtime-module-boundaries",
+        crawclaw_repo_tools::run_runtime_module_boundaries(root, false),
+    )?;
+    run_check_report_step(
+        "web-search-provider-boundaries",
+        crawclaw_repo_tools::run_web_search_provider_boundaries(root, false),
+    )?;
+    run_check_report_step(
+        "web-fetch-provider-boundaries",
+        crawclaw_repo_tools::run_web_fetch_provider_boundaries(root, false),
+    )?;
+    run_check_report_step(
+        "webhook-auth-body-order",
+        crawclaw_repo_tools::run_webhook_auth_body_order(root),
+    )?;
+    run_cargo_workspace_tests(root)
+}
+
+fn run_docs_core_check_profile(root: &Path) -> Result<(), String> {
+    run_check_report_step(
+        "docs-i18n-glossary",
+        crawclaw_repo_tools::run_docs_i18n_glossary(root, None, None),
+    )?;
+    run_check_report_step(
+        "docs-link-audit",
+        crawclaw_repo_tools::run_docs_link_audit(root),
+    )?;
+    check_config_doc_baseline(root)?;
+    check_plugin_dependency_plan(root)?;
+    crawclaw_repo_tools::render_docs_list(root)?;
+    Ok(())
+}
+
+fn run_docs_hosted_check_profile(root: &Path) -> Result<(), String> {
+    run_check_report_step(
+        "docs-anchor-audit",
+        crawclaw_repo_tools::run_docs_anchor_audit(root),
+    )
+}
+
+fn run_package_build_profile(root: &Path, include_build_info: bool) -> Result<(), String> {
+    println!("[package-postbuild]");
+    crawclaw_repo_tools::stage_package_postbuild(root)?;
+    println!("[package-build-native-artifacts]");
+    let staged = crawclaw_repo_tools::stage_native_binary_artifacts(root)?;
+    println!(
+        "[native-plugins] staged {}",
+        staged
+            .into_iter()
+            .map(|path| path.display().to_string())
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+    println!("[package-write-build-metadata]");
+    let written = crawclaw_repo_tools::write_package_build_metadata(root, include_build_info)?;
+    println!(
+        "[build-metadata] wrote {}",
+        written
+            .into_iter()
+            .map(|path| path.display().to_string())
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+    Ok(())
+}
+
+fn run_release_check_profile(root: &Path) -> Result<(), String> {
+    check_generated_module(
+        "bundled-capability-metadata",
+        crawclaw_repo_tools::write_bundled_capability_metadata_module(
+            &root.join("src/generated/plugins/bundled-capability-metadata.generated.json"),
+            true,
+        ),
+    )?;
+    check_generated_module(
+        "bundled-provider-auth-env-vars",
+        crawclaw_repo_tools::write_bundled_provider_auth_env_var_module(
+            &root.join("src/generated/plugins/bundled-provider-auth-env-vars.generated.json"),
+            true,
+        ),
+    )?;
+    check_provider_model_normalization(root)?;
+    check_generated_module(
+        "provider-runtime-constants",
+        crawclaw_repo_tools::write_provider_runtime_constants_module(
+            &root.join("src/generated/providers/runtime-constants.generated.json"),
+            true,
+        ),
+    )?;
+    check_rust_tool_catalog(root)?;
+    check_config_doc_baseline(root)?;
+    let errors = crawclaw_repo_tools::collect_package_release_check_errors(root)?;
+    if errors.is_empty() {
+        println!("release-check: npm pack contents look OK.");
+        Ok(())
+    } else {
+        Err(crawclaw_repo_tools::format_package_release_check_errors(&errors).join("\n"))
+    }
+}
+
+fn run_desktop_renderer_build(root: &Path) -> Result<(), String> {
+    run_desktop_renderer_script(root, "build")
+}
+
+fn run_desktop_renderer_script(root: &Path, script: &str) -> Result<(), String> {
+    let package_dir = root.join("apps/crawclaw-desktop");
+    let status = crawclaw_repo_tools::run_npm_prefix(package_dir, script)?;
+    if status == 0 {
+        Ok(())
+    } else {
+        Err(format!(
+            "desktop renderer script `{script}` failed with status {status}"
+        ))
+    }
+}
+
+fn run_desktop_tauri_command(root: &Path, script: &str, release_check: bool) -> Result<(), String> {
+    crawclaw_repo_tools::stage_desktop_tauri_runtime(root)?;
+    run_desktop_renderer_script(root, script)?;
+    if release_check {
+        let options = crawclaw_repo_tools::DesktopRuntimeCheckOptions::new(root.to_path_buf());
+        crawclaw_repo_tools::check_desktop_runtime_release_inputs(&options)?;
+    }
+    Ok(())
+}
+
+fn run_cargo_workspace_tests(root: &Path) -> Result<(), String> {
+    let mut command = Command::new("cargo");
+    command
+        .args(["test", "--workspace", "--", "--test-threads=1"])
+        .current_dir(root)
+        .env(
+            "RUST_MIN_STACK",
+            env::var("RUST_MIN_STACK").unwrap_or_else(|_| "16777216".to_string()),
+        );
+    let status = command
+        .status()
+        .map_err(|error| format!("failed to run cargo test workspace: {error}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!(
+            "cargo test --workspace failed with status {}",
+            status
+                .code()
+                .map(|code| code.to_string())
+                .unwrap_or_else(|| "?".to_string())
+        ))
+    }
+}
+
+fn run_command_step(label: &str, program: &str, args: &[&str], cwd: &Path) -> Result<(), String> {
+    println!("[{label}]");
+    let status = Command::new(program)
+        .args(args)
+        .current_dir(cwd)
+        .status()
+        .map_err(|error| format!("{label}: failed to run {program}: {error}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!(
+            "{label}: {program} failed with status {}",
+            status
+                .code()
+                .map(|code| code.to_string())
+                .unwrap_or_else(|| "?".to_string())
+        ))
+    }
+}
+
+fn run_check_report_step(
+    label: &str,
+    result: Result<crawclaw_repo_tools::CheckReport, String>,
+) -> Result<(), String> {
+    println!("[{label}]");
+    let report = result?;
+    if !report.stdout.is_empty() {
+        println!("{}", report.stdout.trim_end_matches('\n'));
+    }
+    if !report.stderr.is_empty() {
+        eprint!("{}", report.stderr);
+    }
+    if report.ok {
+        Ok(())
+    } else {
+        Err(format!("{label} failed"))
+    }
+}
+
+fn run_exit_code_step(label: &str, result: Result<i32, String>) -> Result<(), String> {
+    println!("[{label}]");
+    let code = result?;
+    if code == 0 {
+        Ok(())
+    } else {
+        Err(format!("{label} failed with status {code}"))
+    }
+}
+
+fn check_generated_module(
+    label: &str,
+    result: Result<crawclaw_repo_tools::GeneratedModuleWriteResult, String>,
+) -> Result<(), String> {
+    let result = result?;
+    if result.changed {
+        Err(format!(
+            "[{label}] stale generated output at {}",
+            result.output_path.display()
+        ))
+    } else {
+        println!("[{label}] OK {}", result.output_path.display());
+        Ok(())
+    }
+}
+
+fn check_provider_model_normalization(root: &Path) -> Result<(), String> {
+    let output = root.join("src/generated/providers/model-normalization.generated.json");
+    let metadata = crawclaw_providers::provider_model_normalization_metadata();
+    let source = format!(
+        "{}\n",
+        serde_json::to_string_pretty(&json!({
+            "anthropicModelAliases": metadata.anthropic_model_aliases,
+            "googleModelAliases": metadata.google_model_aliases,
+            "antigravityLowSuffixIds": metadata.antigravity_low_suffix_ids,
+            "xaiModelAliases": metadata.xai_model_aliases,
+        }))
+        .expect("provider model normalization metadata encodes as JSON")
+    );
+    let current = std::fs::read_to_string(&output)
+        .map_err(|error| format!("failed to read {}: {error}", output.display()))?;
+    if current == source {
+        println!("[provider-model-normalization] OK {}", output.display());
+        Ok(())
+    } else {
+        Err(format!(
+            "[provider-model-normalization] stale generated output at {}",
+            output.display()
+        ))
+    }
+}
+
+fn check_rust_tool_catalog(root: &Path) -> Result<(), String> {
+    let output = root.join("src/generated/agents/rust-tool-catalog.generated.json");
+    let result = crawclaw_runtime::write_rust_tool_catalog_artifact(&output, true)?;
+    if result.changed {
+        Err(format!(
+            "[rust-tool-catalog] stale generated output at {}",
+            result.output_path.display()
+        ))
+    } else {
+        println!("[rust-tool-catalog] OK {}", result.output_path.display());
+        Ok(())
+    }
+}
+
+fn check_config_doc_baseline(root: &Path) -> Result<(), String> {
+    let result = crawclaw_repo_tools::write_config_doc_baseline_artifacts(
+        &root.join("docs/.generated/config-baseline.json"),
+        &root.join("docs/.generated/config-baseline.jsonl"),
+        true,
+    )?;
+    if result.changed {
+        Err([
+            "Config baseline drift detected.".to_string(),
+            format!("Expected current: {}", result.json_path.display()),
+            format!("Expected current: {}", result.jsonl_path.display()),
+            "If this config-surface change is intentional, run `pnpm config:docs:gen` and commit the updated baseline files.".to_string(),
+            "If not intentional, treat this as docs drift or a possible breaking config change and fix the schema/help changes first.".to_string(),
+        ]
+        .join("\n"))
+    } else {
+        println!(
+            "[config-doc-baseline] OK {} {}",
+            result.json_path.display(),
+            result.jsonl_path.display()
+        );
+        Ok(())
+    }
+}
+
+fn check_plugin_dependency_plan(root: &Path) -> Result<(), String> {
+    let result =
+        crawclaw_repo_tools::write_plugin_dependency_plan_artifacts(root, None, None, true)?;
+    if result.changed {
+        Err(format!(
+            "Plugin dependency plan drift detected.\nExpected current: {}\nExpected current: {}",
+            result.json_path.display(),
+            result.jsonl_path.display()
+        ))
+    } else {
+        println!(
+            "[plugin-dependency-plan] OK {} {}",
+            result.json_path.display(),
+            result.jsonl_path.display()
+        );
+        Ok(())
+    }
+}
+
+fn exit_with_result(result: Result<(), String>) {
+    if let Err(error) = result {
+        eprintln!("{error}");
+        std::process::exit(1);
     }
 }
 
@@ -122,7 +552,7 @@ fn emit_bundled_capability_metadata(args: Vec<String>) {
         );
         std::process::exit(2);
     };
-    match crawclaw_runtime::write_bundled_capability_metadata_module(&output_path, check) {
+    match crawclaw_repo_tools::write_bundled_capability_metadata_module(&output_path, check) {
         Ok(result) => {
             if check {
                 if result.changed {
@@ -179,7 +609,7 @@ fn emit_bundled_provider_auth_env_vars(args: Vec<String>) {
         );
         std::process::exit(2);
     };
-    match crawclaw_runtime::write_bundled_provider_auth_env_var_module(&output_path, check) {
+    match crawclaw_repo_tools::write_bundled_provider_auth_env_var_module(&output_path, check) {
         Ok(result) => {
             if check {
                 if result.changed {
@@ -236,7 +666,7 @@ fn emit_provider_runtime_constants(args: Vec<String>) {
         );
         std::process::exit(2);
     };
-    match crawclaw_runtime::write_provider_runtime_constants_module(&output_path, check) {
+    match crawclaw_repo_tools::write_provider_runtime_constants_module(&output_path, check) {
         Ok(result) => {
             if check {
                 if result.changed {
@@ -322,8 +752,8 @@ fn desktop_check(args: Vec<String>) {
             std::process::exit(2);
         }
     };
-    let options = crawclaw_runtime::DesktopRuntimeCheckOptions::new(root);
-    if let Err(error) = crawclaw_runtime::check_desktop_runtime_release_inputs(&options) {
+    let options = crawclaw_repo_tools::DesktopRuntimeCheckOptions::new(root);
+    if let Err(error) = crawclaw_repo_tools::check_desktop_runtime_release_inputs(&options) {
         eprintln!("{error}");
         std::process::exit(1);
     }
@@ -337,7 +767,7 @@ fn desktop_stage(args: Vec<String>) {
             std::process::exit(2);
         }
     };
-    match crawclaw_runtime::stage_desktop_tauri_runtime(root) {
+    match crawclaw_repo_tools::stage_desktop_tauri_runtime(root) {
         Ok(paths) => println!(
             "Staged CrawClaw Tauri Desktop runtime at {}",
             paths.runtime_root.display()
@@ -357,7 +787,7 @@ fn docs_list(args: Vec<String>) {
             std::process::exit(2);
         }
     };
-    match crawclaw_runtime::render_docs_list(root) {
+    match crawclaw_repo_tools::render_docs_list(root) {
         Ok(output) => {
             if let Err(error) = io::stdout().write_all(output.as_bytes()) {
                 if error.kind() != io::ErrorKind::BrokenPipe {
@@ -381,7 +811,7 @@ fn package_postbuild(args: Vec<String>) {
             std::process::exit(2);
         }
     };
-    if let Err(error) = crawclaw_runtime::stage_package_postbuild(root) {
+    if let Err(error) = crawclaw_repo_tools::stage_package_postbuild(root) {
         eprintln!("{error}");
         std::process::exit(1);
     }
@@ -430,18 +860,18 @@ fn emit_plugin_dependency_plan(args: Vec<String>) {
         std::process::exit(2);
     }
     let repo_root = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-    match crawclaw_runtime::write_plugin_dependency_plan_artifacts(
+    match crawclaw_repo_tools::write_plugin_dependency_plan_artifacts(
         &repo_root,
         json_output,
         jsonl_output,
         check,
     ) {
         Ok(result) => {
-            let json_path = crawclaw_runtime::plugin_dependency_plan_relative_to_repo(
+            let json_path = crawclaw_repo_tools::plugin_dependency_plan_relative_to_repo(
                 &repo_root,
                 &result.json_path,
             );
-            let jsonl_path = crawclaw_runtime::plugin_dependency_plan_relative_to_repo(
+            let jsonl_path = crawclaw_repo_tools::plugin_dependency_plan_relative_to_repo(
                 &repo_root,
                 &result.jsonl_path,
             );
@@ -472,7 +902,7 @@ fn package_build_native_artifacts(args: Vec<String>) {
             std::process::exit(2);
         }
     };
-    match crawclaw_runtime::stage_native_binary_artifacts(&root) {
+    match crawclaw_repo_tools::stage_native_binary_artifacts(&root) {
         Ok(staged) => {
             let staged = staged
                 .into_iter()
@@ -497,7 +927,7 @@ fn npm_release_check(args: Vec<String>) {
         }
     };
     let env_lookup = |key: &str| env::var(key).ok();
-    match crawclaw_runtime::run_root_npm_release_check(root, &env_lookup) {
+    match crawclaw_repo_tools::run_root_npm_release_check(root, &env_lookup) {
         Ok(result) => {
             println!(
                 "crawclaw-npm-release-check: validated {} release {} ({} day UTC delta{}{}).",
@@ -530,7 +960,7 @@ fn npm_postpublish_verify(args: Vec<String>) {
         eprintln!("usage: crawclaw-repo-tools npm-postpublish-verify <version>");
         std::process::exit(2);
     }
-    match crawclaw_runtime::verify_published_npm_install(args[0].trim()) {
+    match crawclaw_repo_tools::verify_published_npm_install(args[0].trim()) {
         Ok(lines) => {
             for line in lines {
                 println!("{line}");
@@ -551,7 +981,7 @@ fn npm_package_metadata(args: Vec<String>) {
             std::process::exit(2);
         }
     };
-    match crawclaw_runtime::read_package_metadata(package_dir) {
+    match crawclaw_repo_tools::read_package_metadata(package_dir) {
         Ok((name, version)) => {
             println!("{name}");
             println!("{version}");
@@ -637,7 +1067,7 @@ fn npm_publish_plan(args: Vec<String>) {
         Some(version) => version,
         None => {
             let package_dir = package_dir.or(root).unwrap_or_else(|| PathBuf::from("."));
-            match crawclaw_runtime::read_package_metadata(package_dir) {
+            match crawclaw_repo_tools::read_package_metadata(package_dir) {
                 Ok((_, version)) => version,
                 Err(error) => {
                     eprintln!("{error}");
@@ -647,9 +1077,12 @@ fn npm_publish_plan(args: Vec<String>) {
         }
     };
     let plan = if root_package {
-        crawclaw_runtime::resolve_root_npm_publish_plan(&version, requested_tag.as_deref())
+        crawclaw_repo_tools::resolve_root_npm_publish_plan(&version, requested_tag.as_deref())
     } else {
-        crawclaw_runtime::resolve_plugin_npm_publish_plan(&version, current_beta_version.as_deref())
+        crawclaw_repo_tools::resolve_plugin_npm_publish_plan(
+            &version,
+            current_beta_version.as_deref(),
+        )
     };
     let plan = match plan {
         Ok(plan) => plan,
@@ -658,16 +1091,17 @@ fn npm_publish_plan(args: Vec<String>) {
             std::process::exit(1);
         }
     };
-    let auth = crawclaw_runtime::resolve_npm_dist_tag_mirror_auth(
+    let auth = crawclaw_repo_tools::resolve_npm_dist_tag_mirror_auth(
         env::var("NODE_AUTH_TOKEN").ok().as_deref(),
         env::var("NPM_TOKEN").ok().as_deref(),
     );
-    let mirror_auth_required = crawclaw_runtime::should_require_npm_dist_tag_mirror_auth(
+    let mirror_auth_required = crawclaw_repo_tools::should_require_npm_dist_tag_mirror_auth(
         &publish_mode,
         &plan.mirror_dist_tags,
         auth.has_auth,
     );
-    for line in crawclaw_runtime::format_npm_publish_plan_lines(&plan, &auth, mirror_auth_required)
+    for line in
+        crawclaw_repo_tools::format_npm_publish_plan_lines(&plan, &auth, mirror_auth_required)
     {
         println!("{line}");
     }
@@ -681,7 +1115,7 @@ fn package_prepack(args: Vec<String>) {
             std::process::exit(2);
         }
     };
-    if let Err(error) = crawclaw_runtime::run_package_prepack(root) {
+    if let Err(error) = crawclaw_repo_tools::run_package_prepack(root) {
         eprintln!("{error}");
         std::process::exit(1);
     }
@@ -696,14 +1130,14 @@ fn plugin_npm_release_check(args: Vec<String>) {
                 std::process::exit(2);
             }
         };
-    let parsed = match crawclaw_runtime::parse_plugin_release_args(&release_args) {
+    let parsed = match crawclaw_repo_tools::parse_plugin_release_args(&release_args) {
         Ok(parsed) => parsed,
         Err(error) => {
             eprintln!("{error}");
             std::process::exit(2);
         }
     };
-    match crawclaw_runtime::select_publishable_plugin_packages(&root, &parsed) {
+    match crawclaw_repo_tools::select_publishable_plugin_packages(&root, &parsed) {
         Ok(selected) => {
             println!("plugin-npm-release-check: publishable plugin metadata looks OK.");
             if parsed.base_ref.is_some() && parsed.head_ref.is_some() && selected.is_empty() {
@@ -739,14 +1173,14 @@ fn plugin_npm_release_plan(args: Vec<String>) {
                 std::process::exit(2);
             }
         };
-    let parsed = match crawclaw_runtime::parse_plugin_release_args(&release_args) {
+    let parsed = match crawclaw_repo_tools::parse_plugin_release_args(&release_args) {
         Ok(parsed) => parsed,
         Err(error) => {
             eprintln!("{error}");
             std::process::exit(2);
         }
     };
-    match crawclaw_runtime::collect_plugin_release_plan(&root, &parsed) {
+    match crawclaw_repo_tools::collect_plugin_release_plan(&root, &parsed) {
         Ok(plan) => println!(
             "{}",
             serde_json::to_string_pretty(&plan)
@@ -767,7 +1201,7 @@ fn plugins_sync(args: Vec<String>) {
             std::process::exit(2);
         }
     };
-    match crawclaw_runtime::sync_plugin_versions(root) {
+    match crawclaw_repo_tools::sync_plugin_versions(root) {
         Ok(summary) => {
             println!(
                 "Synced plugin versions to {}. Updated: {}. Changelogged: {}. Skipped: {}.",
@@ -785,23 +1219,23 @@ fn plugins_sync(args: Vec<String>) {
 }
 
 fn run_oxlint(args: Vec<String>) {
-    exit_with_tool_result(crawclaw_runtime::run_oxlint(&args));
+    exit_with_tool_result(crawclaw_repo_tools::run_oxlint(&args));
 }
 
 fn run_tsgo(args: Vec<String>) {
-    exit_with_tool_result(crawclaw_runtime::run_tsgo(&args));
+    exit_with_tool_result(crawclaw_repo_tools::run_tsgo(&args));
 }
 
 fn run_typecheck(args: Vec<String>) {
-    exit_with_tool_result(crawclaw_runtime::run_typecheck(&args));
+    exit_with_tool_result(crawclaw_repo_tools::run_typecheck(&args));
 }
 
 fn github_labels_sync(args: Vec<String>) {
-    exit_with_tool_result(crawclaw_runtime::run_github_labels_sync(&args));
+    exit_with_tool_result(crawclaw_repo_tools::run_github_labels_sync(&args));
 }
 
 fn ghsa_patch(args: Vec<String>) {
-    exit_with_tool_result(crawclaw_runtime::run_ghsa_patch(&args));
+    exit_with_tool_result(crawclaw_repo_tools::run_ghsa_patch(&args));
 }
 
 fn exit_with_tool_result(result: Result<i32, String>) {
@@ -822,13 +1256,13 @@ fn package_release_check(args: Vec<String>) {
             std::process::exit(2);
         }
     };
-    match crawclaw_runtime::collect_package_release_check_errors(root) {
+    match crawclaw_repo_tools::collect_package_release_check_errors(root) {
         Ok(errors) => {
             if errors.is_empty() {
                 println!("release-check: npm pack contents look OK.");
                 return;
             }
-            for line in crawclaw_runtime::format_package_release_check_errors(&errors) {
+            for line in crawclaw_repo_tools::format_package_release_check_errors(&errors) {
                 eprintln!("{line}");
             }
             std::process::exit(1);
@@ -857,7 +1291,7 @@ fn package_write_build_metadata(args: Vec<String>) {
             std::process::exit(2);
         }
     };
-    match crawclaw_runtime::write_package_build_metadata(&root, include_build_info) {
+    match crawclaw_repo_tools::write_package_build_metadata(&root, include_build_info) {
         Ok(written) => {
             let written = written
                 .into_iter()
@@ -931,7 +1365,7 @@ fn package_artifacts(args: Vec<String>) {
         std::process::exit(2);
     }
     let bundled_plugin_pack_artifacts =
-        match crawclaw_runtime::list_bundled_plugin_pack_artifacts(&root_dir) {
+        match crawclaw_repo_tools::list_bundled_plugin_pack_artifacts(&root_dir) {
             Ok(value) => value,
             Err(error) => {
                 eprintln!("{error}");
@@ -939,7 +1373,7 @@ fn package_artifacts(args: Vec<String>) {
             }
         };
     let static_package_asset_outputs =
-        match crawclaw_runtime::list_static_package_asset_outputs(&root_dir) {
+        match crawclaw_repo_tools::list_static_package_asset_outputs(&root_dir) {
             Ok(value) => value,
             Err(error) => {
                 eprintln!("{error}");
@@ -989,7 +1423,7 @@ fn repo_check_ts_loc(args: Vec<String>) {
             }
         }
     }
-    match crawclaw_runtime::collect_ts_loc_offenders(root, max_lines) {
+    match crawclaw_repo_tools::collect_ts_loc_offenders(root, max_lines) {
         Ok(offenders) => {
             for offender in &offenders {
                 if writeln!(io::stdout(), "{}\t{}", offender.lines, offender.file_path).is_err() {
@@ -1009,37 +1443,39 @@ fn repo_check_ts_loc(args: Vec<String>) {
 
 fn repo_check_no_conflict_markers(args: Vec<String>) {
     let root = parse_repo_check_root_arg(args, "repo-check-no-conflict-markers");
-    finish_check_report(crawclaw_runtime::run_no_conflict_markers(root));
+    finish_check_report(crawclaw_repo_tools::run_no_conflict_markers(root));
 }
 
 fn repo_check_runtime_module_boundaries(args: Vec<String>) {
     let (root, json) =
         parse_repo_check_root_json_args(args, "repo-check-runtime-module-boundaries");
-    finish_check_report(crawclaw_runtime::run_runtime_module_boundaries(root, json));
+    finish_check_report(crawclaw_repo_tools::run_runtime_module_boundaries(
+        root, json,
+    ));
 }
 
 fn repo_check_plugin_extension_import_boundary(args: Vec<String>) {
     let (root, json) =
         parse_repo_check_root_json_args(args, "repo-check-plugin-extension-import-boundary");
-    finish_check_report(crawclaw_runtime::run_plugin_extension_import_boundary(
+    finish_check_report(crawclaw_repo_tools::run_plugin_extension_import_boundary(
         root, json,
     ));
 }
 
 fn repo_check_no_extension_src_imports(args: Vec<String>) {
     let root = parse_repo_check_root_arg(args, "repo-check-no-extension-src-imports");
-    finish_check_report(crawclaw_runtime::run_no_extension_src_imports(root));
+    finish_check_report(crawclaw_repo_tools::run_no_extension_src_imports(root));
 }
 
 fn repo_check_no_register_http_handler(args: Vec<String>) {
     let root = parse_repo_check_root_arg(args, "repo-check-no-register-http-handler");
-    finish_check_report(crawclaw_runtime::run_no_register_http_handler(root));
+    finish_check_report(crawclaw_repo_tools::run_no_register_http_handler(root));
 }
 
 fn repo_check_web_fetch_provider_boundaries(args: Vec<String>) {
     let (root, json) =
         parse_repo_check_root_json_args(args, "repo-check-web-fetch-provider-boundaries");
-    finish_check_report(crawclaw_runtime::run_web_fetch_provider_boundaries(
+    finish_check_report(crawclaw_repo_tools::run_web_fetch_provider_boundaries(
         root, json,
     ));
 }
@@ -1047,14 +1483,14 @@ fn repo_check_web_fetch_provider_boundaries(args: Vec<String>) {
 fn repo_check_web_search_provider_boundaries(args: Vec<String>) {
     let (root, json) =
         parse_repo_check_root_json_args(args, "repo-check-web-search-provider-boundaries");
-    finish_check_report(crawclaw_runtime::run_web_search_provider_boundaries(
+    finish_check_report(crawclaw_repo_tools::run_web_search_provider_boundaries(
         root, json,
     ));
 }
 
 fn repo_check_webhook_auth_body_order(args: Vec<String>) {
     let root = parse_repo_check_root_arg(args, "repo-check-webhook-auth-body-order");
-    finish_check_report(crawclaw_runtime::run_webhook_auth_body_order(root));
+    finish_check_report(crawclaw_repo_tools::run_webhook_auth_body_order(root));
 }
 
 fn docs_check_i18n_glossary(args: Vec<String>) {
@@ -1094,7 +1530,7 @@ fn docs_check_i18n_glossary(args: Vec<String>) {
             }
         }
     }
-    finish_check_report(crawclaw_runtime::run_docs_i18n_glossary(
+    finish_check_report(crawclaw_repo_tools::run_docs_i18n_glossary(
         root,
         base.as_deref(),
         head.as_deref(),
@@ -1126,9 +1562,9 @@ fn docs_check_links(args: Vec<String>) {
         }
     }
     if anchors {
-        finish_check_report(crawclaw_runtime::run_docs_anchor_audit(root));
+        finish_check_report(crawclaw_repo_tools::run_docs_anchor_audit(root));
     } else {
-        finish_check_report(crawclaw_runtime::run_docs_link_audit(root));
+        finish_check_report(crawclaw_repo_tools::run_docs_link_audit(root));
     }
 }
 
@@ -1168,7 +1604,7 @@ fn parse_repo_check_root_json_args(args: Vec<String>, command: &str) -> (PathBuf
     (root, json)
 }
 
-fn finish_check_report(result: Result<crawclaw_runtime::CheckReport, String>) {
+fn finish_check_report(result: Result<crawclaw_repo_tools::CheckReport, String>) {
     match result {
         Ok(report) => {
             if !report.stdout.is_empty() {
@@ -1198,12 +1634,144 @@ fn parse_root_arg(args: &[String]) -> Result<PathBuf, String> {
     Ok(PathBuf::from(&args[1]))
 }
 
+fn parse_profile_and_optional_root_arg(
+    args: &[String],
+    command: &str,
+    allowed_profiles: &[&str],
+) -> (String, PathBuf) {
+    let mut profile: Option<String> = None;
+    let mut root: Option<PathBuf> = None;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--profile" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--profile requires a value");
+                    std::process::exit(2);
+                };
+                profile = Some(value.clone());
+                index += 2;
+            }
+            "--root" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--root requires a value");
+                    std::process::exit(2);
+                };
+                root = Some(PathBuf::from(value));
+                index += 2;
+            }
+            other => {
+                eprintln!("unsupported {command} option: {other}");
+                std::process::exit(2);
+            }
+        }
+    }
+    let Some(profile) = profile else {
+        eprintln!(
+            "usage: crawclaw-repo-tools {command} --profile <{}> [--root <repo-root>]",
+            allowed_profiles.join("|")
+        );
+        std::process::exit(2);
+    };
+    if !allowed_profiles.contains(&profile.as_str()) {
+        eprintln!(
+            "unsupported {command} profile `{profile}`; expected one of {}",
+            allowed_profiles.join(", ")
+        );
+        std::process::exit(2);
+    }
+    (
+        profile,
+        normalize_repo_root_arg(root.unwrap_or_else(|| PathBuf::from("."))),
+    )
+}
+
+fn parse_desktop_renderer_arg(args: Vec<String>) -> Result<(String, PathBuf), String> {
+    let mut command: Option<String> = None;
+    let mut root: Option<PathBuf> = None;
+    let mut index = 0;
+    while index < args.len() {
+        if args[index] == "--root" {
+            let Some(value) = args.get(index + 1) else {
+                return Err("--root requires a value".to_string());
+            };
+            root = Some(PathBuf::from(value));
+            index += 2;
+            continue;
+        }
+        if command.is_none() {
+            command = Some(args[index].clone());
+            index += 1;
+            continue;
+        }
+        return Err(format!(
+            "unsupported desktop-renderer option: {}",
+            args[index]
+        ));
+    }
+    let Some(command) = command else {
+        return Err(
+            "usage: crawclaw-repo-tools desktop-renderer <dev|build|tauri-dev|tauri-build> [--root <repo-root>]"
+                .to_string(),
+        );
+    };
+    if !matches!(
+        command.as_str(),
+        "dev" | "build" | "tauri-dev" | "tauri-build"
+    ) {
+        return Err(format!(
+            "unsupported desktop-renderer command `{command}`; expected dev, build, tauri-dev, or tauri-build"
+        ));
+    }
+    Ok((
+        command,
+        normalize_repo_root_arg(root.unwrap_or_else(|| PathBuf::from("."))),
+    ))
+}
+
+fn normalize_repo_root_arg(root: PathBuf) -> PathBuf {
+    let candidate = if root.is_absolute() {
+        root
+    } else {
+        env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join(root)
+    };
+    if is_repo_root(&candidate) {
+        return candidate;
+    }
+    if let Some(root) = find_repo_root_from(&candidate) {
+        return root;
+    }
+    candidate
+}
+
+fn find_repo_root_from(path: &Path) -> Option<PathBuf> {
+    let mut current = if path.is_dir() {
+        path.to_path_buf()
+    } else {
+        path.parent()?.to_path_buf()
+    };
+    loop {
+        if is_repo_root(&current) {
+            return Some(current);
+        }
+        if !current.pop() {
+            return None;
+        }
+    }
+}
+
+fn is_repo_root(path: &Path) -> bool {
+    path.join("Cargo.toml").exists() && path.join("pnpm-workspace.yaml").exists()
+}
+
 fn parse_optional_root_arg(args: &[String], command: &str) -> Result<PathBuf, String> {
     if args.is_empty() {
-        return Ok(PathBuf::from("."));
+        return Ok(normalize_repo_root_arg(PathBuf::from(".")));
     }
     if args.len() == 2 && args[0] == "--root" {
-        return Ok(PathBuf::from(&args[1]));
+        return Ok(normalize_repo_root_arg(PathBuf::from(&args[1])));
     }
     Err(format!(
         "usage: crawclaw-repo-tools {command} [--root <repo-root>]"
@@ -1299,7 +1867,7 @@ fn run_emit_config_doc_baseline(args: Vec<String>) -> Result<(), String> {
     let jsonl_path =
         jsonl_output.ok_or_else(|| "usage: crawclaw-repo-tools emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write]".to_string())?;
     let result =
-        crawclaw_runtime::write_config_doc_baseline_artifacts(&json_path, &jsonl_path, check)?;
+        crawclaw_repo_tools::write_config_doc_baseline_artifacts(&json_path, &jsonl_path, check)?;
     if check {
         if result.changed {
             return Err([
@@ -1566,6 +2134,6 @@ fn runtime_root() -> PathBuf {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-repo-tools --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | docs-check-i18n-glossary [--root <repo-root>] [--base <rev>] [--head <rev>] | docs-check-links [--root <repo-root>] [--anchors] | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-plugin-dependency-plan [--check|--write] [--json-output <path>] [--jsonl-output <path>] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | emit-rust-tool-catalog --output <path> [--check|--write] | ghsa-patch --ghsa <GHSA-id-or-url> --summary <text> --severity <level> --description-file <path> --vulnerable-version-range <range> --patched-versions <range-or-null> | github-labels-sync [--root <repo-root>] [--check] | npm-package-metadata --package-dir <package-dir> | npm-publish-plan [--root <repo-root>|--package-dir <package-dir>|--version <version>] [--root-package] [--requested-tag <tag>] [--current-beta-version <version>] [--publish-mode <mode>] | npm-release-check [--root <repo-root>] | npm-postpublish-verify <version> | plugin-npm-release-check [--root <repo-root>] [plugin release options] | plugin-npm-release-plan [--root <repo-root>] [plugin release options] | plugins-sync [--root <repo-root>] | run-oxlint [args...] | run-tsgo [args...] | run-typecheck [args...] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | package-build-native-artifacts --root <repo-root> | package-prepack --root <repo-root> | package-release-check --root <repo-root> | package-write-build-metadata --root <repo-root> [--build-info] | repo-check-no-conflict-markers [--root <repo-root>] | repo-check-runtime-module-boundaries [--root <repo-root>] [--json] | repo-check-plugin-extension-import-boundary [--root <repo-root>] [--json] | repo-check-no-extension-src-imports [--root <repo-root>] | repo-check-no-register-http-handler [--root <repo-root>] | repo-check-web-fetch-provider-boundaries [--root <repo-root>] [--json] | repo-check-web-search-provider-boundaries [--root <repo-root>] [--json] | repo-check-webhook-auth-body-order [--root <repo-root>] | repo-check-ts-loc --root <repo-root> --max <lines> | test-workspace [cargo-test-filter...] | tool <name> [json-input]"
+        "Usage: crawclaw-repo-tools --worker | check --profile <local|ci|rust-core|desktop-renderer|docs-core|docs-hosted> [--root <repo-root>] | build --profile <package|strict-smoke|desktop-renderer> [--root <repo-root>] | release-check [--root <repo-root>] | desktop-renderer <dev|build|tauri-dev|tauri-build> [--root <repo-root>] | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | docs-check-i18n-glossary [--root <repo-root>] [--base <rev>] [--head <rev>] | docs-check-links [--root <repo-root>] [--anchors] | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-plugin-dependency-plan [--check|--write] [--json-output <path>] [--jsonl-output <path>] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | emit-rust-tool-catalog --output <path> [--check|--write] | ghsa-patch --ghsa <GHSA-id-or-url> --summary <text> --severity <level> --description-file <path> --vulnerable-version-range <range> --patched-versions <range-or-null> | github-labels-sync [--root <repo-root>] [--check] | npm-package-metadata --package-dir <package-dir> | npm-publish-plan [--root <repo-root>|--package-dir <package-dir>|--version <version>] [--root-package] [--requested-tag <tag>] [--current-beta-version <version>] [--publish-mode <mode>] | npm-release-check [--root <repo-root>] | npm-postpublish-verify <version> | plugin-npm-release-check [--root <repo-root>] [plugin release options] | plugin-npm-release-plan [--root <repo-root>] [plugin release options] | plugins-sync [--root <repo-root>] | run-oxlint [args...] | run-tsgo [args...] | run-typecheck [args...] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | package-build-native-artifacts --root <repo-root> | package-prepack --root <repo-root> | package-release-check --root <repo-root> | package-write-build-metadata --root <repo-root> [--build-info] | repo-check-no-conflict-markers [--root <repo-root>] | repo-check-runtime-module-boundaries [--root <repo-root>] [--json] | repo-check-plugin-extension-import-boundary [--root <repo-root>] [--json] | repo-check-no-extension-src-imports [--root <repo-root>] | repo-check-no-register-http-handler [--root <repo-root>] | repo-check-web-fetch-provider-boundaries [--root <repo-root>] [--json] | repo-check-web-search-provider-boundaries [--root <repo-root>] [--json] | repo-check-webhook-auth-body-order [--root <repo-root>] | repo-check-ts-loc --root <repo-root> --max <lines> | test-workspace [cargo-test-filter...] | tool <name> [json-input]"
     );
 }

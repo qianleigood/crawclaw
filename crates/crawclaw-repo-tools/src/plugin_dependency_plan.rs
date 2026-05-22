@@ -5,7 +5,7 @@ use std::process::Command;
 
 use serde_json::{json, Map, Value};
 
-const GENERATED_BY: &str = "crawclaw-runtime emit-plugin-dependency-plan";
+const GENERATED_BY: &str = "crawclaw-repo-tools emit-plugin-dependency-plan";
 const DEFAULT_JSON_OUTPUT: &str = "docs/.generated/plugin-dependency-plan.json";
 const DEFAULT_JSONL_OUTPUT: &str = "docs/.generated/plugin-dependency-plan.jsonl";
 const PLUGIN_MANIFEST_FILENAME: &str = "crawclaw.plugin.json";

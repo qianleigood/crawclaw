@@ -129,18 +129,23 @@ pnpm desktop:tauri:stage-runtime
 pnpm desktop:tauri:dev
 ```
 
+Node/npm are repository tooling adapters, not product runtime boundaries. The
+Rust runtime and `crawclaw-repo-tools` own the main build, check, release, and
+desktop orchestration commands; pnpm remains as the compatibility entrypoint
+for contributors and CI.
+
 Common local checks:
 
 ```bash
-pnpm check
+pnpm check        # cargo run -q -p crawclaw-repo-tools -- check --profile local
 pnpm test
-pnpm build
+pnpm build        # cargo run --quiet --release -p crawclaw-repo-tools -- build --profile package
 ```
 
 Docs and generated baselines:
 
 ```bash
-pnpm check:docs
+pnpm check:docs   # cargo run -q -p crawclaw-repo-tools -- check --profile docs-core
 pnpm docs:check-links
 pnpm config:docs:check
 ```

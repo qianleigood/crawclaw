@@ -14,16 +14,16 @@ The CI runs on every push to `main` and every pull request. It uses smart scopin
 
 | Job               | Purpose                                                                   | When it runs                                     |
 | ----------------- | ------------------------------------------------------------------------- | ------------------------------------------------ |
-| `preflight`       | Docs scope, change scope, key scan, workflow audit, prod dependency audit | Always; node-based audit only on non-doc changes |
+| `preflight`       | Docs scope, change scope, key scan, workflow audit, prod dependency audit | Always; Node-based audit only on non-doc changes |
 | `docs-scope`      | Detect docs-only changes                                                  | Always                                           |
 | `changed-scope`   | Detect which areas changed (node/macos/android/windows)                   | Non-doc changes                                  |
-| `check`           | Desktop renderer TypeScript, lint, format                                 | Non-docs, node changes                           |
-| `check-docs`      | Markdown lint + broken link check                                         | Docs changed                                     |
+| `check`           | Repo-tools local profile: desktop contract, TypeScript, lint, boundaries  | Non-docs, Node changes                           |
+| `check-docs`      | Repo-tools docs-core profile: glossary, links, generated docs baselines   | Docs changed                                     |
 | `secrets`         | Detect leaked secrets                                                     | Always                                           |
 | `build-artifacts` | Build dist once, share with `release-check`                               | Pushes to `main`, node changes                   |
 | `release-check`   | Validate npm pack contents                                                | Pushes to `main` after build                     |
-| `checks`          | Rust workspace tests on PRs; Node build compatibility on push             | Non-docs, node changes                           |
-| `checks-windows`  | Windows Rust test and Node build checks                                   | Non-docs, windows-relevant changes               |
+| `checks`          | Rust core profile on PRs; package build profile on push                   | Non-docs, Node/package changes                   |
+| `checks-windows`  | Windows Rust core and package build profiles                              | Non-docs, windows-relevant changes               |
 | `macos`           | Swift lint/build/test                                                     | PRs with macos changes                           |
 | `android`         | Gradle build + tests                                                      | Non-docs, android changes                        |
 
@@ -33,11 +33,15 @@ Jobs are ordered so cheap checks fail before expensive ones run:
 
 1. `docs-scope` + `changed-scope` + `check` + `secrets` (parallel, cheap gates first)
 2. PRs: `checks` (Rust workspace test), `checks-windows`, `macos`, `android`
-3. Pushes to `main`: `build-artifacts` + `release-check` + Node build compatibility
+3. Pushes to `main`: `build-artifacts` + `release-check` + package build compatibility
 
 Scope logic lives in the `preflight` job in `.github/workflows/ci.yml`; keep it
 validated through the workflow audit plus affected CI lanes when changing scope
 behavior.
+
+Node setup is scoped to lanes that need the Node/npm adapter, such as desktop
+renderer checks, package/release validation, and hosted docs tooling. Rust core
+and docs-core lanes use `crawclaw-repo-tools` directly.
 
 ## Runners
 
@@ -50,8 +54,11 @@ behavior.
 ## Local Equivalents
 
 ```bash
-pnpm check          # types + lint + format
-pnpm test           # Rust workspace tests
-pnpm check:docs     # docs format + lint + broken links
-pnpm release:check  # validate npm pack
+cargo run -q -p crawclaw-repo-tools -- check --profile local
+cargo run -q -p crawclaw-repo-tools -- check --profile rust-core
+cargo run -q -p crawclaw-repo-tools -- check --profile docs-core
+cargo run --quiet -p crawclaw-repo-tools -- release-check
 ```
+
+The matching pnpm aliases remain available: `pnpm check`, `pnpm test`,
+`pnpm check:docs`, and `pnpm release:check`.

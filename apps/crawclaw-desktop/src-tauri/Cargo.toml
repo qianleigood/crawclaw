@@ -17,6 +17,7 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1"
 axum = "0.8"
+crawclaw-channels = { path = "../../../crates/crawclaw-channels" }
 crawclaw-core = { path = "../../../crates/crawclaw-core" }
 crawclaw-gateway = { path = "../../../crates/crawclaw-gateway" }
 crawclaw-native-plugins = { path = "../../../crates/crawclaw-native-plugins" }

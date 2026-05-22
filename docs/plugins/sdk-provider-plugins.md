@@ -12,7 +12,8 @@ read_when:
 
 CrawClaw no longer supports TypeScript model provider plugins. The old
 TypeScript provider registration entrypoint, provider catalog hooks, and
-provider runtime hooks are owned by the Rust plugin SDK and native registry.
+provider runtime hooks have been replaced by the Rust plugin SDK, manifest
+metadata, and native registry.
 
 Provider metadata, auth choices, model catalogs, config schema, and native
 transport behavior are owned by the Rust provider registry. The Gateway builds

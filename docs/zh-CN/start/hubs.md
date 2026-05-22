@@ -1,32 +1,31 @@
 ---
 read_when:
-  - 你想要一份完整的文档地图
-summary: 链接到所有 CrawClaw 文档的导航中心
-title: 文档导航中心
+  - 你想要完整的文档地图
+summary: 文档中心，链接到所有 CrawClaw 文档
+title: 文档中心
 x-i18n:
-  generated_at: "2026-03-15T19:29:16Z"
-  model: claude-opus-4-6
-  provider: pi
-  source_hash: e12e8b7881311fdaf08cd297392911dfa30dc46031a7038b6bb9011d166b1669
+  generated_at: "2026-05-22T03:02:11Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 920c9550d4616abb633f543070d2ccdd040d0358aa959e583bc8a5eba1b8f84d
   source_path: start/hubs.md
   workflow: 15
 ---
 
-# 文档导航中心
+# 文档中心
 
 <Note>
-如果你是 CrawClaw 新用户，请从[入门指南](/start/getting-started)开始。
+如果你刚接触 CrawClaw，请从[入门指南](/start/getting-started)开始。
 </Note>
 
-使用这些导航中心发现每一个页面，包括深入解析和参考文档，它们可能不会出现在左侧导航栏中。
+使用这些中心发现每一页文档，包括左侧导航中未显示的深度文档和参考文档。
 
 ## 从这里开始
 
 - [索引](/)
 - [入门指南](/start/getting-started)
-- [快速开始](/start/quickstart)
-- [CLI 新手引导](/start/wizard)
-- [安装配置](/start/setup)
+- [Desktop 新手引导](/start/getting-started)
+- [设置](/start/setup)
 - [帮助](/help)
 - [文档目录](/start/docs-directory)
 - [配置](/gateway/configuration)
@@ -37,23 +36,12 @@ x-i18n:
 
 ## 安装 + 更新
 
-- [Docker](/install/docker)
 - [Nix](/install/nix)
-- [更新 / 回滚](/install/updating)
+- [更新/回滚](/install/updating)
 - [Bun 工作流（实验性）](/install/bun)
 
 ## 核心概念
 
-- [概念总览](/concepts)
-- [项目整体架构总览](/concepts/project-architecture-overview)
-- [目录与边界规划](/concepts/project-directory-boundaries)
-- [项目缓存机制总览](/concepts/project-cache-strategy)
-- [文档与测试体系规划](/concepts/project-docs-and-test-strategy)
-- [项目基线冻结](/concepts/project-baseline-freeze)
-- [控制面 API Inventory](/concepts/project-control-plane-api-inventory)
-- [项目实施路线图](/concepts/project-implementation-roadmap)
-- [Phase 对应 PR 计划](/concepts/project-phase-pr-plan)
-- [模块公开 Surface 与拆包准备](/concepts/project-package-split-prep)
 - [架构](/concepts/architecture)
 - [功能](/concepts/features)
 - [网络中心](/network)
@@ -70,14 +58,12 @@ x-i18n:
 - [队列](/concepts/queue)
 - [斜杠命令](/tools/slash-commands)
 - [RPC 适配器](/reference/rpc)
-- [TypeBox 模式](/concepts/typebox)
+- [TypeBox 辅助 schemas](/concepts/typebox)
 - [时区处理](/concepts/timezone)
 - [在线状态](/concepts/presence)
 - [设备发现 + 传输协议](/gateway/discovery)
 - [Bonjour](/gateway/bonjour)
 - [渠道路由](/channels/channel-routing)
-- [群组](/channels/groups)
-- [群组消息](/channels/group-messages)
 - [模型故障转移](/concepts/model-failover)
 - [OAuth](/concepts/oauth)
 
@@ -85,70 +71,58 @@ x-i18n:
 
 - [聊天渠道中心](/channels)
 - [模型提供商中心](/providers/models)
-- [Weixin](/channels/index)
-- [Feishu](/channels/index)
-- [DingTalk](/channels/index)
-- [QQBot](/channels/index)
-- [Feishu](/channels/index)（插件）
-- [Feishu](/channels/index)
-- [Weixin (Weixin)](/channels/index)
-- [Weixin（旧版）](/channels/index)
-- [位置解析](/channels/location)
-- [Webhooks](/automation/webhook)
-- [Gmail Pub/Sub](/automation/gmail-pubsub)
+- [Webhooks](/automation/cron-jobs#webhooks)
+- [Gmail Pub/Sub](/automation/cron-jobs#gmail-pubsub-integration)
 
-## Gateway 网关 + 运维
+## Gateway + 运维
 
-- [Gateway 网关运维手册](/gateway)
+- [Gateway 运行手册](/gateway)
 - [网络模型](/gateway/network-model)
-- [Gateway 网关配对](/gateway/pairing)
-- [Gateway 网关锁](/gateway/gateway-lock)
+- [配对](/channels/pairing)
+- [Gateway 锁](/gateway/gateway-lock)
 - [后台进程](/gateway/background-process)
-- [健康检查](/gateway/health)
-- [心跳](/gateway/heartbeat)
+- [健康状态](/gateway/health)
+- [Heartbeat 兼容性](/gateway/heartbeat)
 - [Doctor](/gateway/doctor)
-- [日志](/gateway/logging)
-- [沙箱隔离](/gateway/sandboxing)
+- [日志记录](/gateway/logging)
+- [安全](/gateway/security)
 - [远程访问](/gateway/remote)
-- [远程 Gateway 网关 README](/gateway/remote-gateway-readme)
+- [远程 gateway README](/gateway/remote-gateway-readme)
 - [Tailscale](/gateway/tailscale)
 - [安全](/gateway/security)
 - [故障排除](/gateway/troubleshooting)
 
 ## 工具 + 自动化
 
-- [工具概览](/tools)
+- [工具接口](/tools)
 - [OpenProse](/prose)
-- [CLI 参考](/cli)
 - [Exec 工具](/tools/exec)
 - [PDF 工具](/tools/pdf)
 - [提权模式](/tools/elevated)
 - [定时任务](/automation/cron-jobs)
-- [定时任务 vs 心跳](/automation/cron-vs-heartbeat)
-- [思考 + 详细输出](/tools/thinking)
+- [自动化与任务](/automation)
+- [思考 + 详细](/tools/thinking)
 - [模型](/concepts/models)
 - [子智能体](/tools/subagents)
-- [智能体发送 CLI](/tools/agent-send)
-- [终端界面](/cli/tui)
+- [智能体发送](/tools/agent-send)
 - [浏览器控制](/tools/browser)
 - [浏览器（Linux 故障排除）](/tools/browser-linux-troubleshooting)
-- [投票](/automation/poll)
-
-## 节点、媒体、语音
-
-- [节点概览](/nodes)
-- [摄像头](/nodes/camera)
-- [图片](/nodes/images)
-- [音频](/nodes/audio)
-- [位置命令](/nodes/location-command)
-- [语音唤醒](/nodes/voicewake)
-- [对话模式](/nodes/talk)
 
 ## 平台
 
 - [平台概览](/platforms)
 - [Windows](/platforms/windows)
 - [Linux](/platforms/linux)
+
+## 扩展 + 插件
+
+- [插件概览](/tools/plugin)
+- [构建插件](/plugins/building-plugins)
+- [插件清单](/plugins/manifest)
+- [智能体工具](/plugins/building-plugins#runtime-capabilities)
+- [插件捆绑包](/plugins/bundles)
+- [社区插件](/plugins/community)
+- [能力扩展手册](/tools/capability-cookbook)
 
 ## 工作区 + 模板
 
@@ -168,9 +142,9 @@ x-i18n:
 
 - [致谢](/reference/credits)
 
-## 维护者与深度文档
+## 维护者 + 深度文档
 
-- [概念总览](/concepts)
+- [概念索引](/concepts)
 - [调试文档](/debug)
 - [参考文档](/reference)
 - [维护者文档](/maintainers)

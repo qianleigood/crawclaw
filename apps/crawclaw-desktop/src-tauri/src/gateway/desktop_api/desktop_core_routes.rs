@@ -16,7 +16,7 @@ use crate::models::{
 
 use super::{
     authorize_headers, authorize_token, emit_state_changed, run_native_state_mutation,
-    session_store_status, GatewayState,
+    session_store_status, DesktopNativeMutation, GatewayState,
 };
 
 #[derive(Deserialize)]
@@ -158,7 +158,12 @@ pub(super) async fn send_message(
     if text.is_empty() {
         return Err(StatusCode::BAD_REQUEST);
     }
-    run_native_state_mutation(&state, "send_message", json!({ "text": text })).await
+    run_native_state_mutation(
+        &state,
+        DesktopNativeMutation::SendMessage,
+        json!({ "text": text }),
+    )
+    .await
 }
 
 pub(super) async fn select_thread(

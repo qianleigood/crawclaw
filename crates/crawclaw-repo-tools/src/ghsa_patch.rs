@@ -116,7 +116,7 @@ pub fn run_ghsa_patch(args: &[String]) -> Result<i32, String> {
 fn ghsa_patch_usage() -> String {
     [
         "Usage:",
-        "  crawclaw-runtime ghsa-patch --ghsa <GHSA-id-or-url> [--repo owner/name]",
+        "  crawclaw-repo-tools ghsa-patch --ghsa <GHSA-id-or-url> [--repo owner/name]",
         "    --summary <text> --severity <low|medium|high|critical>",
         "    --description-file <path>",
         "    --vulnerable-version-range <range>",

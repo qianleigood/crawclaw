@@ -1,134 +1,15 @@
 //! Desktop plugin read-model and catalog helpers.
 //!
 //! This crate does not host JavaScript plugin runtime behavior. It exposes the
-//! Rust-native plugin and channel read models that desktop and maintainer
-//! checks consume while runtime execution stays in the native plugin, channel,
-//! provider, and Gateway crates.
+//! Rust-native plugin read model that desktop and maintainer checks consume
+//! while runtime execution stays in the native plugin, channel, provider, and
+//! Gateway crates.
 
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct NativeChannelConfigField {
-    pub id: &'static str,
-    pub label: &'static str,
-    pub secret: bool,
-    pub default_value: &'static str,
-}
-
-#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct NativeChannelDefinition {
-    pub id: &'static str,
-    pub label: &'static str,
-    pub description: &'static str,
-    pub icon: &'static str,
-    pub fields: &'static [NativeChannelConfigField],
-}
-
-const FEISHU_FIELDS: &[NativeChannelConfigField] = &[
-    channel_field("appId", "App ID", false, ""),
-    channel_field("appSecret", "App Secret", true, ""),
-    channel_field("verificationToken", "Verification Token", true, ""),
-    channel_field("encryptKey", "Encrypt Key", true, ""),
-];
-
-const DDINGTALK_FIELDS: &[NativeChannelConfigField] = &[
-    channel_field("clientId", "Client ID", false, ""),
-    channel_field("clientSecret", "Client Secret", true, ""),
-];
-
-const ESP32_FIELDS: &[NativeChannelConfigField] = &[
-    channel_field("brokerMode", "Broker Mode", false, "managed"),
-    channel_field("bindHost", "Bind Host", false, "127.0.0.1"),
-    channel_field("advertisedHost", "Advertised Host", false, ""),
-    channel_field("port", "Port", false, "1883"),
-    channel_field("udpPort", "UDP Port", false, "1884"),
-    channel_field("otaPath", "OTA Path", false, "/api/esp32/ota"),
-    channel_field("wakeWord", "Wake Word", false, "true"),
-];
-
-const QQBOT_FIELDS: &[NativeChannelConfigField] = &[
-    channel_field("appId", "App ID", false, ""),
-    channel_field("clientSecret", "Client Secret", true, ""),
-    channel_field("markdownSupport", "Markdown 支持", false, "true"),
-];
-
-const NATIVE_CHANNELS: &[NativeChannelDefinition] = &[
-    NativeChannelDefinition {
-        id: "ddingtalk",
-        label: "钉钉",
-        description: "Rust-native DingTalk channel control-plane and configuration surface.",
-        icon: "messageCircle",
-        fields: DDINGTALK_FIELDS,
-    },
-    NativeChannelDefinition {
-        id: "feishu",
-        label: "飞书",
-        description: "Rust-native Feishu/Lark channel control-plane and configuration surface.",
-        icon: "messageCircle",
-        fields: FEISHU_FIELDS,
-    },
-    NativeChannelDefinition {
-        id: "esp32",
-        label: "ESP32",
-        description: "Rust-native ESP32-S3-BOX-3 device channel control-plane and pairing surface.",
-        icon: "cpu",
-        fields: ESP32_FIELDS,
-    },
-    NativeChannelDefinition {
-        id: "qqbot",
-        label: "QQ Bot",
-        description: "Rust-native QQ Bot channel control-plane and configuration surface.",
-        icon: "messageCircle",
-        fields: QQBOT_FIELDS,
-    },
-    NativeChannelDefinition {
-        id: "weixin",
-        label: "微信",
-        description: "Rust-native Weixin QR-login channel control-plane and configuration surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-];
-
-const fn channel_field(
-    id: &'static str,
-    label: &'static str,
-    secret: bool,
-    default_value: &'static str,
-) -> NativeChannelConfigField {
-    NativeChannelConfigField {
-        id,
-        label,
-        secret,
-        default_value,
-    }
-}
-
-pub fn native_channels() -> &'static [NativeChannelDefinition] {
-    NATIVE_CHANNELS
-}
-
-pub fn native_channel_ids() -> Vec<&'static str> {
-    NATIVE_CHANNELS.iter().map(|channel| channel.id).collect()
-}
-
-pub fn native_channel(id: &str) -> Option<&'static NativeChannelDefinition> {
-    NATIVE_CHANNELS.iter().find(|channel| channel.id == id)
-}
-
-pub fn is_native_channel_id(id: &str) -> bool {
-    native_channel(id).is_some()
-}
-
-pub fn is_desktop_or_native_channel_id(id: &str) -> bool {
-    id == "desktop" || is_native_channel_id(id)
-}
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -467,66 +348,6 @@ fn toggle_set_value(values: &mut BTreeSet<String>, value: &str) -> bool {
 mod tests {
     use super::*;
     use std::path::PathBuf;
-
-    #[test]
-    fn native_channel_catalog_covers_bundled_native_channels() {
-        assert_eq!(
-            native_channel_ids(),
-            vec!["ddingtalk", "feishu", "esp32", "qqbot", "weixin"]
-        );
-        assert!(!is_native_channel_id("dingtalk"));
-        assert!(!is_native_channel_id("discord"));
-        assert!(!is_native_channel_id("telegram"));
-    }
-
-    #[test]
-    fn native_channel_catalog_exposes_rust_config_fields() {
-        let feishu = native_channel("feishu").expect("feishu channel");
-        assert_eq!(feishu.label, "飞书");
-        assert_eq!(
-            feishu
-                .fields
-                .iter()
-                .map(|field| field.id)
-                .collect::<Vec<_>>(),
-            vec!["appId", "appSecret", "verificationToken", "encryptKey"]
-        );
-
-        let ddingtalk = native_channel("ddingtalk").expect("ddingtalk channel");
-        assert_eq!(ddingtalk.label, "钉钉");
-        assert_eq!(
-            ddingtalk
-                .fields
-                .iter()
-                .map(|field| field.id)
-                .collect::<Vec<_>>(),
-            vec!["clientId", "clientSecret"]
-        );
-
-        let weixin = native_channel("weixin").expect("weixin channel");
-        assert_eq!(weixin.label, "微信");
-        assert!(weixin.fields.is_empty());
-
-        let esp32 = native_channel("esp32").expect("esp32 channel");
-        assert_eq!(esp32.label, "ESP32");
-        assert_eq!(esp32.icon, "cpu");
-        assert_eq!(
-            esp32
-                .fields
-                .iter()
-                .map(|field| field.id)
-                .collect::<Vec<_>>(),
-            vec![
-                "brokerMode",
-                "bindHost",
-                "advertisedHost",
-                "port",
-                "udpPort",
-                "otaPath",
-                "wakeWord"
-            ]
-        );
-    }
 
     #[test]
     fn plugin_host_capability_requires_native_plugin_entries_by_default() {

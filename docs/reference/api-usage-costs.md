@@ -58,7 +58,7 @@ Inbound media can be summarized/transcribed before the reply runs. This uses mod
 - Image: OpenAI / Anthropic / Google.
 - Video: Google.
 
-See [Media attachments](/concepts/messages#attachments-and-media).
+See [Media in and out](/start/crawclaw#media-in-and-out).
 
 ### 3) Memory
 

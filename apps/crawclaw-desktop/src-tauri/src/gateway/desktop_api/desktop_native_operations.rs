@@ -1,8 +1,42 @@
 use super::*;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum DesktopNativeMutation {
+    SendMessage,
+    AbortMessage,
+    SteerMessage,
+    CreateAgent,
+    UpdateAgent,
+    CreateMemoryItem,
+    ArchiveMemoryItem,
+    UpdateMemoryItem,
+    AddPluginSkill,
+    InvokePluginTool,
+    AddAgentSkill,
+    RunMemoryDream,
+    Thread(ThreadMutation),
+    Toggle(ToggleMutation),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum ThreadMutation {
+    Pin,
+    Unpin,
+    Rename,
+    Archive,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum ToggleMutation {
+    PluginTool,
+    PluginSkill,
+    AgentTool,
+    AgentSkill,
+}
+
 pub(super) async fn run_native_state_mutation(
     state: &GatewayState,
-    operation: &str,
+    operation: DesktopNativeMutation,
     input: Value,
 ) -> Result<Json<DesktopState>, StatusCode> {
     if state.runtime_supervisor.status().status != crate::models::RuntimeStatusValue::Ready {
@@ -13,11 +47,11 @@ pub(super) async fn run_native_state_mutation(
 
 pub(super) async fn apply_native_operation(
     state: &GatewayState,
-    operation: &str,
+    operation: DesktopNativeMutation,
     input: Value,
 ) -> Result<Json<DesktopState>, StatusCode> {
     match operation {
-        "send_message" => {
+        DesktopNativeMutation::SendMessage => {
             let text = string_field(&input, "text").ok_or(StatusCode::BAD_REQUEST)?;
             let thread_id = {
                 let desktop_state = state.desktop_state.read().await;
@@ -71,8 +105,8 @@ pub(super) async fn apply_native_operation(
             });
             emit_state_changed(state).await
         }
-        "abort_message" | "steer_message" => {
-            if operation == "steer_message" {
+        DesktopNativeMutation::AbortMessage | DesktopNativeMutation::SteerMessage => {
+            if operation == DesktopNativeMutation::SteerMessage {
                 let _ = string_field(&input, "text").ok_or(StatusCode::BAD_REQUEST)?;
             }
             emit_operation_failed(
@@ -82,7 +116,7 @@ pub(super) async fn apply_native_operation(
             );
             Err(StatusCode::CONFLICT)
         }
-        "create_agent" => {
+        DesktopNativeMutation::CreateAgent => {
             let name = string_field(&input, "name").unwrap_or_else(|| "New Agent".to_string());
             let role = string_field(&input, "role").unwrap_or_else(|| "Agent".to_string());
             let description = string_field(&input, "description").unwrap_or_default();
@@ -104,7 +138,7 @@ pub(super) async fn apply_native_operation(
             }
             emit_state_changed(state).await
         }
-        "update_agent" => {
+        DesktopNativeMutation::UpdateAgent => {
             let agent_id = string_field(&input, "agentId").ok_or(StatusCode::BAD_REQUEST)?;
             let mut updated_agent = {
                 let desktop_state = state.desktop_state.read().await;
@@ -139,7 +173,7 @@ pub(super) async fn apply_native_operation(
             }
             emit_state_changed(state).await
         }
-        "create_memory_item" => {
+        DesktopNativeMutation::CreateMemoryItem => {
             let title = string_field(&input, "title").ok_or(StatusCode::BAD_REQUEST)?;
             let summary = string_field(&input, "summary").unwrap_or_default();
             let content = string_field(&input, "content").unwrap_or_default();
@@ -175,7 +209,7 @@ pub(super) async fn apply_native_operation(
             }
             emit_state_changed(state).await
         }
-        "archive_memory_item" => {
+        DesktopNativeMutation::ArchiveMemoryItem => {
             let item_id = string_field(&input, "itemId").ok_or(StatusCode::BAD_REQUEST)?;
             let mut item = {
                 let desktop_state = state.desktop_state.read().await;
@@ -206,7 +240,7 @@ pub(super) async fn apply_native_operation(
             }
             emit_state_changed(state).await
         }
-        "update_memory_item" => {
+        DesktopNativeMutation::UpdateMemoryItem => {
             let item_id = string_field(&input, "itemId").ok_or(StatusCode::BAD_REQUEST)?;
             let mut updated_item = {
                 let desktop_state = state.desktop_state.read().await;
@@ -245,7 +279,7 @@ pub(super) async fn apply_native_operation(
             }
             emit_state_changed(state).await
         }
-        "add_plugin_skill" => {
+        DesktopNativeMutation::AddPluginSkill => {
             let name = string_field(&input, "name").ok_or(StatusCode::BAD_REQUEST)?;
             let trigger = normalize_skill_trigger(
                 string_field(&input, "trigger").unwrap_or_else(|| name.clone()),
@@ -281,8 +315,8 @@ pub(super) async fn apply_native_operation(
             }
             emit_state_changed(state).await
         }
-        "invoke_plugin_tool" => invoke_plugin_tool_operation(state, input).await,
-        "add_agent_skill" => {
+        DesktopNativeMutation::InvokePluginTool => invoke_plugin_tool_operation(state, input).await,
+        DesktopNativeMutation::AddAgentSkill => {
             let agent_id = string_field(&input, "agentId").ok_or(StatusCode::BAD_REQUEST)?;
             let mut agent = {
                 let desktop_state = state.desktop_state.read().await;
@@ -332,7 +366,7 @@ pub(super) async fn apply_native_operation(
             }
             emit_state_changed(state).await
         }
-        "run_memory_dream" => {
+        DesktopNativeMutation::RunMemoryDream => {
             let selected_agent_id = {
                 let desktop_state = state.desktop_state.read().await;
                 string_field(&input, "agentId")
@@ -419,20 +453,10 @@ pub(super) async fn apply_native_operation(
             }
             emit_state_changed(state).await
         }
-        "pin_thread" | "unpin_thread" | "rename_thread" | "archive_thread" => {
+        DesktopNativeMutation::Thread(operation) => {
             update_thread_operation(state, operation, input).await
         }
-        "toggle_plugin_tool"
-        | "toggle_plugin_skill"
-        | "toggle_agent_tool"
-        | "toggle_agent_skill" => toggle_operation(state, operation, input).await,
-        _ => {
-            let _ = state.events.send(DesktopEvent::OperationFailed {
-                code: "unsupported".to_string(),
-                message: format!("Desktop operation is not supported by Rust runtime: {operation}"),
-            });
-            Err(StatusCode::NOT_IMPLEMENTED)
-        }
+        DesktopNativeMutation::Toggle(operation) => toggle_operation(state, operation, input).await,
     }
 }
 
@@ -473,11 +497,11 @@ pub(super) fn plugin_skill(skill: PluginHostSkill) -> PluginSkill {
 
 pub(super) async fn update_thread_operation(
     state: &GatewayState,
-    operation: &str,
+    operation: ThreadMutation,
     input: Value,
 ) -> Result<Json<DesktopState>, StatusCode> {
     let thread_id = string_field(&input, "threadId").ok_or(StatusCode::BAD_REQUEST)?;
-    let title = if operation == "rename_thread" {
+    let title = if operation == ThreadMutation::Rename {
         Some(string_field(&input, "title").ok_or(StatusCode::BAD_REQUEST)?)
     } else {
         None
@@ -489,42 +513,41 @@ pub(super) async fn update_thread_operation(
         }
     }
     match operation {
-        "pin_thread" => state
+        ThreadMutation::Pin => state
             .session_store
             .set_thread_pinned(&thread_id, true)
             .map_err(|error| session_store_status(state, error))?,
-        "unpin_thread" => state
+        ThreadMutation::Unpin => state
             .session_store
             .set_thread_pinned(&thread_id, false)
             .map_err(|error| session_store_status(state, error))?,
-        "rename_thread" => state
+        ThreadMutation::Rename => state
             .session_store
             .rename_thread(&thread_id, title.as_deref().unwrap_or_default())
             .map_err(|error| session_store_status(state, error))?,
-        "archive_thread" => state
+        ThreadMutation::Archive => state
             .session_store
             .archive_thread(&thread_id)
             .map_err(|error| session_store_status(state, error))?,
-        _ => {}
     }
     let mut next_thread_id = None;
     {
         let mut desktop_state = state.desktop_state.write().await;
         match operation {
-            "pin_thread" => {
+            ThreadMutation::Pin => {
                 if let Some(thread) = remove_thread(&mut desktop_state.sidebar.threads, &thread_id)
                 {
                     desktop_state.sidebar.pinned_threads.push(thread);
                 }
             }
-            "unpin_thread" => {
+            ThreadMutation::Unpin => {
                 if let Some(thread) =
                     remove_thread(&mut desktop_state.sidebar.pinned_threads, &thread_id)
                 {
                     desktop_state.sidebar.threads.insert(0, thread);
                 }
             }
-            "rename_thread" => {
+            ThreadMutation::Rename => {
                 let title = title.expect("rename title validated");
                 rename_thread(&mut desktop_state.sidebar.threads, &thread_id, &title);
                 rename_thread(
@@ -538,7 +561,7 @@ pub(super) async fn update_thread_operation(
                     &title,
                 );
             }
-            "archive_thread" => {
+            ThreadMutation::Archive => {
                 remove_thread(&mut desktop_state.sidebar.threads, &thread_id);
                 remove_thread(&mut desktop_state.sidebar.pinned_threads, &thread_id);
                 if active_thread_id(&desktop_state).is_none() {
@@ -548,7 +571,6 @@ pub(super) async fn update_thread_operation(
                     }
                 }
             }
-            _ => {}
         }
     }
     if let Some(thread_id) = next_thread_id {
@@ -565,17 +587,20 @@ pub(super) async fn update_thread_operation(
 
 pub(super) async fn toggle_operation(
     state: &GatewayState,
-    operation: &str,
+    operation: ToggleMutation,
     input: Value,
 ) -> Result<Json<DesktopState>, StatusCode> {
-    if operation == "toggle_agent_tool" || operation == "toggle_agent_skill" {
+    if matches!(
+        operation,
+        ToggleMutation::AgentTool | ToggleMutation::AgentSkill
+    ) {
         return toggle_agent_operation(state, operation, input).await;
     }
     let mut changed = false;
     {
         let mut desktop_state = state.desktop_state.write().await;
         match operation {
-            "toggle_plugin_tool" => {
+            ToggleMutation::PluginTool => {
                 let tool_id = string_field(&input, "toolId").ok_or(StatusCode::BAD_REQUEST)?;
                 if let Some(tool) = desktop_state
                     .plugins_workspace
@@ -588,7 +613,7 @@ pub(super) async fn toggle_operation(
                     changed = true;
                 }
             }
-            "toggle_plugin_skill" => {
+            ToggleMutation::PluginSkill => {
                 let skill_id = string_field(&input, "skillId").ok_or(StatusCode::BAD_REQUEST)?;
                 if let Some(skill) = desktop_state
                     .plugins_workspace
@@ -601,7 +626,7 @@ pub(super) async fn toggle_operation(
                     changed = true;
                 }
             }
-            _ => {}
+            ToggleMutation::AgentTool | ToggleMutation::AgentSkill => {}
         }
     }
     if !changed {
@@ -612,7 +637,7 @@ pub(super) async fn toggle_operation(
 
 pub(super) async fn toggle_agent_operation(
     state: &GatewayState,
-    operation: &str,
+    operation: ToggleMutation,
     input: Value,
 ) -> Result<Json<DesktopState>, StatusCode> {
     let agent_id = string_field(&input, "agentId").ok_or(StatusCode::BAD_REQUEST)?;
@@ -627,7 +652,7 @@ pub(super) async fn toggle_agent_operation(
             .ok_or(StatusCode::NOT_FOUND)?
     };
     let changed = match operation {
-        "toggle_agent_tool" => {
+        ToggleMutation::AgentTool => {
             let tool_id = string_field(&input, "toolId").ok_or(StatusCode::BAD_REQUEST)?;
             if let Some(tool) = agent.tools.iter_mut().find(|tool| tool.id == tool_id) {
                 tool.enabled = !tool.enabled;
@@ -636,7 +661,7 @@ pub(super) async fn toggle_agent_operation(
                 false
             }
         }
-        "toggle_agent_skill" => {
+        ToggleMutation::AgentSkill => {
             let skill_id = string_field(&input, "skillId").ok_or(StatusCode::BAD_REQUEST)?;
             if let Some(skill) = agent.skills.iter_mut().find(|skill| skill.id == skill_id) {
                 skill.enabled = !skill.enabled;
@@ -645,7 +670,7 @@ pub(super) async fn toggle_agent_operation(
                 false
             }
         }
-        _ => false,
+        ToggleMutation::PluginTool | ToggleMutation::PluginSkill => false,
     };
     if !changed {
         return Err(StatusCode::NOT_FOUND);

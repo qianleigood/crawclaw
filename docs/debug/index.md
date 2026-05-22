@@ -14,7 +14,7 @@ title: Debug Docs
 
 - [Agent runtime open items](/debug/agent-runtime-open-items)
 - [Run loop lifecycle spine](/debug/run-loop-lifecycle-spine)
-- [Node issue notes](/debug/node-issue)
+- [Runtime lifecycle spine](/debug/run-loop-lifecycle-spine)
 
 ## Memory And Special Agents
 

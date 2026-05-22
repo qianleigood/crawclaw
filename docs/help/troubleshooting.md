@@ -171,7 +171,7 @@ flowchart TD
 
     Deep pages:
 
-    - [/gateway/troubleshooting#gateway-service-not-running](/gateway/troubleshooting#gateway-service-not-running)
+    - [/gateway/troubleshooting#gateway-runtime-not-reachable](/gateway/troubleshooting#gateway-runtime-not-reachable)
     - [/gateway/background-process](/gateway/background-process)
     - [/gateway/configuration](/gateway/configuration)
 

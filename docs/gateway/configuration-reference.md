@@ -1095,6 +1095,8 @@ For `type: "acp"` entries, CrawClaw resolves by exact conversation identity (`ma
 
 ### Per-agent access profiles
 
+<Accordion title="Full access (no sandbox)">
+
 ```json5
 {
   agents: {
@@ -1102,6 +1104,7 @@ For `type: "acp"` entries, CrawClaw resolves by exact conversation identity (`ma
       {
         id: "personal",
         workspace: "~/.crawclaw/workspace-personal",
+        sandbox: { mode: "off" },
       },
     ],
   },

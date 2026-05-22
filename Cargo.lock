@@ -1488,6 +1488,7 @@ version = "2026.5.3"
 dependencies = [
  "anyhow",
  "axum",
+ "crawclaw-channels",
  "crawclaw-core",
  "crawclaw-gateway",
  "crawclaw-native-plugins",
@@ -1576,10 +1577,13 @@ dependencies = [
 name = "crawclaw-repo-tools"
 version = "2026.5.3"
 dependencies = [
+ "chrono",
+ "crawclaw-native-plugins",
  "crawclaw-providers",
  "crawclaw-runtime",
  "serde",
  "serde_json",
+ "tempfile",
  "tokio",
 ]
 
@@ -1594,7 +1598,6 @@ dependencies = [
  "crawclaw-channels",
  "crawclaw-core",
  "crawclaw-native-plugins",
- "crawclaw-plugin-host",
  "crawclaw-plugin-sdk",
  "crawclaw-providers",
  "croner",

@@ -6,11 +6,8 @@ on:
       - main
     paths:
       - ".github/workflows/plugin-npm-release.yml"
-      - "crates/crawclaw-runtime/Cargo.toml"
-      - "crates/crawclaw-runtime/src/lib.rs"
-      - "crates/crawclaw-runtime/src/main.rs"
-      - "crates/crawclaw-runtime/src/npm_release.rs"
       - "crates/crawclaw-repo-tools/**"
+      - "crates/crawclaw-providers/**"
       - "extensions/**"
       - "package.json"
       - "scripts/plugin-npm-publish.sh"

@@ -6,14 +6,15 @@ use axum::Json;
 use crate::models::DesktopState;
 
 use super::{
-    authorize_headers, parse_json_body, run_native_state_mutation, with_string, GatewayState,
+    authorize_headers, parse_json_body, run_native_state_mutation, with_string,
+    DesktopNativeMutation, GatewayState, ThreadMutation, ToggleMutation,
 };
 
 async fn run_body_mutation(
     state: GatewayState,
     headers: HeaderMap,
     body: Bytes,
-    operation: &'static str,
+    operation: DesktopNativeMutation,
     path_fields: Vec<(&'static str, String)>,
 ) -> Result<Json<DesktopState>, StatusCode> {
     authorize_headers(&headers, &state)?;
@@ -29,7 +30,14 @@ pub(super) async fn add_plugin_skill(
     headers: HeaderMap,
     body: Bytes,
 ) -> Result<Json<DesktopState>, StatusCode> {
-    run_body_mutation(state, headers, body, "add_plugin_skill", Vec::new()).await
+    run_body_mutation(
+        state,
+        headers,
+        body,
+        DesktopNativeMutation::AddPluginSkill,
+        Vec::new(),
+    )
+    .await
 }
 
 pub(super) async fn toggle_plugin_skill(
@@ -42,7 +50,7 @@ pub(super) async fn toggle_plugin_skill(
         state,
         headers,
         body,
-        "toggle_plugin_skill",
+        DesktopNativeMutation::Toggle(ToggleMutation::PluginSkill),
         vec![("skillId", skill_id)],
     )
     .await
@@ -58,7 +66,7 @@ pub(super) async fn toggle_plugin_tool(
         state,
         headers,
         body,
-        "toggle_plugin_tool",
+        DesktopNativeMutation::Toggle(ToggleMutation::PluginTool),
         vec![("toolId", tool_id)],
     )
     .await
@@ -74,7 +82,7 @@ pub(super) async fn invoke_plugin_tool(
         state,
         headers,
         body,
-        "invoke_plugin_tool",
+        DesktopNativeMutation::InvokePluginTool,
         vec![("pluginId", plugin_id), ("toolId", tool_id)],
     )
     .await
@@ -85,7 +93,14 @@ pub(super) async fn create_agent(
     headers: HeaderMap,
     body: Bytes,
 ) -> Result<Json<DesktopState>, StatusCode> {
-    run_body_mutation(state, headers, body, "create_agent", Vec::new()).await
+    run_body_mutation(
+        state,
+        headers,
+        body,
+        DesktopNativeMutation::CreateAgent,
+        Vec::new(),
+    )
+    .await
 }
 
 pub(super) async fn update_agent(
@@ -98,7 +113,7 @@ pub(super) async fn update_agent(
         state,
         headers,
         body,
-        "update_agent",
+        DesktopNativeMutation::UpdateAgent,
         vec![("agentId", agent_id)],
     )
     .await
@@ -114,7 +129,7 @@ pub(super) async fn toggle_agent_tool(
         state,
         headers,
         body,
-        "toggle_agent_tool",
+        DesktopNativeMutation::Toggle(ToggleMutation::AgentTool),
         vec![("agentId", agent_id), ("toolId", tool_id)],
     )
     .await
@@ -130,7 +145,7 @@ pub(super) async fn add_agent_skill(
         state,
         headers,
         body,
-        "add_agent_skill",
+        DesktopNativeMutation::AddAgentSkill,
         vec![("agentId", agent_id)],
     )
     .await
@@ -146,7 +161,7 @@ pub(super) async fn toggle_agent_skill(
         state,
         headers,
         body,
-        "toggle_agent_skill",
+        DesktopNativeMutation::Toggle(ToggleMutation::AgentSkill),
         vec![("agentId", agent_id), ("skillId", skill_id)],
     )
     .await
@@ -162,7 +177,7 @@ pub(super) async fn pin_thread(
         state,
         headers,
         body,
-        "pin_thread",
+        DesktopNativeMutation::Thread(ThreadMutation::Pin),
         vec![("threadId", thread_id)],
     )
     .await
@@ -178,7 +193,7 @@ pub(super) async fn unpin_thread(
         state,
         headers,
         body,
-        "unpin_thread",
+        DesktopNativeMutation::Thread(ThreadMutation::Unpin),
         vec![("threadId", thread_id)],
     )
     .await
@@ -194,7 +209,7 @@ pub(super) async fn rename_thread_route(
         state,
         headers,
         body,
-        "rename_thread",
+        DesktopNativeMutation::Thread(ThreadMutation::Rename),
         vec![("threadId", thread_id)],
     )
     .await
@@ -210,7 +225,7 @@ pub(super) async fn archive_thread(
         state,
         headers,
         body,
-        "archive_thread",
+        DesktopNativeMutation::Thread(ThreadMutation::Archive),
         vec![("threadId", thread_id)],
     )
     .await
@@ -221,7 +236,14 @@ pub(super) async fn create_memory_item(
     headers: HeaderMap,
     body: Bytes,
 ) -> Result<Json<DesktopState>, StatusCode> {
-    run_body_mutation(state, headers, body, "create_memory_item", Vec::new()).await
+    run_body_mutation(
+        state,
+        headers,
+        body,
+        DesktopNativeMutation::CreateMemoryItem,
+        Vec::new(),
+    )
+    .await
 }
 
 pub(super) async fn update_memory_item(
@@ -234,7 +256,7 @@ pub(super) async fn update_memory_item(
         state,
         headers,
         body,
-        "update_memory_item",
+        DesktopNativeMutation::UpdateMemoryItem,
         vec![("itemId", item_id)],
     )
     .await
@@ -250,7 +272,7 @@ pub(super) async fn archive_memory_item(
         state,
         headers,
         body,
-        "archive_memory_item",
+        DesktopNativeMutation::ArchiveMemoryItem,
         vec![("itemId", item_id)],
     )
     .await
@@ -261,7 +283,14 @@ pub(super) async fn run_memory_dream(
     headers: HeaderMap,
     body: Bytes,
 ) -> Result<Json<DesktopState>, StatusCode> {
-    run_body_mutation(state, headers, body, "run_memory_dream", Vec::new()).await
+    run_body_mutation(
+        state,
+        headers,
+        body,
+        DesktopNativeMutation::RunMemoryDream,
+        Vec::new(),
+    )
+    .await
 }
 
 pub(super) async fn abort_message(
@@ -269,7 +298,14 @@ pub(super) async fn abort_message(
     headers: HeaderMap,
     body: Bytes,
 ) -> Result<Json<DesktopState>, StatusCode> {
-    run_body_mutation(state, headers, body, "abort_message", Vec::new()).await
+    run_body_mutation(
+        state,
+        headers,
+        body,
+        DesktopNativeMutation::AbortMessage,
+        Vec::new(),
+    )
+    .await
 }
 
 pub(super) async fn steer_message(
@@ -277,5 +313,12 @@ pub(super) async fn steer_message(
     headers: HeaderMap,
     body: Bytes,
 ) -> Result<Json<DesktopState>, StatusCode> {
-    run_body_mutation(state, headers, body, "steer_message", Vec::new()).await
+    run_body_mutation(
+        state,
+        headers,
+        body,
+        DesktopNativeMutation::SteerMessage,
+        Vec::new(),
+    )
+    .await
 }

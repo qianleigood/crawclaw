@@ -11,7 +11,7 @@ title: "Help"
 If you want a quick “get unstuck” flow, start here:
 
 - **Troubleshooting:** [Start here](/help/troubleshooting)
-- **Install sanity (Node/npm/PATH):** [Install](/install/node#troubleshooting)
+- **Install sanity (Node/npm/PATH):** [Node.js](/install/node)
 - **Gateway issues:** [Gateway troubleshooting](/gateway/troubleshooting)
 - **Logs:** [Logging](/logging) and [Gateway logging](/gateway/logging)
 - **Repairs:** [Doctor](/gateway/doctor)

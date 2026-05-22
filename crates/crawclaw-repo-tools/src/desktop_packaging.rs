@@ -134,7 +134,7 @@ pub fn stage_desktop_tauri_runtime(
         &envs,
     )?;
 
-    crate::stage_desktop_runtime_manifests(&paths.runtime_root)?;
+    crawclaw_runtime::stage_desktop_runtime_manifests(&paths.runtime_root)?;
     copy_release_binaries(&paths)?;
     stage_searxng_runtime(root_dir, &paths.runtime_root, &envs)?;
     stage_agent_browser_runtime(&paths.runtime_root, &envs)?;
