@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import {
   useCallback,
+  useEffect,
   useState,
 } from 'react'
 import {
@@ -225,6 +226,7 @@ export default function App() {
   const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsSectionId>('general')
   const [customModelOptions, setCustomModelOptions] = useState<string[]>([])
   const [queuedChatInputText, setQueuedChatInputText] = useState('')
+  const [selectedChatAgentId, setSelectedChatAgentId] = useState('')
   const activeNavId = desktopState.activeNavId
   const activeNavItem = desktopState.sidebar.navItems.find((item) => item.id === activeNavId)
   const activeNavLabel = activeNavId === 'settings' ? '设置' : (activeNavItem?.label ?? '新对话')
@@ -245,6 +247,15 @@ export default function App() {
   const pinnedThreads: SidebarThread[] = desktopState.sidebar.pinnedThreads
   const conversations: SidebarThread[] = desktopState.sidebar.threads
   const discussionThreads: SidebarThread[] = desktopState.sidebar.discussionThreads
+
+  useEffect(() => {
+    if (
+      selectedChatAgentId
+      && !desktopState.agentWorkspace.agents.some((agent) => agent.id === selectedChatAgentId)
+    ) {
+      setSelectedChatAgentId('')
+    }
+  }, [desktopState.agentWorkspace.agents, selectedChatAgentId])
 
   const applyPreferenceUpdate = (patch: Parameters<typeof updatePreferences>[0]) => {
     setDesktopState((state) => ({
@@ -355,16 +366,21 @@ export default function App() {
       <main className="desktop-workspace">
         {activeNavId === 'new-chat' ? (
           <ChatWorkspace
+            agents={desktopState.agentWorkspace.agents}
             conversation={desktopState.conversation}
             modelOptions={modelOptions}
             onDecidePermission={(requestId, status) => void applyDesktopState(() => decidePermission(requestId, status))}
             onPreferenceUpdate={applyPreferenceUpdate}
             onQueuedInputTextConsumed={() => setQueuedChatInputText('')}
-            onSendMessage={(message) => void applyDesktopState(() => sendMessage(message))}
+            onSelectedChatAgentChange={setSelectedChatAgentId}
+            onSendMessage={(message) => void applyDesktopState(() => sendMessage(message, {
+              agentId: selectedChatAgentId || undefined,
+            }))}
             permissionRequest={desktopState.permissionRequest}
             preferences={desktopState.preferences}
             queuedInputText={queuedChatInputText}
             renderDesktopIcon={(icon) => <DesktopIcon icon={icon} />}
+            selectedChatAgentId={selectedChatAgentId}
           />
         ) : (
           <section className="desktop-content" aria-label={`${activeNavLabel} 工作区`}>

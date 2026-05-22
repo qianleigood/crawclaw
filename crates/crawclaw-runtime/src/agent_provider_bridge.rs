@@ -21,8 +21,21 @@ pub(super) fn build_filtered_pi_agent_rust_tool_registry(
             .into_tools()
             .into_iter()
             .filter(|tool| allowlist.contains(tool.name()))
-            .collect(),
+        .collect(),
     )
+}
+
+pub(super) fn build_pi_agent_rust_tool_registry_for_selection(
+    runtime_root: &Path,
+    selection: &AgentRuntimeToolSelection,
+) -> pi::sdk::ToolRegistry {
+    match selection {
+        AgentRuntimeToolSelection::Default => build_pi_agent_rust_tool_registry(runtime_root),
+        AgentRuntimeToolSelection::Disabled => pi::sdk::ToolRegistry::from_tools(Vec::new()),
+        AgentRuntimeToolSelection::AllowList(enabled_tools) => {
+            build_filtered_pi_agent_rust_tool_registry(runtime_root, enabled_tools)
+        }
+    }
 }
 
 #[derive(Clone)]

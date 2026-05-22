@@ -42,6 +42,7 @@ pub(super) struct SelectNavRequest {
 #[serde(rename_all = "camelCase")]
 pub(super) struct SendMessageRequest {
     text: String,
+    agent_id: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -162,7 +163,7 @@ pub(super) async fn send_message(
     run_native_state_mutation(
         &state,
         DesktopNativeMutation::SendMessage,
-        json!({ "text": text }),
+        json!({ "text": text, "agentId": payload.agent_id }),
     )
     .await
 }

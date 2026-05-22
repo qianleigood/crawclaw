@@ -34,6 +34,11 @@ pub(super) enum ToggleMutation {
     AgentSkill,
 }
 
+struct DesktopSendContext {
+    thread_id: String,
+    options: AgentRuntimeSendOptions,
+}
+
 pub(super) async fn run_native_state_mutation(
     state: &GatewayState,
     operation: DesktopNativeMutation,
@@ -53,17 +58,10 @@ pub(super) async fn apply_native_operation(
     match operation {
         DesktopNativeMutation::SendMessage => {
             let text = string_field(&input, "text").ok_or(StatusCode::BAD_REQUEST)?;
-            let (thread_id, model_selection) = {
-                let desktop_state = state.desktop_state.read().await;
-                (
-                    active_thread_id(&desktop_state)
-                        .unwrap_or_else(|| format!("thread-{}", Uuid::new_v4().simple())),
-                    model_selection_from_preferences(&desktop_state.preferences),
-                )
-            };
+            let send_context = desktop_send_context(state, &input).await?;
             let send_result = match state
                 .agent_runtime
-                .send_message_with_model_selection(thread_id, text, model_selection)
+                .send_message_with_options(send_context.thread_id, text, send_context.options)
                 .await
             {
                 Ok(send_result) => send_result,
@@ -154,7 +152,8 @@ pub(super) async fn apply_native_operation(
                 }
             };
             let id = format!("agent-{}", Uuid::new_v4().simple());
-            let agent = agent_profile(id.clone(), name, role, description, channels);
+            let mut agent = agent_profile(id.clone(), name, role, description, channels);
+            apply_agent_configuration_from_input(state, &mut agent, &input).await?;
             persist_agent_profile(state, &agent)?;
             {
                 let mut desktop_state = state.desktop_state.write().await;
@@ -185,6 +184,7 @@ pub(super) async fn apply_native_operation(
             if let Some(description) = string_field(&input, "description") {
                 updated_agent.description = description;
             }
+            apply_agent_configuration_from_input(state, &mut updated_agent, &input).await?;
             persist_agent_profile(state, &updated_agent)?;
             {
                 let mut desktop_state = state.desktop_state.write().await;
@@ -496,6 +496,44 @@ pub(super) fn agent_runtime_error_status(error: &AgentRuntimeError) -> StatusCod
     }
 }
 
+async fn desktop_send_context(
+    state: &GatewayState,
+    input: &Value,
+) -> Result<DesktopSendContext, StatusCode> {
+    let desktop_state = state.desktop_state.read().await;
+    let thread_id = active_thread_id(&desktop_state)
+        .unwrap_or_else(|| format!("thread-{}", Uuid::new_v4().simple()));
+    let Some(agent_id) = string_field(input, "agentId") else {
+        return Ok(DesktopSendContext {
+            thread_id,
+            options: AgentRuntimeSendOptions {
+                model_selection: Some(model_selection_from_preferences(&desktop_state.preferences)),
+                tool_selection: if desktop_state.preferences.task_defaults.allow_tools {
+                    AgentRuntimeToolSelection::Default
+                } else {
+                    AgentRuntimeToolSelection::Disabled
+                },
+                system_prompt: None,
+            },
+        });
+    };
+    let agent = desktop_state
+        .agent_workspace
+        .agents
+        .iter()
+        .find(|agent| agent.id == agent_id)
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    Ok(DesktopSendContext {
+        thread_id,
+        options: AgentRuntimeSendOptions {
+            model_selection: Some(model_selection_from_agent(agent)),
+            tool_selection: tool_selection_from_agent(agent),
+            system_prompt: Some(system_prompt_from_agent(agent)),
+        },
+    })
+}
+
 fn model_selection_from_preferences(preferences: &DesktopPreferences) -> AgentModelSelection {
     let selected_model = preferences.selected_model.trim();
     let (provider, model) = selected_model
@@ -508,6 +546,289 @@ fn model_selection_from_preferences(preferences: &DesktopPreferences) -> AgentMo
         model: non_empty_model_part(model),
         reasoning_level: Some(preferences.selected_thinking.trim().to_string())
             .filter(|value| !value.is_empty()),
+    }
+}
+
+fn model_selection_from_agent(agent: &AgentProfile) -> AgentModelSelection {
+    let selected_model = agent.model.trim();
+    let (provider, model) = selected_model
+        .split_once('/')
+        .map(|(provider, model)| (provider.trim(), model.trim()))
+        .unwrap_or(("configured", selected_model));
+
+    AgentModelSelection {
+        provider: non_empty_model_part(provider),
+        model: non_empty_model_part(model),
+        reasoning_level: Some(agent.thinking.trim().to_string()).filter(|value| !value.is_empty()),
+    }
+}
+
+fn tool_selection_from_agent(agent: &AgentProfile) -> AgentRuntimeToolSelection {
+    let tool_ids = agent
+        .tools
+        .iter()
+        .filter(|tool| tool.enabled)
+        .map(|tool| tool.id.trim())
+        .filter(|tool| !tool.is_empty())
+        .map(ToOwned::to_owned)
+        .collect::<Vec<_>>();
+    if tool_ids.is_empty() {
+        AgentRuntimeToolSelection::Disabled
+    } else {
+        AgentRuntimeToolSelection::AllowList(tool_ids)
+    }
+}
+
+fn system_prompt_from_agent(agent: &AgentProfile) -> String {
+    let mut sections = vec![
+        "# 智能体上下文".to_string(),
+        format!("名称: {}", agent.name),
+        format!("角色: {}", agent.role),
+        format!("权限模式: {}", agent.permission_mode),
+    ];
+    if !agent.description.trim().is_empty() {
+        sections.push(format!("描述: {}", agent.description.trim()));
+    }
+    if !agent.emotion.prompt_md.trim().is_empty() {
+        sections.push(agent.emotion.prompt_md.trim().to_string());
+    }
+    let skills = agent
+        .skills
+        .iter()
+        .filter(|skill| skill.enabled)
+        .map(|skill| {
+            format!(
+                "- {} {}: {}",
+                normalize_skill_trigger(skill.trigger.clone()),
+                skill.name,
+                skill.description
+            )
+        })
+        .collect::<Vec<_>>();
+    if !skills.is_empty() {
+        sections.push("可用技能:".to_string());
+        sections.extend(skills);
+    }
+    sections.join("\n")
+}
+
+async fn apply_agent_configuration_from_input(
+    state: &GatewayState,
+    agent: &mut AgentProfile,
+    input: &Value,
+) -> Result<(), StatusCode> {
+    if let Some(model) = string_field(input, "model") {
+        agent.model = model;
+    }
+    if let Some(thinking) = string_field(input, "thinking") {
+        agent.thinking = thinking;
+    }
+    if let Some(permission_mode) = string_field(input, "permissionMode") {
+        agent.permission_mode = permission_mode;
+    }
+    if let Some(status) = string_field(input, "status") {
+        agent.status = status;
+    }
+    if let Some(emotion) = input.get("emotion") {
+        agent.emotion =
+            serde_json::from_value::<AgentEmotionProfile>(emotion.clone()).map_err(|error| {
+                emit_operation_failed(
+                    state,
+                    "invalid_agent_config",
+                    format!("Invalid agent emotion payload: {error}"),
+                );
+                StatusCode::BAD_REQUEST
+            })?;
+    }
+    if let Some(voice) = input.get("voice") {
+        agent.voice =
+            serde_json::from_value::<AgentVoiceConfig>(voice.clone()).map_err(|error| {
+                emit_operation_failed(
+                    state,
+                    "invalid_agent_config",
+                    format!("Invalid agent voice payload: {error}"),
+                );
+                StatusCode::BAD_REQUEST
+            })?;
+    }
+    if let Some(avatar) = input.get("avatar") {
+        agent.avatar =
+            serde_json::from_value::<AgentAvatarProfile>(avatar.clone()).map_err(|error| {
+                emit_operation_failed(
+                    state,
+                    "invalid_agent_config",
+                    format!("Invalid agent avatar payload: {error}"),
+                );
+                StatusCode::BAD_REQUEST
+            })?;
+    }
+    if input.get("channels").is_some() {
+        agent.channels = agent_channels_from_input(input).map_err(|message| {
+            emit_operation_failed(state, "invalid_channel", message);
+            StatusCode::BAD_REQUEST
+        })?;
+    }
+    if input.get("toolIds").is_some() {
+        agent.tools = resolve_agent_tools(state, string_array_field(input, "toolIds")).await?;
+    }
+    if input.get("skillIds").is_some() {
+        agent.skills = resolve_agent_skills(state, string_array_field(input, "skillIds")).await?;
+    }
+    Ok(())
+}
+
+async fn resolve_agent_tools(
+    state: &GatewayState,
+    requested_ids: Vec<String>,
+) -> Result<Vec<AgentTool>, StatusCode> {
+    let (plugin_tools, existing_tools) = {
+        let desktop_state = state.desktop_state.read().await;
+        (
+            desktop_state.plugins_workspace.tools.clone(),
+            desktop_state
+                .agent_workspace
+                .agents
+                .iter()
+                .flat_map(|agent| agent.tools.clone())
+                .collect::<Vec<_>>(),
+        )
+    };
+    let runtime_tools =
+        crawclaw_runtime::pi_agent_rust_tool_descriptors_for_runtime_root(&state.runtime_root);
+    let mut tools = Vec::new();
+    let mut seen = std::collections::BTreeSet::new();
+    for requested_id in requested_ids {
+        if !seen.insert(requested_id.clone()) {
+            continue;
+        }
+        if let Some(tool) = runtime_tools
+            .iter()
+            .find(|tool| tool.name == requested_id)
+            .map(agent_tool_from_runtime_descriptor)
+            .or_else(|| {
+                plugin_tools
+                    .iter()
+                    .find(|tool| tool.id == requested_id)
+                    .map(agent_tool_from_plugin_tool)
+            })
+            .or_else(|| {
+                existing_tools
+                    .iter()
+                    .find(|tool| tool.id == requested_id)
+                    .cloned()
+                    .map(|mut tool| {
+                        tool.enabled = true;
+                        tool
+                    })
+            })
+        {
+            tools.push(tool);
+            continue;
+        }
+        emit_operation_failed(
+            state,
+            "invalid_agent_capability",
+            format!("Unknown agent tool id: {requested_id}"),
+        );
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    Ok(tools)
+}
+
+async fn resolve_agent_skills(
+    state: &GatewayState,
+    requested_ids: Vec<String>,
+) -> Result<Vec<AgentSkill>, StatusCode> {
+    let (plugin_skills, existing_skills) = {
+        let desktop_state = state.desktop_state.read().await;
+        (
+            desktop_state.plugins_workspace.skills.clone(),
+            desktop_state
+                .agent_workspace
+                .agents
+                .iter()
+                .flat_map(|agent| agent.skills.clone())
+                .collect::<Vec<_>>(),
+        )
+    };
+    let mut skills = Vec::new();
+    let mut seen = std::collections::BTreeSet::new();
+    for requested_id in requested_ids {
+        if !seen.insert(requested_id.clone()) {
+            continue;
+        }
+        if let Some(skill) = plugin_skills
+            .iter()
+            .find(|skill| skill.id == requested_id)
+            .map(agent_skill_from_plugin_skill)
+            .or_else(|| {
+                existing_skills
+                    .iter()
+                    .find(|skill| skill.id == requested_id)
+                    .cloned()
+                    .map(|mut skill| {
+                        skill.enabled = true;
+                        skill
+                    })
+            })
+        {
+            skills.push(skill);
+            continue;
+        }
+        emit_operation_failed(
+            state,
+            "invalid_agent_capability",
+            format!("Unknown agent skill id: {requested_id}"),
+        );
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    Ok(skills)
+}
+
+fn agent_tool_from_runtime_descriptor(
+    tool: &crawclaw_runtime::RustAgentToolDescriptor,
+) -> AgentTool {
+    AgentTool {
+        id: tool.name.clone(),
+        name: tool.label.clone(),
+        description: tool.description.clone(),
+        status: "available".to_string(),
+        permission: if tool.read_only {
+            "只读"
+        } else {
+            "工作区"
+        }
+        .to_string(),
+        icon: "terminal".to_string(),
+        open: false,
+        enabled: true,
+    }
+}
+
+fn agent_tool_from_plugin_tool(tool: &PluginTool) -> AgentTool {
+    AgentTool {
+        id: tool.id.clone(),
+        name: tool.name.clone(),
+        description: tool.description.clone(),
+        status: tool.status.clone(),
+        permission: tool.permission.clone(),
+        icon: tool.icon.clone(),
+        open: tool.open,
+        enabled: true,
+    }
+}
+
+fn agent_skill_from_plugin_skill(skill: &PluginSkill) -> AgentSkill {
+    AgentSkill {
+        id: skill.id.clone(),
+        name: skill.name.clone(),
+        trigger: normalize_skill_trigger(skill.trigger.clone()),
+        description: skill.description.clone(),
+        status: skill.status.clone(),
+        source: skill.source.clone(),
+        icon: skill.icon.clone(),
+        open: skill.open,
+        enabled: true,
     }
 }
 

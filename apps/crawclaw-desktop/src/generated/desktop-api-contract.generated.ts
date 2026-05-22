@@ -264,6 +264,11 @@ export interface UpdateMemoryItemPatch {
   source?: string
 }
 
+export interface SendMessageInput {
+  text: string
+  agentId?: string
+}
+
 export interface CreateAgentInput {
   name: string
   role: string
@@ -282,10 +287,17 @@ export interface CreateAgentInput {
 export interface UpdateAgentInput {
   name?: string
   role?: string
+  description?: string
   status?: string
   model?: string
   thinking?: string
   permissionMode?: string
+  emotion?: AgentEmotionProfile
+  voice?: AgentVoiceConfig
+  channels?: AgentChannelBinding[]
+  avatar?: AgentAvatarProfile
+  toolIds?: string[]
+  skillIds?: string[]
 }
 
 export interface AddAgentSkillInput {

@@ -25,21 +25,22 @@ use crawclaw_plugin_host::{
 };
 use crawclaw_runtime::{
     special_agents::find_special_agent, AgentModelSelection, AgentRunRequest, AgentRuntime,
-    AgentRuntimeError, ChannelChatType, ChannelInboundEnvelope, DesktopAgentStore,
-    DesktopAgentStoreError, DesktopMemoryRecord, DesktopMemoryStore, DesktopMemoryStoreError,
-    DesktopPreferencesRecord, DesktopPreferencesStore, DesktopPreferencesStoreError,
-    DesktopSessionRecord, DesktopSessionStore, DesktopSessionStoreError,
+    AgentRuntimeError, AgentRuntimeSendOptions, AgentRuntimeToolSelection, ChannelChatType,
+    ChannelInboundEnvelope, DesktopAgentStore, DesktopAgentStoreError, DesktopMemoryRecord,
+    DesktopMemoryStore, DesktopMemoryStoreError, DesktopPreferencesRecord, DesktopPreferencesStore,
+    DesktopPreferencesStoreError, DesktopSessionRecord, DesktopSessionStore,
+    DesktopSessionStoreError,
 };
 
 use crate::gateway::desktop_state::initial_desktop_state;
 use crate::gateway::runtime_supervisor::RuntimeSupervisor;
 use crate::models::{
     AdvancedDefaults, AgentAvatarProfile, AgentChannelBinding, AgentChannelConfig,
-    AgentChannelConfigField, AgentEmotionProfile, AgentProfile, AgentSkill, AgentVoiceConfig,
-    ConfirmationDefaults, ConversationMessage, DesktopApiInfo, DesktopAppInfo, DesktopEvent,
-    DesktopPreferences, DesktopState, MemoryDefaults, MemoryItem, NotificationDefaults,
-    PermissionStatus, PluginSkill, PluginTool, PrivacyDefaults, RuntimeCheck, SidebarThread,
-    TaskDefaults, UiDefaults,
+    AgentChannelConfigField, AgentEmotionProfile, AgentProfile, AgentSkill, AgentTool,
+    AgentVoiceConfig, ConfirmationDefaults, ConversationMessage, DesktopApiInfo, DesktopAppInfo,
+    DesktopEvent, DesktopPreferences, DesktopState, MemoryDefaults, MemoryItem,
+    NotificationDefaults, PermissionStatus, PluginSkill, PluginTool, PrivacyDefaults, RuntimeCheck,
+    SidebarThread, TaskDefaults, UiDefaults,
 };
 use crate::runtime_engine::RuntimeLayout;
 

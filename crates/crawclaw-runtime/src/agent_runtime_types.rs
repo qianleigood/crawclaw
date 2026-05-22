@@ -14,7 +14,8 @@ pub struct AgentRuntimeRequest<'a> {
     pub history: Vec<AgentRuntimeMessage>,
     pub provider_config: NativeProviderConfig,
     pub reasoning_level: Option<String>,
-    pub enabled_tools: Vec<String>,
+    pub tool_selection: AgentRuntimeToolSelection,
+    pub system_prompt: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -27,4 +28,19 @@ pub struct AgentRuntimeMessage {
 pub enum AgentRuntimeMessageRole {
     User,
     Assistant,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct AgentRuntimeSendOptions {
+    pub model_selection: Option<AgentModelSelection>,
+    pub tool_selection: AgentRuntimeToolSelection,
+    pub system_prompt: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub enum AgentRuntimeToolSelection {
+    #[default]
+    Default,
+    Disabled,
+    AllowList(Vec<String>),
 }

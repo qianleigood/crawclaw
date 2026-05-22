@@ -13,6 +13,7 @@ import type {
   MemoryFilter,
   PermissionStatus,
   SearchSuggestion,
+  SendMessageInput,
   UpdateAgentInput,
   UpdateMemoryItemPatch,
 } from '../generated/desktop-api-contract.generated'
@@ -143,9 +144,13 @@ export async function listSubagents(parentSessionKey?: string): Promise<DesktopS
   return requestDesktop<DesktopSubagentsResponse>(context, `/api/desktop/subagents${query}`)
 }
 
-export async function sendMessage(text: string): Promise<DesktopState> {
+export async function sendMessage(text: string, options: { agentId?: string } = {}): Promise<DesktopState> {
+  const body: SendMessageInput = {
+    ...(options.agentId ? { agentId: options.agentId } : {}),
+    text,
+  }
   return mutateDesktopState('/api/desktop/messages', {
-    body: { text },
+    body,
     method: 'POST',
   })
 }

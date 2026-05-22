@@ -1080,6 +1080,118 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
+async fn gateway_create_agent_applies_runtime_configuration() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-agent-runtime-config",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    write_plugin_manifest(&runtime_layout);
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let create_body = serde_json::json!({
+        "name": "Planner",
+        "role": "Planning agent",
+        "description": "runtime configured",
+        "model": "MiniMax-M2.7-highspeed",
+        "thinking": "medium",
+        "permissionMode": "只读模式",
+        "emotion": {
+            "style": "严谨审查",
+            "tone": "证据优先",
+            "boundaries": ["先列风险"],
+            "promptMd": "# 严谨审查\n- 先列风险"
+        },
+        "voice": {
+            "enabled": true,
+            "inputEnabled": true,
+            "outputEnabled": false,
+            "wakeEnabled": false,
+            "source": "qwen-preset",
+            "presetVoice": "Serena",
+            "designPrompt": "",
+            "cloneVoiceName": "",
+            "cloneSampleName": "",
+            "style": "严谨清晰",
+            "pace": "慢速"
+        },
+        "avatar": {
+            "initials": "PL",
+            "gradient": "linear-gradient(135deg, #111827, #14b8a6)",
+            "source": "generated"
+        },
+        "channels": [{"id": "desktop", "label": "桌面", "enabled": true}],
+        "toolIds": ["read"],
+        "skillIds": ["plugin-skill-review"]
+    })
+    .to_string();
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/agents HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            create_body.len(),
+            create_body
+        ),
+    )
+    .await;
+
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("create state json");
+    let agent_id = json["agentWorkspace"]["selectedAgentId"]
+        .as_str()
+        .expect("created agent id");
+    let agent = &json["agentWorkspace"]["agents"][0];
+    assert_eq!(agent["model"], "MiniMax-M2.7-highspeed");
+    assert_eq!(agent["thinking"], "medium");
+    assert_eq!(agent["permissionMode"], "只读模式");
+    assert_eq!(agent["emotion"]["promptMd"], "# 严谨审查\n- 先列风险");
+    assert_eq!(agent["voice"]["presetVoice"], "Serena");
+    assert_eq!(agent["avatar"]["initials"], "PL");
+    assert_eq!(agent["tools"][0]["id"], "read");
+    assert_eq!(agent["skills"][0]["id"], "plugin-skill-review");
+
+    let restarted_server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("restarted gateway should start");
+    let (status, body) = request(
+        restarted_server.addr,
+        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
+    let persisted_agent = json["desktopState"]["agentWorkspace"]["agents"]
+        .as_array()
+        .expect("agents")
+        .iter()
+        .find(|agent| agent["id"].as_str() == Some(agent_id))
+        .expect("persisted agent");
+    assert_eq!(persisted_agent["model"], "MiniMax-M2.7-highspeed");
+    assert_eq!(persisted_agent["thinking"], "medium");
+    assert_eq!(persisted_agent["permissionMode"], "只读模式");
+    assert_eq!(persisted_agent["tools"][0]["id"], "read");
+    assert_eq!(persisted_agent["skills"][0]["id"], "plugin-skill-review");
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn gateway_agent_skill_mutations_persist_through_rust_runtime_store() {
     let runtime_layout = create_runtime_fixture(
         "desktop-agent-skill-store",
@@ -1494,6 +1606,201 @@ esac
         .expect("conversation messages")
         .iter()
         .any(|message| message["kind"] == "assistant" && message["text"] == "minimax reply"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_send_message_uses_selected_agent_context() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-send-selected-agent",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    write_plugin_manifest(&runtime_layout);
+    let provider_base_url = spawn_openai_compatible_provider_with_request_checks(
+        "agent reply",
+        Some("MiniMax-M2.7-highspeed"),
+        &[
+            "hello selected agent",
+            "Planner",
+            "只读模式",
+            "@review",
+            "# 严谨审查",
+        ],
+        &[],
+    )
+    .await;
+    write_openai_compatible_provider_config(&runtime_layout, &provider_base_url);
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+    let create_body = serde_json::json!({
+        "name": "Planner",
+        "role": "Planning agent",
+        "description": "Plans local work",
+        "model": "MiniMax-M2.7-highspeed",
+        "thinking": "medium",
+        "permissionMode": "只读模式",
+        "emotion": {
+            "style": "严谨审查",
+            "tone": "证据优先",
+            "boundaries": ["先列风险"],
+            "promptMd": "# 严谨审查\n- 先列风险"
+        },
+        "channels": [{"id": "desktop", "label": "桌面", "enabled": true}],
+        "skillIds": ["plugin-skill-review"]
+    })
+    .to_string();
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/agents HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            create_body.len(),
+            create_body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("create state json");
+    let agent_id = json["agentWorkspace"]["selectedAgentId"]
+        .as_str()
+        .expect("agent id");
+
+    let send_body = format!(r#"{{"text":"hello selected agent","agentId":"{agent_id}"}}"#);
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/messages HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            send_body.len(),
+            send_body
+        ),
+    )
+    .await;
+
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("conversation messages")
+        .iter()
+        .any(|message| message["kind"] == "assistant" && message["text"] == "agent reply"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_send_message_rejects_unknown_agent() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-send-unknown-agent",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let body = r#"{"text":"hello missing agent","agentId":"missing-agent"}"#;
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/messages HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        ),
+    )
+    .await;
+
+    assert_eq!(status, 404);
+    assert!(!runtime_layout.runtime_root.join("sessions").exists());
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_send_message_agent_without_tools_disables_tools() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-send-agent-no-tools",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let provider_base_url = spawn_openai_compatible_provider_with_request_checks(
+        "agent reply without tools",
+        Some("MiniMax-M2.7-highspeed"),
+        &["hello without tools"],
+        &[r#""tools""#],
+    )
+    .await;
+    write_pi_agent_provider_config(&runtime_layout, &provider_base_url);
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+    let create_body = serde_json::json!({
+        "name": "No Tools Agent",
+        "role": "Planning agent",
+        "model": "MiniMax-M2.7-highspeed",
+        "thinking": "medium",
+        "permissionMode": "工作区模式",
+        "channels": [{"id": "desktop", "label": "桌面", "enabled": true}],
+        "toolIds": []
+    })
+    .to_string();
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/agents HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            create_body.len(),
+            create_body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("create state json");
+    let agent_id = json["agentWorkspace"]["selectedAgentId"]
+        .as_str()
+        .expect("agent id");
+
+    let send_body = format!(r#"{{"text":"hello without tools","agentId":"{agent_id}"}}"#);
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/messages HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            send_body.len(),
+            send_body
+        ),
+    )
+    .await;
+
+    assert_eq!(status, 200);
 }
 
 #[cfg(unix)]
@@ -2415,13 +2722,52 @@ async fn spawn_openai_compatible_provider_with_optional_model(
     response_text: &str,
     expected_model: Option<&str>,
 ) -> String {
+    spawn_openai_compatible_provider_with_checks(
+        response_text,
+        expected_model,
+        &[&format!(r#""content":"{expected_text}""#)],
+        &[],
+    )
+    .await
+}
+
+#[cfg(unix)]
+async fn spawn_openai_compatible_provider_with_request_checks(
+    response_text: &str,
+    expected_model: Option<&str>,
+    required_substrings: &[&str],
+    forbidden_substrings: &[&str],
+) -> String {
+    spawn_openai_compatible_provider_with_checks(
+        response_text,
+        expected_model,
+        required_substrings,
+        forbidden_substrings,
+    )
+    .await
+}
+
+#[cfg(unix)]
+async fn spawn_openai_compatible_provider_with_checks(
+    response_text: &str,
+    expected_model: Option<&str>,
+    required_substrings: &[&str],
+    forbidden_substrings: &[&str],
+) -> String {
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
         .await
         .expect("bind provider");
     let addr = listener.local_addr().expect("provider addr");
-    let expected_text = expected_text.to_string();
     let response_text = response_text.to_string();
     let expected_model = expected_model.map(str::to_string);
+    let required_substrings = required_substrings
+        .iter()
+        .map(|value| (*value).to_string())
+        .collect::<Vec<_>>();
+    let forbidden_substrings = forbidden_substrings
+        .iter()
+        .map(|value| (*value).to_string())
+        .collect::<Vec<_>>();
     tokio::spawn(async move {
         let (mut stream, _) = listener.accept().await.expect("accept provider request");
         let mut bytes = Vec::new();
@@ -2439,7 +2785,18 @@ async fn spawn_openai_compatible_provider_with_optional_model(
         }
         let request = String::from_utf8_lossy(&bytes);
         assert!(request.starts_with("POST /v1/chat/completions "));
-        assert!(request.contains(&format!(r#""content":"{expected_text}""#)));
+        for required in &required_substrings {
+            assert!(
+                request.contains(required),
+                "provider request did not contain required substring {required}: {request}"
+            );
+        }
+        for forbidden in &forbidden_substrings {
+            assert!(
+                !request.contains(forbidden),
+                "provider request contained forbidden substring {forbidden}: {request}"
+            );
+        }
         if let Some(expected_model) = expected_model {
             assert!(request.contains(&format!(r#""model":"{expected_model}""#)));
         }
@@ -2447,12 +2804,32 @@ async fn spawn_openai_compatible_provider_with_optional_model(
             .to_lowercase()
             .contains("authorization: bearer test-key"));
 
-        let body = format!(
-            r#"{{"choices":[{{"message":{{"content":{}}}}}]}}"#,
-            serde_json::to_string(&response_text).expect("response text json")
-        );
+        let (content_type, body) = if request.contains(r#""stream":true"#) {
+            let chunk = serde_json::to_string(&serde_json::json!({
+                "choices": [
+                    {
+                        "delta": {
+                            "content": response_text
+                        }
+                    }
+                ]
+            }))
+            .expect("stream chunk");
+            (
+                "text/event-stream",
+                format!("data: {chunk}\n\ndata: [DONE]\n\n"),
+            )
+        } else {
+            (
+                "application/json",
+                format!(
+                    r#"{{"choices":[{{"message":{{"content":{}}}}}]}}"#,
+                    serde_json::to_string(&response_text).expect("response text json")
+                ),
+            )
+        };
         let response = format!(
-            "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}",
+            "HTTP/1.1 200 OK\r\ncontent-type: {content_type}\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}",
             body.len(),
             body
         );
@@ -2463,6 +2840,27 @@ async fn spawn_openai_compatible_provider_with_optional_model(
     });
 
     format!("http://{addr}/v1")
+}
+
+#[cfg(unix)]
+fn write_pi_agent_provider_config(layout: &RuntimeLayout, base_url: &str) {
+    let config_dir = layout.runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("runtime config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        format!(
+            r#"{{
+  "runtime": "pi-agent-rust",
+  "provider": "openai-compatible",
+  "baseUrl": "{}",
+  "apiKey": "test-key",
+  "model": "test-model"
+}}
+"#,
+            base_url
+        ),
+    )
+    .expect("provider config");
 }
 
 #[cfg(unix)]

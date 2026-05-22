@@ -1,5 +1,6 @@
 import {
   ArrowUp,
+  Bot,
   Brain,
   ChevronDown,
   FileText,
@@ -16,10 +17,12 @@ import {
   type ReactNode,
 } from 'react'
 import type {
+  AgentProfile,
   ConversationState,
   DesktopIconKey,
   DesktopPreferences,
   PermissionRequest,
+  SkillSuggestion,
 } from '../desktop-api'
 import { Composer, PermissionModeButton } from '../ui/composer'
 import { IconButton } from '../ui/icon-button'
@@ -27,42 +30,52 @@ import { ChatThread } from './chat-thread'
 import type { PreferencePatch } from './chat-workspace-model'
 
 type ChatWorkspaceProps = {
+  agents: AgentProfile[]
   conversation: ConversationState
   modelOptions: string[]
   onDecidePermission: (requestId: string, status: 'approved' | 'denied') => void
   onPreferenceUpdate: (patch: Partial<PreferencePatch>) => void
   onQueuedInputTextConsumed?: () => void
   onSendMessage: (message: string) => void
+  onSelectedChatAgentChange: (agentId: string) => void
   permissionRequest: PermissionRequest
   preferences: DesktopPreferences
   queuedInputText?: string
   renderDesktopIcon: (icon: DesktopIconKey) => ReactNode
+  selectedChatAgentId: string
 }
 
 export function ChatWorkspace({
+  agents,
   conversation,
   modelOptions,
   onDecidePermission,
   onPreferenceUpdate,
   onQueuedInputTextConsumed,
   onSendMessage,
+  onSelectedChatAgentChange,
   permissionRequest,
   preferences,
   queuedInputText,
   renderDesktopIcon,
+  selectedChatAgentId,
 }: ChatWorkspaceProps) {
   const [composerText, setComposerText] = useState('')
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false)
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false)
   const [isListening, setIsListening] = useState(false)
-  const [selectorOpen, setSelectorOpen] = useState<'thinking' | 'model' | 'permission' | null>(null)
+  const [selectorOpen, setSelectorOpen] = useState<'agent' | 'thinking' | 'model' | 'permission' | null>(null)
   const slashCommands = conversation.slashCommands
-  const skillCommands = conversation.skillCommands
+  const selectedAgent = agents.find((agent) => agent.id === selectedChatAgentId) ?? null
+  const isAgentMode = Boolean(selectedAgent)
+  const skillCommands = selectedAgent
+    ? selectedAgent.skills.filter((skill) => skill.enabled).map(agentSkillSuggestion)
+    : conversation.skillCommands
   const approvalState = permissionRequest.status
   const hasPermissionRequest = Boolean(permissionRequest.id)
-  const permissionMode = preferences.permissionMode
-  const selectedModel = preferences.selectedModel
-  const selectedThinking = preferences.selectedThinking
+  const permissionMode = selectedAgent?.permissionMode ?? preferences.permissionMode
+  const selectedModel = selectedAgent?.model ?? preferences.selectedModel
+  const selectedThinking = selectedAgent?.thinking ?? preferences.selectedThinking
   const commandTrigger = composerText.startsWith('/') ? '/' : composerText.startsWith('@') ? '@' : null
   const commandQuery = commandTrigger ? composerText.slice(1).trim().toLowerCase() : ''
   const visibleSlashCommands = isCommandMenuOpen && commandTrigger === '/'
@@ -294,18 +307,66 @@ export function ChatWorkspace({
               </div>
             ) : null}
             <button
+              aria-expanded={selectorOpen === 'agent'}
+              aria-haspopup="menu"
+              aria-label={`对话模式 ${selectedAgent?.name ?? '本机默认'}`}
+              className="agent-mode-pill"
+              onClick={() => {
+                setSelectorOpen(selectorOpen === 'agent' ? null : 'agent')
+                setIsAttachmentMenuOpen(false)
+              }}
+              type="button"
+            >
+              <Bot aria-hidden="true" size={14} strokeWidth={2} />
+              <span>{selectedAgent?.name ?? '本机默认'}</span>
+              <ChevronDown aria-hidden="true" size={13} strokeWidth={2} />
+            </button>
+            {selectorOpen === 'agent' ? (
+              <div aria-label="对话模式选择" className="selector-menu selector-menu--agent" onKeyDown={handleMenuKeyDown} role="menu">
+                <button
+                  className={!selectedAgent ? 'is-selected' : ''}
+                  onClick={() => {
+                    onSelectedChatAgentChange('')
+                    setSelectorOpen(null)
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  本机默认
+                </button>
+                {agents.map((agent) => (
+                  <button
+                    className={agent.id === selectedAgent?.id ? 'is-selected' : ''}
+                    key={agent.id}
+                    onClick={() => {
+                      onSelectedChatAgentChange(agent.id)
+                      setSelectorOpen(null)
+                    }}
+                    role="menuitem"
+                    type="button"
+                  >
+                    {agent.name}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <button
               aria-expanded={selectorOpen === 'thinking'}
               aria-haspopup="menu"
               aria-label={`思考等级 ${selectedThinking}`}
               className="thinking-level-pill"
-              onClick={() => setSelectorOpen(selectorOpen === 'thinking' ? null : 'thinking')}
+              onClick={() => {
+                if (!isAgentMode) {
+                  setSelectorOpen(selectorOpen === 'thinking' ? null : 'thinking')
+                }
+              }}
               type="button"
             >
               <Brain aria-hidden="true" size={14} strokeWidth={2} />
               <span>思考 {selectedThinking}</span>
               <ChevronDown aria-hidden="true" size={13} strokeWidth={2} />
             </button>
-            {selectorOpen === 'thinking' ? (
+            {selectorOpen === 'thinking' && !isAgentMode ? (
               <div aria-label="思考等级选择" className="selector-menu selector-menu--thinking" onKeyDown={handleMenuKeyDown} role="menu">
                 {preferences.thinkingOptions.map((level) => (
                   <button
@@ -328,13 +389,17 @@ export function ChatWorkspace({
               aria-haspopup="menu"
               aria-label={`模型 ${selectedModel}`}
               className="model-pill"
-              onClick={() => setSelectorOpen(selectorOpen === 'model' ? null : 'model')}
+              onClick={() => {
+                if (!isAgentMode) {
+                  setSelectorOpen(selectorOpen === 'model' ? null : 'model')
+                }
+              }}
               type="button"
             >
               <span>{selectedModel}</span>
               <ChevronDown aria-hidden="true" size={13} strokeWidth={2} />
             </button>
-            {selectorOpen === 'model' ? (
+            {selectorOpen === 'model' && !isAgentMode ? (
               <div aria-label="模型选择" className="selector-menu selector-menu--model" onKeyDown={handleMenuKeyDown} role="menu">
                 {modelOptions.map((model) => (
                   <button
@@ -361,9 +426,13 @@ export function ChatWorkspace({
             <PermissionModeButton
               expanded={selectorOpen === 'permission'}
               label={permissionMode}
-              onClick={() => setSelectorOpen(selectorOpen === 'permission' ? null : 'permission')}
+              onClick={() => {
+                if (!isAgentMode) {
+                  setSelectorOpen(selectorOpen === 'permission' ? null : 'permission')
+                }
+              }}
             />
-            {selectorOpen === 'permission' ? (
+            {selectorOpen === 'permission' && !isAgentMode ? (
               <div aria-label="权限模式选择" className="selector-menu selector-menu--permission" onKeyDown={handleMenuKeyDown} role="menu">
                 {preferences.permissionModeOptions.map((mode) => (
                   <button
@@ -406,4 +475,15 @@ export function ChatWorkspace({
       />
     </>
   )
+}
+
+function agentSkillSuggestion(skill: AgentProfile['skills'][number]): SkillSuggestion {
+  const mention = skill.trigger.startsWith('@') ? skill.trigger : `@${skill.trigger}`
+  return {
+    detail: skill.description,
+    icon: skill.icon,
+    id: skill.id,
+    label: skill.name,
+    mention,
+  }
 }

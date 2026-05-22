@@ -100,6 +100,27 @@ pub(super) fn build_btw_question_prompt(question: &str) -> String {
     .join("\n")
 }
 
+pub(super) fn tool_selection_from_enabled_tools(
+    enabled_tools: Vec<String>,
+) -> AgentRuntimeToolSelection {
+    if enabled_tools.is_empty() {
+        AgentRuntimeToolSelection::Default
+    } else {
+        AgentRuntimeToolSelection::AllowList(enabled_tools)
+    }
+}
+
+pub(super) fn user_text_with_system_prompt(system_prompt: &Option<String>, user_text: &str) -> String {
+    let Some(system_prompt) = system_prompt
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    else {
+        return user_text.to_string();
+    };
+    format!("{system_prompt}\n\n用户消息:\n{}", user_text.trim())
+}
+
 impl AgentRuntime {
     pub fn new(runtime_root: PathBuf) -> Self {
         Self {
@@ -150,11 +171,14 @@ impl AgentRuntime {
                 .await;
         }
         let result = self
-            .send_message_with_model(
+            .send_message_with_options(
                 session_key.clone(),
                 user_text.clone(),
-                Some(&model),
-                &request.enabled_tools,
+                AgentRuntimeSendOptions {
+                    model_selection: Some(model.clone()),
+                    tool_selection: tool_selection_from_enabled_tools(request.enabled_tools),
+                    system_prompt: None,
+                },
             )
             .await?;
         let assistant_text = result.assistant_text;
@@ -221,11 +245,14 @@ impl AgentRuntime {
         model: AgentModelSelection,
     ) -> Result<AgentRunResult, AgentRuntimeError> {
         let result = self
-            .send_ephemeral_message_with_model(
+            .send_ephemeral_message_with_options(
                 session_key.clone(),
                 build_btw_question_prompt(&question),
-                Some(&model),
-                &[],
+                AgentRuntimeSendOptions {
+                    model_selection: Some(model),
+                    tool_selection: AgentRuntimeToolSelection::Disabled,
+                    system_prompt: None,
+                },
             )
             .await?;
         let assistant_text = result.assistant_text;
@@ -262,8 +289,16 @@ impl AgentRuntime {
         thread_id: String,
         user_text: String,
     ) -> Result<AgentSendResult, AgentRuntimeError> {
-        self.send_message_with_model(thread_id, user_text, None, &[])
-            .await
+        self.send_message_with_options(
+            thread_id,
+            user_text,
+            AgentRuntimeSendOptions {
+                model_selection: None,
+                tool_selection: AgentRuntimeToolSelection::Default,
+                system_prompt: None,
+            },
+        )
+        .await
     }
 
     pub async fn send_message_with_model_selection(
@@ -272,19 +307,28 @@ impl AgentRuntime {
         user_text: String,
         model_selection: AgentModelSelection,
     ) -> Result<AgentSendResult, AgentRuntimeError> {
-        self.send_message_with_model(thread_id, user_text, Some(&model_selection), &[])
-            .await
+        self.send_message_with_options(
+            thread_id,
+            user_text,
+            AgentRuntimeSendOptions {
+                model_selection: Some(model_selection),
+                tool_selection: AgentRuntimeToolSelection::Default,
+                system_prompt: None,
+            },
+        )
+        .await
     }
 
-    async fn send_message_with_model(
+    pub async fn send_message_with_options(
         &self,
         thread_id: String,
         user_text: String,
-        model_selection: Option<&AgentModelSelection>,
-        enabled_tools: &[String],
+        options: AgentRuntimeSendOptions,
     ) -> Result<AgentSendResult, AgentRuntimeError> {
         let config = self.read_provider_config()?;
         let history = self.load_thread_history(&thread_id)?;
+        let provider_user_text = user_text_with_system_prompt(&options.system_prompt, &user_text);
+        let model_selection = options.model_selection.as_ref();
         let assistant_text = match config.runtime_mode() {
             DesktopAgentRuntimeMode::PiAgentRust => {
                 let mut provider_config =
@@ -294,12 +338,13 @@ impl AgentRuntime {
                     .send_message(AgentRuntimeRequest {
                         runtime_root: &self.runtime_root,
                         thread_id: &thread_id,
-                        user_text: &user_text,
+                        user_text: &provider_user_text,
                         history: history.clone(),
                         provider_config,
                         reasoning_level: model_selection
                             .and_then(|model| model.reasoning_level.clone()),
-                        enabled_tools: enabled_tools.to_vec(),
+                        tool_selection: options.tool_selection.clone(),
+                        system_prompt: options.system_prompt.clone(),
                     })
                     .await?
             }
@@ -311,12 +356,13 @@ impl AgentRuntime {
                     .send_message(AgentRuntimeRequest {
                         runtime_root: &self.runtime_root,
                         thread_id: &thread_id,
-                        user_text: &user_text,
+                        user_text: &provider_user_text,
                         history: history.clone(),
                         provider_config,
                         reasoning_level: model_selection
                             .and_then(|model| model.reasoning_level.clone()),
-                        enabled_tools: enabled_tools.to_vec(),
+                        tool_selection: options.tool_selection.clone(),
+                        system_prompt: options.system_prompt.clone(),
                     })
                     .await?
             }
@@ -330,15 +376,16 @@ impl AgentRuntime {
         })
     }
 
-    async fn send_ephemeral_message_with_model(
+    async fn send_ephemeral_message_with_options(
         &self,
         thread_id: String,
         user_text: String,
-        model_selection: Option<&AgentModelSelection>,
-        enabled_tools: &[String],
+        options: AgentRuntimeSendOptions,
     ) -> Result<AgentSendResult, AgentRuntimeError> {
         let config = self.read_provider_config()?;
         let history = self.load_thread_history(&thread_id)?;
+        let provider_user_text = user_text_with_system_prompt(&options.system_prompt, &user_text);
+        let model_selection = options.model_selection.as_ref();
         let assistant_text = match config.runtime_mode() {
             DesktopAgentRuntimeMode::PiAgentRust => {
                 let mut provider_config =
@@ -348,12 +395,13 @@ impl AgentRuntime {
                     .send_message(AgentRuntimeRequest {
                         runtime_root: &self.runtime_root,
                         thread_id: &thread_id,
-                        user_text: &user_text,
+                        user_text: &provider_user_text,
                         history: history.clone(),
                         provider_config,
                         reasoning_level: model_selection
                             .and_then(|model| model.reasoning_level.clone()),
-                        enabled_tools: enabled_tools.to_vec(),
+                        tool_selection: options.tool_selection.clone(),
+                        system_prompt: options.system_prompt.clone(),
                     })
                     .await?
             }
@@ -365,12 +413,13 @@ impl AgentRuntime {
                     .send_message(AgentRuntimeRequest {
                         runtime_root: &self.runtime_root,
                         thread_id: &thread_id,
-                        user_text: &user_text,
+                        user_text: &provider_user_text,
                         history,
                         provider_config,
                         reasoning_level: model_selection
                             .and_then(|model| model.reasoning_level.clone()),
-                        enabled_tools: enabled_tools.to_vec(),
+                        tool_selection: options.tool_selection.clone(),
+                        system_prompt: options.system_prompt.clone(),
                     })
                     .await?
             }
@@ -568,9 +617,9 @@ impl AgentRuntimeBackend for PiAgentRuntimeBackend {
                 config: request.provider_config.clone(),
                 reasoning_level: request.reasoning_level.clone(),
             });
-            let tools = build_filtered_pi_agent_rust_tool_registry(
+            let tools = build_pi_agent_rust_tool_registry_for_selection(
                 request.runtime_root,
-                &request.enabled_tools,
+                &request.tool_selection,
             );
             let agent_config = pi::sdk::AgentConfig {
                 system_prompt: None,

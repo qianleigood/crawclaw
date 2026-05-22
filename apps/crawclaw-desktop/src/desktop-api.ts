@@ -46,6 +46,7 @@ export type {
   RuntimeStatus,
   RuntimeStatusValue,
   SearchSuggestion,
+  SendMessageInput,
   SidebarState,
   SidebarThreadData,
   SkillSuggestion,

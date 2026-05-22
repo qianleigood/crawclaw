@@ -8,6 +8,7 @@ export interface DesktopApiContext {
 }
 
 let apiContext: DesktopApiContext | null = null
+const DESKTOP_API_BASE_URL_STORAGE_KEY = 'crawclaw.desktopApiBaseUrl'
 
 export class DesktopApiRequestError extends Error {
   code?: string
@@ -44,14 +45,79 @@ export async function ensureDesktopApiContext(initialize: () => Promise<void>): 
 export async function resolveDesktopApiBaseUrl(): Promise<string> {
   const configured = import.meta.env.VITE_CRAWCLAW_DESKTOP_API_BASE_URL?.trim()
   if (configured) {
-    return configured
+    return normalizeDesktopApiBaseUrl(configured)
+  }
+
+  const queryBaseUrl = desktopApiBaseUrlFromLocation()
+  if (queryBaseUrl) {
+    return queryBaseUrl
+  }
+
+  const storedBaseUrl = desktopApiBaseUrlFromStorage()
+  if (storedBaseUrl) {
+    return storedBaseUrl
   }
 
   try {
-    return await invoke<string>('desktop_api_base_url')
+    return normalizeDesktopApiBaseUrl(await invoke<string>('desktop_api_base_url'))
   } catch {
     return ''
   }
+}
+
+function desktopApiBaseUrlFromLocation(): string {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  const candidate = new URLSearchParams(window.location.search).get('desktopApiBaseUrl')?.trim() ?? ''
+  if (!candidate || !isLoopbackDesktopApiBaseUrl(candidate)) {
+    return ''
+  }
+  const baseUrl = normalizeDesktopApiBaseUrl(candidate)
+
+  try {
+    window.localStorage.setItem(DESKTOP_API_BASE_URL_STORAGE_KEY, baseUrl)
+  } catch {
+    // Storage is optional for development browser sessions.
+  }
+  return baseUrl
+}
+
+function desktopApiBaseUrlFromStorage(): string {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  try {
+    const candidate = window.localStorage.getItem(DESKTOP_API_BASE_URL_STORAGE_KEY)?.trim() ?? ''
+    if (isLoopbackDesktopApiBaseUrl(candidate)) {
+      return normalizeDesktopApiBaseUrl(candidate)
+    }
+    if (candidate) {
+      window.localStorage.removeItem(DESKTOP_API_BASE_URL_STORAGE_KEY)
+    }
+  } catch {
+    return ''
+  }
+  return ''
+}
+
+function isLoopbackDesktopApiBaseUrl(value: string): boolean {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' && isLoopbackHostname(url.hostname)
+  } catch {
+    return false
+  }
+}
+
+function normalizeDesktopApiBaseUrl(value: string): string {
+  return value.trim().replace(/\/+$/, '')
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1'
 }
 
 export async function requestDesktopState(
