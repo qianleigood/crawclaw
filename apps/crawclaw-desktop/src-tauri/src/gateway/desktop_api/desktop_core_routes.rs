@@ -15,9 +15,9 @@ use crate::models::{
 };
 
 use super::{
-    apply_session_conversation, authorize_headers, authorize_token, emit_state_changed,
-    run_native_state_mutation, session_store_status, upsert_permission_message,
-    DesktopNativeMutation, GatewayState,
+    apply_session_conversation, authorize_headers, authorize_token,
+    clear_active_thread_conversation, emit_state_changed, run_native_state_mutation,
+    session_store_status, upsert_permission_message, DesktopNativeMutation, GatewayState,
 };
 
 #[derive(Deserialize)]
@@ -145,6 +145,9 @@ pub(super) async fn select_nav(
                 .any(|item| item.id == payload.nav_id && item.id != "search");
         if selectable {
             desktop_state.active_nav_id = payload.nav_id;
+            if desktop_state.active_nav_id == "new-chat" {
+                clear_active_thread_conversation(&mut desktop_state);
+            }
         }
     }
     emit_state_changed(&state).await
@@ -180,6 +183,7 @@ pub(super) async fn select_thread(
         .map_err(|error| session_store_status(&state, error))?;
     {
         let mut desktop_state = state.desktop_state.write().await;
+        desktop_state.active_nav_id = "new-chat".to_string();
         for thread in desktop_state.sidebar.pinned_threads.iter_mut() {
             thread.active = thread.id == payload.thread_id;
         }

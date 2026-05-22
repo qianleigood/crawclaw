@@ -342,23 +342,14 @@ fn apply_session_records(desktop_state: &mut DesktopState, sessions: Vec<Desktop
     if sessions.is_empty() {
         return;
     }
-    let mut selected_result_items = Vec::new();
-    let mut selected_messages = Vec::new();
-    let mut has_active_thread = false;
     desktop_state.sidebar.pinned_threads.clear();
     desktop_state.sidebar.threads.clear();
     for session in sessions {
-        let active = !has_active_thread;
-        if active {
-            selected_messages = conversation_messages_from_session(&session.thread_id, &session);
-            selected_result_items = session.result_items.clone();
-            has_active_thread = true;
-        }
         let thread = SidebarThread {
             id: session.thread_id,
             title: session.title,
             time: "已保存".to_string(),
-            active,
+            active: false,
             agent_avatar: true,
         };
         if session.pinned {
@@ -367,8 +358,7 @@ fn apply_session_records(desktop_state: &mut DesktopState, sessions: Vec<Desktop
             desktop_state.sidebar.threads.push(thread);
         }
     }
-    desktop_state.conversation.messages = selected_messages;
-    desktop_state.conversation.result_items = selected_result_items;
+    clear_active_thread_conversation(desktop_state);
 }
 
 fn apply_session_conversation(
@@ -378,6 +368,20 @@ fn apply_session_conversation(
 ) {
     desktop_state.conversation.messages = conversation_messages_from_session(thread_id, session);
     desktop_state.conversation.result_items = session.result_items.clone();
+}
+
+pub(super) fn clear_active_thread_conversation(desktop_state: &mut DesktopState) {
+    for thread in desktop_state.sidebar.pinned_threads.iter_mut() {
+        thread.active = false;
+    }
+    for thread in desktop_state.sidebar.threads.iter_mut() {
+        thread.active = false;
+    }
+    for thread in desktop_state.sidebar.discussion_threads.iter_mut() {
+        thread.active = false;
+    }
+    desktop_state.conversation.messages.clear();
+    desktop_state.conversation.result_items.clear();
 }
 
 fn conversation_messages_from_session(

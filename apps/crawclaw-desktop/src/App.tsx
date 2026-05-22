@@ -214,6 +214,24 @@ function mergeDesktopPreferences(
   return next
 }
 
+function clearActiveConversation(state: DesktopState): DesktopState {
+  return {
+    ...state,
+    activeNavId: 'new-chat',
+    conversation: {
+      ...state.conversation,
+      messages: [],
+      resultItems: [],
+    },
+    sidebar: {
+      ...state.sidebar,
+      discussionThreads: state.sidebar.discussionThreads.map((thread) => ({ ...thread, active: false })),
+      pinnedThreads: state.sidebar.pinnedThreads.map((thread) => ({ ...thread, active: false })),
+      threads: state.sidebar.threads.map((thread) => ({ ...thread, active: false })),
+    },
+  }
+}
+
 export default function App() {
   const {
     applyDesktopState,
@@ -275,10 +293,12 @@ export default function App() {
       return
     }
 
-    setDesktopState((state) => ({
-      ...state,
-      activeNavId: item.id,
-    }))
+    setDesktopState((state) => item.id === 'new-chat'
+      ? clearActiveConversation(state)
+      : {
+        ...state,
+        activeNavId: item.id,
+      })
     void applyDesktopState(() => selectNav(item.id))
   }
 
@@ -343,6 +363,10 @@ export default function App() {
             void applyDesktopState(() => renameThread(thread.id, title))
           }}
           onThreadSelect={(thread) => {
+            setDesktopState((state) => ({
+              ...state,
+              activeNavId: 'new-chat',
+            }))
             void applyDesktopState(() => selectThread(thread.id))
           }}
           onThreadUnpin={(thread) => {

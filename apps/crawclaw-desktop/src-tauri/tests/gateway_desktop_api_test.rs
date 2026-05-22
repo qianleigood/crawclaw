@@ -1970,29 +1970,17 @@ esac
         "remember this session"
     );
     assert_eq!(
-        json["desktopState"]["conversation"]["resultItems"][0],
-        "用户: remember this session"
+        json["desktopState"]["sidebar"]["threads"][0]["active"],
+        false
     );
-    assert_eq!(
-        json["desktopState"]["conversation"]["resultItems"][1],
-        "persisted assistant reply"
-    );
-    assert_eq!(
-        json["desktopState"]["conversation"]["messages"][0]["kind"],
-        "user"
-    );
-    assert_eq!(
-        json["desktopState"]["conversation"]["messages"][0]["text"],
-        "remember this session"
-    );
-    assert_eq!(
-        json["desktopState"]["conversation"]["messages"][1]["kind"],
-        "assistant"
-    );
-    assert_eq!(
-        json["desktopState"]["conversation"]["messages"][1]["text"],
-        "persisted assistant reply"
-    );
+    assert!(json["desktopState"]["conversation"]["resultItems"]
+        .as_array()
+        .expect("result items")
+        .is_empty());
+    assert!(json["desktopState"]["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .is_empty());
 }
 
 #[cfg(unix)]
@@ -2113,6 +2101,18 @@ esac
     .await
     .expect("gateway should start");
 
+    let body = r#"{"navId":"plugins"}"#;
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/navigation/select HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+
     let body = r#"{"threadId":"thread-b"}"#;
     let (status, body) = request(
         server.addr,
@@ -2126,6 +2126,7 @@ esac
 
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
+    assert_eq!(json["activeNavId"], "new-chat");
     assert_eq!(json["sidebar"]["threads"][1]["id"], "thread-b");
     assert_eq!(json["sidebar"]["threads"][1]["active"], true);
     assert_eq!(json["conversation"]["resultItems"][0], "用户: second user");
@@ -2137,6 +2138,68 @@ esac
         json["conversation"]["messages"][1]["text"],
         "second assistant"
     );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_select_new_chat_clears_active_thread_conversation() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-session-new-chat-clears",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    write_session_transcript(&runtime_layout, "thread-a", "first user", "first assistant");
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let body = r#"{"threadId":"thread-a"}"#;
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/threads/select HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("thread state json");
+    assert_eq!(json["sidebar"]["threads"][0]["active"], true);
+    assert_eq!(json["conversation"]["messages"][0]["text"], "first user");
+
+    let body = r#"{"navId":"new-chat"}"#;
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/navigation/select HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("new chat state json");
+    assert_eq!(json["activeNavId"], "new-chat");
+    assert_eq!(json["sidebar"]["threads"][0]["active"], false);
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .is_empty());
+    assert!(json["conversation"]["resultItems"]
+        .as_array()
+        .expect("result items")
+        .is_empty());
 }
 
 #[cfg(unix)]
