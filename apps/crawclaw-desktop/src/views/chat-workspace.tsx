@@ -23,16 +23,8 @@ import type {
 } from '../desktop-api'
 import { Composer, PermissionModeButton } from '../ui/composer'
 import { IconButton } from '../ui/icon-button'
-import { ChatMediaPreviews } from './chat-media-preview'
 import { ChatThread } from './chat-thread'
-import {
-  batchImagePageSize,
-  batchImageTiles,
-  videoDurationSeconds,
-  videoPreviewStartSeconds,
-  type ImagePreview,
-  type PreferencePatch,
-} from './chat-workspace-model'
+import type { PreferencePatch } from './chat-workspace-model'
 
 type ChatWorkspaceProps = {
   conversation: ConversationState
@@ -59,18 +51,11 @@ export function ChatWorkspace({
   queuedInputText,
   renderDesktopIcon,
 }: ChatWorkspaceProps) {
-  const [batchImagePage, setBatchImagePage] = useState(0)
   const [composerText, setComposerText] = useState('')
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false)
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false)
   const [isListening, setIsListening] = useState(false)
-  const [imagePreview, setImagePreview] = useState<ImagePreview | null>(null)
-  const [videoCurrentSeconds, setVideoCurrentSeconds] = useState(videoPreviewStartSeconds)
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false)
-  const [isVideoPreviewOpen, setIsVideoPreviewOpen] = useState(false)
   const [selectorOpen, setSelectorOpen] = useState<'thinking' | 'model' | 'permission' | null>(null)
-  const runtimeChecks = conversation.runtimeChecks
-  const resultItems = conversation.resultItems
   const slashCommands = conversation.slashCommands
   const skillCommands = conversation.skillCommands
   const approvalState = permissionRequest.status
@@ -78,11 +63,6 @@ export function ChatWorkspace({
   const permissionMode = preferences.permissionMode
   const selectedModel = preferences.selectedModel
   const selectedThinking = preferences.selectedThinking
-  const batchImagePageCount = Math.ceil(batchImageTiles.length / batchImagePageSize)
-  const visibleBatchImageTiles = batchImageTiles.slice(
-    batchImagePage * batchImagePageSize,
-    batchImagePage * batchImagePageSize + batchImagePageSize,
-  )
   const commandTrigger = composerText.startsWith('/') ? '/' : composerText.startsWith('@') ? '@' : null
   const commandQuery = commandTrigger ? composerText.slice(1).trim().toLowerCase() : ''
   const visibleSlashCommands = isCommandMenuOpen && commandTrigger === '/'
@@ -109,39 +89,10 @@ export function ChatWorkspace({
     setIsCommandMenuOpen(false)
   }
 
-  const closeVideoPreview = () => {
-    setIsVideoPreviewOpen(false)
-    setIsVideoPlaying(false)
-  }
-
-  const closeImagePreview = () => {
-    setImagePreview(null)
-  }
-
-  const stepImagePreview = (delta: number) => {
-    setImagePreview((preview) => {
-      if (!preview) {
-        return preview
-      }
-
-      const count = preview.kind === 'batch' ? batchImageTiles.length : 1
-      return {
-        ...preview,
-        index: Math.min(count - 1, Math.max(0, preview.index + delta)),
-      }
-    })
-  }
-
-  const stepVideoTime = (delta: number) => {
-    setVideoCurrentSeconds((seconds) => Math.min(videoDurationSeconds, Math.max(0, seconds + delta)))
-  }
-
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         closeFloatingControls()
-        closeVideoPreview()
-        closeImagePreview()
       }
     }
 
@@ -220,31 +171,10 @@ export function ChatWorkspace({
 
   return (
     <>
-      <ChatMediaPreviews
-        imagePreview={imagePreview}
-        isVideoPlaying={isVideoPlaying}
-        isVideoPreviewOpen={isVideoPreviewOpen}
-        onCloseImagePreview={closeImagePreview}
-        onCloseVideoPreview={closeVideoPreview}
-        onImagePreviewStep={stepImagePreview}
-        onVideoPlayingChange={setIsVideoPlaying}
-        onVideoSecondChange={setVideoCurrentSeconds}
-        onVideoStep={stepVideoTime}
-        videoCurrentSeconds={videoCurrentSeconds}
-      />
-
       <ChatThread
-        batchImagePage={batchImagePage}
-        batchImagePageCount={batchImagePageCount}
         conversation={conversation}
-        resultItems={resultItems}
-        runtimeChecks={runtimeChecks}
-        setBatchImagePage={setBatchImagePage}
-        setImagePreview={setImagePreview}
-        setIsVideoPlaying={setIsVideoPlaying}
-        setIsVideoPreviewOpen={setIsVideoPreviewOpen}
-        setVideoCurrentSeconds={setVideoCurrentSeconds}
-        visibleBatchImageTiles={visibleBatchImageTiles}
+        onDecidePermission={onDecidePermission}
+        permissionRequest={permissionRequest}
       />
 
       <Composer

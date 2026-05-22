@@ -21,6 +21,7 @@ export function createDesktopUnavailableState(detail = '正在连接本机 Gatew
       discussionThreads: [],
     },
     conversation: {
+      messages: [],
       resultItems: [detail],
       runtimeChecks: [
         { label: 'Desktop Shell', value: '已加载', tone: 'ok' },

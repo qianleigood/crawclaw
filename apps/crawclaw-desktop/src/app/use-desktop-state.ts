@@ -15,6 +15,7 @@ import {
 import { DesktopApiRequestError } from '../api/desktop-transport'
 import type {
   BadgeTone,
+  ConversationMessage,
   DesktopState,
   RuntimeStatusValue,
   SearchSuggestion,
@@ -42,6 +43,10 @@ export function useDesktopStateController(): DesktopStateController {
         ...state,
         conversation: {
           ...state.conversation,
+          messages: [
+            ...state.conversation.messages,
+            createOperationErrorMessage(detail),
+          ],
           resultItems: [detail],
         },
       }))
@@ -141,4 +146,15 @@ function formatDesktopOperationError(error: unknown): string {
     return error.message
   }
   return error instanceof Error ? error.message : 'Desktop API request failed.'
+}
+
+function createOperationErrorMessage(detail: string): ConversationMessage {
+  return {
+    code: 'desktop_operation_failed',
+    createdAt: '刚刚',
+    detail,
+    id: `operation-error-${Date.now()}`,
+    kind: 'error',
+    title: '操作失败',
+  }
 }

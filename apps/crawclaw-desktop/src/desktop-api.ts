@@ -14,6 +14,7 @@ export type {
   BadgeTone,
   BootstrapResponse,
   CommandSuggestion,
+  ConversationMessage,
   ConversationState,
   CreateAgentInput,
   CreateMemoryItemInput,

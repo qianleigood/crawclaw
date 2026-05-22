@@ -14,9 +14,10 @@ import {
   Wrench,
 } from 'lucide-react'
 import type { Dispatch, SetStateAction } from 'react'
-import type { ConversationState } from '../desktop-api'
+import type { ConversationState, PermissionRequest } from '../desktop-api'
 import { Badge } from '../ui/badge'
 import { Panel } from '../ui/panel'
+import { ConversationMessageList } from './conversation-messages'
 import {
   batchImagePageSize,
   videoPreviewStartSeconds,
@@ -40,6 +41,12 @@ function ChatAvatar({ author }: { author: 'assistant' | 'user' }) {
 }
 
 type ChatThreadProps = {
+  conversation: ConversationState
+  onDecidePermission: (requestId: string, status: 'approved' | 'denied') => void
+  permissionRequest: PermissionRequest
+}
+
+type ChatThreadShowcaseProps = {
   batchImagePage: number
   batchImagePageCount: number
   conversation: ConversationState
@@ -54,6 +61,23 @@ type ChatThreadProps = {
 }
 
 export function ChatThread({
+  conversation,
+  onDecidePermission,
+  permissionRequest,
+}: ChatThreadProps) {
+  return (
+    <section className="desktop-content" aria-label="对话工作区">
+      <ConversationMessageList
+        messages={conversation.messages}
+        onDecidePermission={onDecidePermission}
+        permissionRequest={permissionRequest}
+      />
+    </section>
+  )
+}
+
+// Hidden showcase retained for the current media, tool, workflow, and voice bubbles.
+export function ChatThreadShowcase({
   batchImagePage,
   batchImagePageCount,
   conversation,
@@ -65,7 +89,7 @@ export function ChatThread({
   setIsVideoPreviewOpen,
   setVideoCurrentSeconds,
   visibleBatchImageTiles,
-}: ChatThreadProps) {
+}: ChatThreadShowcaseProps) {
   return (
       <section className="desktop-content" aria-label="对话工作区">
         <ol className="chat-thread">
