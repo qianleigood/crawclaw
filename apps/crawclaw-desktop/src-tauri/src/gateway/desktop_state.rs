@@ -21,6 +21,7 @@ pub fn initial_desktop_state(runtime: &RuntimeStatus) -> DesktopState {
             discussion_threads: Vec::new(),
         },
         conversation: ConversationState {
+            messages: Vec::new(),
             result_items: vec![runtime.detail.clone()],
             runtime_checks: vec![
                 RuntimeCheck {

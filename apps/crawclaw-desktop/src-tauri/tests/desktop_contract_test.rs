@@ -17,3 +17,12 @@ fn desktop_api_contract_generated_types_are_current() {
         "desktop API contract is stale; run `cargo run --manifest-path apps/crawclaw-desktop/src-tauri/Cargo.toml -- emit-desktop-api-contract --output apps/crawclaw-desktop/src/generated/desktop-api-contract.generated.ts`"
     );
 }
+
+#[test]
+fn desktop_api_contract_exposes_structured_conversation_messages() {
+    let source = crawclaw_desktop::desktop_contract::desktop_api_contract_source();
+
+    assert!(source.contains("export type ConversationMessage ="));
+    assert!(source.contains("kind: 'toolResult'"));
+    assert!(source.contains("messages: ConversationMessage[]"));
+}

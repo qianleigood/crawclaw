@@ -73,7 +73,17 @@ export interface SidebarThreadData {
   agentAvatar: boolean
 }
 
+export type ConversationMessage =
+  | { kind: 'user'; id: string; text: string; createdAt: string }
+  | { kind: 'assistant'; id: string; text: string; createdAt: string }
+  | { kind: 'toolCall'; id: string; toolId: string; title: string; detail?: string; createdAt: string }
+  | { kind: 'toolResult'; id: string; toolId: string; title: string; ok: boolean; text: string; createdAt: string }
+  | { kind: 'permission'; id: string; requestId: string; title: string; detail: string; status: PermissionStatus; createdAt: string }
+  | { kind: 'status'; id: string; title: string; detail: string; tone: BadgeTone; createdAt: string }
+  | { kind: 'error'; id: string; code: string; title: string; detail: string; createdAt: string }
+
 export interface ConversationState {
+  messages: ConversationMessage[]
   resultItems: string[]
   runtimeChecks: RuntimeCheck[]
   slashCommands: CommandSuggestion[]

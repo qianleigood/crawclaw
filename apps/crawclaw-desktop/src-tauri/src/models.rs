@@ -132,8 +132,62 @@ pub struct SidebarThread {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum ConversationMessage {
+    User {
+        id: String,
+        text: String,
+        created_at: String,
+    },
+    Assistant {
+        id: String,
+        text: String,
+        created_at: String,
+    },
+    ToolCall {
+        id: String,
+        tool_id: String,
+        title: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        detail: Option<String>,
+        created_at: String,
+    },
+    ToolResult {
+        id: String,
+        tool_id: String,
+        title: String,
+        ok: bool,
+        text: String,
+        created_at: String,
+    },
+    Permission {
+        id: String,
+        request_id: String,
+        title: String,
+        detail: String,
+        status: PermissionStatus,
+        created_at: String,
+    },
+    Status {
+        id: String,
+        title: String,
+        detail: String,
+        tone: String,
+        created_at: String,
+    },
+    Error {
+        id: String,
+        code: String,
+        title: String,
+        detail: String,
+        created_at: String,
+    },
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ConversationState {
+    pub messages: Vec<ConversationMessage>,
     pub result_items: Vec<String>,
     pub runtime_checks: Vec<RuntimeCheck>,
     pub slash_commands: Vec<CommandSuggestion>,
