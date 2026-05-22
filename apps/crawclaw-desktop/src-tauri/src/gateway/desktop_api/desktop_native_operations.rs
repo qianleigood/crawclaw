@@ -3,6 +3,11 @@ use super::*;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum DesktopNativeMutation {
     SendMessage,
+    AddAttachmentMessage,
+    AddMediaMessage,
+    AddVoiceMessage,
+    AddWorkflowMessage,
+    AddSkillCallMessage,
     AbortMessage,
     SteerMessage,
     CreateAgent,
@@ -37,6 +42,57 @@ pub(super) enum ToggleMutation {
 struct DesktopSendContext {
     thread_id: String,
     options: AgentRuntimeSendOptions,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AddAttachmentMessageInput {
+    title: String,
+    file_name: String,
+    media_type: String,
+    #[serde(default)]
+    detail: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AddMediaMessageInput {
+    media_type: String,
+    title: String,
+    #[serde(default)]
+    items: Vec<ConversationMediaItem>,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AddVoiceMessageInput {
+    direction: String,
+    title: String,
+    duration_label: String,
+    #[serde(default)]
+    transcript: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AddWorkflowMessageInput {
+    workflow_kind: String,
+    title: String,
+    status: String,
+    #[serde(default)]
+    detail: String,
+    #[serde(default)]
+    steps: Vec<ConversationWorkflowStep>,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AddSkillCallMessageInput {
+    skill_id: String,
+    title: String,
+    status: String,
+    #[serde(default)]
+    detail: Option<String>,
 }
 
 pub(super) async fn run_native_state_mutation(
@@ -128,6 +184,67 @@ pub(super) async fn apply_native_operation(
                 text: send_result.assistant_text,
             });
             emit_state_changed(state).await
+        }
+        DesktopNativeMutation::AddAttachmentMessage => {
+            let input = parse_desktop_message_input::<AddAttachmentMessageInput>(state, input)?;
+            append_conversation_message(
+                state,
+                conversation_attachment_message(
+                    input.title,
+                    input.file_name,
+                    input.media_type,
+                    input.detail,
+                ),
+            )
+            .await
+        }
+        DesktopNativeMutation::AddMediaMessage => {
+            let input = parse_desktop_message_input::<AddMediaMessageInput>(state, input)?;
+            append_conversation_message(
+                state,
+                conversation_media_message(input.media_type, input.title, input.items),
+            )
+            .await
+        }
+        DesktopNativeMutation::AddVoiceMessage => {
+            let input = parse_desktop_message_input::<AddVoiceMessageInput>(state, input)?;
+            append_conversation_message(
+                state,
+                conversation_voice_message(
+                    input.direction,
+                    input.title,
+                    input.duration_label,
+                    input.transcript,
+                ),
+            )
+            .await
+        }
+        DesktopNativeMutation::AddWorkflowMessage => {
+            let input = parse_desktop_message_input::<AddWorkflowMessageInput>(state, input)?;
+            append_conversation_message(
+                state,
+                conversation_workflow_message(
+                    input.workflow_kind,
+                    input.title,
+                    input.status,
+                    input.detail,
+                    input.steps,
+                ),
+            )
+            .await
+        }
+        DesktopNativeMutation::AddSkillCallMessage => {
+            let input = parse_desktop_message_input::<AddSkillCallMessageInput>(state, input)?;
+            append_conversation_message(
+                state,
+                conversation_skill_call_message(
+                    input.skill_id,
+                    input.title,
+                    input.status,
+                    input.detail,
+                ),
+            )
+            .await
         }
         DesktopNativeMutation::AbortMessage | DesktopNativeMutation::SteerMessage => {
             if operation == DesktopNativeMutation::SteerMessage {
@@ -484,6 +601,31 @@ pub(super) async fn apply_native_operation(
         }
         DesktopNativeMutation::Toggle(operation) => toggle_operation(state, operation, input).await,
     }
+}
+
+fn parse_desktop_message_input<T: DeserializeOwned>(
+    state: &GatewayState,
+    input: Value,
+) -> Result<T, StatusCode> {
+    serde_json::from_value(input).map_err(|error| {
+        emit_operation_failed(
+            state,
+            "invalid_message",
+            format!("Invalid desktop conversation message payload: {error}"),
+        );
+        StatusCode::BAD_REQUEST
+    })
+}
+
+async fn append_conversation_message(
+    state: &GatewayState,
+    message: ConversationMessage,
+) -> Result<Json<DesktopState>, StatusCode> {
+    {
+        let mut desktop_state = state.desktop_state.write().await;
+        desktop_state.conversation.messages.push(message);
+    }
+    emit_state_changed(state).await
 }
 
 pub(super) fn agent_runtime_error_status(error: &AgentRuntimeError) -> StatusCode {

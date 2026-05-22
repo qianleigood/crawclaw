@@ -1,8 +1,10 @@
 import {
   ArrowUp,
+  Blocks,
   Bot,
   Brain,
   ChevronDown,
+  Clock3,
   FileText,
   Image as ImageIcon,
   Mic,
@@ -17,6 +19,11 @@ import {
   type ReactNode,
 } from 'react'
 import type {
+  AddAttachmentMessageInput,
+  AddMediaMessageInput,
+  AddSkillCallMessageInput,
+  AddVoiceMessageInput,
+  AddWorkflowMessageInput,
   AgentProfile,
   ConversationState,
   DesktopIconKey,
@@ -33,6 +40,11 @@ type ChatWorkspaceProps = {
   agents: AgentProfile[]
   conversation: ConversationState
   modelOptions: string[]
+  onAddAttachmentMessage: (input: AddAttachmentMessageInput) => void
+  onAddMediaMessage: (input: AddMediaMessageInput) => void
+  onAddSkillCallMessage: (input: AddSkillCallMessageInput) => void
+  onAddVoiceMessage: (input: AddVoiceMessageInput) => void
+  onAddWorkflowMessage: (input: AddWorkflowMessageInput) => void
   onDecidePermission: (requestId: string, status: 'approved' | 'denied') => void
   onPreferenceUpdate: (patch: Partial<PreferencePatch>) => void
   onQueuedInputTextConsumed?: () => void
@@ -49,6 +61,11 @@ export function ChatWorkspace({
   agents,
   conversation,
   modelOptions,
+  onAddAttachmentMessage,
+  onAddMediaMessage,
+  onAddSkillCallMessage,
+  onAddVoiceMessage,
+  onAddWorkflowMessage,
   onDecidePermission,
   onPreferenceUpdate,
   onQueuedInputTextConsumed,
@@ -182,6 +199,75 @@ export function ChatWorkspace({
     setIsCommandMenuOpen(value.startsWith('/') || value.startsWith('@'))
   }
 
+  const addMediaComposerMessage = (mediaType: 'image' | 'video') => {
+    onAddMediaMessage({
+      items: [
+        {
+          detail: mediaType === 'image' ? '待选择本地图片' : '待选择本地视频',
+          id: mediaType === 'image' ? 'composer-image' : 'composer-video',
+          kind: mediaType,
+          label: mediaType === 'image' ? '图片预览' : '视频预览',
+        },
+      ],
+      mediaType,
+      title: mediaType === 'image' ? '图片消息' : '视频消息',
+    })
+    setIsAttachmentMenuOpen(false)
+  }
+
+  const addWorkflowComposerMessage = (workflowKind: 'comfyui' | 'n8n' | 'schedule') => {
+    const workflowCopy = {
+      comfyui: {
+        detail: '图像生成工作流已加入本轮对话',
+        steps: [
+          { id: 'prompt', label: 'Prompt', status: 'done' },
+          { id: 'queue', label: 'Queue', status: 'active' },
+          { id: 'render', label: 'Render', status: 'pending' },
+        ],
+        title: 'ComfyUI 图像工作流',
+      },
+      n8n: {
+        detail: '自动化工作流已加入本轮对话',
+        steps: [
+          { id: 'webhook', label: 'Webhook', status: 'done' },
+          { id: 'agent', label: 'Agent', status: 'active' },
+          { id: 'notify', label: 'Notify', status: 'pending' },
+        ],
+        title: 'n8n 自动化',
+      },
+      schedule: {
+        detail: '定时执行已加入本轮对话',
+        steps: [
+          { id: 'plan', label: 'Plan', status: 'done' },
+          { id: 'schedule', label: 'Schedule', status: 'active' },
+          { id: 'run', label: 'Run', status: 'pending' },
+        ],
+        title: '定时任务',
+      },
+    }[workflowKind]
+
+    onAddWorkflowMessage({
+      detail: workflowCopy.detail,
+      status: 'running',
+      steps: workflowCopy.steps,
+      title: workflowCopy.title,
+      workflowKind,
+    })
+    setIsAttachmentMenuOpen(false)
+  }
+
+  const toggleVoiceInput = () => {
+    if (isListening) {
+      onAddVoiceMessage({
+        direction: 'input',
+        durationLabel: '00:03',
+        title: '语音输入',
+        transcript: composerText.trim() || '语音消息待转写',
+      })
+    }
+    setIsListening((value) => !value)
+  }
+
   return (
     <>
       <ChatThread
@@ -257,6 +343,12 @@ export function ChatWorkspace({
                   key={skill.mention}
                   onClick={() => {
                     setComposerText(skill.mention)
+                    onAddSkillCallMessage({
+                      detail: skill.detail,
+                      skillId: skill.id,
+                      status: 'ready',
+                      title: skill.label,
+                    })
                     setIsCommandMenuOpen(false)
                   }}
                   role="menuitem"
@@ -288,15 +380,28 @@ export function ChatWorkspace({
             {isAttachmentMenuOpen ? (
               <div aria-label="添加内容菜单" className="selector-menu selector-menu--attach" onKeyDown={handleMenuKeyDown} role="menu">
                 {[
-                  { label: '添加图片', icon: ImageIcon },
-                  { label: '添加视频', icon: Play },
-                  { label: '添加文件', icon: FileText },
+                  { label: '添加图片', icon: ImageIcon, onClick: () => addMediaComposerMessage('image') },
+                  { label: '添加视频', icon: Play, onClick: () => addMediaComposerMessage('video') },
+                  {
+                    label: '添加文件',
+                    icon: FileText,
+                    onClick: () => {
+                      onAddAttachmentMessage({
+                        detail: '本地文件附件',
+                        fileName: '未命名文件',
+                        mediaType: 'application/octet-stream',
+                        title: '文件附件',
+                      })
+                      setIsAttachmentMenuOpen(false)
+                    },
+                  },
+                  { label: '添加工作流', icon: Blocks, onClick: () => addWorkflowComposerMessage('n8n') },
+                  { label: '添加图像工作流', icon: ImageIcon, onClick: () => addWorkflowComposerMessage('comfyui') },
+                  { label: '添加定时任务', icon: Clock3, onClick: () => addWorkflowComposerMessage('schedule') },
                 ].map((item) => (
                   <button
                     key={item.label}
-                    onClick={() => {
-                      setIsAttachmentMenuOpen(false)
-                    }}
+                    onClick={item.onClick}
                     role="menuitem"
                     type="button"
                   >
@@ -466,7 +571,7 @@ export function ChatWorkspace({
               className={isListening ? 'composer-voice is-listening' : 'composer-voice'}
               icon={Mic}
               label={isListening ? '停止收声' : '语音输入'}
-              onClick={() => setIsListening((value) => !value)}
+              onClick={toggleVoiceInput}
             />
             <IconButton className="composer-send" icon={ArrowUp} label="发送" onClick={submitDraft} />
           </>

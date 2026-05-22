@@ -3624,6 +3624,11 @@
 .chat-row--toolResult,
 .chat-row--permission,
 .chat-row--status,
+.chat-row--attachment,
+.chat-row--media,
+.chat-row--workflow,
+.chat-row--voice,
+.chat-row--skillCall,
 .chat-row--error {
   justify-content: flex-start;
 }
@@ -3631,6 +3636,10 @@
 .chat-avatar--tool,
 .chat-avatar--permission,
 .chat-avatar--status,
+.chat-avatar--media,
+.chat-avatar--workflow,
+.chat-avatar--voice,
+.chat-avatar--skill,
 .chat-avatar--error {
   background: rgba(29, 29, 31, 0.055);
   color: var(--text-secondary);

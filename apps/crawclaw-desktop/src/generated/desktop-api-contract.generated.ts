@@ -80,7 +80,25 @@ export type ConversationMessage =
   | { kind: 'toolResult'; id: string; toolId: string; title: string; ok: boolean; text: string; createdAt: string }
   | { kind: 'permission'; id: string; requestId: string; title: string; detail: string; status: PermissionStatus; createdAt: string }
   | { kind: 'status'; id: string; title: string; detail: string; tone: BadgeTone; createdAt: string }
+  | { kind: 'attachment'; id: string; title: string; fileName: string; mediaType: string; detail?: string; createdAt: string }
+  | { kind: 'media'; id: string; mediaType: string; title: string; items: ConversationMediaItem[]; createdAt: string }
+  | { kind: 'workflow'; id: string; workflowKind: string; title: string; status: string; detail: string; steps: ConversationWorkflowStep[]; createdAt: string }
+  | { kind: 'voice'; id: string; direction: string; title: string; durationLabel: string; transcript?: string; createdAt: string }
+  | { kind: 'skillCall'; id: string; skillId: string; title: string; status: string; detail?: string; createdAt: string }
   | { kind: 'error'; id: string; code: string; title: string; detail: string; createdAt: string }
+
+export interface ConversationMediaItem {
+  id: string
+  label: string
+  kind: string
+  detail?: string
+}
+
+export interface ConversationWorkflowStep {
+  id: string
+  label: string
+  status: string
+}
 
 export interface ConversationState {
   messages: ConversationMessage[]
@@ -267,6 +285,41 @@ export interface UpdateMemoryItemPatch {
 export interface SendMessageInput {
   text: string
   agentId?: string
+}
+
+export interface AddAttachmentMessageInput {
+  title: string
+  fileName: string
+  mediaType: string
+  detail?: string
+}
+
+export interface AddMediaMessageInput {
+  mediaType: string
+  title: string
+  items?: ConversationMediaItem[]
+}
+
+export interface AddVoiceMessageInput {
+  direction: string
+  title: string
+  durationLabel: string
+  transcript?: string
+}
+
+export interface AddWorkflowMessageInput {
+  workflowKind: string
+  title: string
+  status: string
+  detail?: string
+  steps?: ConversationWorkflowStep[]
+}
+
+export interface AddSkillCallMessageInput {
+  skillId: string
+  title: string
+  status: string
+  detail?: string
 }
 
 export interface CreateAgentInput {

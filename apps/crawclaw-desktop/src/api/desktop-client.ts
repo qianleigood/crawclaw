@@ -1,6 +1,11 @@
 import type {
   AddAgentSkillInput,
+  AddAttachmentMessageInput,
+  AddMediaMessageInput,
   AddPluginSkillInput,
+  AddSkillCallMessageInput,
+  AddVoiceMessageInput,
+  AddWorkflowMessageInput,
   BootstrapResponse,
   CreateAgentInput,
   CreateMemoryItemInput,
@@ -151,6 +156,41 @@ export async function sendMessage(text: string, options: { agentId?: string } = 
   }
   return mutateDesktopState('/api/desktop/messages', {
     body,
+    method: 'POST',
+  })
+}
+
+export async function addAttachmentMessage(input: AddAttachmentMessageInput): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/messages/attachments', {
+    body: input,
+    method: 'POST',
+  })
+}
+
+export async function addMediaMessage(input: AddMediaMessageInput): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/messages/media', {
+    body: input,
+    method: 'POST',
+  })
+}
+
+export async function addVoiceMessage(input: AddVoiceMessageInput): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/messages/voice', {
+    body: input,
+    method: 'POST',
+  })
+}
+
+export async function addWorkflowMessage(input: AddWorkflowMessageInput): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/messages/workflows', {
+    body: input,
+    method: 'POST',
+  })
+}
+
+export async function addSkillCallMessage(input: AddSkillCallMessageInput): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/messages/skills', {
+    body: input,
     method: 'POST',
   })
 }

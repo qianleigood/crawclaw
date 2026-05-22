@@ -179,6 +179,49 @@ pub enum ConversationMessage {
         tone: String,
         created_at: String,
     },
+    Attachment {
+        id: String,
+        title: String,
+        file_name: String,
+        media_type: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        detail: Option<String>,
+        created_at: String,
+    },
+    Media {
+        id: String,
+        media_type: String,
+        title: String,
+        items: Vec<ConversationMediaItem>,
+        created_at: String,
+    },
+    Workflow {
+        id: String,
+        workflow_kind: String,
+        title: String,
+        status: String,
+        detail: String,
+        steps: Vec<ConversationWorkflowStep>,
+        created_at: String,
+    },
+    Voice {
+        id: String,
+        direction: String,
+        title: String,
+        duration_label: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        transcript: Option<String>,
+        created_at: String,
+    },
+    SkillCall {
+        id: String,
+        skill_id: String,
+        title: String,
+        status: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        detail: Option<String>,
+        created_at: String,
+    },
     Error {
         id: String,
         code: String,
@@ -186,6 +229,24 @@ pub enum ConversationMessage {
         detail: String,
         created_at: String,
     },
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ConversationMediaItem {
+    pub id: String,
+    pub label: String,
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ConversationWorkflowStep {
+    pub id: String,
+    pub label: String,
+    pub status: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

@@ -1,6 +1,10 @@
 import {
   AlertTriangle,
+  Blocks,
   CheckCircle2,
+  FileText,
+  Image as ImageIcon,
+  Mic,
   ShieldCheck,
   Sparkles,
   UserRound,
@@ -150,6 +154,131 @@ function MessageBubble({
           </article>
         </>
       )
+    case 'attachment':
+      return (
+        <>
+          <MessageAvatar kind="media" />
+          <article className="attachment-bubble" aria-label={message.title}>
+            <FileText aria-hidden="true" size={18} strokeWidth={2.1} />
+            <div className="attachment-bubble__body">
+              <strong>{message.title}</strong>
+              <span>{message.fileName} · {message.mediaType}</span>
+              {message.detail ? <span>{message.detail}</span> : null}
+            </div>
+          </article>
+        </>
+      )
+    case 'media':
+      return (
+        <>
+          <MessageAvatar kind="media" />
+          <article className="chat-message conversation-message conversation-message--media">
+            <header>
+              <ImageIcon aria-hidden="true" size={15} strokeWidth={2.1} />
+              <strong>{message.title}</strong>
+              <Badge tone="neutral">{message.mediaType}</Badge>
+            </header>
+            <div className="media-stack">
+              {message.items.length > 0
+                ? message.items.map((item) => (
+                  <figure className={`media-bubble media-bubble--${item.kind}`} key={item.id}>
+                    <div className={`media-visual media-visual--${item.kind === 'video' ? 'video' : 'image'}`}>
+                      <span className="media-loading" aria-hidden="true" />
+                      {item.kind === 'video' ? <span className="video-play is-playing" aria-hidden="true" /> : null}
+                    </div>
+                    <figcaption>
+                      <span className="media-caption__label">{item.label}</span>
+                      <span className="media-caption__meta">
+                        <small>{item.detail ?? item.kind}</small>
+                      </span>
+                    </figcaption>
+                  </figure>
+                ))
+                : <p>暂无媒体条目</p>}
+            </div>
+            <small>{message.createdAt}</small>
+          </article>
+        </>
+      )
+    case 'workflow': {
+      const activeStep = message.steps.find((step) => step.status === 'active') ?? message.steps[0]
+      return (
+        <>
+          <MessageAvatar kind="workflow" />
+          <article className={`workflow-bubble workflow-bubble--${message.workflowKind}`}>
+            <header className="workflow-bubble__header">
+              <div className="workflow-bubble__title">
+                <span className="workflow-bubble__icon">
+                  <Blocks aria-hidden="true" size={16} strokeWidth={2.1} />
+                </span>
+                <div>
+                  <strong>{message.title}</strong>
+                  <p>{message.detail}</p>
+                </div>
+              </div>
+              <Badge tone={message.status === 'failed' ? 'danger' : message.status === 'done' ? 'ok' : 'neutral'}>{workflowStatusLabel(message.status)}</Badge>
+            </header>
+            {message.steps.length > 0 ? (
+              <div className="workflow-nodes" aria-label="工作流节点状态">
+                {message.steps.map((step) => (
+                  <span className={`workflow-node--${step.status}`} key={step.id}>
+                    {step.label}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            {activeStep ? (
+              <div className="workflow-current" aria-label="当前执行节点">
+                <span>当前节点</span>
+                <strong>{activeStep.label}</strong>
+              </div>
+            ) : null}
+            <div className="workflow-meta">
+              <span>{message.workflowKind}</span>
+              <span>{message.createdAt}</span>
+            </div>
+          </article>
+        </>
+      )
+    }
+    case 'voice':
+      return (
+        <>
+          <MessageAvatar kind="voice" />
+          <article className="chat-message voice-message" aria-label={message.title}>
+            <div className="voice-message__icon">
+              <Mic aria-hidden="true" size={16} strokeWidth={2.1} />
+            </div>
+            <div className="voice-message__body">
+              <div className="voice-wave" aria-hidden="true">
+                {Array.from({ length: 7 }).map((_, index) => <span key={index} />)}
+              </div>
+              <p>{message.title} · {message.durationLabel} · {message.direction}</p>
+              {message.transcript ? <p>{message.transcript}</p> : null}
+              <small>{message.createdAt}</small>
+            </div>
+          </article>
+        </>
+      )
+    case 'skillCall':
+      return (
+        <>
+          <MessageAvatar kind="skill" />
+          <article className="call-bubble call-bubble--skill">
+            <span className="call-bubble__icon">
+              <Sparkles aria-hidden="true" size={16} strokeWidth={2.1} />
+            </span>
+            <div className="call-bubble__body">
+              <div className="call-bubble__header">
+                <strong>{message.title}</strong>
+                <Badge tone={message.status === 'failed' ? 'danger' : message.status === 'done' ? 'ok' : 'neutral'}>{workflowStatusLabel(message.status)}</Badge>
+              </div>
+              <p>{message.detail ?? message.skillId}</p>
+              <span>{message.createdAt}</span>
+            </div>
+          </article>
+        </>
+      )
     case 'error':
       return (
         <>
@@ -173,17 +302,20 @@ function MessageBubble({
 function MessageAvatar({
   kind,
 }: {
-  kind: 'assistant' | 'error' | 'permission' | 'status' | 'tool' | 'user'
+  kind: 'assistant' | 'error' | 'media' | 'permission' | 'skill' | 'status' | 'tool' | 'user' | 'voice' | 'workflow'
 }) {
-  const icon = kind === 'user'
-    ? <UserRound aria-hidden="true" size={14} strokeWidth={2.1} />
-    : kind === 'tool'
-      ? <Wrench aria-hidden="true" size={14} strokeWidth={2.1} />
-      : kind === 'permission'
-        ? <ShieldCheck aria-hidden="true" size={14} strokeWidth={2.1} />
-        : kind === 'error'
-          ? <AlertTriangle aria-hidden="true" size={14} strokeWidth={2.1} />
-          : <Sparkles aria-hidden="true" size={14} strokeWidth={2.1} />
+  const icon = {
+    assistant: <Sparkles aria-hidden="true" size={14} strokeWidth={2.1} />,
+    error: <AlertTriangle aria-hidden="true" size={14} strokeWidth={2.1} />,
+    media: <ImageIcon aria-hidden="true" size={14} strokeWidth={2.1} />,
+    permission: <ShieldCheck aria-hidden="true" size={14} strokeWidth={2.1} />,
+    skill: <Sparkles aria-hidden="true" size={14} strokeWidth={2.1} />,
+    status: <Sparkles aria-hidden="true" size={14} strokeWidth={2.1} />,
+    tool: <Wrench aria-hidden="true" size={14} strokeWidth={2.1} />,
+    user: <UserRound aria-hidden="true" size={14} strokeWidth={2.1} />,
+    voice: <Mic aria-hidden="true" size={14} strokeWidth={2.1} />,
+    workflow: <Blocks aria-hidden="true" size={14} strokeWidth={2.1} />,
+  }[kind]
 
   return (
     <span className={`chat-avatar chat-avatar--${kind}`} aria-hidden="true">
@@ -223,4 +355,20 @@ function statusToneLabel(tone: BadgeTone) {
     return '等待'
   }
   return '状态'
+}
+
+function workflowStatusLabel(status: string) {
+  if (status === 'done') {
+    return '完成'
+  }
+  if (status === 'failed') {
+    return '失败'
+  }
+  if (status === 'ready') {
+    return '就绪'
+  }
+  if (status === 'pending') {
+    return '等待'
+  }
+  return '运行中'
 }

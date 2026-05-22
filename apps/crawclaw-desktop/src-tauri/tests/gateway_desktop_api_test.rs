@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use crawclaw_desktop::gateway::desktop_api::{
-    is_loopback_addr, start_gateway_server, GatewayConfig,
+    GatewayConfig, is_loopback_addr, start_gateway_server,
 };
 use crawclaw_desktop::runtime_engine::RuntimeLayout;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -528,14 +528,16 @@ esac
 
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
-    assert!(json["conversation"]["resultItems"]
-        .as_array()
-        .expect("result items")
-        .iter()
-        .any(|item| item
-            .as_str()
-            .unwrap_or_default()
-            .contains(r#""baseUrl":"http://127.0.0.1:8188""#)));
+    assert!(
+        json["conversation"]["resultItems"]
+            .as_array()
+            .expect("result items")
+            .iter()
+            .any(|item| item
+                .as_str()
+                .unwrap_or_default()
+                .contains(r#""baseUrl":"http://127.0.0.1:8188""#))
+    );
 }
 
 #[cfg(unix)]
@@ -635,6 +637,86 @@ esac
                 .unwrap_or_default()
                 .contains(r#""voice":"vivian""#)
     }));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_structured_composer_messages_are_rust_backed() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-structured-composer-messages",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let requests = [
+        (
+            "/api/desktop/messages/media",
+            r#"{"mediaType":"image","title":"图片消息","items":[{"id":"image-1","label":"design.png","kind":"image","detail":"待上传"}]}"#,
+        ),
+        (
+            "/api/desktop/messages/attachments",
+            r#"{"title":"需求文档","fileName":"brief.pdf","mediaType":"application/pdf","detail":"PDF 附件"}"#,
+        ),
+        (
+            "/api/desktop/messages/voice",
+            r#"{"direction":"input","title":"语音输入","durationLabel":"00:03","transcript":"帮我整理这段话"}"#,
+        ),
+        (
+            "/api/desktop/messages/workflows",
+            r#"{"workflowKind":"n8n","title":"线索同步","status":"running","detail":"CRM 工作流","steps":[{"id":"webhook","label":"Webhook","status":"done"},{"id":"crm","label":"CRM","status":"active"}]}"#,
+        ),
+        (
+            "/api/desktop/messages/skills",
+            r#"{"skillId":"plugin-skill-review","title":"代码审查","status":"ready","detail":"@review"}"#,
+        ),
+    ];
+
+    let mut response_body = String::new();
+    for (path, body) in requests {
+        let (status, body) = request(
+            server.addr,
+            format!(
+                "POST {path} HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                body.len(),
+                body
+            ),
+        )
+        .await;
+        assert_eq!(status, 200, "{path} should accept structured messages");
+        response_body = body;
+    }
+
+    let json: serde_json::Value = serde_json::from_str(&response_body).expect("state json");
+    let messages = json["conversation"]["messages"]
+        .as_array()
+        .expect("conversation messages");
+    let kinds = messages
+        .iter()
+        .map(|message| message["kind"].as_str().expect("message kind"))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        kinds,
+        vec!["media", "attachment", "voice", "workflow", "skillCall"]
+    );
+    assert_eq!(messages[0]["items"][0]["label"], "design.png");
+    assert_eq!(messages[1]["fileName"], "brief.pdf");
+    assert_eq!(messages[2]["transcript"], "帮我整理这段话");
+    assert_eq!(messages[3]["workflowKind"], "n8n");
+    assert_eq!(messages[4]["skillId"], "plugin-skill-review");
 }
 
 #[cfg(unix)]
@@ -934,11 +1016,13 @@ esac
 
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
-    assert!(json["pluginsWorkspace"]["skills"]
-        .as_array()
-        .expect("skills")
-        .iter()
-        .any(|skill| skill["trigger"].as_str() == Some("@triage")));
+    assert!(
+        json["pluginsWorkspace"]["skills"]
+            .as_array()
+            .expect("skills")
+            .iter()
+            .any(|skill| skill["trigger"].as_str() == Some("@triage"))
+    );
 
     let restarted_server = start_gateway_server(GatewayConfig {
         app_name: "CrawClaw Desktop".to_string(),
@@ -955,11 +1039,13 @@ esac
     .await;
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
-    assert!(json["desktopState"]["pluginsWorkspace"]["skills"]
-        .as_array()
-        .expect("skills")
-        .iter()
-        .any(|skill| skill["trigger"].as_str() == Some("@triage")));
+    assert!(
+        json["desktopState"]["pluginsWorkspace"]["skills"]
+            .as_array()
+            .expect("skills")
+            .iter()
+            .any(|skill| skill["trigger"].as_str() == Some("@triage"))
+    );
 }
 
 #[cfg(unix)]
@@ -1345,16 +1431,20 @@ esac
         json["desktopState"]["preferences"]["permissionMode"],
         "只读模式"
     );
-    assert!(json["desktopState"]["preferences"]["providerDescriptors"]
-        .as_array()
-        .expect("provider descriptors")
-        .iter()
-        .any(|entry| entry["provider"] == "openai" && entry["transport"] == "openai-responses"));
-    assert!(json["desktopState"]["preferences"]["providerSetupOptions"]
-        .as_array()
-        .expect("provider setup options")
-        .iter()
-        .any(|entry| entry["provider"] == "openai" && entry["value"] == "openai-api-key"));
+    assert!(
+        json["desktopState"]["preferences"]["providerDescriptors"]
+            .as_array()
+            .expect("provider descriptors")
+            .iter()
+            .any(|entry| entry["provider"] == "openai" && entry["transport"] == "openai-responses")
+    );
+    assert!(
+        json["desktopState"]["preferences"]["providerSetupOptions"]
+            .as_array()
+            .expect("provider setup options")
+            .iter()
+            .any(|entry| entry["provider"] == "openai" && entry["value"] == "openai-api-key")
+    );
     assert!(
         json["desktopState"]["preferences"]["providerModelPickerEntries"]
             .as_array()
@@ -1363,15 +1453,17 @@ esac
             .any(|entry| entry["provider"] == "ollama"
                 && entry["value"] == "provider-plugin:ollama:local")
     );
-    assert!(json["desktopState"]["preferences"]["webProviderBoundaries"]
-        .as_array()
-        .expect("web provider boundaries")
-        .iter()
-        .any(|entry| entry["surface"] == "web-search"
-            && entry["provider"] == "searxng"
-            && entry["productBoundary"] == "rust-native-plugin"
-            && entry["executionRuntime"] == "python-sidecar"
-            && entry["runtimeMajor"].is_null()));
+    assert!(
+        json["desktopState"]["preferences"]["webProviderBoundaries"]
+            .as_array()
+            .expect("web provider boundaries")
+            .iter()
+            .any(|entry| entry["surface"] == "web-search"
+                && entry["provider"] == "searxng"
+                && entry["productBoundary"] == "rust-native-plugin"
+                && entry["executionRuntime"] == "python-sidecar"
+                && entry["runtimeMajor"].is_null())
+    );
 }
 
 #[cfg(unix)]
@@ -1510,17 +1602,21 @@ esac
 
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
-    assert!(json["conversation"]["resultItems"]
-        .as_array()
-        .expect("result items")
-        .iter()
-        .any(|item| item.as_str() == Some("provider says hello")));
+    assert!(
+        json["conversation"]["resultItems"]
+            .as_array()
+            .expect("result items")
+            .iter()
+            .any(|item| item.as_str() == Some("provider says hello"))
+    );
     let messages = json["conversation"]["messages"]
         .as_array()
         .expect("conversation messages");
-    assert!(messages
-        .iter()
-        .any(|message| message["kind"] == "user" && message["text"] == "hello from desktop"));
+    assert!(
+        messages
+            .iter()
+            .any(|message| message["kind"] == "user" && message["text"] == "hello from desktop")
+    );
     assert!(messages.iter().any(|message| {
         message["kind"] == "assistant" && message["text"] == "provider says hello"
     }));
@@ -1601,11 +1697,13 @@ esac
 
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
-    assert!(json["conversation"]["messages"]
-        .as_array()
-        .expect("conversation messages")
-        .iter()
-        .any(|message| message["kind"] == "assistant" && message["text"] == "minimax reply"));
+    assert!(
+        json["conversation"]["messages"]
+            .as_array()
+            .expect("conversation messages")
+            .iter()
+            .any(|message| message["kind"] == "assistant" && message["text"] == "minimax reply")
+    );
 }
 
 #[cfg(unix)]
@@ -1690,11 +1788,13 @@ esac
 
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
-    assert!(json["conversation"]["messages"]
-        .as_array()
-        .expect("conversation messages")
-        .iter()
-        .any(|message| message["kind"] == "assistant" && message["text"] == "agent reply"));
+    assert!(
+        json["conversation"]["messages"]
+            .as_array()
+            .expect("conversation messages")
+            .iter()
+            .any(|message| message["kind"] == "assistant" && message["text"] == "agent reply")
+    );
 }
 
 #[cfg(unix)]
@@ -1886,11 +1986,13 @@ esac
     .await;
     assert_eq!(status, 200);
     let history: serde_json::Value = serde_json::from_str(&body).expect("history json");
-    assert!(history["messages"]
-        .as_array()
-        .expect("messages")
-        .iter()
-        .any(|message| message["content"] == "follow up"));
+    assert!(
+        history["messages"]
+            .as_array()
+            .expect("messages")
+            .iter()
+            .any(|message| message["content"] == "follow up")
+    );
 
     let (status, body) = request(
         server.addr,
@@ -1973,14 +2075,18 @@ esac
         json["desktopState"]["sidebar"]["threads"][0]["active"],
         false
     );
-    assert!(json["desktopState"]["conversation"]["resultItems"]
-        .as_array()
-        .expect("result items")
-        .is_empty());
-    assert!(json["desktopState"]["conversation"]["messages"]
-        .as_array()
-        .expect("messages")
-        .is_empty());
+    assert!(
+        json["desktopState"]["conversation"]["resultItems"]
+            .as_array()
+            .expect("result items")
+            .is_empty()
+    );
+    assert!(
+        json["desktopState"]["conversation"]["messages"]
+            .as_array()
+            .expect("messages")
+            .is_empty()
+    );
 }
 
 #[cfg(unix)]
@@ -2192,14 +2298,18 @@ esac
     let json: serde_json::Value = serde_json::from_str(&body).expect("new chat state json");
     assert_eq!(json["activeNavId"], "new-chat");
     assert_eq!(json["sidebar"]["threads"][0]["active"], false);
-    assert!(json["conversation"]["messages"]
-        .as_array()
-        .expect("messages")
-        .is_empty());
-    assert!(json["conversation"]["resultItems"]
-        .as_array()
-        .expect("result items")
-        .is_empty());
+    assert!(
+        json["conversation"]["messages"]
+            .as_array()
+            .expect("messages")
+            .is_empty()
+    );
+    assert!(
+        json["conversation"]["resultItems"]
+            .as_array()
+            .expect("result items")
+            .is_empty()
+    );
 }
 
 #[cfg(unix)]
@@ -2377,11 +2487,13 @@ esac
     .await;
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
-    assert!(json["conversation"]["messages"]
-        .as_array()
-        .expect("conversation messages")
-        .iter()
-        .any(|message| message["kind"] == "error" && message["code"] == "provider_unavailable"));
+    assert!(
+        json["conversation"]["messages"]
+            .as_array()
+            .expect("conversation messages")
+            .iter()
+            .any(|message| message["kind"] == "error" && message["code"] == "provider_unavailable")
+    );
     let events = read_stream_until(&mut events, "event: operationFailed").await;
     assert!(events.contains("event: operationFailed"));
     assert!(events.contains("provider_unavailable"));
@@ -2601,10 +2713,12 @@ esac
     assert_eq!(json["activeNavId"], "memory");
     assert_eq!(json["memoryWorkspace"]["dream"]["status"], "completed");
     assert_eq!(json["memoryWorkspace"]["dream"]["agentId"], agent_id);
-    assert!(json["memoryWorkspace"]["dream"]["message"]
-        .as_str()
-        .expect("dream message")
-        .contains("Memory Agent"));
+    assert!(
+        json["memoryWorkspace"]["dream"]["message"]
+            .as_str()
+            .expect("dream message")
+            .contains("Memory Agent")
+    );
 
     let events = read_stream_until(&mut events, "event: stateChanged").await;
     assert!(events.contains("event: stateChanged"));
@@ -2863,9 +2977,11 @@ async fn spawn_openai_compatible_provider_with_checks(
         if let Some(expected_model) = expected_model {
             assert!(request.contains(&format!(r#""model":"{expected_model}""#)));
         }
-        assert!(request
-            .to_lowercase()
-            .contains("authorization: bearer test-key"));
+        assert!(
+            request
+                .to_lowercase()
+                .contains("authorization: bearer test-key")
+        );
 
         let (content_type, body) = if request.contains(r#""stream":true"#) {
             let chunk = serde_json::to_string(&serde_json::json!({

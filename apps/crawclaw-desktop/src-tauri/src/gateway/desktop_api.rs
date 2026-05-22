@@ -3,33 +3,33 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use axum::body::Bytes;
 use axum::http::{HeaderMap, Method, StatusCode};
 use axum::routing::{get, patch, post};
 use axum::{Json, Router};
-use serde::{de::DeserializeOwned, Serialize};
-use serde_json::{json, Map, Value};
+use serde::{Serialize, de::DeserializeOwned};
+use serde_json::{Map, Value, json};
 use tokio::net::TcpListener;
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{RwLock, broadcast};
 use tower_http::cors::{Any, CorsLayer};
 use uuid::Uuid;
 
-use crawclaw_channels::{is_desktop_or_native_channel_id, native_channel, NativeChannelDefinition};
+use crawclaw_channels::{NativeChannelDefinition, is_desktop_or_native_channel_id, native_channel};
 use crawclaw_native_plugins::comfyui::handle_comfyui;
 use crawclaw_native_plugins::qwen3_tts::{build_synthesis_payload, synthesize_qwen3_tts};
 use crawclaw_native_plugins::web::{run_searxng_search, run_spider_fetch};
 use crawclaw_plugin_host::{
-    add_custom_plugin_skill, load_plugin_manifest, toggle_plugin_skill_open,
-    toggle_plugin_tool_open, PluginHostError, PluginHostSkill, PluginHostTool,
+    PluginHostError, PluginHostSkill, PluginHostTool, add_custom_plugin_skill,
+    load_plugin_manifest, toggle_plugin_skill_open, toggle_plugin_tool_open,
 };
 use crawclaw_runtime::{
-    special_agents::find_special_agent, AgentModelSelection, AgentRunRequest, AgentRuntime,
-    AgentRuntimeError, AgentRuntimeSendOptions, AgentRuntimeToolSelection, ChannelChatType,
-    ChannelInboundEnvelope, DesktopAgentStore, DesktopAgentStoreError, DesktopMemoryRecord,
-    DesktopMemoryStore, DesktopMemoryStoreError, DesktopPreferencesRecord, DesktopPreferencesStore,
-    DesktopPreferencesStoreError, DesktopSessionRecord, DesktopSessionStore,
-    DesktopSessionStoreError,
+    AgentModelSelection, AgentRunRequest, AgentRuntime, AgentRuntimeError, AgentRuntimeSendOptions,
+    AgentRuntimeToolSelection, ChannelChatType, ChannelInboundEnvelope, DesktopAgentStore,
+    DesktopAgentStoreError, DesktopMemoryRecord, DesktopMemoryStore, DesktopMemoryStoreError,
+    DesktopPreferencesRecord, DesktopPreferencesStore, DesktopPreferencesStoreError,
+    DesktopSessionRecord, DesktopSessionStore, DesktopSessionStoreError,
+    special_agents::find_special_agent,
 };
 
 use crate::gateway::desktop_state::initial_desktop_state;
@@ -37,10 +37,10 @@ use crate::gateway::runtime_supervisor::RuntimeSupervisor;
 use crate::models::{
     AdvancedDefaults, AgentAvatarProfile, AgentChannelBinding, AgentChannelConfig,
     AgentChannelConfigField, AgentEmotionProfile, AgentProfile, AgentSkill, AgentTool,
-    AgentVoiceConfig, ConfirmationDefaults, ConversationMessage, DesktopApiInfo, DesktopAppInfo,
-    DesktopEvent, DesktopPreferences, DesktopState, MemoryDefaults, MemoryItem,
-    NotificationDefaults, PermissionStatus, PluginSkill, PluginTool, PrivacyDefaults, RuntimeCheck,
-    SidebarThread, TaskDefaults, UiDefaults,
+    AgentVoiceConfig, ConfirmationDefaults, ConversationMediaItem, ConversationMessage,
+    ConversationWorkflowStep, DesktopApiInfo, DesktopAppInfo, DesktopEvent, DesktopPreferences,
+    DesktopState, MemoryDefaults, MemoryItem, NotificationDefaults, PermissionStatus, PluginSkill,
+    PluginTool, PrivacyDefaults, RuntimeCheck, SidebarThread, TaskDefaults, UiDefaults,
 };
 use crate::runtime_engine::RuntimeLayout;
 
@@ -64,14 +64,15 @@ use self::desktop_memory_routes::{
     select_memory_agent, select_memory_item, set_memory_filter, set_memory_query,
 };
 use self::desktop_mutation_routes::{
-    abort_message, add_agent_skill, add_plugin_skill, archive_memory_item, archive_thread,
-    create_agent, create_memory_item, invoke_plugin_tool, pin_thread, rename_thread_route,
-    run_memory_dream, steer_message, toggle_agent_skill, toggle_agent_tool, toggle_plugin_skill,
-    toggle_plugin_tool, unpin_thread, update_agent, update_memory_item,
+    abort_message, add_agent_skill, add_attachment_message, add_media_message, add_plugin_skill,
+    add_skill_call_message, add_voice_message, add_workflow_message, archive_memory_item,
+    archive_thread, create_agent, create_memory_item, invoke_plugin_tool, pin_thread,
+    rename_thread_route, run_memory_dream, steer_message, toggle_agent_skill, toggle_agent_tool,
+    toggle_plugin_skill, toggle_plugin_tool, unpin_thread, update_agent, update_memory_item,
 };
 use self::desktop_native_operations::{
-    active_thread_id, parse_json_body, plugin_skill, plugin_tool, run_native_state_mutation,
-    string_field, with_string, DesktopNativeMutation, ThreadMutation, ToggleMutation,
+    DesktopNativeMutation, ThreadMutation, ToggleMutation, active_thread_id, parse_json_body,
+    plugin_skill, plugin_tool, run_native_state_mutation, string_field, with_string,
 };
 use self::desktop_plugin_operations::invoke_plugin_tool_operation;
 use self::desktop_session_routes::{
@@ -477,6 +478,86 @@ pub(super) fn conversation_tool_result_message(
     }
 }
 
+pub(super) fn conversation_attachment_message(
+    title: String,
+    file_name: String,
+    media_type: String,
+    detail: Option<String>,
+) -> ConversationMessage {
+    ConversationMessage::Attachment {
+        id: now_message_id("attachment"),
+        title,
+        file_name,
+        media_type,
+        detail,
+        created_at: "刚刚".to_string(),
+    }
+}
+
+pub(super) fn conversation_media_message(
+    media_type: String,
+    title: String,
+    items: Vec<ConversationMediaItem>,
+) -> ConversationMessage {
+    ConversationMessage::Media {
+        id: now_message_id("media"),
+        media_type,
+        title,
+        items,
+        created_at: "刚刚".to_string(),
+    }
+}
+
+pub(super) fn conversation_voice_message(
+    direction: String,
+    title: String,
+    duration_label: String,
+    transcript: Option<String>,
+) -> ConversationMessage {
+    ConversationMessage::Voice {
+        id: now_message_id("voice"),
+        direction,
+        title,
+        duration_label,
+        transcript,
+        created_at: "刚刚".to_string(),
+    }
+}
+
+pub(super) fn conversation_workflow_message(
+    workflow_kind: String,
+    title: String,
+    status: String,
+    detail: String,
+    steps: Vec<ConversationWorkflowStep>,
+) -> ConversationMessage {
+    ConversationMessage::Workflow {
+        id: now_message_id("workflow"),
+        workflow_kind,
+        title,
+        status,
+        detail,
+        steps,
+        created_at: "刚刚".to_string(),
+    }
+}
+
+pub(super) fn conversation_skill_call_message(
+    skill_id: String,
+    title: String,
+    status: String,
+    detail: Option<String>,
+) -> ConversationMessage {
+    ConversationMessage::SkillCall {
+        id: now_message_id("skill-call"),
+        skill_id,
+        title,
+        status,
+        detail,
+        created_at: "刚刚".to_string(),
+    }
+}
+
 pub(super) fn upsert_permission_message(
     desktop_state: &mut DesktopState,
     request_id: &str,
@@ -638,6 +719,17 @@ fn router(state: GatewayState) -> Router {
         .route("/api/desktop/navigation/select", post(select_nav))
         .route("/api/desktop/threads/select", post(select_thread))
         .route("/api/desktop/messages", post(send_message))
+        .route(
+            "/api/desktop/messages/attachments",
+            post(add_attachment_message),
+        )
+        .route("/api/desktop/messages/media", post(add_media_message))
+        .route("/api/desktop/messages/voice", post(add_voice_message))
+        .route(
+            "/api/desktop/messages/workflows",
+            post(add_workflow_message),
+        )
+        .route("/api/desktop/messages/skills", post(add_skill_call_message))
         .route("/api/desktop/messages/abort", post(abort_message))
         .route("/api/desktop/messages/steer", post(steer_message))
         .route(

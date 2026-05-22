@@ -1,13 +1,13 @@
+use axum::Json;
 use axum::body::Bytes;
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
-use axum::Json;
 
 use crate::models::DesktopState;
 
 use super::{
-    authorize_headers, parse_json_body, run_native_state_mutation, with_string,
-    DesktopNativeMutation, GatewayState, ThreadMutation, ToggleMutation,
+    DesktopNativeMutation, GatewayState, ThreadMutation, ToggleMutation, authorize_headers,
+    parse_json_body, run_native_state_mutation, with_string,
 };
 
 async fn run_body_mutation(
@@ -98,6 +98,81 @@ pub(super) async fn create_agent(
         headers,
         body,
         DesktopNativeMutation::CreateAgent,
+        Vec::new(),
+    )
+    .await
+}
+
+pub(super) async fn add_attachment_message(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> Result<Json<DesktopState>, StatusCode> {
+    run_body_mutation(
+        state,
+        headers,
+        body,
+        DesktopNativeMutation::AddAttachmentMessage,
+        Vec::new(),
+    )
+    .await
+}
+
+pub(super) async fn add_media_message(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> Result<Json<DesktopState>, StatusCode> {
+    run_body_mutation(
+        state,
+        headers,
+        body,
+        DesktopNativeMutation::AddMediaMessage,
+        Vec::new(),
+    )
+    .await
+}
+
+pub(super) async fn add_voice_message(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> Result<Json<DesktopState>, StatusCode> {
+    run_body_mutation(
+        state,
+        headers,
+        body,
+        DesktopNativeMutation::AddVoiceMessage,
+        Vec::new(),
+    )
+    .await
+}
+
+pub(super) async fn add_workflow_message(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> Result<Json<DesktopState>, StatusCode> {
+    run_body_mutation(
+        state,
+        headers,
+        body,
+        DesktopNativeMutation::AddWorkflowMessage,
+        Vec::new(),
+    )
+    .await
+}
+
+pub(super) async fn add_skill_call_message(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> Result<Json<DesktopState>, StatusCode> {
+    run_body_mutation(
+        state,
+        headers,
+        body,
+        DesktopNativeMutation::AddSkillCallMessage,
         Vec::new(),
     )
     .await

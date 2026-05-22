@@ -18,7 +18,12 @@ import {
   useState,
 } from 'react'
 import {
+  addAttachmentMessage,
+  addMediaMessage,
   addPluginSkill,
+  addSkillCallMessage,
+  addVoiceMessage,
+  addWorkflowMessage,
   archiveMemoryItem,
   archiveThread,
   createAgent,
@@ -393,6 +398,11 @@ export default function App() {
             agents={desktopState.agentWorkspace.agents}
             conversation={desktopState.conversation}
             modelOptions={modelOptions}
+            onAddAttachmentMessage={(input) => void applyDesktopState(() => addAttachmentMessage(input))}
+            onAddMediaMessage={(input) => void applyDesktopState(() => addMediaMessage(input))}
+            onAddSkillCallMessage={(input) => void applyDesktopState(() => addSkillCallMessage(input))}
+            onAddVoiceMessage={(input) => void applyDesktopState(() => addVoiceMessage(input))}
+            onAddWorkflowMessage={(input) => void applyDesktopState(() => addWorkflowMessage(input))}
             onDecidePermission={(requestId, status) => void applyDesktopState(() => decidePermission(requestId, status))}
             onPreferenceUpdate={applyPreferenceUpdate}
             onQueuedInputTextConsumed={() => setQueuedChatInputText('')}
