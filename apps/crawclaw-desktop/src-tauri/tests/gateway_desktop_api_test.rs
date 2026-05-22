@@ -584,6 +584,61 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
+async fn gateway_plugin_invocation_records_tool_messages() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-native-qwen3-tts-tool-messages",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let body = r#"{"input":{"text":"hello structured tool output","providerConfig":{"runtime":"qwen-tts","profiles":{"assistant":{"source":"preset","voice":"vivian"}}}}}"#;
+    let request_body = format!(
+        "POST /api/desktop/plugins/qwen3-tts/tools/qwen3_tts_build_payload/invoke HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        body.len(),
+        body
+    );
+    let (status, body) = request(server.addr, &request_body).await;
+
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
+    let messages = json["conversation"]["messages"]
+        .as_array()
+        .expect("conversation messages");
+    assert!(messages.iter().any(|message| {
+        message["kind"] == "toolCall"
+            && message["toolId"] == "qwen3_tts_build_payload"
+            && message["title"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("qwen3-tts/qwen3_tts_build_payload")
+    }));
+    assert!(messages.iter().any(|message| {
+        message["kind"] == "toolResult"
+            && message["toolId"] == "qwen3_tts_build_payload"
+            && message["ok"] == true
+            && message["text"]
+                .as_str()
+                .unwrap_or_default()
+                .contains(r#""voice":"vivian""#)
+    }));
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn gateway_invokes_searxng_tool_through_rust_native_plugin() {
     let runtime_layout = create_runtime_fixture(
         "desktop-native-searxng-plugin",
@@ -1223,11 +1278,23 @@ esac
     assert_eq!(preferences["taskDefaults"]["selectedThinking"], "low");
     assert_eq!(preferences["taskDefaults"]["permissionMode"], "只读模式");
     assert_eq!(preferences["taskDefaults"]["allowTools"], false);
-    assert_eq!(preferences["confirmationDefaults"]["confirmCommands"], false);
-    assert_eq!(preferences["notificationDefaults"]["notificationSound"], true);
+    assert_eq!(
+        preferences["confirmationDefaults"]["confirmCommands"],
+        false
+    );
+    assert_eq!(
+        preferences["notificationDefaults"]["notificationSound"],
+        true
+    );
     assert_eq!(preferences["uiDefaults"]["defaultPage"], "记忆");
-    assert_eq!(preferences["memoryDefaults"]["memoryDreamFrequency"], "每天");
-    assert_eq!(preferences["privacyDefaults"]["dataLocation"], "本机默认位置");
+    assert_eq!(
+        preferences["memoryDefaults"]["memoryDreamFrequency"],
+        "每天"
+    );
+    assert_eq!(
+        preferences["privacyDefaults"]["dataLocation"],
+        "本机默认位置"
+    );
     assert_eq!(preferences["advancedDefaults"]["logLevel"], "详细");
 }
 
@@ -1832,8 +1899,7 @@ esac
         .as_array()
         .expect("conversation messages")
         .iter()
-        .any(|message| message["kind"] == "error"
-            && message["code"] == "provider_unavailable"));
+        .any(|message| message["kind"] == "error" && message["code"] == "provider_unavailable"));
     let events = read_stream_until(&mut events, "event: operationFailed").await;
     assert!(events.contains("event: operationFailed"));
     assert!(events.contains("provider_unavailable"));

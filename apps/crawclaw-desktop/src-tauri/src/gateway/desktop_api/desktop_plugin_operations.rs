@@ -8,35 +8,69 @@ pub(super) async fn invoke_plugin_tool_operation(
     let tool_id = string_field(&input, "toolId").ok_or(StatusCode::BAD_REQUEST)?;
     let tool_input = input.get("input").cloned().unwrap_or_else(|| json!({}));
     let thread_id = format!("plugin:{plugin_id}");
+    let title = format!("{plugin_id}/{tool_id}");
     let _ = state.events.send(DesktopEvent::ToolCall {
         thread_id: thread_id.clone(),
         tool_id: tool_id.clone(),
     });
-    let result =
-        match invoke_rust_native_plugin_tool(state, &plugin_id, &tool_id, &tool_input).await {
-            Some(Ok(result)) => result,
-            Some(Err(error)) => {
-                let _ = state.events.send(DesktopEvent::ToolResult {
-                    thread_id,
-                    tool_id,
-                    ok: false,
-                });
-                return Err(plugin_host_status(state, PluginHostError::Invalid(error)));
+    {
+        let mut desktop_state = state.desktop_state.write().await;
+        desktop_state
+            .conversation
+            .messages
+            .push(conversation_tool_call_message(
+                tool_id.clone(),
+                title.clone(),
+                None,
+            ));
+    }
+    let result = match invoke_rust_native_plugin_tool(state, &plugin_id, &tool_id, &tool_input)
+        .await
+    {
+        Some(Ok(result)) => result,
+        Some(Err(error)) => {
+            let _ = state.events.send(DesktopEvent::ToolResult {
+                thread_id,
+                tool_id: tool_id.clone(),
+                ok: false,
+            });
+            {
+                let mut desktop_state = state.desktop_state.write().await;
+                desktop_state
+                    .conversation
+                    .messages
+                    .push(conversation_tool_result_message(
+                        tool_id.clone(),
+                        title.clone(),
+                        false,
+                        error.clone(),
+                    ));
             }
-            None => {
-                let _ = state.events.send(DesktopEvent::ToolResult {
-                    thread_id: thread_id.clone(),
-                    tool_id: tool_id.clone(),
-                    ok: false,
-                });
-                return Err(plugin_host_status(
-                    state,
-                    PluginHostError::Invalid(format!(
-                        "Rust-native plugin \"{plugin_id}\" does not expose tool \"{tool_id}\""
-                    )),
-                ));
+            return Err(plugin_host_status(state, PluginHostError::Invalid(error)));
+        }
+        None => {
+            let error =
+                format!("Rust-native plugin \"{plugin_id}\" does not expose tool \"{tool_id}\"");
+            let _ = state.events.send(DesktopEvent::ToolResult {
+                thread_id: thread_id.clone(),
+                tool_id: tool_id.clone(),
+                ok: false,
+            });
+            {
+                let mut desktop_state = state.desktop_state.write().await;
+                desktop_state
+                    .conversation
+                    .messages
+                    .push(conversation_tool_result_message(
+                        tool_id.clone(),
+                        title.clone(),
+                        false,
+                        error.clone(),
+                    ));
             }
-        };
+            return Err(plugin_host_status(state, PluginHostError::Invalid(error)));
+        }
+    };
     let result_text = plugin_tool_result_text(&result);
     {
         let mut desktop_state = state.desktop_state.write().await;
@@ -45,6 +79,15 @@ pub(super) async fn invoke_plugin_tool_operation(
             .conversation
             .result_items
             .push(format!("{plugin_id}/{tool_id}: {result_text}"));
+        desktop_state
+            .conversation
+            .messages
+            .push(conversation_tool_result_message(
+                tool_id.clone(),
+                title,
+                true,
+                result_text.clone(),
+            ));
     }
     let _ = state.events.send(DesktopEvent::ToolResult {
         thread_id,

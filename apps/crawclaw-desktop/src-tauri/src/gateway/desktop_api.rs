@@ -34,11 +34,12 @@ use crawclaw_runtime::{
 use crate::gateway::desktop_state::initial_desktop_state;
 use crate::gateway::runtime_supervisor::RuntimeSupervisor;
 use crate::models::{
-    AgentAvatarProfile, AgentChannelBinding, AgentChannelConfig, AgentChannelConfigField,
-    AgentEmotionProfile, AgentProfile, AgentSkill, AgentVoiceConfig, ConfirmationDefaults,
-    ConversationMessage, DesktopApiInfo, DesktopAppInfo, DesktopEvent, DesktopPreferences,
-    DesktopState, MemoryDefaults, MemoryItem, NotificationDefaults, PluginSkill, PluginTool,
-    PrivacyDefaults, RuntimeCheck, SidebarThread, TaskDefaults, UiDefaults, AdvancedDefaults,
+    AdvancedDefaults, AgentAvatarProfile, AgentChannelBinding, AgentChannelConfig,
+    AgentChannelConfigField, AgentEmotionProfile, AgentProfile, AgentSkill, AgentVoiceConfig,
+    ConfirmationDefaults, ConversationMessage, DesktopApiInfo, DesktopAppInfo, DesktopEvent,
+    DesktopPreferences, DesktopState, MemoryDefaults, MemoryItem, NotificationDefaults,
+    PermissionStatus, PluginSkill, PluginTool, PrivacyDefaults, RuntimeCheck, SidebarThread,
+    TaskDefaults, UiDefaults,
 };
 use crate::runtime_engine::RuntimeLayout;
 
@@ -297,11 +298,14 @@ where
             true
         }
         Err(error) => {
-            desktop_state.conversation.runtime_checks.push(RuntimeCheck {
-                label: "Desktop preferences store".to_string(),
-                value: format!("Invalid desktop preferences field {field}: {error}"),
-                tone: "error".to_string(),
-            });
+            desktop_state
+                .conversation
+                .runtime_checks
+                .push(RuntimeCheck {
+                    label: "Desktop preferences store".to_string(),
+                    value: format!("Invalid desktop preferences field {field}: {error}"),
+                    tone: "error".to_string(),
+                });
             false
         }
     }
@@ -435,6 +439,117 @@ fn conversation_error_message(code: &str, detail: String) -> ConversationMessage
         title: "任务失败".to_string(),
         detail,
         created_at: "刚刚".to_string(),
+    }
+}
+
+pub(super) fn conversation_tool_call_message(
+    tool_id: String,
+    title: String,
+    detail: Option<String>,
+) -> ConversationMessage {
+    ConversationMessage::ToolCall {
+        id: now_message_id("tool-call"),
+        tool_id,
+        title,
+        detail,
+        created_at: "刚刚".to_string(),
+    }
+}
+
+pub(super) fn conversation_tool_result_message(
+    tool_id: String,
+    title: String,
+    ok: bool,
+    text: String,
+) -> ConversationMessage {
+    ConversationMessage::ToolResult {
+        id: now_message_id("tool-result"),
+        tool_id,
+        title,
+        ok,
+        text,
+        created_at: "刚刚".to_string(),
+    }
+}
+
+pub(super) fn upsert_permission_message(
+    desktop_state: &mut DesktopState,
+    request_id: &str,
+    status: PermissionStatus,
+) {
+    let detail = match status {
+        PermissionStatus::Pending => "等待用户确认".to_string(),
+        PermissionStatus::Approved => "已允许一次".to_string(),
+        PermissionStatus::Denied => "已拒绝".to_string(),
+    };
+    if let Some(ConversationMessage::Permission {
+        status: existing_status,
+        detail: existing_detail,
+        ..
+    }) = desktop_state
+        .conversation
+        .messages
+        .iter_mut()
+        .find(|message| {
+            matches!(message, ConversationMessage::Permission { request_id: id, .. } if id == request_id)
+        })
+    {
+        *existing_status = status;
+        *existing_detail = detail;
+        return;
+    }
+    desktop_state
+        .conversation
+        .messages
+        .push(ConversationMessage::Permission {
+            id: now_message_id("permission"),
+            request_id: request_id.to_string(),
+            title: "权限审核".to_string(),
+            detail,
+            status,
+            created_at: "刚刚".to_string(),
+        });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::gateway::desktop_state::initial_desktop_state;
+    use crate::models::{PermissionStatus, RuntimeStatus};
+    use crawclaw_core::{RuntimeCompatStatus, RuntimeStatusValue};
+
+    fn ready_runtime_status() -> RuntimeStatus {
+        RuntimeStatus {
+            status: RuntimeStatusValue::Ready,
+            detail: "ready".to_string(),
+            runtime_root: "/tmp/crawclaw-test".to_string(),
+            binary_path: "/tmp/crawclaw-test/bin/crawclaw-runtime".to_string(),
+            compat: RuntimeCompatStatus::default(),
+        }
+    }
+
+    #[test]
+    fn upsert_permission_message_updates_existing_message() {
+        let mut state = initial_desktop_state(&ready_runtime_status());
+
+        upsert_permission_message(&mut state, "permission-1", PermissionStatus::Pending);
+        upsert_permission_message(&mut state, "permission-1", PermissionStatus::Approved);
+
+        let permission_messages = state
+            .conversation
+            .messages
+            .iter()
+            .filter(|message| matches!(message, ConversationMessage::Permission { .. }))
+            .count();
+        assert_eq!(permission_messages, 1);
+        assert!(matches!(
+            state.conversation.messages.last(),
+            Some(ConversationMessage::Permission {
+                request_id,
+                status: PermissionStatus::Approved,
+                ..
+            }) if request_id == "permission-1"
+        ));
     }
 }
 
@@ -652,7 +767,11 @@ fn persist_desktop_preferences(
             selected_model: preferences.selected_model.clone(),
             selected_thinking: preferences.selected_thinking.clone(),
             permission_mode: preferences.permission_mode.clone(),
-            task_defaults: preference_group_value(state, "taskDefaults", &preferences.task_defaults)?,
+            task_defaults: preference_group_value(
+                state,
+                "taskDefaults",
+                &preferences.task_defaults,
+            )?,
             confirmation_defaults: preference_group_value(
                 state,
                 "confirmationDefaults",

@@ -16,7 +16,8 @@ use crate::models::{
 
 use super::{
     apply_session_conversation, authorize_headers, authorize_token, emit_state_changed,
-    run_native_state_mutation, session_store_status, DesktopNativeMutation, GatewayState,
+    run_native_state_mutation, session_store_status, upsert_permission_message,
+    DesktopNativeMutation, GatewayState,
 };
 
 #[derive(Deserialize)]
@@ -213,6 +214,11 @@ pub(super) async fn permission_decision(
     {
         let mut desktop_state = state.desktop_state.write().await;
         desktop_state.permission_request = permission_request.clone();
+        upsert_permission_message(
+            &mut desktop_state,
+            &request_id,
+            permission_request.status.clone(),
+        );
     }
     let _ = state
         .events
