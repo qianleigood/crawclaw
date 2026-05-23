@@ -15,6 +15,7 @@ pub struct AgentRuntimeRequest<'a> {
     pub provider_config: NativeProviderConfig,
     pub reasoning_level: Option<String>,
     pub tool_selection: AgentRuntimeToolSelection,
+    pub permission_policy: Option<AgentRuntimePermissionPolicy>,
     pub system_prompt: Option<String>,
 }
 
@@ -30,10 +31,11 @@ pub enum AgentRuntimeMessageRole {
     Assistant,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Default)]
 pub struct AgentRuntimeSendOptions {
     pub model_selection: Option<AgentModelSelection>,
     pub tool_selection: AgentRuntimeToolSelection,
+    pub permission_policy: Option<AgentRuntimePermissionPolicy>,
     pub system_prompt: Option<String>,
 }
 

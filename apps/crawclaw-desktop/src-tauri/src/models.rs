@@ -756,6 +756,8 @@ pub struct DesktopPreferences {
 #[serde(rename_all = "camelCase")]
 pub struct PermissionRequest {
     pub id: String,
+    pub title: String,
+    pub detail: String,
     pub status: PermissionStatus,
 }
 

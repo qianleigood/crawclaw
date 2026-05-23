@@ -627,6 +627,17 @@ pub fn build_pi_agent_rust_tool_registry_for_test(runtime_root: &Path) -> pi::sd
     build_pi_agent_rust_tool_registry(runtime_root)
 }
 
+#[doc(hidden)]
+pub fn build_pi_agent_rust_tool_registry_with_permission_policy_for_test(
+    runtime_root: &Path,
+    policy: AgentRuntimePermissionPolicy,
+) -> pi::sdk::ToolRegistry {
+    apply_permission_policy_to_registry(
+        build_pi_agent_rust_tool_registry(runtime_root),
+        Some(policy),
+    )
+}
+
 pub async fn execute_rust_core_tool(
     runtime_root: &Path,
     tool_name: &str,

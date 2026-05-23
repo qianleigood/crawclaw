@@ -110,7 +110,10 @@ pub(super) fn tool_selection_from_enabled_tools(
     }
 }
 
-pub(super) fn user_text_with_system_prompt(system_prompt: &Option<String>, user_text: &str) -> String {
+pub(super) fn user_text_with_system_prompt(
+    system_prompt: &Option<String>,
+    user_text: &str,
+) -> String {
     let Some(system_prompt) = system_prompt
         .as_deref()
         .map(str::trim)
@@ -177,6 +180,7 @@ impl AgentRuntime {
                 AgentRuntimeSendOptions {
                     model_selection: Some(model.clone()),
                     tool_selection: tool_selection_from_enabled_tools(request.enabled_tools),
+                    permission_policy: None,
                     system_prompt: None,
                 },
             )
@@ -251,6 +255,7 @@ impl AgentRuntime {
                 AgentRuntimeSendOptions {
                     model_selection: Some(model),
                     tool_selection: AgentRuntimeToolSelection::Disabled,
+                    permission_policy: None,
                     system_prompt: None,
                 },
             )
@@ -295,6 +300,7 @@ impl AgentRuntime {
             AgentRuntimeSendOptions {
                 model_selection: None,
                 tool_selection: AgentRuntimeToolSelection::Default,
+                permission_policy: None,
                 system_prompt: None,
             },
         )
@@ -313,6 +319,7 @@ impl AgentRuntime {
             AgentRuntimeSendOptions {
                 model_selection: Some(model_selection),
                 tool_selection: AgentRuntimeToolSelection::Default,
+                permission_policy: None,
                 system_prompt: None,
             },
         )
@@ -344,6 +351,7 @@ impl AgentRuntime {
                         reasoning_level: model_selection
                             .and_then(|model| model.reasoning_level.clone()),
                         tool_selection: options.tool_selection.clone(),
+                        permission_policy: options.permission_policy.clone(),
                         system_prompt: options.system_prompt.clone(),
                     })
                     .await?
@@ -362,6 +370,7 @@ impl AgentRuntime {
                         reasoning_level: model_selection
                             .and_then(|model| model.reasoning_level.clone()),
                         tool_selection: options.tool_selection.clone(),
+                        permission_policy: options.permission_policy.clone(),
                         system_prompt: options.system_prompt.clone(),
                     })
                     .await?
@@ -401,6 +410,7 @@ impl AgentRuntime {
                         reasoning_level: model_selection
                             .and_then(|model| model.reasoning_level.clone()),
                         tool_selection: options.tool_selection.clone(),
+                        permission_policy: options.permission_policy.clone(),
                         system_prompt: options.system_prompt.clone(),
                     })
                     .await?
@@ -419,6 +429,7 @@ impl AgentRuntime {
                         reasoning_level: model_selection
                             .and_then(|model| model.reasoning_level.clone()),
                         tool_selection: options.tool_selection.clone(),
+                        permission_policy: options.permission_policy.clone(),
                         system_prompt: options.system_prompt.clone(),
                     })
                     .await?
@@ -620,6 +631,7 @@ impl AgentRuntimeBackend for PiAgentRuntimeBackend {
             let tools = build_pi_agent_rust_tool_registry_for_selection(
                 request.runtime_root,
                 &request.tool_selection,
+                request.permission_policy.clone(),
             );
             let agent_config = pi::sdk::AgentConfig {
                 system_prompt: None,

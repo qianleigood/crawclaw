@@ -105,6 +105,8 @@ pub fn initial_desktop_state(runtime: &RuntimeStatus) -> DesktopState {
         },
         permission_request: PermissionRequest {
             id: String::new(),
+            title: String::new(),
+            detail: String::new(),
             status: PermissionStatus::Denied,
         },
         search_suggestions: Vec::new(),

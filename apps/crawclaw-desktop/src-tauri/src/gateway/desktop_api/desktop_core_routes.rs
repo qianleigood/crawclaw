@@ -54,7 +54,7 @@ pub(super) struct SelectThreadRequest {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct PermissionDecisionRequest {
-    decision: PermissionStatus,
+    pub(super) decision: PermissionStatus,
 }
 
 pub(super) async fn bootstrap(State(state): State<GatewayState>) -> Json<BootstrapResponse> {
@@ -227,11 +227,10 @@ pub(super) async fn permission_decision(
     {
         let mut desktop_state = state.desktop_state.write().await;
         desktop_state.permission_request = permission_request.clone();
-        upsert_permission_message(
-            &mut desktop_state,
-            &request_id,
-            permission_request.status.clone(),
-        );
+        upsert_permission_message(&mut desktop_state, &permission_request);
+    }
+    if let Some(waiter) = state.permission_waiters.lock().await.remove(&request_id) {
+        let _ = waiter.send(permission_request.status.clone());
     }
     let _ = state
         .events

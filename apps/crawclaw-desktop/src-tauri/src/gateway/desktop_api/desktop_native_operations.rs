@@ -1412,6 +1412,11 @@ async fn desktop_send_context(
                 } else {
                     AgentRuntimeToolSelection::Disabled
                 },
+                permission_policy: Some(desktop_permission_policy(
+                    state,
+                    &desktop_state.preferences.task_defaults.permission_mode,
+                    &desktop_state.preferences.confirmation_defaults,
+                )),
                 system_prompt: None,
             },
         });
@@ -1428,6 +1433,11 @@ async fn desktop_send_context(
         options: AgentRuntimeSendOptions {
             model_selection: Some(model_selection_from_agent(agent)),
             tool_selection: tool_selection_from_agent(agent),
+            permission_policy: Some(desktop_permission_policy(
+                state,
+                &agent.permission_mode,
+                &desktop_state.preferences.confirmation_defaults,
+            )),
             system_prompt: Some(system_prompt_from_agent(agent)),
         },
     })

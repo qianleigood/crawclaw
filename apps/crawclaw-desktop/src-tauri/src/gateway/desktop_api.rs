@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -11,7 +11,7 @@ use axum::{Json, Router};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Map, Value};
 use tokio::net::TcpListener;
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{broadcast, oneshot, Mutex, RwLock};
 use tower_http::cors::{Any, CorsLayer};
 use uuid::Uuid;
 
@@ -25,9 +25,11 @@ use crawclaw_plugin_host::{
 };
 use crawclaw_runtime::{
     special_agents::find_special_agent, AgentModelSelection, AgentRunRequest, AgentRuntime,
-    AgentRuntimeError, AgentRuntimeSendOptions, AgentRuntimeToolSelection, ChannelChatType,
-    ChannelInboundEnvelope, DesktopAgentStore, DesktopAgentStoreError, DesktopMemoryRecord,
-    DesktopMemoryStore, DesktopMemoryStoreError, DesktopModelProfileStore,
+    AgentRuntimeConfirmationPolicy, AgentRuntimeError, AgentRuntimePermissionDecision,
+    AgentRuntimePermissionMode, AgentRuntimePermissionPolicy, AgentRuntimePermissionRequest,
+    AgentRuntimePermissionRequester, AgentRuntimeSendOptions, AgentRuntimeToolSelection,
+    ChannelChatType, ChannelInboundEnvelope, DesktopAgentStore, DesktopAgentStoreError,
+    DesktopMemoryRecord, DesktopMemoryStore, DesktopMemoryStoreError, DesktopModelProfileStore,
     DesktopPreferencesRecord, DesktopPreferencesStore, DesktopPreferencesStoreError,
     DesktopSessionRecord, DesktopSessionStore, DesktopSessionStoreError,
 };
@@ -121,6 +123,7 @@ struct GatewayState {
     preferences_store: DesktopPreferencesStore,
     session_store: DesktopSessionStore,
     desktop_state: Arc<RwLock<DesktopState>>,
+    permission_waiters: Arc<Mutex<HashMap<String, oneshot::Sender<PermissionStatus>>>>,
     events: broadcast::Sender<DesktopEvent>,
 }
 
@@ -236,7 +239,81 @@ async fn build_state(
         preferences_store,
         session_store,
         desktop_state: Arc::new(RwLock::new(desktop_state)),
+        permission_waiters: Arc::new(Mutex::new(HashMap::new())),
         events,
+    }
+}
+
+#[derive(Clone)]
+struct DesktopRuntimePermissionRequester {
+    state: GatewayState,
+}
+
+impl AgentRuntimePermissionRequester for DesktopRuntimePermissionRequester {
+    fn request_permission<'a>(
+        &'a self,
+        request: AgentRuntimePermissionRequest,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = AgentRuntimePermissionDecision> + Send + 'a>,
+    > {
+        Box::pin(async move { request_runtime_permission(self.state.clone(), request).await })
+    }
+}
+
+async fn request_runtime_permission(
+    state: GatewayState,
+    request: AgentRuntimePermissionRequest,
+) -> AgentRuntimePermissionDecision {
+    let request_id = format!("permission-{}", Uuid::new_v4().simple());
+    let permission_request = crate::models::PermissionRequest {
+        id: request_id.clone(),
+        title: request.title,
+        detail: request.detail,
+        status: PermissionStatus::Pending,
+    };
+    let (sender, receiver) = oneshot::channel();
+    state
+        .permission_waiters
+        .lock()
+        .await
+        .insert(request_id, sender);
+    {
+        let mut desktop_state = state.desktop_state.write().await;
+        desktop_state.permission_request = permission_request.clone();
+        upsert_permission_message(&mut desktop_state, &permission_request);
+    }
+    let _ = state
+        .events
+        .send(DesktopEvent::PermissionRequested { permission_request });
+    match receiver.await {
+        Ok(PermissionStatus::Approved) => AgentRuntimePermissionDecision::Approved,
+        Ok(PermissionStatus::Denied | PermissionStatus::Pending) | Err(_) => {
+            AgentRuntimePermissionDecision::Denied
+        }
+    }
+}
+
+fn desktop_permission_policy(
+    state: &GatewayState,
+    permission_mode: &str,
+    confirmations: &ConfirmationDefaults,
+) -> AgentRuntimePermissionPolicy {
+    let mode = match permission_mode {
+        "只读模式" => AgentRuntimePermissionMode::ReadOnly,
+        "完全访问" => AgentRuntimePermissionMode::FullAccess,
+        _ => AgentRuntimePermissionMode::Workspace,
+    };
+    AgentRuntimePermissionPolicy {
+        mode,
+        confirmations: AgentRuntimeConfirmationPolicy {
+            confirm_file_changes: confirmations.confirm_file_changes,
+            confirm_commands: confirmations.confirm_commands,
+            confirm_external_apps: confirmations.confirm_external_apps,
+            confirm_high_risk: confirmations.confirm_high_risk,
+        },
+        requester: Some(Arc::new(DesktopRuntimePermissionRequester {
+            state: state.clone(),
+        })),
     }
 }
 
@@ -677,15 +754,15 @@ pub(super) fn conversation_status_message(
 
 pub(super) fn upsert_permission_message(
     desktop_state: &mut DesktopState,
-    request_id: &str,
-    status: PermissionStatus,
+    permission_request: &crate::models::PermissionRequest,
 ) {
-    let detail = match status {
-        PermissionStatus::Pending => "等待用户确认".to_string(),
-        PermissionStatus::Approved => "已允许一次".to_string(),
-        PermissionStatus::Denied => "已拒绝".to_string(),
+    let detail = match permission_request.status {
+        PermissionStatus::Pending => permission_request.detail.clone(),
+        PermissionStatus::Approved => format!("已允许一次：{}", permission_request.detail),
+        PermissionStatus::Denied => format!("已拒绝：{}", permission_request.detail),
     };
     if let Some(ConversationMessage::Permission {
+        title: existing_title,
         status: existing_status,
         detail: existing_detail,
         ..
@@ -694,10 +771,11 @@ pub(super) fn upsert_permission_message(
         .messages
         .iter_mut()
         .find(|message| {
-            matches!(message, ConversationMessage::Permission { request_id: id, .. } if id == request_id)
+            matches!(message, ConversationMessage::Permission { request_id: id, .. } if id == &permission_request.id)
         })
     {
-        *existing_status = status;
+        *existing_title = permission_request.title.clone();
+        *existing_status = permission_request.status.clone();
         *existing_detail = detail;
         return;
     }
@@ -706,10 +784,10 @@ pub(super) fn upsert_permission_message(
         .messages
         .push(ConversationMessage::Permission {
             id: now_message_id("permission"),
-            request_id: request_id.to_string(),
-            title: "权限审核".to_string(),
+            request_id: permission_request.id.clone(),
+            title: permission_request.title.clone(),
             detail,
-            status,
+            status: permission_request.status.clone(),
             created_at: "刚刚".to_string(),
         });
 }
@@ -717,9 +795,20 @@ pub(super) fn upsert_permission_message(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::gateway::desktop_api::desktop_core_routes::{
+        permission_decision, PermissionDecisionRequest,
+    };
     use crate::gateway::desktop_state::initial_desktop_state;
     use crate::models::{PermissionStatus, RuntimeStatus};
+    use axum::extract::{Path, State};
+    use axum::http::HeaderMap;
+    use axum::Json;
     use crawclaw_core::{RuntimeCompatStatus, RuntimeStatusValue};
+    use crawclaw_runtime::{
+        AgentRuntimePermissionCategory, AgentRuntimePermissionDecision,
+        AgentRuntimePermissionRequest,
+    };
+    use std::time::Duration;
 
     fn ready_runtime_status() -> RuntimeStatus {
         RuntimeStatus {
@@ -735,8 +824,24 @@ mod tests {
     fn upsert_permission_message_updates_existing_message() {
         let mut state = initial_desktop_state(&ready_runtime_status());
 
-        upsert_permission_message(&mut state, "permission-1", PermissionStatus::Pending);
-        upsert_permission_message(&mut state, "permission-1", PermissionStatus::Approved);
+        upsert_permission_message(
+            &mut state,
+            &crate::models::PermissionRequest {
+                id: "permission-1".to_string(),
+                title: "确认执行命令".to_string(),
+                detail: "工具 bash 想运行：printf ok".to_string(),
+                status: PermissionStatus::Pending,
+            },
+        );
+        upsert_permission_message(
+            &mut state,
+            &crate::models::PermissionRequest {
+                id: "permission-1".to_string(),
+                title: "确认执行命令".to_string(),
+                detail: "工具 bash 想运行：printf ok".to_string(),
+                status: PermissionStatus::Approved,
+            },
+        );
 
         let permission_messages = state
             .conversation
@@ -753,6 +858,76 @@ mod tests {
                 ..
             }) if request_id == "permission-1"
         ));
+    }
+
+    #[tokio::test]
+    async fn permission_decision_resolves_pending_runtime_permission_request() {
+        let state = build_state(
+            "CrawClaw Desktop".to_string(),
+            "test".to_string(),
+            "http://127.0.0.1:1".to_string(),
+            "session".to_string(),
+            test_runtime_layout("permission-decision-resolves"),
+        )
+        .await;
+        let decision_task = tokio::spawn(request_runtime_permission(
+            state.clone(),
+            AgentRuntimePermissionRequest {
+                tool_call_id: "tool-call-1".to_string(),
+                tool_name: "bash".to_string(),
+                title: "确认执行命令".to_string(),
+                detail: "工具 bash 想运行：printf ok".to_string(),
+                category: AgentRuntimePermissionCategory::Command,
+            },
+        ));
+
+        let request_id = tokio::time::timeout(Duration::from_secs(2), async {
+            loop {
+                let permission_request =
+                    state.desktop_state.read().await.permission_request.clone();
+                if !permission_request.id.is_empty() {
+                    return permission_request.id;
+                }
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .expect("permission request id");
+        {
+            let desktop_state = state.desktop_state.read().await;
+            assert_eq!(desktop_state.permission_request.title, "确认执行命令");
+            assert_eq!(
+                desktop_state.permission_request.detail,
+                "工具 bash 想运行：printf ok"
+            );
+        }
+
+        let mut headers = HeaderMap::new();
+        headers.insert("x-crawclaw-desktop-session", "session".parse().unwrap());
+        let _ = permission_decision(
+            State(state),
+            headers,
+            Path(request_id),
+            Json(PermissionDecisionRequest {
+                decision: PermissionStatus::Approved,
+            }),
+        )
+        .await
+        .expect("permission decision");
+
+        let decision = decision_task.await.expect("permission waiter");
+        assert_eq!(decision, AgentRuntimePermissionDecision::Approved);
+    }
+
+    fn test_runtime_layout(name: &str) -> RuntimeLayout {
+        let runtime_root =
+            std::env::temp_dir().join(format!("crawclaw-desktop-{name}-{}", Uuid::new_v4()));
+        RuntimeLayout {
+            binary_path: runtime_root.join("bin").join("crawclaw-runtime"),
+            channel_manifest_path: runtime_root.join("channels").join("manifest.json"),
+            manifest_path: runtime_root.join("runtimes").join("manifest.json"),
+            runtime_root,
+        }
     }
 }
 

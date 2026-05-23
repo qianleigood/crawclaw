@@ -887,6 +887,216 @@ fn pi_agent_rust_tool_registry_honors_runtime_allowlist() {
     assert!(registry.get("bash").is_none());
 }
 
+#[tokio::test]
+async fn permission_policy_read_only_keeps_read_tools_and_blocks_mutating_tools() {
+    let runtime_root = unique_test_runtime_root("permission-read-only-tools");
+    fs::create_dir_all(&runtime_root).expect("runtime root");
+    fs::write(runtime_root.join("note.txt"), "hello").expect("read fixture");
+    let registry = build_pi_agent_rust_tool_registry_with_permission_policy_for_test(
+        &runtime_root,
+        AgentRuntimePermissionPolicy::read_only(),
+    );
+
+    assert!(registry.get("write").is_none());
+    assert!(registry.get("edit").is_none());
+    assert!(registry.get("apply_patch").is_none());
+    assert!(registry.get("bash").is_none());
+    assert!(registry.get("process").is_none());
+    assert!(registry.get("workflow").is_none());
+
+    let read = registry.get("read").expect("read tool");
+    let output = read
+        .execute("read-call", json!({ "path": "note.txt" }), None)
+        .await
+        .expect("read succeeds");
+    assert!(format!("{output:?}").contains("hello"));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn permission_policy_confirm_commands_waits_for_approval_before_execution() {
+    let runtime_root = unique_test_runtime_root("permission-confirm-command");
+    fs::create_dir_all(&runtime_root).expect("runtime root");
+    let marker = runtime_root.join("command-ran.txt");
+    let requester = std::sync::Arc::new(RecordingPermissionRequester::new(vec![
+        AgentRuntimePermissionDecision::Denied,
+        AgentRuntimePermissionDecision::Approved,
+    ]));
+    let registry = build_pi_agent_rust_tool_registry_with_permission_policy_for_test(
+        &runtime_root,
+        AgentRuntimePermissionPolicy::workspace()
+            .with_confirm_commands(true)
+            .with_requester(requester.clone()),
+    );
+    let bash = registry.get("bash").expect("bash tool");
+
+    let denied = bash
+        .execute(
+            "bash-denied",
+            json!({ "command": format!("printf denied > {}", marker.display()) }),
+            None,
+        )
+        .await;
+    assert!(denied
+        .expect_err("command denied")
+        .to_string()
+        .contains("permission"));
+    assert!(!marker.exists());
+
+    bash.execute(
+        "bash-approved",
+        json!({ "command": format!("printf approved > {}", marker.display()) }),
+        None,
+    )
+    .await
+    .expect("command approved");
+    assert_eq!(fs::read_to_string(&marker).expect("marker"), "approved");
+    let requests = requester.requests();
+    assert_eq!(requests.len(), 2);
+    assert_eq!(requests[0].tool_name, "bash");
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn permission_policy_confirm_file_changes_blocks_write_until_approved() {
+    let runtime_root = unique_test_runtime_root("permission-confirm-file-change");
+    fs::create_dir_all(&runtime_root).expect("runtime root");
+    let target = runtime_root.join("file.txt");
+    let requester = std::sync::Arc::new(RecordingPermissionRequester::new(vec![
+        AgentRuntimePermissionDecision::Denied,
+        AgentRuntimePermissionDecision::Approved,
+    ]));
+    let registry = build_pi_agent_rust_tool_registry_with_permission_policy_for_test(
+        &runtime_root,
+        AgentRuntimePermissionPolicy::workspace()
+            .with_confirm_file_changes(true)
+            .with_requester(requester.clone()),
+    );
+    let write = registry.get("write").expect("write tool");
+
+    let denied = write
+        .execute(
+            "write-denied",
+            json!({ "path": "file.txt", "content": "denied" }),
+            None,
+        )
+        .await;
+    assert!(denied
+        .expect_err("write denied")
+        .to_string()
+        .contains("permission"));
+    assert!(!target.exists());
+
+    write
+        .execute(
+            "write-approved",
+            json!({ "path": "file.txt", "content": "approved" }),
+            None,
+        )
+        .await
+        .expect("write approved");
+    assert_eq!(fs::read_to_string(&target).expect("target"), "approved");
+    let requests = requester.requests();
+    assert_eq!(requests.len(), 2);
+    assert_eq!(requests[0].tool_name, "write");
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn permission_policy_confirm_external_apps_blocks_native_plugin_tools() {
+    let runtime_root = unique_test_runtime_root("permission-confirm-external");
+    fs::create_dir_all(&runtime_root).expect("runtime root");
+    let requester = std::sync::Arc::new(RecordingPermissionRequester::new(vec![
+        AgentRuntimePermissionDecision::Denied,
+    ]));
+    let registry = build_pi_agent_rust_tool_registry_with_permission_policy_for_test(
+        &runtime_root,
+        AgentRuntimePermissionPolicy::workspace()
+            .with_confirm_external_apps(true)
+            .with_requester(requester.clone()),
+    );
+    let browser = registry.get("browser").expect("browser tool");
+
+    let denied = browser
+        .execute("browser-denied", json!({ "action": "tabs" }), None)
+        .await;
+    assert!(denied
+        .expect_err("browser denied")
+        .to_string()
+        .contains("permission"));
+    let requests = requester.requests();
+    assert_eq!(requests.len(), 1);
+    assert_eq!(requests[0].tool_name, "browser");
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn permission_policy_confirm_high_risk_blocks_workflow_tools() {
+    let runtime_root = unique_test_runtime_root("permission-confirm-high-risk");
+    fs::create_dir_all(&runtime_root).expect("runtime root");
+    let requester = std::sync::Arc::new(RecordingPermissionRequester::new(vec![
+        AgentRuntimePermissionDecision::Denied,
+    ]));
+    let registry = build_pi_agent_rust_tool_registry_with_permission_policy_for_test(
+        &runtime_root,
+        AgentRuntimePermissionPolicy::workspace()
+            .with_confirm_high_risk(true)
+            .with_requester(requester.clone()),
+    );
+    let workflow = registry.get("workflow").expect("workflow tool");
+
+    let denied = workflow
+        .execute("workflow-denied", json!({ "action": "runs" }), None)
+        .await;
+    assert!(denied
+        .expect_err("workflow denied")
+        .to_string()
+        .contains("permission"));
+    let requests = requester.requests();
+    assert_eq!(requests.len(), 1);
+    assert_eq!(requests[0].tool_name, "workflow");
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+struct RecordingPermissionRequester {
+    decisions: std::sync::Mutex<std::collections::VecDeque<AgentRuntimePermissionDecision>>,
+    requests: std::sync::Mutex<Vec<AgentRuntimePermissionRequest>>,
+}
+
+impl RecordingPermissionRequester {
+    fn new(decisions: Vec<AgentRuntimePermissionDecision>) -> Self {
+        Self {
+            decisions: std::sync::Mutex::new(decisions.into()),
+            requests: std::sync::Mutex::new(Vec::new()),
+        }
+    }
+
+    fn requests(&self) -> Vec<AgentRuntimePermissionRequest> {
+        self.requests.lock().expect("requests").clone()
+    }
+}
+
+impl AgentRuntimePermissionRequester for RecordingPermissionRequester {
+    fn request_permission<'a>(
+        &'a self,
+        request: AgentRuntimePermissionRequest,
+    ) -> Pin<Box<dyn Future<Output = AgentRuntimePermissionDecision> + Send + 'a>> {
+        Box::pin(async move {
+            self.requests.lock().expect("requests").push(request);
+            self.decisions
+                .lock()
+                .expect("decisions")
+                .pop_front()
+                .unwrap_or(AgentRuntimePermissionDecision::Denied)
+        })
+    }
+}
+
 #[test]
 fn rust_core_tool_inventory_tracks_native_tools() {
     let definition = |tool_id: &str| {

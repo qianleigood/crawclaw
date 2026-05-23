@@ -18,11 +18,13 @@ pub mod special_agents;
 
 mod agent_provider_bridge;
 mod agent_runtime_backend;
+mod agent_runtime_permissions;
 mod agent_runtime_types;
 mod desktop_runtime_stores;
 mod runtime_tool_catalog;
 use self::agent_provider_bridge::*;
 pub use self::agent_runtime_backend::*;
+pub use self::agent_runtime_permissions::*;
 pub use self::agent_runtime_types::*;
 pub use self::desktop_runtime_stores::*;
 pub use self::runtime_tool_catalog::*;

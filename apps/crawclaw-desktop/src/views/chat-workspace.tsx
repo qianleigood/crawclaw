@@ -401,13 +401,19 @@ export function ChatWorkspace({
                 <ShieldCheck aria-hidden="true" size={15} strokeWidth={2.1} />
               </div>
               <div className="permission-review__body">
-                <strong>{approvalState === 'pending' ? '权限审核' : approvalState === 'approved' ? '已允许一次' : '已拒绝'}</strong>
+                <strong>
+                  {approvalState === 'pending'
+                    ? permissionRequest.title || '权限审核'
+                    : approvalState === 'approved'
+                      ? '已允许一次'
+                      : '已拒绝'}
+                </strong>
                 <span>
                   {approvalState === 'pending'
-                    ? 'CrawClaw 请求读取当前窗口内容，用于继续本轮 UI 调整。'
+                    ? permissionRequest.detail || 'CrawClaw 请求执行需要确认的操作。'
                     : approvalState === 'approved'
-                      ? '这次操作已通过，继续保持本地静态 UI 演示。'
-                      : '这次权限请求已拒绝，界面停留在本地预览状态。'}
+                      ? `这次操作已通过。${permissionRequest.detail || ''}`
+                      : `这次权限请求已拒绝。${permissionRequest.detail || ''}`}
                 </span>
               </div>
               {approvalState === 'pending' ? (

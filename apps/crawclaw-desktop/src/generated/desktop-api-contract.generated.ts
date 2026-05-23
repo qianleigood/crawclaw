@@ -520,6 +520,8 @@ export interface DesktopPreferences {
 
 export interface PermissionRequest {
   id: string
+  title: string
+  detail: string
   status: PermissionStatus
 }
 

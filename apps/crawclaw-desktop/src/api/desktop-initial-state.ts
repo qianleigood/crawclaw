@@ -109,6 +109,8 @@ export function createDesktopUnavailableState(detail = '正在连接本机 Gatew
     },
     permissionRequest: {
       id: '',
+      title: '',
+      detail: '',
       status: 'denied',
     },
     searchSuggestions: [],
