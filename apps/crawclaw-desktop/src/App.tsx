@@ -29,6 +29,7 @@ import {
   createAgent,
   createMemoryItem,
   decidePermission,
+  exportDesktopData,
   pinThread,
   renameThread,
   runMemoryDream,
@@ -41,14 +42,21 @@ import {
   sendMessage,
   setMemoryFilter as setDesktopMemoryFilter,
   setMemoryQuery as setDesktopMemoryQuery,
+  testAndSaveModelProfile,
+  clearDesktopCache,
+  deleteDesktopLocalData,
+  generateDesktopDiagnostics,
+  resetDesktopState,
   togglePluginSkill,
   unpinThread,
   updateMemoryItem,
   updatePreferences,
   type AddPluginSkillInput,
+  type DesktopPreferencesPatch,
   type DesktopPreferences,
   type DesktopIconKey,
   type DesktopState,
+  type ModelProfileSetupInput,
   type PluginSkill,
 } from './desktop-api'
 import { useDesktopStateController } from './app/use-desktop-state'
@@ -171,7 +179,7 @@ function addPluginSkillLocally(state: DesktopState, input: AddPluginSkillInput):
 
 function mergeDesktopPreferences(
   preferences: DesktopPreferences,
-  patch: Partial<DesktopPreferences>,
+  patch: DesktopPreferencesPatch,
 ): DesktopPreferences {
   const next: DesktopPreferences = {
     ...preferences,
@@ -237,6 +245,33 @@ function clearActiveConversation(state: DesktopState): DesktopState {
   }
 }
 
+function appearanceClass(appearance: string) {
+  if (appearance === '浅色') {
+    return 'is-appearance-light'
+  }
+  if (appearance === '深色') {
+    return 'is-appearance-dark'
+  }
+  return 'is-appearance-system'
+}
+
+function languageCode(language: string): 'en' | 'zh-CN' {
+  return language === 'English' ? 'en' : 'zh-CN'
+}
+
+function navIdForDefaultPage(defaultPage?: string) {
+  if (defaultPage === '记忆') {
+    return 'memory'
+  }
+  if (defaultPage === '智能体') {
+    return 'agent'
+  }
+  if (defaultPage === '新对话') {
+    return 'new-chat'
+  }
+  return null
+}
+
 export default function App() {
   const {
     applyDesktopState,
@@ -247,10 +282,11 @@ export default function App() {
   } = useDesktopStateController()
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsSectionId>('general')
-  const [customModelOptions, setCustomModelOptions] = useState<string[]>([])
   const [queuedChatInputText, setQueuedChatInputText] = useState('')
   const [selectedChatAgentId, setSelectedChatAgentId] = useState('')
   const activeNavId = desktopState.activeNavId
+  const appAppearanceClass = appearanceClass(desktopState.preferences.uiDefaults.appearance)
+  const appLanguageCode = languageCode(desktopState.preferences.uiDefaults.language)
   const activeNavItem = desktopState.sidebar.navItems.find((item) => item.id === activeNavId)
   const activeNavLabel = activeNavId === 'settings' ? '设置' : (activeNavItem?.label ?? '新对话')
   const activeNavPanel = activeNavId === 'new-chat' ? null : navPanels[activeNavId]
@@ -259,7 +295,7 @@ export default function App() {
   const selectedModel = desktopState.preferences.selectedModel
   const modelOptions = Array.from(new Set([
     ...desktopState.preferences.modelOptions,
-    ...customModelOptions,
+    ...desktopState.preferences.modelProfiles.map((profile) => profile.modelRef),
     selectedModel,
   ].filter(Boolean)))
   const navItems: SidebarNavItem[] = desktopState.sidebar.navItems.map((item) => ({
@@ -280,12 +316,42 @@ export default function App() {
     }
   }, [desktopState.agentWorkspace.agents, selectedChatAgentId])
 
-  const applyPreferenceUpdate = (patch: Parameters<typeof updatePreferences>[0]) => {
+  useEffect(() => {
+    const root = document.documentElement
+    root.lang = appLanguageCode
+    root.dataset.crawclawAppearance = desktopState.preferences.uiDefaults.appearance
+    root.dataset.crawclawLanguage = desktopState.preferences.uiDefaults.language
+    root.style.colorScheme = appAppearanceClass === 'is-appearance-dark'
+      ? 'dark'
+      : appAppearanceClass === 'is-appearance-light'
+        ? 'light'
+        : 'light dark'
+  }, [
+    appAppearanceClass,
+    appLanguageCode,
+    desktopState.preferences.uiDefaults.appearance,
+    desktopState.preferences.uiDefaults.language,
+  ])
+
+  const applyPreferenceUpdate = (patch: DesktopPreferencesPatch) => {
+    const defaultPageNavId = navIdForDefaultPage(patch.uiDefaults?.defaultPage)
     setDesktopState((state) => ({
       ...state,
+      activeNavId: defaultPageNavId ?? state.activeNavId,
       preferences: mergeDesktopPreferences(state.preferences, patch),
     }))
-    void applyDesktopState(() => updatePreferences(patch))
+    void applyDesktopState(async () => {
+      const nextState = await updatePreferences(patch)
+      if (defaultPageNavId) {
+        return selectNav(defaultPageNavId)
+      }
+      return nextState
+    })
+  }
+
+  const saveModelProfile = async (input: ModelProfileSetupInput) => {
+    const nextState = await testAndSaveModelProfile(input)
+    setDesktopState(nextState)
   }
 
   const selectSettingsSection = (id: SettingsSectionId) => {
@@ -345,10 +411,14 @@ export default function App() {
   }, [desktopState.searchSuggestions])
 
   return (
-    <div className="desktop-app">
+    <div
+      className={`desktop-app ${appAppearanceClass}`}
+      data-language={appLanguageCode}
+    >
       {activeNavId === 'settings' ? (
         <SettingsSidebar
           activeSettingsSection={activeSettingsSection}
+          language={appLanguageCode}
           onReturnToApp={returnToApp}
           onSelectSection={selectSettingsSection}
         />
@@ -456,16 +526,23 @@ export default function App() {
             ) : activeNavId === 'settings' ? (
               <SettingsWorkspace
                 activeSettingsSection={activeSettingsSection}
+                language={appLanguageCode}
                 modelOptions={modelOptions}
-                onAddModelOption={(modelName) => {
-                  setCustomModelOptions((models) => (
-                    models.some((model) => model.toLowerCase() === modelName.toLowerCase())
-                      ? models
-                      : [...models, modelName]
-                  ))
-                  applyPreferenceUpdate({ selectedModel: modelName })
+                onClearCache={() => void applyDesktopState(() => clearDesktopCache())}
+                onDeleteLocalData={() => {
+                  if (window.confirm('删除本机桌面数据？credentials 和真实项目文件不会删除。')) {
+                    void applyDesktopState(() => deleteDesktopLocalData('DELETE'))
+                  }
                 }}
+                onExportData={() => void applyDesktopState(() => exportDesktopData())}
+                onGenerateDiagnostics={() => void applyDesktopState(() => generateDesktopDiagnostics())}
+                onModelProfileTestAndSave={saveModelProfile}
                 onPreferenceUpdate={applyPreferenceUpdate}
+                onResetState={() => {
+                  if (window.confirm('重置桌面状态？会清空桌面会话和偏好。')) {
+                    void applyDesktopState(() => resetDesktopState('RESET'))
+                  }
+                }}
                 preferences={desktopState.preferences}
                 runtimeStatus={runtimeChecks.find((item) => item.label === 'Runtime')?.value ?? '未知'}
               />

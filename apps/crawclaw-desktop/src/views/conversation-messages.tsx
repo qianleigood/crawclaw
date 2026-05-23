@@ -12,18 +12,24 @@ import {
 } from 'lucide-react'
 import type { BadgeTone, ConversationMessage, PermissionRequest, PermissionStatus } from '../desktop-api'
 import { Badge } from '../ui/badge'
+import { normalizeReplyMode, type ReplyMode } from './reply-mode'
 
 type ConversationMessageListProps = {
   messages: ConversationMessage[]
   onDecidePermission: (requestId: string, status: 'approved' | 'denied') => void
   permissionRequest: PermissionRequest
+  replyMode: string
 }
 
 export function ConversationMessageList({
   messages,
   onDecidePermission,
   permissionRequest,
+  replyMode: replyModeValue,
 }: ConversationMessageListProps) {
+  const replyMode = normalizeReplyMode(replyModeValue)
+  const visibleMessages = messages.filter((message) => shouldShowMessage(message, replyMode))
+
   if (messages.length === 0) {
     return (
       <div className="conversation-empty">
@@ -36,12 +42,13 @@ export function ConversationMessageList({
 
   return (
     <ol className="chat-thread">
-      {messages.map((message) => (
+      {visibleMessages.map((message) => (
         <li className={`chat-row chat-row--${message.kind}`} key={message.id}>
           <MessageBubble
             message={message}
             onDecidePermission={onDecidePermission}
             permissionRequest={permissionRequest}
+            replyMode={replyMode}
           />
         </li>
       ))}
@@ -53,10 +60,12 @@ function MessageBubble({
   message,
   onDecidePermission,
   permissionRequest,
+  replyMode,
 }: {
   message: ConversationMessage
   onDecidePermission: (requestId: string, status: 'approved' | 'denied') => void
   permissionRequest: PermissionRequest
+  replyMode: ReplyMode
 }) {
   switch (message.kind) {
     case 'user':
@@ -95,7 +104,8 @@ function MessageBubble({
           </article>
         </>
       )
-    case 'toolResult':
+    case 'toolResult': {
+      const showToolOutput = replyMode === '详细'
       return (
         <>
           <MessageAvatar kind="tool" />
@@ -107,11 +117,14 @@ function MessageBubble({
               <strong>{message.title}</strong>
               <Badge tone={message.ok ? 'ok' : 'danger'}>{message.ok ? '完成' : '失败'}</Badge>
             </header>
-            <pre>{message.text}</pre>
+            {showToolOutput
+              ? <pre>{message.text}</pre>
+              : <p>{message.ok ? '工具执行完成。详细模式会显示完整输出。' : '工具执行失败。切换详细模式查看完整错误输出。'}</p>}
             <small>{message.createdAt}</small>
           </article>
         </>
       )
+    }
     case 'permission': {
       const canDecide = message.status === 'pending' && permissionRequest.id === message.requestId
       return (
@@ -163,6 +176,8 @@ function MessageBubble({
             <div className="attachment-bubble__body">
               <strong>{message.title}</strong>
               <span>{message.fileName} · {message.mediaType}</span>
+              {message.status ? <span>{workflowStatusLabel(message.status)}{message.errorCode ? ` · ${message.errorCode}` : ''}</span> : null}
+              {message.assetId ? <span>{message.assetId}{message.sizeBytes ? ` · ${formatBytes(message.sizeBytes)}` : ''}</span> : null}
               {message.detail ? <span>{message.detail}</span> : null}
             </div>
           </article>
@@ -177,6 +192,7 @@ function MessageBubble({
               <ImageIcon aria-hidden="true" size={15} strokeWidth={2.1} />
               <strong>{message.title}</strong>
               <Badge tone="neutral">{message.mediaType}</Badge>
+              {message.status ? <Badge tone={message.status === 'failed' ? 'danger' : message.status === 'done' ? 'ok' : 'neutral'}>{workflowStatusLabel(message.status)}</Badge> : null}
             </header>
             <div className="media-stack">
               {message.items.length > 0
@@ -189,13 +205,14 @@ function MessageBubble({
                     <figcaption>
                       <span className="media-caption__label">{item.label}</span>
                       <span className="media-caption__meta">
-                        <small>{item.detail ?? item.kind}</small>
+                        <small>{item.detail ?? item.mimeType ?? item.kind}{item.sizeBytes ? ` · ${formatBytes(item.sizeBytes)}` : ''}</small>
                       </span>
                     </figcaption>
                   </figure>
                 ))
                 : <p>暂无媒体条目</p>}
             </div>
+            {message.errorCode ? <p>{message.errorCode}</p> : null}
             <small>{message.createdAt}</small>
           </article>
         </>
@@ -235,6 +252,8 @@ function MessageBubble({
             ) : null}
             <div className="workflow-meta">
               <span>{message.workflowKind}</span>
+              {message.workflowId ? <span>{message.workflowId}</span> : null}
+              {message.runId ? <span>{message.runId}</span> : null}
               <span>{message.createdAt}</span>
             </div>
           </article>
@@ -254,6 +273,8 @@ function MessageBubble({
                 {Array.from({ length: 7 }).map((_, index) => <span key={index} />)}
               </div>
               <p>{message.title} · {message.durationLabel} · {message.direction}</p>
+              {message.status ? <p>{workflowStatusLabel(message.status)}{message.errorCode ? ` · ${message.errorCode}` : ''}</p> : null}
+              {message.assetId ? <p>{message.assetId}{message.sizeBytes ? ` · ${formatBytes(message.sizeBytes)}` : ''}</p> : null}
               {message.transcript ? <p>{message.transcript}</p> : null}
               <small>{message.createdAt}</small>
             </div>
@@ -297,6 +318,26 @@ function MessageBubble({
   }
 
   return null
+}
+
+function shouldShowMessage(message: ConversationMessage, replyMode: ReplyMode): boolean {
+  if (replyMode !== '简洁') {
+    return true
+  }
+
+  if (message.kind === 'toolCall') {
+    return false
+  }
+
+  if (message.kind === 'toolResult') {
+    return !message.ok
+  }
+
+  if (message.kind === 'status') {
+    return message.tone === 'danger'
+  }
+
+  return true
 }
 
 function MessageAvatar({
@@ -370,5 +411,18 @@ function workflowStatusLabel(status: string) {
   if (status === 'pending') {
     return '等待'
   }
+  if (status === 'context') {
+    return '上下文'
+  }
   return '运行中'
+}
+
+function formatBytes(sizeBytes: number): string {
+  if (sizeBytes < 1024) {
+    return `${sizeBytes} B`
+  }
+  if (sizeBytes < 1024 * 1024) {
+    return `${(sizeBytes / 1024).toFixed(1)} KB`
+  }
+  return `${(sizeBytes / 1024 / 1024).toFixed(1)} MB`
 }

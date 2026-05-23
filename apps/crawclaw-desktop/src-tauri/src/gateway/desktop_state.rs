@@ -79,6 +79,7 @@ pub fn initial_desktop_state(runtime: &RuntimeStatus) -> DesktopState {
             privacy_defaults: privacy_defaults(),
             advanced_defaults: advanced_defaults(),
             model_options: crawclaw_providers::default_model_options(),
+            model_profiles: Vec::new(),
             provider_descriptors: serde_json::to_value(
                 crawclaw_providers::bundled_provider_descriptors(),
             )

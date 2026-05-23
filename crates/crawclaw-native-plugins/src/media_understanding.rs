@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::net::IpAddr;
 use std::time::Duration;
 
 use base64::Engine;
@@ -72,10 +73,9 @@ async fn describe_openai_images(input: Value) -> NativeResult<Value> {
             "content": content
         }]
     });
-    let response = reqwest::Client::new()
+    let response = http_client(&url, timeout_seconds)?
         .post(url)
         .bearer_auth(api_key)
-        .timeout(Duration::from_secs(timeout_seconds))
         .json(&body)
         .send()
         .await?;
@@ -135,10 +135,9 @@ async fn transcribe_openai_audio(input: Value) -> NativeResult<Value> {
     }
 
     let url = join_url(&base_url, "/audio/transcriptions")?;
-    let response = reqwest::Client::new()
+    let response = http_client(&url, timeout_seconds)?
         .post(url)
         .bearer_auth(api_key)
-        .timeout(Duration::from_secs(timeout_seconds))
         .multipart(form)
         .send()
         .await?;
@@ -306,6 +305,29 @@ fn join_url(base_url: &str, path: &str) -> NativeResult<String> {
         ));
     }
     Ok(format!("{base}{path}"))
+}
+
+fn http_client(url: &str, timeout_seconds: u64) -> NativeResult<reqwest::Client> {
+    let builder = reqwest::Client::builder().timeout(Duration::from_secs(timeout_seconds));
+    let builder = if is_loopback_url(url) {
+        builder.no_proxy()
+    } else {
+        builder
+    };
+    Ok(builder.build()?)
+}
+
+fn is_loopback_url(url: &str) -> bool {
+    reqwest::Url::parse(url)
+        .ok()
+        .and_then(|url| url.host_str().map(ToOwned::to_owned))
+        .is_some_and(|host| {
+            host.eq_ignore_ascii_case("localhost")
+                || host
+                    .parse::<IpAddr>()
+                    .map(|address| address.is_loopback())
+                    .unwrap_or(false)
+        })
 }
 
 fn extract_openai_text(value: &Value) -> Option<String> {

@@ -118,6 +118,20 @@ pub fn bundled_provider_default_models() -> Vec<BundledProviderDefaultModel> {
     BUNDLED_PROVIDER_DEFAULT_MODELS.to_vec()
 }
 
+pub fn bundled_provider_model_choices_for(provider: &str) -> Vec<String> {
+    BUNDLED_PROVIDER_MODEL_CHOICES
+        .iter()
+        .find(|entry| entry.provider == provider)
+        .map(|entry| {
+            entry
+                .models
+                .iter()
+                .map(|model| (*model).to_string())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 pub fn provider_config_schema() -> Value {
     json!({
         "version": "rust-provider-config-v1",
@@ -535,6 +549,7 @@ fn bundled_provider_descriptors_from_catalog(
                 kind: bundled_provider_kind(plugin.plugin_id, transport.is_some()),
                 transport: transport.map(|entry| entry.transport.to_string()),
                 default_model: default_model.map(|entry| entry.model.to_string()),
+                model_choices: bundled_provider_model_choices_for(provider),
                 auth_env_vars,
                 auth_choices: metadata.auth_choices.clone(),
                 auth_methods: auth_methods

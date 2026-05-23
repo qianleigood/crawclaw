@@ -8,8 +8,13 @@ use crate::models::{
     PrivacyDefaults, TaskDefaults, UiDefaults,
 };
 
+use super::desktop_model_profile_routes::apply_active_model_profile_for_selection;
+use super::desktop_settings_effects::{
+    apply_desktop_settings_effects, send_desktop_notification, DesktopNotificationKind,
+};
 use super::{
-    authorize_headers, emit_state_changed, persist_desktop_preferences,
+    append_and_persist_conversation_message, authorize_headers, conversation_status_message,
+    emit_state_changed, normalize_task_defaults, persist_desktop_preferences,
     sync_preference_aliases_from_task_defaults, sync_task_defaults_from_preference_aliases,
     GatewayState,
 };
@@ -20,6 +25,7 @@ pub(super) struct PreferencesPatch {
     selected_model: Option<String>,
     selected_thinking: Option<String>,
     permission_mode: Option<String>,
+    model_options: Option<Vec<String>>,
     task_defaults: Option<TaskDefaultsPatch>,
     confirmation_defaults: Option<ConfirmationDefaultsPatch>,
     notification_defaults: Option<NotificationDefaultsPatch>,
@@ -135,17 +141,279 @@ pub(super) async fn update_preferences(
             preferences.permission_mode = permission_mode;
             aliases_changed = true;
         }
+        if let Some(model_options) = payload.model_options {
+            preferences.model_options = normalize_model_options(model_options);
+        }
         if aliases_changed {
             sync_task_defaults_from_preference_aliases(&mut preferences);
         }
         preferences
     };
     persist_desktop_preferences(&state, &updated_preferences)?;
+    apply_active_model_profile_for_selection(
+        &state.runtime_root,
+        &state.model_profile_store,
+        &updated_preferences.selected_model,
+    )
+    .map_err(|error| {
+        emit_settings_error(&state, "model_profile_apply_failed", error.to_string());
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    apply_desktop_settings_effects(&state.runtime_root, &updated_preferences).map_err(|error| {
+        emit_settings_error(&state, "settings_hot_apply_failed", error);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
     {
         let mut desktop_state = state.desktop_state.write().await;
         desktop_state.preferences = updated_preferences;
     }
     emit_state_changed(&state).await
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct SettingsActionRequest {
+    confirm: Option<String>,
+}
+
+pub(super) async fn settings_diagnostics(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+) -> Result<Json<DesktopState>, StatusCode> {
+    authorize_headers(&headers, &state)?;
+    let detail = {
+        let desktop_state = state.desktop_state.read().await;
+        format!(
+            "runtimeRoot={} threads={} agents={} tools={}",
+            state.runtime_root.to_string_lossy(),
+            desktop_state.sidebar.threads.len() + desktop_state.sidebar.pinned_threads.len(),
+            desktop_state.agent_workspace.agents.len(),
+            desktop_state.plugins_workspace.tools.len()
+        )
+    };
+    let _ = append_and_persist_conversation_message(
+        &state,
+        conversation_status_message("诊断信息已生成".to_string(), detail, "ok".to_string()),
+    )
+    .await?;
+    notify_settings_task_done(&state, "诊断信息已生成", "桌面诊断信息已写入当前对话。").await;
+    emit_state_changed(&state).await
+}
+
+pub(super) async fn settings_export_data(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+) -> Result<Json<DesktopState>, StatusCode> {
+    authorize_headers(&headers, &state)?;
+    let export_path = state
+        .runtime_root
+        .join("desktop")
+        .join("exports")
+        .join(format!(
+            "desktop-export-{}.json",
+            uuid::Uuid::new_v4().simple()
+        ));
+    if let Some(parent) = export_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|error| {
+            emit_settings_error(&state, "settings_export_failed", error.to_string());
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    }
+    let snapshot = {
+        let desktop_state = state.desktop_state.read().await;
+        serde_json::json!({
+            "preferences": desktop_state.preferences,
+            "conversation": desktop_state.conversation,
+            "agents": desktop_state.agent_workspace.agents,
+            "plugins": desktop_state.plugins_workspace,
+        })
+    };
+    std::fs::write(
+        &export_path,
+        serde_json::to_vec_pretty(&snapshot).map_err(|error| {
+            emit_settings_error(&state, "settings_export_failed", error.to_string());
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?,
+    )
+    .map_err(|error| {
+        emit_settings_error(&state, "settings_export_failed", error.to_string());
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    let _ = append_and_persist_conversation_message(
+        &state,
+        conversation_status_message(
+            "桌面数据已导出".to_string(),
+            export_path.to_string_lossy().to_string(),
+            "ok".to_string(),
+        ),
+    )
+    .await?;
+    notify_settings_task_done(&state, "桌面数据已导出", "桌面数据导出已完成。").await;
+    emit_state_changed(&state).await
+}
+
+pub(super) async fn settings_clear_cache(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+) -> Result<Json<DesktopState>, StatusCode> {
+    authorize_headers(&headers, &state)?;
+    remove_dir_if_exists(state.runtime_root.join("desktop").join("cache")).map_err(|error| {
+        emit_settings_error(&state, "settings_clear_cache_failed", error);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    let _ = append_and_persist_conversation_message(
+        &state,
+        conversation_status_message(
+            "桌面缓存已清理".to_string(),
+            state
+                .runtime_root
+                .join("desktop")
+                .join("cache")
+                .to_string_lossy()
+                .to_string(),
+            "ok".to_string(),
+        ),
+    )
+    .await?;
+    notify_settings_task_done(&state, "桌面缓存已清理", "桌面缓存清理已完成。").await;
+    emit_state_changed(&state).await
+}
+
+pub(super) async fn settings_delete_local_data(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    Json(payload): Json<SettingsActionRequest>,
+) -> Result<Json<DesktopState>, StatusCode> {
+    authorize_headers(&headers, &state)?;
+    require_confirmation(payload.confirm.as_deref(), "DELETE")?;
+    for path in [
+        state.runtime_root.join("desktop"),
+        state.runtime_root.join("sessions"),
+        state.runtime_root.join("workflows"),
+        state
+            .runtime_root
+            .join("memory")
+            .join("desktop-memory.json"),
+        state
+            .runtime_root
+            .join("config")
+            .join("desktop-preferences.json"),
+    ] {
+        remove_path_if_exists(path).map_err(|error| {
+            emit_settings_error(&state, "settings_delete_local_data_failed", error);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    }
+    let _ = append_and_persist_conversation_message(
+        &state,
+        conversation_status_message(
+            "本地桌面数据已删除".to_string(),
+            "已删除桌面会话、缓存、导出、工作流和桌面偏好；credentials 未被删除。".to_string(),
+            "ok".to_string(),
+        ),
+    )
+    .await?;
+    notify_settings_task_done(
+        &state,
+        "本地桌面数据已删除",
+        "桌面自有数据已删除，credentials 已保留。",
+    )
+    .await;
+    emit_state_changed(&state).await
+}
+
+pub(super) async fn settings_reset_state(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    Json(payload): Json<SettingsActionRequest>,
+) -> Result<Json<DesktopState>, StatusCode> {
+    authorize_headers(&headers, &state)?;
+    require_confirmation(payload.confirm.as_deref(), "RESET")?;
+    for path in [
+        state.runtime_root.join("sessions"),
+        state
+            .runtime_root
+            .join("config")
+            .join("desktop-preferences.json"),
+    ] {
+        remove_path_if_exists(path).map_err(|error| {
+            emit_settings_error(&state, "settings_reset_state_failed", error);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    }
+    let _ = append_and_persist_conversation_message(
+        &state,
+        conversation_status_message(
+            "桌面状态已重置".to_string(),
+            "已重置桌面会话和偏好；credentials 未被删除。".to_string(),
+            "ok".to_string(),
+        ),
+    )
+    .await?;
+    notify_settings_task_done(&state, "桌面状态已重置", "桌面会话和偏好重置已完成。").await;
+    emit_state_changed(&state).await
+}
+
+fn normalize_model_options(model_options: Vec<String>) -> Vec<String> {
+    let mut options = Vec::new();
+    for option in model_options {
+        let option = option.trim();
+        if !option.is_empty() && !options.iter().any(|item| item == option) {
+            options.push(option.to_string());
+        }
+    }
+    options
+}
+
+fn require_confirmation(actual: Option<&str>, expected: &str) -> Result<(), StatusCode> {
+    if actual == Some(expected) {
+        Ok(())
+    } else {
+        Err(StatusCode::BAD_REQUEST)
+    }
+}
+
+fn remove_dir_if_exists(path: std::path::PathBuf) -> Result<(), String> {
+    match std::fs::remove_dir_all(&path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(format!("Failed to remove {}: {error}", path.display())),
+    }
+}
+
+fn remove_path_if_exists(path: std::path::PathBuf) -> Result<(), String> {
+    match std::fs::metadata(&path) {
+        Ok(metadata) if metadata.is_dir() => remove_dir_if_exists(path),
+        Ok(_) => std::fs::remove_file(&path)
+            .map_err(|error| format!("Failed to remove {}: {error}", path.display())),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(format!("Failed to inspect {}: {error}", path.display())),
+    }
+}
+
+fn emit_settings_error(state: &GatewayState, code: &str, message: String) {
+    let _ = state
+        .events
+        .send(crate::models::DesktopEvent::OperationFailed {
+            code: code.to_string(),
+            message,
+        });
+}
+
+async fn notify_settings_task_done(state: &GatewayState, title: &str, body: &str) {
+    let preferences = {
+        let desktop_state = state.desktop_state.read().await;
+        desktop_state.preferences.clone()
+    };
+    if let Err(error) = send_desktop_notification(
+        &state.runtime_root,
+        &preferences,
+        DesktopNotificationKind::TaskDone,
+        title,
+        body,
+    ) {
+        emit_settings_error(state, "settings_notification_failed", error);
+    }
 }
 
 impl TaskDefaultsPatch {
@@ -168,6 +436,7 @@ impl TaskDefaultsPatch {
         if let Some(show_reasoning_summary) = self.show_reasoning_summary {
             task_defaults.show_reasoning_summary = show_reasoning_summary;
         }
+        normalize_task_defaults(task_defaults);
     }
 }
 

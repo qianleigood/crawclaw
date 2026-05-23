@@ -76,6 +76,7 @@ pub struct BundledProviderDescriptor {
     pub kind: String,
     pub transport: Option<String>,
     pub default_model: Option<String>,
+    pub model_choices: Vec<String>,
     pub auth_env_vars: Vec<String>,
     pub auth_choices: Value,
     pub auth_methods: Vec<BundledProviderAuthChoice>,
@@ -90,6 +91,13 @@ pub struct BundledProviderDefaultModel {
     pub model: &'static str,
     pub name: &'static str,
     pub reasoning: bool,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BundledProviderModelChoices {
+    pub provider: &'static str,
+    pub models: &'static [&'static str],
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]

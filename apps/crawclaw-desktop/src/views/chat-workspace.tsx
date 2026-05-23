@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import {
   useEffect,
+  useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
@@ -35,6 +36,8 @@ import { Composer, PermissionModeButton } from '../ui/composer'
 import { IconButton } from '../ui/icon-button'
 import { ChatThread } from './chat-thread'
 import type { PreferencePatch } from './chat-workspace-model'
+import { modelSupportsConfigurableThinking } from './model-capabilities'
+import { normalizeReplyMode } from './reply-mode'
 
 type ChatWorkspaceProps = {
   agents: AgentProfile[]
@@ -81,6 +84,9 @@ export function ChatWorkspace({
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false)
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false)
   const [isListening, setIsListening] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const voiceChunksRef = useRef<Blob[]>([])
+  const voiceStartedAtRef = useRef<number>(0)
   const [selectorOpen, setSelectorOpen] = useState<'agent' | 'thinking' | 'model' | 'permission' | null>(null)
   const slashCommands = conversation.slashCommands
   const selectedAgent = agents.find((agent) => agent.id === selectedChatAgentId) ?? null
@@ -93,6 +99,11 @@ export function ChatWorkspace({
   const permissionMode = selectedAgent?.permissionMode ?? preferences.permissionMode
   const selectedModel = selectedAgent?.model ?? preferences.selectedModel
   const selectedThinking = selectedAgent?.thinking ?? preferences.selectedThinking
+  const replyMode = normalizeReplyMode(preferences.taskDefaults.responseSpeed)
+  const selectedThinkingSupported = modelSupportsConfigurableThinking(
+    selectedModel,
+    preferences.modelProfiles,
+  )
   const commandTrigger = composerText.startsWith('/') ? '/' : composerText.startsWith('@') ? '@' : null
   const commandQuery = commandTrigger ? composerText.slice(1).trim().toLowerCase() : ''
   const visibleSlashCommands = isCommandMenuOpen && commandTrigger === '/'
@@ -200,25 +211,68 @@ export function ChatWorkspace({
   }
 
   const addMediaComposerMessage = (mediaType: 'image' | 'video') => {
-    onAddMediaMessage({
-      items: [
-        {
-          detail: mediaType === 'image' ? '待选择本地图片' : '待选择本地视频',
-          id: mediaType === 'image' ? 'composer-image' : 'composer-video',
-          kind: mediaType,
-          label: mediaType === 'image' ? '图片预览' : '视频预览',
+    void pickDesktopFile(mediaType === 'image' ? 'image/*' : 'video/*', async (file) => {
+      if (preferences.confirmationDefaults.confirmFileChanges && !window.confirm('保存所选媒体到 CrawClaw 桌面资源目录？')) {
+        setIsAttachmentMenuOpen(false)
+        return
+      }
+      const dataBase64 = await fileToBase64(file)
+      onAddMediaMessage({
+        confirm: preferences.confirmationDefaults.confirmFileChanges ? true : undefined,
+        items: [
+          {
+            detail: file.type || mediaType,
+            id: `${mediaType}-${Date.now()}`,
+            kind: mediaType,
+            label: file.name,
+            mimeType: file.type || undefined,
+            sizeBytes: file.size,
+            status: 'done',
+          },
+        ],
+        mediaType,
+        source: {
+          dataBase64,
+          fileName: file.name,
+          kind: 'browserFile',
+          mimeType: file.type || mediaType,
         },
-      ],
-      mediaType,
-      title: mediaType === 'image' ? '图片消息' : '视频消息',
+        title: mediaType === 'image' ? '图片消息' : '视频消息',
+      })
+      setIsAttachmentMenuOpen(false)
     })
-    setIsAttachmentMenuOpen(false)
+  }
+
+  const addAttachmentComposerMessage = () => {
+    void pickDesktopFile('', async (file) => {
+      if (preferences.confirmationDefaults.confirmFileChanges && !window.confirm('保存所选文件到 CrawClaw 桌面资源目录？')) {
+        setIsAttachmentMenuOpen(false)
+        return
+      }
+      const dataBase64 = await fileToBase64(file)
+      onAddAttachmentMessage({
+        confirm: preferences.confirmationDefaults.confirmFileChanges ? true : undefined,
+        detail: '本地文件附件',
+        fileName: file.name,
+        mediaType: file.type || 'application/octet-stream',
+        source: {
+          dataBase64,
+          fileName: file.name,
+          kind: 'browserFile',
+          mimeType: file.type || 'application/octet-stream',
+        },
+        title: '文件附件',
+      })
+      setIsAttachmentMenuOpen(false)
+    })
   }
 
   const addWorkflowComposerMessage = (workflowKind: 'comfyui' | 'n8n' | 'schedule') => {
     const workflowCopy = {
       comfyui: {
+        action: 'status',
         detail: '图像生成工作流已加入本轮对话',
+        input: { baseUrl: 'http://127.0.0.1:8188' },
         steps: [
           { id: 'prompt', label: 'Prompt', status: 'done' },
           { id: 'queue', label: 'Queue', status: 'active' },
@@ -227,7 +281,9 @@ export function ChatWorkspace({
         title: 'ComfyUI 图像工作流',
       },
       n8n: {
+        action: 'list',
         detail: '自动化工作流已加入本轮对话',
+        input: { limit: 10 },
         steps: [
           { id: 'webhook', label: 'Webhook', status: 'done' },
           { id: 'agent', label: 'Agent', status: 'active' },
@@ -236,7 +292,9 @@ export function ChatWorkspace({
         title: 'n8n 自动化',
       },
       schedule: {
+        action: 'cron.status',
         detail: '定时执行已加入本轮对话',
+        input: {},
         steps: [
           { id: 'plan', label: 'Plan', status: 'done' },
           { id: 'schedule', label: 'Schedule', status: 'active' },
@@ -246,8 +304,17 @@ export function ChatWorkspace({
       },
     }[workflowKind]
 
+    const requiresHighRiskConfirm = preferences.confirmationDefaults.confirmHighRisk
+      && isHighRiskWorkflowAction(workflowKind, workflowCopy.action)
+    if (requiresHighRiskConfirm && !window.confirm('执行此工作流会调用外部服务或修改本地状态，确认继续？')) {
+      setIsAttachmentMenuOpen(false)
+      return
+    }
     onAddWorkflowMessage({
+      action: workflowCopy.action,
+      confirm: requiresHighRiskConfirm ? true : undefined,
       detail: workflowCopy.detail,
+      input: workflowCopy.input,
       status: 'running',
       steps: workflowCopy.steps,
       title: workflowCopy.title,
@@ -258,14 +325,62 @@ export function ChatWorkspace({
 
   const toggleVoiceInput = () => {
     if (isListening) {
+      mediaRecorderRef.current?.stop()
+      setIsListening(false)
+      return
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       onAddVoiceMessage({
         direction: 'input',
-        durationLabel: '00:03',
-        title: '语音输入',
-        transcript: composerText.trim() || '语音消息待转写',
+        durationLabel: '00:00',
+        title: '语音输入不可用',
+        transcript: composerText.trim() || '当前浏览器不支持录音。',
       })
+      return
     }
-    setIsListening((value) => !value)
+
+    void navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+      const recorder = new MediaRecorder(stream)
+      voiceChunksRef.current = []
+      voiceStartedAtRef.current = Date.now()
+      mediaRecorderRef.current = recorder
+      recorder.addEventListener('dataavailable', (event) => {
+        if (event.data.size > 0) {
+          voiceChunksRef.current.push(event.data)
+        }
+      })
+      recorder.addEventListener('stop', () => {
+        const durationSeconds = Math.max(1, Math.round((Date.now() - voiceStartedAtRef.current) / 1000))
+        const blob = new Blob(voiceChunksRef.current, { type: recorder.mimeType || 'audio/webm' })
+        stream.getTracks().forEach((track) => track.stop())
+        mediaRecorderRef.current = null
+        voiceChunksRef.current = []
+        void blobToBase64(blob).then((dataBase64) => {
+          onAddVoiceMessage({
+            direction: 'input',
+            durationLabel: formatDurationLabel(durationSeconds),
+            source: {
+              dataBase64,
+              fileName: `voice-${Date.now()}.webm`,
+              kind: 'browserFile',
+              mimeType: blob.type || 'audio/webm',
+            },
+            title: '语音输入',
+            transcript: composerText.trim() || '语音消息待转写',
+          })
+        })
+      })
+      recorder.start()
+      setIsListening(true)
+    }).catch((error: unknown) => {
+      onAddVoiceMessage({
+        direction: 'input',
+        durationLabel: '00:00',
+        title: '语音输入失败',
+        transcript: error instanceof Error ? error.message : '无法访问麦克风。',
+      })
+    })
   }
 
   return (
@@ -274,6 +389,7 @@ export function ChatWorkspace({
         conversation={conversation}
         onDecidePermission={onDecidePermission}
         permissionRequest={permissionRequest}
+        replyMode={replyMode}
       />
 
       <Composer
@@ -385,15 +501,7 @@ export function ChatWorkspace({
                   {
                     label: '添加文件',
                     icon: FileText,
-                    onClick: () => {
-                      onAddAttachmentMessage({
-                        detail: '本地文件附件',
-                        fileName: '未命名文件',
-                        mediaType: 'application/octet-stream',
-                        title: '文件附件',
-                      })
-                      setIsAttachmentMenuOpen(false)
-                    },
+                    onClick: addAttachmentComposerMessage,
                   },
                   { label: '添加工作流', icon: Blocks, onClick: () => addWorkflowComposerMessage('n8n') },
                   { label: '添加图像工作流', icon: ImageIcon, onClick: () => addWorkflowComposerMessage('comfyui') },
@@ -460,18 +568,20 @@ export function ChatWorkspace({
               aria-haspopup="menu"
               aria-label={`思考等级 ${selectedThinking}`}
               className="thinking-level-pill"
+              disabled={!selectedThinkingSupported}
               onClick={() => {
-                if (!isAgentMode) {
+                if (!isAgentMode && selectedThinkingSupported) {
                   setSelectorOpen(selectorOpen === 'thinking' ? null : 'thinking')
                 }
               }}
+              title={selectedThinkingSupported ? undefined : '当前模型不支持可调思考等级，将按模型默认策略运行'}
               type="button"
             >
               <Brain aria-hidden="true" size={14} strokeWidth={2} />
-              <span>思考 {selectedThinking}</span>
+              <span>{selectedThinkingSupported ? `思考 ${selectedThinking}` : '思考 默认'}</span>
               <ChevronDown aria-hidden="true" size={13} strokeWidth={2} />
             </button>
-            {selectorOpen === 'thinking' && !isAgentMode ? (
+            {selectorOpen === 'thinking' && !isAgentMode && selectedThinkingSupported ? (
               <div aria-label="思考等级选择" className="selector-menu selector-menu--thinking" onKeyDown={handleMenuKeyDown} role="menu">
                 {preferences.thinkingOptions.map((level) => (
                   <button
@@ -582,6 +692,17 @@ export function ChatWorkspace({
   )
 }
 
+function isHighRiskWorkflowAction(workflowKind: 'comfyui' | 'n8n' | 'schedule', action: string) {
+  const normalized = action.trim().toLowerCase()
+  if (workflowKind === 'comfyui') {
+    return ['run', 'workflow.run', 'queue', 'enqueue', 'submit'].includes(normalized)
+  }
+  if (workflowKind === 'n8n') {
+    return ['run', 'execute', 'trigger', 'workflow.run', 'workflow.execute'].includes(normalized)
+  }
+  return !['', 'status', 'list', 'cron.status', 'cron.list'].includes(normalized)
+}
+
 function agentSkillSuggestion(skill: AgentProfile['skills'][number]): SkillSuggestion {
   const mention = skill.trigger.startsWith('@') ? skill.trigger : `@${skill.trigger}`
   return {
@@ -591,4 +712,45 @@ function agentSkillSuggestion(skill: AgentProfile['skills'][number]): SkillSugge
     label: skill.name,
     mention,
   }
+}
+
+async function pickDesktopFile(accept: string, onFile: (file: File) => Promise<void>) {
+  const input = document.createElement('input')
+  input.type = 'file'
+  if (accept) {
+    input.accept = accept
+  }
+  input.addEventListener('change', () => {
+    const file = input.files?.[0]
+    if (file) {
+      void onFile(file)
+    }
+  }, { once: true })
+  input.click()
+}
+
+async function fileToBase64(file: File): Promise<string> {
+  return blobToBase64(file)
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.addEventListener('load', () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result)
+      } else {
+        reject(new Error('Unable to read file.'))
+      }
+    })
+    reader.addEventListener('error', () => reject(reader.error ?? new Error('Unable to read file.')))
+    reader.readAsDataURL(blob)
+  })
+  return dataUrl.split(',', 2)[1] ?? ''
+}
+
+function formatDurationLabel(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0')
+  const seconds = Math.floor(totalSeconds % 60).toString().padStart(2, '0')
+  return `${minutes}:${seconds}`
 }

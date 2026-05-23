@@ -99,6 +99,7 @@ export function createDesktopUnavailableState(detail = '正在连接本机 Gatew
         logLevel: '标准',
       },
       modelOptions: ['gpt-5.5'],
+      modelProfiles: [],
       providerDescriptors: [],
       providerSetupOptions: [],
       providerModelPickerEntries: [],

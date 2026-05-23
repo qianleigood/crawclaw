@@ -16,6 +16,7 @@ import type {
   DesktopState,
   DesktopSubagentsResponse,
   MemoryFilter,
+  ModelProfileSetupInput,
   PermissionStatus,
   SearchSuggestion,
   SendMessageInput,
@@ -29,6 +30,26 @@ import {
   resolveDesktopApiBaseUrl,
   setDesktopApiContext,
 } from './desktop-transport'
+
+export type DesktopPreferencesPatch = Omit<
+  Partial<DesktopPreferences>,
+  | 'advancedDefaults'
+  | 'confirmationDefaults'
+  | 'memoryDefaults'
+  | 'notificationDefaults'
+  | 'privacyDefaults'
+  | 'taskDefaults'
+  | 'uiDefaults'
+  | 'modelProfiles'
+> & {
+  advancedDefaults?: Partial<DesktopPreferences['advancedDefaults']>
+  confirmationDefaults?: Partial<DesktopPreferences['confirmationDefaults']>
+  memoryDefaults?: Partial<DesktopPreferences['memoryDefaults']>
+  notificationDefaults?: Partial<DesktopPreferences['notificationDefaults']>
+  privacyDefaults?: Partial<DesktopPreferences['privacyDefaults']>
+  taskDefaults?: Partial<DesktopPreferences['taskDefaults']>
+  uiDefaults?: Partial<DesktopPreferences['uiDefaults']>
+}
 
 export async function loadBootstrap(): Promise<BootstrapResponse> {
   const baseUrl = await resolveDesktopApiBaseUrl()
@@ -215,10 +236,49 @@ export async function decidePermission(requestId: string, decision: Exclude<Perm
   })
 }
 
-export async function updatePreferences(patch: Partial<DesktopPreferences>): Promise<DesktopState> {
+export async function updatePreferences(patch: DesktopPreferencesPatch): Promise<DesktopState> {
   return mutateDesktopState('/api/desktop/preferences', {
     body: patch,
     method: 'PATCH',
+  })
+}
+
+export async function testAndSaveModelProfile(input: ModelProfileSetupInput): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/model-profiles/test-and-save', {
+    body: input,
+    method: 'POST',
+  })
+}
+
+export async function generateDesktopDiagnostics(): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/settings/diagnostics', {
+    method: 'POST',
+  })
+}
+
+export async function exportDesktopData(): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/settings/export-data', {
+    method: 'POST',
+  })
+}
+
+export async function clearDesktopCache(): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/settings/clear-cache', {
+    method: 'POST',
+  })
+}
+
+export async function deleteDesktopLocalData(confirm: 'DELETE'): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/settings/delete-local-data', {
+    body: { confirm },
+    method: 'POST',
+  })
+}
+
+export async function resetDesktopState(confirm: 'RESET'): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/settings/reset-state', {
+    body: { confirm },
+    method: 'POST',
   })
 }
 

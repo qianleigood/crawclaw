@@ -147,6 +147,10 @@ pub(super) async fn select_nav(
             desktop_state.active_nav_id = payload.nav_id;
             if desktop_state.active_nav_id == "new-chat" {
                 clear_active_thread_conversation(&mut desktop_state);
+                state
+                    .session_store
+                    .clear_active_thread()
+                    .map_err(|error| session_store_status(&state, error))?;
             }
         }
     }
@@ -194,6 +198,10 @@ pub(super) async fn select_thread(
             thread.active = thread.id == payload.thread_id;
         }
         if let Some(session) = selected_session {
+            state
+                .session_store
+                .set_active_thread(&session.thread_id)
+                .map_err(|error| session_store_status(&state, error))?;
             apply_session_conversation(&mut desktop_state, &session.thread_id, &session);
         }
     }

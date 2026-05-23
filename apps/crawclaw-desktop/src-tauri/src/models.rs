@@ -185,6 +185,14 @@ pub enum ConversationMessage {
         file_name: String,
         media_type: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
+        asset_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        size_bytes: Option<u64>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        status: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        error_code: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         detail: Option<String>,
         created_at: String,
     },
@@ -193,6 +201,10 @@ pub enum ConversationMessage {
         media_type: String,
         title: String,
         items: Vec<ConversationMediaItem>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        status: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        error_code: Option<String>,
         created_at: String,
     },
     Workflow {
@@ -202,6 +214,12 @@ pub enum ConversationMessage {
         status: String,
         detail: String,
         steps: Vec<ConversationWorkflowStep>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        workflow_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        run_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        error_code: Option<String>,
         created_at: String,
     },
     Voice {
@@ -209,6 +227,16 @@ pub enum ConversationMessage {
         direction: String,
         title: String,
         duration_label: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        asset_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        mime_type: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        size_bytes: Option<u64>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        status: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        error_code: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         transcript: Option<String>,
         created_at: String,
@@ -218,6 +246,10 @@ pub enum ConversationMessage {
         skill_id: String,
         title: String,
         status: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        execution_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        error_code: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         detail: Option<String>,
         created_at: String,
@@ -237,6 +269,14 @@ pub struct ConversationMediaItem {
     pub id: String,
     pub label: String,
     pub kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub asset_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mime_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub size_bytes: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub detail: Option<String>,
 }
@@ -662,6 +702,30 @@ pub struct AdvancedDefaults {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct DesktopModelProfileSummary {
+    pub id: String,
+    pub label: String,
+    pub model_ref: String,
+    pub source: String,
+    pub provider: String,
+    pub model: String,
+    pub auth_method: String,
+    pub has_credential: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_version: Option<String>,
+    pub last_connection_status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_connection_detail: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_connected_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct DesktopPreferences {
     pub selected_model: String,
     pub selected_thinking: String,
@@ -674,6 +738,8 @@ pub struct DesktopPreferences {
     pub privacy_defaults: PrivacyDefaults,
     pub advanced_defaults: AdvancedDefaults,
     pub model_options: Vec<String>,
+    #[serde(default)]
+    pub model_profiles: Vec<DesktopModelProfileSummary>,
     #[serde(default)]
     pub provider_descriptors: serde_json::Value,
     #[serde(default)]

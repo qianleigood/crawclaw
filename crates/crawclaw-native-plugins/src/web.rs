@@ -1,5 +1,6 @@
 use std::env;
 use std::fs::{self, OpenOptions};
+use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -125,10 +126,7 @@ pub async fn run_spider_fetch(input: Value) -> NativeResult<Value> {
     if render == "dynamic" || render == "stealth" {
         return run_spider_dynamic_fetch(params, &url, &output, &render, started).await;
     }
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(timeout_seconds))
-        .user_agent(DESKTOP_USER_AGENT)
-        .build()?;
+    let client = http_client_builder(&url, timeout_seconds).build()?;
     let response = client.get(&url).send().await?;
     let status_code = response.status().as_u16();
     let final_url = response.url().to_string();
@@ -544,10 +542,7 @@ fn read_count(params: &Value) -> usize {
 }
 
 async fn http_get_text(url: &str, timeout_seconds: u64, label: &str) -> NativeResult<String> {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(timeout_seconds))
-        .user_agent(DESKTOP_USER_AGENT)
-        .build()?;
+    let client = http_client_builder(url, timeout_seconds).build()?;
     let response = client
         .get(url)
         .header(reqwest::header::ACCEPT, "application/json")
@@ -869,11 +864,7 @@ pub(crate) fn now_iso_like() -> String {
 }
 
 async fn probe_http_ok(url: &str) -> bool {
-    match reqwest::Client::builder()
-        .timeout(Duration::from_secs(2))
-        .user_agent(DESKTOP_USER_AGENT)
-        .build()
-    {
+    match http_client_builder(url, 2).build() {
         Ok(client) => client
             .get(url)
             .header(reqwest::header::ACCEPT, "application/json")
@@ -883,6 +874,30 @@ async fn probe_http_ok(url: &str) -> bool {
             .unwrap_or(false),
         Err(_) => false,
     }
+}
+
+fn http_client_builder(url: &str, timeout_seconds: u64) -> reqwest::ClientBuilder {
+    let builder = reqwest::Client::builder()
+        .timeout(Duration::from_secs(timeout_seconds))
+        .user_agent(DESKTOP_USER_AGENT);
+    if is_loopback_url(url) {
+        builder.no_proxy()
+    } else {
+        builder
+    }
+}
+
+fn is_loopback_url(url: &str) -> bool {
+    Url::parse(url)
+        .ok()
+        .and_then(|url| url.host_str().map(ToOwned::to_owned))
+        .is_some_and(|host| {
+            host.eq_ignore_ascii_case("localhost")
+                || host
+                    .parse::<IpAddr>()
+                    .map(|address| address.is_loopback())
+                    .unwrap_or(false)
+        })
 }
 
 async fn wait_for_http_ready(url: &str, timeout_ms: u64, label: &str) -> NativeResult<()> {

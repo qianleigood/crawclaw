@@ -3,33 +3,33 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use axum::body::Bytes;
 use axum::http::{HeaderMap, Method, StatusCode};
 use axum::routing::{get, patch, post};
 use axum::{Json, Router};
-use serde::{Serialize, de::DeserializeOwned};
-use serde_json::{Map, Value, json};
+use serde::{de::DeserializeOwned, Serialize};
+use serde_json::{json, Map, Value};
 use tokio::net::TcpListener;
-use tokio::sync::{RwLock, broadcast};
+use tokio::sync::{broadcast, RwLock};
 use tower_http::cors::{Any, CorsLayer};
 use uuid::Uuid;
 
-use crawclaw_channels::{NativeChannelDefinition, is_desktop_or_native_channel_id, native_channel};
+use crawclaw_channels::{is_desktop_or_native_channel_id, native_channel, NativeChannelDefinition};
 use crawclaw_native_plugins::comfyui::handle_comfyui;
 use crawclaw_native_plugins::qwen3_tts::{build_synthesis_payload, synthesize_qwen3_tts};
 use crawclaw_native_plugins::web::{run_searxng_search, run_spider_fetch};
 use crawclaw_plugin_host::{
-    PluginHostError, PluginHostSkill, PluginHostTool, add_custom_plugin_skill,
-    load_plugin_manifest, toggle_plugin_skill_open, toggle_plugin_tool_open,
+    add_custom_plugin_skill, load_plugin_manifest, toggle_plugin_skill_open,
+    toggle_plugin_tool_open, PluginHostError, PluginHostSkill, PluginHostTool,
 };
 use crawclaw_runtime::{
-    AgentModelSelection, AgentRunRequest, AgentRuntime, AgentRuntimeError, AgentRuntimeSendOptions,
-    AgentRuntimeToolSelection, ChannelChatType, ChannelInboundEnvelope, DesktopAgentStore,
-    DesktopAgentStoreError, DesktopMemoryRecord, DesktopMemoryStore, DesktopMemoryStoreError,
+    special_agents::find_special_agent, AgentModelSelection, AgentRunRequest, AgentRuntime,
+    AgentRuntimeError, AgentRuntimeSendOptions, AgentRuntimeToolSelection, ChannelChatType,
+    ChannelInboundEnvelope, DesktopAgentStore, DesktopAgentStoreError, DesktopMemoryRecord,
+    DesktopMemoryStore, DesktopMemoryStoreError, DesktopModelProfileStore,
     DesktopPreferencesRecord, DesktopPreferencesStore, DesktopPreferencesStoreError,
     DesktopSessionRecord, DesktopSessionStore, DesktopSessionStoreError,
-    special_agents::find_special_agent,
 };
 
 use crate::gateway::desktop_state::initial_desktop_state;
@@ -48,20 +48,29 @@ mod desktop_agent_model;
 mod desktop_agent_routes;
 mod desktop_core_routes;
 mod desktop_memory_routes;
+mod desktop_model_profile_routes;
 mod desktop_mutation_routes;
 mod desktop_native_operations;
 mod desktop_plugin_operations;
 mod desktop_session_routes;
+pub mod desktop_settings_effects;
 use self::desktop_agent_model::{
     agent_channels_from_input, agent_profile, retain_rust_native_agent_channels,
 };
-use self::desktop_agent_routes::{select_agent, update_preferences};
+use self::desktop_agent_routes::{
+    select_agent, settings_clear_cache, settings_delete_local_data, settings_diagnostics,
+    settings_export_data, settings_reset_state, update_preferences,
+};
 use self::desktop_core_routes::{
     bootstrap, desktop_state, events, permission_decision, runtime_status, search, select_nav,
     select_thread, send_message,
 };
 use self::desktop_memory_routes::{
     select_memory_agent, select_memory_item, set_memory_filter, set_memory_query,
+};
+use self::desktop_model_profile_routes::{
+    apply_active_model_profile_for_selection, merge_persisted_model_profiles,
+    test_and_save_model_profile,
 };
 use self::desktop_mutation_routes::{
     abort_message, add_agent_skill, add_attachment_message, add_media_message, add_plugin_skill,
@@ -71,13 +80,18 @@ use self::desktop_mutation_routes::{
     toggle_plugin_skill, toggle_plugin_tool, unpin_thread, update_agent, update_memory_item,
 };
 use self::desktop_native_operations::{
-    DesktopNativeMutation, ThreadMutation, ToggleMutation, active_thread_id, parse_json_body,
-    plugin_skill, plugin_tool, run_native_state_mutation, string_field, with_string,
+    active_thread_id, append_and_persist_conversation_message,
+    append_and_persist_conversation_message_with_emit, parse_json_body, plugin_skill, plugin_tool,
+    run_native_state_mutation, string_field, with_string, DesktopNativeMutation, ThreadMutation,
+    ToggleMutation,
 };
-use self::desktop_plugin_operations::invoke_plugin_tool_operation;
+use self::desktop_plugin_operations::{
+    invoke_plugin_tool_operation, invoke_rust_native_plugin_tool, plugin_tool_result_text,
+};
 use self::desktop_session_routes::{
     list_sessions, list_subagents, send_session, session_history, spawn_session, yield_session,
 };
+use self::desktop_settings_effects::apply_desktop_settings_effects;
 
 const SESSION_HEADER: &str = "x-crawclaw-desktop-session";
 
@@ -103,6 +117,7 @@ struct GatewayState {
     agent_runtime: AgentRuntime,
     agent_store: DesktopAgentStore,
     memory_store: DesktopMemoryStore,
+    model_profile_store: DesktopModelProfileStore,
     preferences_store: DesktopPreferencesStore,
     session_store: DesktopSessionStore,
     desktop_state: Arc<RwLock<DesktopState>>,
@@ -159,14 +174,48 @@ async fn build_state(
     let runtime = runtime_supervisor.status();
     let agent_store = DesktopAgentStore::new(runtime_layout.runtime_root.clone());
     let memory_store = DesktopMemoryStore::new(runtime_layout.runtime_root.clone());
+    let model_profile_store = DesktopModelProfileStore::new(runtime_layout.runtime_root.clone());
     let preferences_store = DesktopPreferencesStore::new(runtime_layout.runtime_root.clone());
     let session_store = DesktopSessionStore::new(runtime_layout.runtime_root.clone());
     let mut desktop_state = initial_desktop_state(&runtime);
     merge_persisted_agents(&mut desktop_state, &agent_store);
     merge_persisted_memory_items(&mut desktop_state, &memory_store);
     merge_persisted_preferences(&mut desktop_state, &preferences_store);
+    merge_persisted_model_profiles(&mut desktop_state, &model_profile_store);
     merge_persisted_sessions(&mut desktop_state, &session_store);
     merge_plugin_manifest(&mut desktop_state, &runtime_layout);
+    if let Err(error) = apply_active_model_profile_for_selection(
+        &runtime_layout.runtime_root,
+        &model_profile_store,
+        &desktop_state.preferences.selected_model,
+    ) {
+        desktop_state
+            .conversation
+            .runtime_checks
+            .push(RuntimeCheck {
+                label: "Desktop model profiles".to_string(),
+                value: error.to_string(),
+                tone: "error".to_string(),
+            });
+    }
+    match apply_desktop_settings_effects(&runtime_layout.runtime_root, &desktop_state.preferences) {
+        Ok(()) => desktop_state
+            .conversation
+            .runtime_checks
+            .push(RuntimeCheck {
+                label: "Desktop settings".to_string(),
+                value: "hot".to_string(),
+                tone: "ok".to_string(),
+            }),
+        Err(error) => desktop_state
+            .conversation
+            .runtime_checks
+            .push(RuntimeCheck {
+                label: "Desktop settings".to_string(),
+                value: error,
+                tone: "error".to_string(),
+            }),
+    }
     let (events, _) = broadcast::channel(32);
     GatewayState {
         app: DesktopAppInfo {
@@ -183,6 +232,7 @@ async fn build_state(
         agent_runtime: AgentRuntime::new(runtime_layout.runtime_root.clone()),
         agent_store,
         memory_store,
+        model_profile_store,
         preferences_store,
         session_store,
         desktop_state: Arc::new(RwLock::new(desktop_state)),
@@ -218,12 +268,16 @@ fn merge_persisted_preferences(
             desktop_state.preferences.selected_model = preferences.selected_model;
             desktop_state.preferences.selected_thinking = preferences.selected_thinking;
             desktop_state.preferences.permission_mode = preferences.permission_mode;
+            if !preferences.model_options.is_empty() {
+                desktop_state.preferences.model_options = preferences.model_options;
+            }
             let task_defaults_loaded = merge_persisted_preference_group::<TaskDefaults>(
                 desktop_state,
                 preferences.task_defaults,
                 "taskDefaults",
                 |preferences, task_defaults| preferences.task_defaults = task_defaults,
             );
+            normalize_task_defaults(&mut desktop_state.preferences.task_defaults);
             merge_persisted_preference_group::<ConfirmationDefaults>(
                 desktop_state,
                 preferences.confirmation_defaults,
@@ -314,15 +368,30 @@ where
 }
 
 pub(super) fn sync_preference_aliases_from_task_defaults(preferences: &mut DesktopPreferences) {
+    normalize_task_defaults(&mut preferences.task_defaults);
     preferences.selected_model = preferences.task_defaults.selected_model.clone();
     preferences.selected_thinking = preferences.task_defaults.selected_thinking.clone();
     preferences.permission_mode = preferences.task_defaults.permission_mode.clone();
 }
 
 pub(super) fn sync_task_defaults_from_preference_aliases(preferences: &mut DesktopPreferences) {
+    normalize_task_defaults(&mut preferences.task_defaults);
     preferences.task_defaults.selected_model = preferences.selected_model.clone();
     preferences.task_defaults.selected_thinking = preferences.selected_thinking.clone();
     preferences.task_defaults.permission_mode = preferences.permission_mode.clone();
+}
+
+pub(super) fn normalize_task_defaults(task_defaults: &mut TaskDefaults) {
+    task_defaults.response_speed = normalize_reply_mode(&task_defaults.response_speed);
+}
+
+fn normalize_reply_mode(value: &str) -> String {
+    match value.trim() {
+        "简洁" | "更快" | "compact" | "concise" | "off" => "简洁".to_string(),
+        "详细" | "更稳" | "detailed" | "verbose" | "full" => "详细".to_string(),
+        "标准" | "standard" | "balanced" | "normal" | "on" => "标准".to_string(),
+        _ => "标准".to_string(),
+    }
 }
 
 fn merge_persisted_sessions(desktop_state: &mut DesktopState, session_store: &DesktopSessionStore) {
@@ -345,12 +414,14 @@ fn apply_session_records(desktop_state: &mut DesktopState, sessions: Vec<Desktop
     }
     desktop_state.sidebar.pinned_threads.clear();
     desktop_state.sidebar.threads.clear();
+    let mut active_session = None;
     for session in sessions {
+        let active = session.active && active_session.is_none();
         let thread = SidebarThread {
-            id: session.thread_id,
-            title: session.title,
+            id: session.thread_id.clone(),
+            title: session.title.clone(),
             time: "已保存".to_string(),
-            active: false,
+            active,
             agent_avatar: true,
         };
         if session.pinned {
@@ -358,8 +429,15 @@ fn apply_session_records(desktop_state: &mut DesktopState, sessions: Vec<Desktop
         } else {
             desktop_state.sidebar.threads.push(thread);
         }
+        if active {
+            active_session = Some(session);
+        }
     }
-    clear_active_thread_conversation(desktop_state);
+    if let Some(session) = active_session {
+        apply_session_conversation(desktop_state, &session.thread_id, &session);
+    } else {
+        clear_active_thread_conversation(desktop_state);
+    }
 }
 
 fn apply_session_conversation(
@@ -394,6 +472,13 @@ fn conversation_messages_from_session(
         .iter()
         .enumerate()
         .map(|(index, message)| {
+            if let Some(desktop_message) = &message.desktop_message {
+                if let Ok(message) =
+                    serde_json::from_value::<ConversationMessage>(desktop_message.clone())
+                {
+                    return message;
+                }
+            }
             let id = format!("{thread_id}-message-{index}");
             match message.kind.as_str() {
                 "user" => ConversationMessage::User {
@@ -478,17 +563,23 @@ pub(super) fn conversation_tool_result_message(
     }
 }
 
-pub(super) fn conversation_attachment_message(
+pub(super) fn conversation_attachment_message_with_asset(
     title: String,
     file_name: String,
     media_type: String,
     detail: Option<String>,
+    asset_id: Option<String>,
+    size_bytes: Option<u64>,
 ) -> ConversationMessage {
     ConversationMessage::Attachment {
         id: now_message_id("attachment"),
         title,
         file_name,
         media_type,
+        asset_id,
+        size_bytes,
+        status: Some("done".to_string()),
+        error_code: None,
         detail,
         created_at: "刚刚".to_string(),
     }
@@ -504,6 +595,8 @@ pub(super) fn conversation_media_message(
         media_type,
         title,
         items,
+        status: Some("done".to_string()),
+        error_code: None,
         created_at: "刚刚".to_string(),
     }
 }
@@ -519,6 +612,11 @@ pub(super) fn conversation_voice_message(
         direction,
         title,
         duration_label,
+        asset_id: None,
+        mime_type: None,
+        size_bytes: None,
+        status: Some("done".to_string()),
+        error_code: None,
         transcript,
         created_at: "刚刚".to_string(),
     }
@@ -538,6 +636,9 @@ pub(super) fn conversation_workflow_message(
         status,
         detail,
         steps,
+        workflow_id: None,
+        run_id: None,
+        error_code: None,
         created_at: "刚刚".to_string(),
     }
 }
@@ -553,7 +654,23 @@ pub(super) fn conversation_skill_call_message(
         skill_id,
         title,
         status,
+        execution_id: None,
+        error_code: None,
         detail,
+        created_at: "刚刚".to_string(),
+    }
+}
+
+pub(super) fn conversation_status_message(
+    title: String,
+    detail: String,
+    tone: String,
+) -> ConversationMessage {
+    ConversationMessage::Status {
+        id: now_message_id("status"),
+        title,
+        detail,
+        tone,
         created_at: "刚刚".to_string(),
     }
 }
@@ -737,6 +854,30 @@ fn router(state: GatewayState) -> Router {
             post(permission_decision),
         )
         .route("/api/desktop/preferences", patch(update_preferences))
+        .route(
+            "/api/desktop/model-profiles/test-and-save",
+            post(test_and_save_model_profile),
+        )
+        .route(
+            "/api/desktop/settings/diagnostics",
+            post(settings_diagnostics),
+        )
+        .route(
+            "/api/desktop/settings/export-data",
+            post(settings_export_data),
+        )
+        .route(
+            "/api/desktop/settings/clear-cache",
+            post(settings_clear_cache),
+        )
+        .route(
+            "/api/desktop/settings/delete-local-data",
+            post(settings_delete_local_data),
+        )
+        .route(
+            "/api/desktop/settings/reset-state",
+            post(settings_reset_state),
+        )
         .route("/api/desktop/plugins/skills", post(add_plugin_skill))
         .route(
             "/api/desktop/plugins/skills/{skill_id}/toggle",
@@ -864,6 +1005,7 @@ fn persist_desktop_preferences(
             selected_model: preferences.selected_model.clone(),
             selected_thinking: preferences.selected_thinking.clone(),
             permission_mode: preferences.permission_mode.clone(),
+            model_options: preferences.model_options.clone(),
             task_defaults: preference_group_value(
                 state,
                 "taskDefaults",

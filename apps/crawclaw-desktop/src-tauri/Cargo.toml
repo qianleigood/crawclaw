@@ -17,6 +17,7 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1"
 axum = "0.8"
+base64 = "0.22"
 crawclaw-channels = { path = "../../../crates/crawclaw-channels" }
 crawclaw-core = { path = "../../../crates/crawclaw-core" }
 crawclaw-gateway = { path = "../../../crates/crawclaw-gateway" }
@@ -27,7 +28,9 @@ crawclaw-runtime = { path = "../../../crates/crawclaw-runtime" }
 futures-util = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-autostart = "2"
+tauri-plugin-notification = "2"
 tauri-plugin-opener = "2"
 tokio = { version = "1", features = ["macros", "net", "process", "rt-multi-thread", "sync", "time"] }
 tower-http = { version = "0.6", features = ["cors"] }

@@ -1,3 +1,7 @@
+use base64::Engine;
+use std::path::PathBuf;
+
+use super::desktop_settings_effects::{send_desktop_notification, DesktopNotificationKind};
 use super::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -51,7 +55,11 @@ struct AddAttachmentMessageInput {
     file_name: String,
     media_type: String,
     #[serde(default)]
+    confirm: bool,
+    #[serde(default)]
     detail: Option<String>,
+    #[serde(default)]
+    source: Option<DesktopAssetSource>,
 }
 
 #[derive(serde::Deserialize)]
@@ -60,7 +68,13 @@ struct AddMediaMessageInput {
     media_type: String,
     title: String,
     #[serde(default)]
+    confirm: bool,
+    #[serde(default)]
     items: Vec<ConversationMediaItem>,
+    #[serde(default)]
+    source: Option<DesktopAssetSource>,
+    #[serde(default)]
+    provider_config: Option<Value>,
 }
 
 #[derive(serde::Deserialize)]
@@ -70,19 +84,34 @@ struct AddVoiceMessageInput {
     title: String,
     duration_label: String,
     #[serde(default)]
+    prompt: Option<String>,
+    #[serde(default)]
+    language: Option<String>,
+    #[serde(default)]
     transcript: Option<String>,
+    #[serde(default)]
+    source: Option<DesktopAssetSource>,
+    #[serde(default)]
+    provider_config: Option<Value>,
 }
 
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct AddWorkflowMessageInput {
     workflow_kind: String,
+    #[serde(default)]
+    action: Option<String>,
     title: String,
-    status: String,
+    #[serde(default)]
+    confirm: bool,
+    #[serde(default)]
+    status: Option<String>,
     #[serde(default)]
     detail: String,
     #[serde(default)]
     steps: Vec<ConversationWorkflowStep>,
+    #[serde(default)]
+    input: Value,
 }
 
 #[derive(serde::Deserialize)]
@@ -90,9 +119,36 @@ struct AddWorkflowMessageInput {
 struct AddSkillCallMessageInput {
     skill_id: String,
     title: String,
-    status: String,
+    #[serde(default)]
+    status: Option<String>,
     #[serde(default)]
     detail: Option<String>,
+    #[serde(default)]
+    text: Option<String>,
+    #[serde(default)]
+    execute: bool,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopAssetSource {
+    kind: String,
+    #[serde(default)]
+    path: Option<String>,
+    #[serde(default)]
+    file_name: Option<String>,
+    #[serde(default)]
+    mime_type: Option<String>,
+    #[serde(default)]
+    data_base64: Option<String>,
+}
+
+struct DesktopAssetRecord {
+    asset_id: String,
+    file_name: String,
+    media_type: String,
+    size_bytes: u64,
+    path: PathBuf,
 }
 
 pub(super) async fn run_native_state_mutation(
@@ -117,7 +173,11 @@ pub(super) async fn apply_native_operation(
             let send_context = desktop_send_context(state, &input).await?;
             let send_result = match state
                 .agent_runtime
-                .send_message_with_options(send_context.thread_id, text, send_context.options)
+                .send_message_with_options(
+                    send_context.thread_id,
+                    text.clone(),
+                    send_context.options,
+                )
                 .await
             {
                 Ok(send_result) => send_result,
@@ -126,19 +186,25 @@ pub(super) async fn apply_native_operation(
                         code: error.code().to_string(),
                         message: error.message().to_string(),
                     });
-                    {
-                        let mut desktop_state = state.desktop_state.write().await;
-                        desktop_state
-                            .conversation
-                            .messages
-                            .push(conversation_error_message(
-                                error.code(),
-                                error.message().to_string(),
-                            ));
-                    }
+                    let _ = append_and_persist_conversation_message_with_emit(
+                        state,
+                        conversation_user_message(text),
+                        false,
+                    )
+                    .await;
+                    let _ = append_and_persist_conversation_message_with_emit(
+                        state,
+                        conversation_error_message(error.code(), error.message().to_string()),
+                        true,
+                    )
+                    .await;
                     return Err(agent_runtime_error_status(&error));
                 }
             };
+            state
+                .session_store
+                .set_active_thread(&send_result.thread_id)
+                .map_err(|error| session_store_status(state, error))?;
             {
                 let mut desktop_state = state.desktop_state.write().await;
                 if !has_thread(&desktop_state, &send_result.thread_id) {
@@ -183,24 +249,118 @@ pub(super) async fn apply_native_operation(
                 thread_id: send_result.thread_id,
                 text: send_result.assistant_text,
             });
+            notify_desktop(
+                state,
+                DesktopNotificationKind::TaskDone,
+                "对话已完成",
+                "模型回复已生成。",
+            )
+            .await;
             emit_state_changed(state).await
         }
         DesktopNativeMutation::AddAttachmentMessage => {
             let input = parse_desktop_message_input::<AddAttachmentMessageInput>(state, input)?;
-            append_conversation_message(
+            validate_asset_file_name(&input.file_name).map_err(|message| {
+                emit_operation_failed(state, "invalid_asset", message);
+                StatusCode::BAD_REQUEST
+            })?;
+            ensure_desktop_file_action_allowed(state, input.source.as_ref(), input.confirm).await?;
+            let asset = persist_desktop_asset(
                 state,
-                conversation_attachment_message(
+                input.source.as_ref(),
+                &input.file_name,
+                &input.media_type,
+            )?;
+            let file_name = asset
+                .as_ref()
+                .map(|asset| asset.file_name.clone())
+                .unwrap_or(input.file_name);
+            let media_type = asset
+                .as_ref()
+                .map(|asset| asset.media_type.clone())
+                .unwrap_or(input.media_type);
+            append_and_persist_conversation_message(
+                state,
+                conversation_attachment_message_with_asset(
                     input.title,
-                    input.file_name,
-                    input.media_type,
+                    file_name,
+                    media_type,
                     input.detail,
+                    asset.as_ref().map(|asset| asset.asset_id.clone()),
+                    asset.as_ref().map(|asset| asset.size_bytes),
                 ),
             )
             .await
         }
         DesktopNativeMutation::AddMediaMessage => {
-            let input = parse_desktop_message_input::<AddMediaMessageInput>(state, input)?;
-            append_conversation_message(
+            let mut input = parse_desktop_message_input::<AddMediaMessageInput>(state, input)?;
+            ensure_desktop_file_action_allowed(state, input.source.as_ref(), input.confirm).await?;
+            let asset = persist_desktop_asset(
+                state,
+                input.source.as_ref(),
+                "media-message",
+                &input.media_type,
+            )?;
+            if let Some(asset) = asset {
+                if input.items.is_empty() {
+                    input.items.push(ConversationMediaItem {
+                        id: asset.asset_id.clone(),
+                        label: asset.file_name.clone(),
+                        kind: input.media_type.clone(),
+                        asset_id: Some(asset.asset_id.clone()),
+                        mime_type: Some(asset.media_type.clone()),
+                        size_bytes: Some(asset.size_bytes),
+                        status: Some("done".to_string()),
+                        detail: None,
+                    });
+                } else if let Some(item) = input.items.first_mut() {
+                    item.asset_id = Some(asset.asset_id.clone());
+                    item.mime_type = Some(asset.media_type.clone());
+                    item.size_bytes = Some(asset.size_bytes);
+                    item.status = Some("done".to_string());
+                }
+                if input.media_type == "image" || asset.media_type.starts_with("image/") {
+                    match run_openai_media_understanding(
+                        state,
+                        "image",
+                        &asset,
+                        input.provider_config.clone(),
+                        None,
+                        None,
+                    )
+                    .await
+                    {
+                        Ok(value) => {
+                            if let Some(detail) = media_understanding_text(&value) {
+                                if let Some(item) = input.items.first_mut() {
+                                    item.detail = Some(detail);
+                                    item.status = Some("done".to_string());
+                                }
+                            }
+                        }
+                        Err(error) => {
+                            if let Some(item) = input.items.first_mut() {
+                                item.status = Some("failed".to_string());
+                                item.detail = Some(format!("媒体理解失败：{error}"));
+                            }
+                            let mut message = conversation_media_message(
+                                input.media_type,
+                                input.title,
+                                input.items,
+                            );
+                            if let ConversationMessage::Media {
+                                status, error_code, ..
+                            } = &mut message
+                            {
+                                *status = Some("failed".to_string());
+                                *error_code = Some("media_understanding_failed".to_string());
+                            }
+                            return append_and_persist_conversation_message(state, message).await;
+                        }
+                    }
+                }
+            }
+            append_and_persist_conversation_message(
                 state,
                 conversation_media_message(input.media_type, input.title, input.items),
             )
@@ -208,41 +368,85 @@ pub(super) async fn apply_native_operation(
         }
         DesktopNativeMutation::AddVoiceMessage => {
             let input = parse_desktop_message_input::<AddVoiceMessageInput>(state, input)?;
-            append_conversation_message(
+            let asset = persist_desktop_asset(
                 state,
-                conversation_voice_message(
-                    input.direction,
-                    input.title,
-                    input.duration_label,
-                    input.transcript,
-                ),
-            )
-            .await
+                input.source.as_ref(),
+                "voice-message.webm",
+                "audio/webm",
+            )?;
+            let mut transcript = input.transcript;
+            let mut transcription_error = None;
+            if let Some(asset) = asset.as_ref() {
+                match run_openai_media_understanding(
+                    state,
+                    "audio",
+                    asset,
+                    input.provider_config,
+                    input.prompt,
+                    input.language,
+                )
+                .await
+                {
+                    Ok(value) => {
+                        if let Some(text) = media_understanding_text(&value) {
+                            transcript = Some(text);
+                        }
+                    }
+                    Err(error) => {
+                        transcription_error = Some(error);
+                    }
+                }
+            }
+            let mut message = conversation_voice_message(
+                input.direction,
+                input.title,
+                input.duration_label,
+                transcript,
+            );
+            if let ConversationMessage::Voice {
+                asset_id,
+                mime_type,
+                size_bytes,
+                status,
+                error_code,
+                transcript,
+                ..
+            } = &mut message
+            {
+                *asset_id = asset.as_ref().map(|asset| asset.asset_id.clone());
+                *mime_type = asset.as_ref().map(|asset| asset.media_type.clone());
+                *size_bytes = asset.as_ref().map(|asset| asset.size_bytes);
+                if let Some(error) = transcription_error {
+                    *status = Some("failed".to_string());
+                    *error_code = Some("voice_transcription_failed".to_string());
+                    if transcript.as_deref().unwrap_or_default().trim().is_empty() {
+                        *transcript = Some(format!("语音转写失败：{error}"));
+                    }
+                } else {
+                    *status = Some("done".to_string());
+                }
+            }
+            append_and_persist_conversation_message(state, message).await
         }
         DesktopNativeMutation::AddWorkflowMessage => {
             let input = parse_desktop_message_input::<AddWorkflowMessageInput>(state, input)?;
-            append_conversation_message(
-                state,
-                conversation_workflow_message(
-                    input.workflow_kind,
-                    input.title,
-                    input.status,
-                    input.detail,
-                    input.steps,
-                ),
-            )
-            .await
+            ensure_desktop_workflow_action_allowed(state, &input).await?;
+            let message = run_workflow_message(state, input).await;
+            append_and_persist_conversation_message(state, message).await
         }
         DesktopNativeMutation::AddSkillCallMessage => {
             let input = parse_desktop_message_input::<AddSkillCallMessageInput>(state, input)?;
-            append_conversation_message(
+            let status = input.status.unwrap_or_else(|| {
+                if input.execute {
+                    "running".to_string()
+                } else {
+                    "context".to_string()
+                }
+            });
+            let detail = input.detail.or(input.text);
+            append_and_persist_conversation_message(
                 state,
-                conversation_skill_call_message(
-                    input.skill_id,
-                    input.title,
-                    input.status,
-                    input.detail,
-                ),
+                conversation_skill_call_message(input.skill_id, input.title, status, detail),
             )
             .await
         }
@@ -510,6 +714,19 @@ pub(super) async fn apply_native_operation(
             emit_state_changed(state).await
         }
         DesktopNativeMutation::RunMemoryDream => {
+            let preferences = state.desktop_state.read().await.preferences.clone();
+            if !preferences.memory_defaults.memory_dream_enabled {
+                let _ = append_and_persist_conversation_message_with_emit(
+                    state,
+                    conversation_error_message(
+                        "memory_dream_disabled",
+                        "记忆做梦已在设置中关闭。".to_string(),
+                    ),
+                    true,
+                )
+                .await;
+                return Err(StatusCode::CONFLICT);
+            }
             let selected_agent_id = {
                 let desktop_state = state.desktop_state.read().await;
                 string_field(&input, "agentId")
@@ -594,6 +811,13 @@ pub(super) async fn apply_native_operation(
                 );
                 desktop_state.memory_workspace.dream.last_run_at = "刚刚".to_string();
             }
+            notify_desktop(
+                state,
+                DesktopNotificationKind::DreamDone,
+                "记忆做梦已完成",
+                "记忆整理结果已写入记忆工作区。",
+            )
+            .await;
             emit_state_changed(state).await
         }
         DesktopNativeMutation::Thread(operation) => {
@@ -617,15 +841,548 @@ fn parse_desktop_message_input<T: DeserializeOwned>(
     })
 }
 
-async fn append_conversation_message(
+pub(super) async fn append_and_persist_conversation_message(
     state: &GatewayState,
     message: ConversationMessage,
 ) -> Result<Json<DesktopState>, StatusCode> {
+    append_and_persist_conversation_message_with_emit(state, message, true).await
+}
+
+pub(super) async fn append_and_persist_conversation_message_with_emit(
+    state: &GatewayState,
+    message: ConversationMessage,
+    emit: bool,
+) -> Result<Json<DesktopState>, StatusCode> {
+    let title = conversation_message_title(&message);
+    let content = conversation_message_content(&message);
+    let (thread_id, created_thread) = {
+        let mut desktop_state = state.desktop_state.write().await;
+        let active_thread_id = active_thread_id(&desktop_state);
+        let created_thread = active_thread_id.is_none();
+        let thread_id = active_thread_id.unwrap_or_else(|| {
+            let thread_id = format!("thread-{}", Uuid::new_v4().simple());
+            for thread in desktop_state.sidebar.pinned_threads.iter_mut() {
+                thread.active = false;
+            }
+            for thread in desktop_state.sidebar.threads.iter_mut() {
+                thread.active = false;
+            }
+            for thread in desktop_state.sidebar.discussion_threads.iter_mut() {
+                thread.active = false;
+            }
+            desktop_state.sidebar.threads.insert(
+                0,
+                SidebarThread {
+                    id: thread_id.clone(),
+                    title: title_from_message(&title),
+                    time: "刚刚".to_string(),
+                    active: true,
+                    agent_avatar: true,
+                },
+            );
+            thread_id
+        });
+        desktop_state.conversation.messages.push(message.clone());
+        (thread_id, created_thread)
+    };
+    if created_thread {
+        state
+            .session_store
+            .create_session(&thread_id, Some(&title), None)
+            .map_err(|error| session_store_status(state, error))?;
+    }
+    let desktop_message = serde_json::to_value(&message).map_err(|error| {
+        emit_operation_failed(
+            state,
+            "conversation_persist_failed",
+            format!("Failed to serialize desktop conversation message: {error}"),
+        );
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    state
+        .session_store
+        .append_desktop_message(
+            &thread_id,
+            "desktop",
+            &content,
+            Some("desktop"),
+            desktop_message,
+        )
+        .map_err(|error| session_store_status(state, error))?;
     {
         let mut desktop_state = state.desktop_state.write().await;
-        desktop_state.conversation.messages.push(message);
+        if !content.trim().is_empty() {
+            desktop_state.conversation.result_items.push(content);
+        }
     }
-    emit_state_changed(state).await
+    if emit {
+        emit_state_changed(state).await
+    } else {
+        let desktop_state = state.desktop_state.read().await.clone();
+        Ok(Json(desktop_state))
+    }
+}
+
+fn conversation_message_title(message: &ConversationMessage) -> String {
+    match message {
+        ConversationMessage::User { text, .. } | ConversationMessage::Assistant { text, .. } => {
+            text.clone()
+        }
+        ConversationMessage::ToolCall { title, .. }
+        | ConversationMessage::ToolResult { title, .. }
+        | ConversationMessage::Permission { title, .. }
+        | ConversationMessage::Status { title, .. }
+        | ConversationMessage::Attachment { title, .. }
+        | ConversationMessage::Media { title, .. }
+        | ConversationMessage::Workflow { title, .. }
+        | ConversationMessage::Voice { title, .. }
+        | ConversationMessage::SkillCall { title, .. }
+        | ConversationMessage::Error { title, .. } => title.clone(),
+    }
+}
+
+fn conversation_message_content(message: &ConversationMessage) -> String {
+    match message {
+        ConversationMessage::User { text, .. } | ConversationMessage::Assistant { text, .. } => {
+            text.clone()
+        }
+        ConversationMessage::ToolResult { text, .. } => text.clone(),
+        ConversationMessage::Permission { detail, .. }
+        | ConversationMessage::Status { detail, .. }
+        | ConversationMessage::Workflow { detail, .. }
+        | ConversationMessage::Error { detail, .. } => detail.clone(),
+        ConversationMessage::Attachment {
+            title,
+            file_name,
+            detail,
+            ..
+        } => detail
+            .clone()
+            .unwrap_or_else(|| format!("{title}: {file_name}")),
+        ConversationMessage::Media { title, .. }
+        | ConversationMessage::Voice { title, .. }
+        | ConversationMessage::SkillCall { title, .. }
+        | ConversationMessage::ToolCall { title, .. } => title.clone(),
+    }
+}
+
+fn persist_desktop_asset(
+    state: &GatewayState,
+    source: Option<&DesktopAssetSource>,
+    fallback_file_name: &str,
+    fallback_media_type: &str,
+) -> Result<Option<DesktopAssetRecord>, StatusCode> {
+    let Some(source) = source else {
+        return Ok(None);
+    };
+    let file_name = source
+        .file_name
+        .as_deref()
+        .unwrap_or(fallback_file_name)
+        .trim();
+    validate_asset_file_name(file_name).map_err(|message| {
+        emit_operation_failed(state, "invalid_asset", message);
+        StatusCode::BAD_REQUEST
+    })?;
+    let media_type = source
+        .mime_type
+        .as_deref()
+        .unwrap_or(fallback_media_type)
+        .trim()
+        .to_string();
+    let bytes = match source.kind.as_str() {
+        "tauriPath" => {
+            let path = source.path.as_deref().ok_or_else(|| {
+                emit_operation_failed(
+                    state,
+                    "invalid_asset",
+                    "tauriPath attachment source requires path.".to_string(),
+                );
+                StatusCode::BAD_REQUEST
+            })?;
+            std::fs::read(path).map_err(|error| {
+                emit_operation_failed(
+                    state,
+                    "asset_read_failed",
+                    format!("Failed to read selected attachment: {error}"),
+                );
+                StatusCode::BAD_REQUEST
+            })?
+        }
+        "browserFile" => {
+            let encoded = source.data_base64.as_deref().ok_or_else(|| {
+                emit_operation_failed(
+                    state,
+                    "invalid_asset",
+                    "browserFile attachment source requires dataBase64.".to_string(),
+                );
+                StatusCode::BAD_REQUEST
+            })?;
+            decode_browser_file_base64(encoded).map_err(|error| {
+                emit_operation_failed(
+                    state,
+                    "invalid_asset",
+                    format!("Invalid browserFile dataBase64: {error}"),
+                );
+                StatusCode::BAD_REQUEST
+            })?
+        }
+        other => {
+            emit_operation_failed(
+                state,
+                "invalid_asset",
+                format!("Unsupported desktop asset source kind: {other}"),
+            );
+            return Err(StatusCode::BAD_REQUEST);
+        }
+    };
+    let asset_id = format!("asset-{}", Uuid::new_v4().simple());
+    let assets_dir = state.runtime_root.join("desktop").join("assets");
+    std::fs::create_dir_all(&assets_dir).map_err(|error| {
+        emit_operation_failed(
+            state,
+            "asset_write_failed",
+            format!("Failed to create desktop assets directory: {error}"),
+        );
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    let asset_path = assets_dir.join(format!("{asset_id}-{file_name}"));
+    std::fs::write(&asset_path, &bytes).map_err(|error| {
+        emit_operation_failed(
+            state,
+            "asset_write_failed",
+            format!("Failed to write desktop asset: {error}"),
+        );
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    Ok(Some(DesktopAssetRecord {
+        asset_id,
+        file_name: file_name.to_string(),
+        media_type,
+        size_bytes: bytes.len() as u64,
+        path: asset_path,
+    }))
+}
+
+fn validate_asset_file_name(file_name: &str) -> Result<(), String> {
+    if file_name.is_empty()
+        || file_name == "."
+        || file_name == ".."
+        || file_name.contains('/')
+        || file_name.contains('\\')
+    {
+        return Err(format!("Invalid desktop asset file name: {file_name}"));
+    }
+    Ok(())
+}
+
+fn decode_browser_file_base64(encoded: &str) -> Result<Vec<u8>, base64::DecodeError> {
+    let payload = encoded
+        .strip_prefix("data:")
+        .and_then(|_| encoded.split_once(',').map(|(_, payload)| payload))
+        .unwrap_or(encoded);
+    base64::engine::general_purpose::STANDARD.decode(payload)
+}
+
+async fn ensure_desktop_file_action_allowed(
+    state: &GatewayState,
+    source: Option<&DesktopAssetSource>,
+    confirmed: bool,
+) -> Result<(), StatusCode> {
+    if source.is_none() {
+        return Ok(());
+    }
+    let preferences = state.desktop_state.read().await.preferences.clone();
+    if preferences.confirmation_defaults.confirm_file_changes && !confirmed {
+        append_permission_blocking_error(
+            state,
+            "permission_required",
+            "当前设置要求在保存本地附件或媒体副本前确认。本次文件已被拒绝写入桌面资源目录。",
+            StatusCode::CONFLICT,
+        )
+        .await
+    } else {
+        Ok(())
+    }
+}
+
+async fn ensure_desktop_workflow_action_allowed(
+    state: &GatewayState,
+    input: &AddWorkflowMessageInput,
+) -> Result<(), StatusCode> {
+    if !is_high_risk_workflow_action(&input.workflow_kind, input.action.as_deref()) {
+        return Ok(());
+    }
+    let preferences = state.desktop_state.read().await.preferences.clone();
+    if is_read_only_permission_mode(&preferences.permission_mode) {
+        return append_permission_blocking_error(
+            state,
+            "permission_denied",
+            "当前权限模式是只读模式，不能执行会调用外部工作流或修改本地状态的对话动作。",
+            StatusCode::FORBIDDEN,
+        )
+        .await;
+    }
+    if preferences.confirmation_defaults.confirm_high_risk && !input.confirm {
+        return append_permission_blocking_error(
+            state,
+            "permission_required",
+            "当前设置要求高风险工作流执行前确认。本次工作流请求已暂停。",
+            StatusCode::CONFLICT,
+        )
+        .await;
+    }
+    Ok(())
+}
+
+async fn append_permission_blocking_error(
+    state: &GatewayState,
+    code: &str,
+    detail: &str,
+    status: StatusCode,
+) -> Result<(), StatusCode> {
+    if code == "permission_required" {
+        notify_desktop(
+            state,
+            DesktopNotificationKind::ConfirmNeeded,
+            "需要确认",
+            detail,
+        )
+        .await;
+    }
+    let _ = append_and_persist_conversation_message_with_emit(
+        state,
+        conversation_error_message(code, detail.to_string()),
+        true,
+    )
+    .await;
+    Err(status)
+}
+
+fn is_read_only_permission_mode(permission_mode: &str) -> bool {
+    permission_mode
+        .split_whitespace()
+        .collect::<String>()
+        .contains("只读")
+        || permission_mode.to_ascii_lowercase().contains("read-only")
+        || permission_mode.to_ascii_lowercase().contains("readonly")
+}
+
+fn is_high_risk_workflow_action(workflow_kind: &str, action: Option<&str>) -> bool {
+    let normalized = action.unwrap_or_default().trim().to_ascii_lowercase();
+    match workflow_kind {
+        "comfyui" => matches!(
+            normalized.as_str(),
+            "run" | "workflow.run" | "queue" | "enqueue" | "submit"
+        ),
+        "schedule" => !matches!(
+            normalized.as_str(),
+            "" | "status" | "list" | "cron.status" | "cron.list"
+        ),
+        "n8n" => matches!(
+            normalized.as_str(),
+            "run" | "execute" | "trigger" | "workflow.run" | "workflow.execute"
+        ),
+        _ => !matches!(normalized.as_str(), "" | "status" | "list" | "get"),
+    }
+}
+
+async fn run_openai_media_understanding(
+    state: &GatewayState,
+    capability: &str,
+    asset: &DesktopAssetRecord,
+    provider_config: Option<Value>,
+    prompt: Option<String>,
+    language: Option<String>,
+) -> Result<Value, String> {
+    let mut request = desktop_media_provider_request(state, provider_config);
+    request.insert(
+        "capability".to_string(),
+        Value::String(capability.to_string()),
+    );
+    request.insert(
+        "attachments".to_string(),
+        json!([{
+            "index": 0,
+            "fileName": &asset.file_name,
+            "mimeType": &asset.media_type,
+            "path": asset.path.to_string_lossy()
+        }]),
+    );
+    if let Some(prompt) = prompt.filter(|value| !value.trim().is_empty()) {
+        request.insert("prompt".to_string(), Value::String(prompt));
+    }
+    if let Some(language) = language.filter(|value| !value.trim().is_empty()) {
+        request.insert("language".to_string(), Value::String(language));
+    }
+
+    let request =
+        crawclaw_runtime::with_native_runtime_context(&state.runtime_root, Value::Object(request));
+    crawclaw_native_plugins::registry::dispatch_builtin_native_plugin_operation(
+        "openai",
+        "media-understanding",
+        request,
+    )
+    .await
+    .map_err(|error| error.to_string())
+}
+
+fn desktop_media_provider_request(
+    state: &GatewayState,
+    provider_config: Option<Value>,
+) -> serde_json::Map<String, Value> {
+    if let Some(Value::Object(object)) = provider_config {
+        return object;
+    }
+    let config_path = state
+        .runtime_root
+        .join("config")
+        .join("desktop-agent-provider.json");
+    let Ok(raw) = std::fs::read_to_string(config_path) else {
+        return serde_json::Map::new();
+    };
+    let Ok(Value::Object(config)) = serde_json::from_str::<Value>(&raw) else {
+        return serde_json::Map::new();
+    };
+    let provider = config
+        .get("provider")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    if !(provider.contains("openai") || provider.contains("compatible")) {
+        return serde_json::Map::new();
+    }
+    let mut request = serde_json::Map::new();
+    for key in ["apiKey", "baseUrl", "model", "timeoutSeconds"] {
+        if let Some(value) = config.get(key) {
+            request.insert(key.to_string(), value.clone());
+        }
+    }
+    request
+}
+
+fn media_understanding_text(value: &Value) -> Option<String> {
+    value
+        .pointer("/outputs/0/text")
+        .or_else(|| value.pointer("/details/outputs/0/text"))
+        .or_else(|| value.get("output_text"))
+        .or_else(|| value.pointer("/details/output_text"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+}
+
+async fn run_workflow_message(
+    state: &GatewayState,
+    input: AddWorkflowMessageInput,
+) -> ConversationMessage {
+    let workflow_kind = input.workflow_kind;
+    let title = input.title;
+    let steps = input.steps;
+    let fallback_detail = input.detail;
+    let workflow_result = match workflow_kind.as_str() {
+        "comfyui" => {
+            let mut tool_input = input.input;
+            if let Some(action) = input.action {
+                tool_input = with_string(tool_input, "action", &action);
+            } else {
+                tool_input = with_string(tool_input, "action", "status");
+            }
+            invoke_rust_native_plugin_tool(state, "comfyui", "comfyui_workflow", &tool_input)
+                .await
+                .unwrap_or_else(|| Err("Rust-native ComfyUI tool is not available.".to_string()))
+        }
+        "schedule" => {
+            let action = input.action.unwrap_or_else(|| "cron.status".to_string());
+            crawclaw_runtime::execute_cron_runtime_operation(
+                &state.runtime_root,
+                &action,
+                input.input,
+            )
+            .await
+        }
+        "n8n" => {
+            let action = input.action.unwrap_or_else(|| "list".to_string());
+            let mut tool_input = input.input;
+            tool_input = with_string(tool_input, "action", &action);
+            crawclaw_runtime::execute_rust_core_tool(&state.runtime_root, "workflow", tool_input)
+                .await
+        }
+        _ => Err(format!("Unsupported workflow kind: {workflow_kind}")),
+    };
+    match workflow_result {
+        Ok(value) => {
+            let detail = plugin_tool_result_text(&value);
+            let mut message = conversation_workflow_message(
+                workflow_kind,
+                title,
+                input.status.unwrap_or_else(|| "done".to_string()),
+                if detail.trim().is_empty() {
+                    fallback_detail
+                } else {
+                    detail
+                },
+                steps,
+            );
+            if let ConversationMessage::Workflow {
+                workflow_id,
+                run_id,
+                ..
+            } = &mut message
+            {
+                *workflow_id = value
+                    .pointer("/details/workflowId")
+                    .or_else(|| value.pointer("/details/workflow/workflowId"))
+                    .and_then(Value::as_str)
+                    .map(ToOwned::to_owned);
+                *run_id = value
+                    .pointer("/details/runId")
+                    .or_else(|| value.pointer("/details/execution/executionId"))
+                    .and_then(Value::as_str)
+                    .map(ToOwned::to_owned);
+            }
+            message
+        }
+        Err(error) => {
+            notify_desktop(
+                state,
+                DesktopNotificationKind::AutomationFailed,
+                "工作流执行失败",
+                &error,
+            )
+            .await;
+            let mut message = conversation_workflow_message(
+                workflow_kind,
+                title,
+                "failed".to_string(),
+                if fallback_detail.trim().is_empty() {
+                    error.clone()
+                } else {
+                    format!("{fallback_detail}\n{error}")
+                },
+                steps,
+            );
+            if let ConversationMessage::Workflow { error_code, .. } = &mut message {
+                *error_code = Some("workflow_failed".to_string());
+            }
+            message
+        }
+    }
+}
+
+async fn notify_desktop(
+    state: &GatewayState,
+    kind: DesktopNotificationKind,
+    title: &str,
+    body: &str,
+) {
+    let preferences = state.desktop_state.read().await.preferences.clone();
+    if let Err(error) =
+        send_desktop_notification(&state.runtime_root, &preferences, kind, title, body)
+    {
+        emit_operation_failed(state, "desktop_notification_failed", error);
+    }
 }
 
 pub(super) fn agent_runtime_error_status(error: &AgentRuntimeError) -> StatusCode {
@@ -1045,17 +1802,27 @@ pub(super) async fn update_thread_operation(
     let mut next_thread_id = None;
     {
         let mut desktop_state = state.desktop_state.write().await;
+        let active_before = active_thread_id(&desktop_state);
         match operation {
             ThreadMutation::Pin => {
-                if let Some(thread) = remove_thread(&mut desktop_state.sidebar.threads, &thread_id)
+                if let Some(mut thread) =
+                    remove_thread(&mut desktop_state.sidebar.threads, &thread_id)
                 {
+                    if active_before.is_none() || thread.active {
+                        thread.active = true;
+                        next_thread_id = Some(thread.id.clone());
+                    }
                     desktop_state.sidebar.pinned_threads.push(thread);
                 }
             }
             ThreadMutation::Unpin => {
-                if let Some(thread) =
+                if let Some(mut thread) =
                     remove_thread(&mut desktop_state.sidebar.pinned_threads, &thread_id)
                 {
+                    if active_before.is_none() || thread.active {
+                        thread.active = true;
+                        next_thread_id = Some(thread.id.clone());
+                    }
                     desktop_state.sidebar.threads.insert(0, thread);
                 }
             }
@@ -1076,17 +1843,20 @@ pub(super) async fn update_thread_operation(
             ThreadMutation::Archive => {
                 remove_thread(&mut desktop_state.sidebar.threads, &thread_id);
                 remove_thread(&mut desktop_state.sidebar.pinned_threads, &thread_id);
-                if active_thread_id(&desktop_state).is_none() {
-                    next_thread_id = activate_first_visible_thread(&mut desktop_state);
-                    if next_thread_id.is_none() {
-                        desktop_state.conversation.messages.clear();
-                        desktop_state.conversation.result_items.clear();
-                    }
+                next_thread_id = active_thread_id(&desktop_state)
+                    .or_else(|| activate_first_visible_thread(&mut desktop_state));
+                if next_thread_id.is_none() {
+                    desktop_state.conversation.messages.clear();
+                    desktop_state.conversation.result_items.clear();
                 }
             }
         }
     }
     if let Some(thread_id) = next_thread_id {
+        state
+            .session_store
+            .set_active_thread(&thread_id)
+            .map_err(|error| session_store_status(state, error))?;
         if let Some(session) = state
             .session_store
             .load_session(&thread_id)

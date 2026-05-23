@@ -16,9 +16,20 @@
       "method": "api-key",
       "choiceId": "xiaomi-api-key",
       "choiceLabel": "Xiaomi API key",
+      "choiceHint": "Pay-as-you-go endpoint - api.xiaomimimo.com",
       "groupId": "xiaomi",
       "groupLabel": "Xiaomi",
-      "groupHint": "API key"
+      "groupHint": "API key / Token Plan"
+    },
+    {
+      "provider": "xiaomi",
+      "method": "token-plan",
+      "choiceId": "xiaomi-token-plan",
+      "choiceLabel": "Xiaomi Token Plan",
+      "choiceHint": "Paste the OpenAI-compatible Base URL from Subscription; use a tp- key.",
+      "groupId": "xiaomi",
+      "groupLabel": "Xiaomi",
+      "groupHint": "API key / Token Plan"
     }
   ],
   "configSchema": {

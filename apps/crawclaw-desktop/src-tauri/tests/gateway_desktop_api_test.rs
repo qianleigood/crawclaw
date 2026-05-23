@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use crawclaw_desktop::gateway::desktop_api::{
-    GatewayConfig, is_loopback_addr, start_gateway_server,
+    is_loopback_addr, start_gateway_server, GatewayConfig,
 };
 use crawclaw_desktop::runtime_engine::RuntimeLayout;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -528,16 +528,14 @@ esac
 
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
-    assert!(
-        json["conversation"]["resultItems"]
-            .as_array()
-            .expect("result items")
-            .iter()
-            .any(|item| item
-                .as_str()
-                .unwrap_or_default()
-                .contains(r#""baseUrl":"http://127.0.0.1:8188""#))
-    );
+    assert!(json["conversation"]["resultItems"]
+        .as_array()
+        .expect("result items")
+        .iter()
+        .any(|item| item
+            .as_str()
+            .unwrap_or_default()
+            .contains(r#""baseUrl":"http://127.0.0.1:8188""#)));
 }
 
 #[cfg(unix)]
@@ -717,6 +715,666 @@ esac
     assert_eq!(messages[2]["transcript"], "帮我整理这段话");
     assert_eq!(messages[3]["workflowKind"], "n8n");
     assert_eq!(messages[4]["skillId"], "plugin-skill-review");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_structured_conversation_messages_persist_and_bootstrap_restore() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-structured-message-restore",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, body) = post_desktop_json(
+        server.addr,
+        "/api/desktop/messages/attachments",
+        r#"{"title":"需求文档","fileName":"brief.pdf","mediaType":"application/pdf","detail":"PDF 附件"}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
+    let thread_id = json["sidebar"]["threads"][0]["id"]
+        .as_str()
+        .expect("thread id")
+        .to_string();
+
+    let (status, _) = post_desktop_json(
+        server.addr,
+        "/api/desktop/messages/voice",
+        r#"{"direction":"input","title":"语音输入","durationLabel":"00:03","transcript":"帮我整理这段话"}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let (status, _) = post_desktop_json(
+        server.addr,
+        "/api/desktop/messages/workflows",
+        r#"{"workflowKind":"schedule","title":"定时任务","status":"running","detail":"Cron 状态","steps":[{"id":"status","label":"Cron","status":"active"}]}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+
+    let transcript = fs::read_to_string(
+        runtime_layout
+            .runtime_root
+            .join("sessions")
+            .join(format!("{thread_id}.jsonl")),
+    )
+    .expect("structured transcript");
+    assert!(transcript.contains(r#""desktopMessage""#));
+    assert!(transcript.contains(r#""kind":"attachment""#));
+    assert!(transcript.contains(r#""kind":"voice""#));
+    assert!(transcript.contains(r#""kind":"workflow""#));
+
+    let restarted_server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("restarted gateway should start");
+
+    let select_body = format!(r#"{{"threadId":"{thread_id}"}}"#);
+    let (status, body) = post_desktop_json(
+        restarted_server.addr,
+        "/api/desktop/threads/select",
+        &select_body,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("selected thread json");
+    let kinds = json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .iter()
+        .map(|message| message["kind"].as_str().expect("message kind"))
+        .collect::<Vec<_>>();
+    assert_eq!(kinds, vec!["attachment", "voice", "workflow"]);
+    assert_eq!(json["conversation"]["messages"][0]["fileName"], "brief.pdf");
+    assert_eq!(
+        json["conversation"]["messages"][1]["transcript"],
+        "帮我整理这段话"
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_attachment_asset_copies_file_and_rejects_traversal() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-attachment-assets",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let source_path = runtime_layout.runtime_root.join("input.txt");
+    fs::write(&source_path, "desktop attachment body").expect("source attachment");
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let body = format!(
+        r#"{{
+          "title":"本地文件",
+          "fileName":"input.txt",
+          "mediaType":"text/plain",
+          "confirm":true,
+          "source":{{"kind":"tauriPath","path":{}}}
+        }}"#,
+        serde_json::to_string(&source_path.to_string_lossy()).expect("source path json")
+    );
+    let (status, response_body) =
+        post_desktop_json(server.addr, "/api/desktop/messages/attachments", &body).await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&response_body).expect("state json");
+    let message = json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .last()
+        .expect("attachment message");
+    assert_eq!(message["kind"], "attachment");
+    assert_eq!(message["status"], "done");
+    assert_eq!(message["sizeBytes"], 23);
+    let asset_id = message["assetId"].as_str().expect("asset id");
+    assert!(asset_id.starts_with("asset-"));
+    let asset_path = runtime_layout
+        .runtime_root
+        .join("desktop")
+        .join("assets")
+        .join(format!("{asset_id}-input.txt"));
+    assert_eq!(
+        fs::read_to_string(asset_path).expect("copied asset"),
+        "desktop attachment body"
+    );
+
+    let (status, response_body) = post_desktop_json(
+        server.addr,
+        "/api/desktop/messages/attachments",
+        r#"{"title":"浏览器文件","fileName":"browser.txt","mediaType":"text/plain","confirm":true,"source":{"kind":"browserFile","dataBase64":"data:text/plain;base64,YnJvd3NlciBhdHRhY2htZW50"}}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&response_body).expect("state json");
+    let message = json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .last()
+        .expect("browser attachment message");
+    assert_eq!(message["kind"], "attachment");
+    assert_eq!(message["status"], "done");
+    assert_eq!(message["sizeBytes"], 18);
+    let asset_id = message["assetId"].as_str().expect("asset id");
+    let asset_path = runtime_layout
+        .runtime_root
+        .join("desktop")
+        .join("assets")
+        .join(format!("{asset_id}-browser.txt"));
+    assert_eq!(
+        fs::read_to_string(asset_path).expect("copied browser asset"),
+        "browser attachment"
+    );
+
+    let (status, _) = post_desktop_json(
+        server.addr,
+        "/api/desktop/messages/attachments",
+        r#"{"title":"bad","fileName":"../bad.txt","mediaType":"text/plain","source":{"kind":"browserFile","dataBase64":"YmFk"}}"#,
+    )
+    .await;
+    assert_eq!(status, 400);
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_voice_message_records_audio_and_transcribes_when_provider_available() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-voice-transcription",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let provider_base_url = spawn_openai_media_provider(
+        "POST /v1/audio/transcriptions",
+        "voice-note.webm",
+        r#"{"text":"转写后的桌面语音"}"#,
+    )
+    .await;
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let body = format!(
+        r#"{{
+          "direction":"input",
+          "title":"语音输入",
+          "durationLabel":"00:03",
+          "source":{{"kind":"browserFile","fileName":"voice-note.webm","mimeType":"audio/webm","dataBase64":"data:audio/webm;base64,aGVsbG8="}},
+          "providerConfig":{{"baseUrl":{},"apiKey":"test-key","model":"test-transcribe"}}
+        }}"#,
+        serde_json::to_string(&provider_base_url).expect("provider url json")
+    );
+    let (status, response_body) =
+        post_desktop_json(server.addr, "/api/desktop/messages/voice", &body).await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&response_body).expect("state json");
+    let message = json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .last()
+        .expect("voice message");
+    assert_eq!(message["kind"], "voice");
+    assert_eq!(message["status"], "done");
+    assert_eq!(message["transcript"], "转写后的桌面语音");
+    assert_eq!(message["sizeBytes"], 5);
+    let asset_id = message["assetId"].as_str().expect("asset id");
+    assert!(runtime_layout
+        .runtime_root
+        .join("desktop")
+        .join("assets")
+        .join(format!("{asset_id}-voice-note.webm"))
+        .exists());
+
+    let restarted_server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("restarted gateway should start");
+    let (status, body) = request(
+        restarted_server.addr,
+        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
+    assert!(json["desktopState"]["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .iter()
+        .any(|message| message["kind"] == "voice" && message["transcript"] == "转写后的桌面语音"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_media_message_invokes_media_understanding_provider() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-media-understanding",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let provider_base_url = spawn_openai_media_provider(
+        "POST /v1/responses",
+        "data:image/png;base64,aW1hZ2U=",
+        r#"{"output_text":"这是一张桌面测试图片"}"#,
+    )
+    .await;
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let body = format!(
+        r#"{{
+          "mediaType":"image",
+          "title":"图片消息",
+          "confirm":true,
+          "items":[{{"id":"image-1","kind":"image","label":"test.png","detail":"image/png"}}],
+          "source":{{"kind":"browserFile","fileName":"test.png","mimeType":"image/png","dataBase64":"data:image/png;base64,aW1hZ2U="}},
+          "providerConfig":{{"baseUrl":{},"apiKey":"test-key","model":"test-vision"}}
+        }}"#,
+        serde_json::to_string(&provider_base_url).expect("provider url json")
+    );
+    let (status, response_body) =
+        post_desktop_json(server.addr, "/api/desktop/messages/media", &body).await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&response_body).expect("state json");
+    let message = json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .last()
+        .expect("media message");
+    assert_eq!(message["kind"], "media");
+    assert_eq!(message["status"], "done");
+    assert_eq!(message["items"][0]["status"], "done");
+    assert_eq!(message["items"][0]["detail"], "这是一张桌面测试图片");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_permission_mode_blocks_high_risk_workflow_runs() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-permission-workflow-block",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let preferences_body = r#"{"permissionMode":"只读模式"}"#;
+    let (status, _) = request(
+        server.addr,
+        &format!(
+            "PATCH /api/desktop/preferences HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            preferences_body.len(),
+            preferences_body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+
+    let (status, _) = post_desktop_json(
+        server.addr,
+        "/api/desktop/messages/workflows",
+        r#"{"workflowKind":"comfyui","action":"run","title":"ComfyUI 运行","input":{"prompt":{}}}"#,
+    )
+    .await;
+    assert_eq!(status, 403);
+    let (status, body) = request(
+        server.addr,
+        "GET /api/desktop/state HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .iter()
+        .any(|message| message["kind"] == "error" && message["code"] == "permission_denied"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_workflow_message_invokes_comfyui_cron_and_n8n_paths() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-workflow-message-runtime",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let requests = [
+        r#"{"workflowKind":"schedule","action":"cron.status","title":"Cron 状态"}"#,
+        r#"{"workflowKind":"n8n","action":"list","title":"Workflow 列表","input":{"limit":5}}"#,
+        r#"{"workflowKind":"comfyui","action":"status","title":"ComfyUI 状态","input":{"baseUrl":"http://127.0.0.1:8188"}}"#,
+    ];
+    let mut response_body = String::new();
+    for body in requests {
+        let (status, body) =
+            post_desktop_json(server.addr, "/api/desktop/messages/workflows", body).await;
+        assert_eq!(status, 200, "workflow request should be accepted: {body}");
+        response_body = body;
+    }
+
+    let json: serde_json::Value = serde_json::from_str(&response_body).expect("state json");
+    let messages = json["conversation"]["messages"]
+        .as_array()
+        .expect("messages");
+    assert!(messages.iter().any(|message| {
+        message["kind"] == "workflow"
+            && message["workflowKind"] == "schedule"
+            && message["detail"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("cron")
+    }));
+    assert!(messages.iter().any(|message| {
+        message["kind"] == "workflow"
+            && message["workflowKind"] == "n8n"
+            && message["detail"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("Workflow")
+    }));
+    assert!(messages.iter().any(|message| {
+        message["kind"] == "workflow"
+            && message["workflowKind"] == "comfyui"
+            && message["detail"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("comfyui")
+    }));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_preferences_model_options_and_settings_actions_persist() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-settings-actions",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let preferences_body = r#"{"modelOptions":["gpt-5.5","MiniMax-M2.7-highspeed"],"selectedModel":"MiniMax-M2.7-highspeed"}"#;
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "PATCH /api/desktop/preferences HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            preferences_body.len(),
+            preferences_body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+
+    let (status, body) =
+        post_desktop_json(server.addr, "/api/desktop/settings/diagnostics", "{}").await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("diagnostics state");
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .iter()
+        .any(|message| message["kind"] == "status" && message["title"] == "诊断信息已生成"));
+
+    let (status, body) =
+        post_desktop_json(server.addr, "/api/desktop/settings/export-data", "{}").await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("export state");
+    let export_detail = json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .last()
+        .and_then(|message| message["detail"].as_str())
+        .expect("export detail");
+    let export_path = PathBuf::from(export_detail);
+    assert!(export_path.is_file(), "export should create a file");
+
+    let restarted_server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("restarted gateway should start");
+    let (status, body) = request(
+        restarted_server.addr,
+        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
+    let options = json["desktopState"]["preferences"]["modelOptions"]
+        .as_array()
+        .expect("model options");
+    assert!(options
+        .iter()
+        .any(|option| option.as_str() == Some("MiniMax-M2.7-highspeed")));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_settings_delete_and_reset_require_confirmation() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-settings-confirmation",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    fs::create_dir_all(runtime_layout.runtime_root.join("desktop/cache")).expect("cache dir");
+    fs::write(
+        runtime_layout.runtime_root.join("desktop/cache/item.tmp"),
+        "cache",
+    )
+    .expect("cache file");
+
+    let (status, _) =
+        post_desktop_json(server.addr, "/api/desktop/settings/delete-local-data", "{}").await;
+    assert_eq!(status, 400);
+    let (status, _) =
+        post_desktop_json(server.addr, "/api/desktop/settings/reset-state", "{}").await;
+    assert_eq!(status, 400);
+
+    let (status, _) =
+        post_desktop_json(server.addr, "/api/desktop/settings/clear-cache", "{}").await;
+    assert_eq!(status, 200);
+    assert!(
+        !runtime_layout
+            .runtime_root
+            .join("desktop/cache/item.tmp")
+            .exists(),
+        "clear-cache should remove desktop cache files"
+    );
+
+    let (status, body) = post_desktop_json(
+        server.addr,
+        "/api/desktop/settings/delete-local-data",
+        r#"{"confirm":"DELETE"}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("delete state");
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .iter()
+        .any(|message| message["kind"] == "status" && message["title"] == "本地桌面数据已删除"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_new_chat_clears_active_thread_without_deleting_history() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-new-chat-history",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    write_session_transcript(
+        &runtime_layout,
+        "thread-saved",
+        "hello history",
+        "saved reply",
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, body) = post_desktop_json(
+        server.addr,
+        "/api/desktop/threads/select",
+        r#"{"threadId":"thread-saved"}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("selected state");
+    assert_eq!(
+        json["conversation"]["messages"].as_array().unwrap().len(),
+        2
+    );
+
+    let (status, body) = post_desktop_json(
+        server.addr,
+        "/api/desktop/navigation/select",
+        r#"{"navId":"new-chat"}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("new chat state");
+    assert_eq!(
+        json["conversation"]["messages"].as_array().unwrap().len(),
+        0
+    );
+    assert!(json["sidebar"]["threads"]
+        .as_array()
+        .expect("threads")
+        .iter()
+        .any(|thread| thread["id"] == "thread-saved"));
+
+    let (status, body) = post_desktop_json(
+        server.addr,
+        "/api/desktop/threads/select",
+        r#"{"threadId":"thread-saved"}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("restored state");
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .iter()
+        .any(|message| message["kind"] == "assistant" && message["text"] == "saved reply"));
 }
 
 #[cfg(unix)]
@@ -1016,13 +1674,11 @@ esac
 
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
-    assert!(
-        json["pluginsWorkspace"]["skills"]
-            .as_array()
-            .expect("skills")
-            .iter()
-            .any(|skill| skill["trigger"].as_str() == Some("@triage"))
-    );
+    assert!(json["pluginsWorkspace"]["skills"]
+        .as_array()
+        .expect("skills")
+        .iter()
+        .any(|skill| skill["trigger"].as_str() == Some("@triage")));
 
     let restarted_server = start_gateway_server(GatewayConfig {
         app_name: "CrawClaw Desktop".to_string(),
@@ -1039,13 +1695,11 @@ esac
     .await;
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
-    assert!(
-        json["desktopState"]["pluginsWorkspace"]["skills"]
-            .as_array()
-            .expect("skills")
-            .iter()
-            .any(|skill| skill["trigger"].as_str() == Some("@triage"))
-    );
+    assert!(json["desktopState"]["pluginsWorkspace"]["skills"]
+        .as_array()
+        .expect("skills")
+        .iter()
+        .any(|skill| skill["trigger"].as_str() == Some("@triage")));
 }
 
 #[cfg(unix)]
@@ -1431,20 +2085,16 @@ esac
         json["desktopState"]["preferences"]["permissionMode"],
         "只读模式"
     );
-    assert!(
-        json["desktopState"]["preferences"]["providerDescriptors"]
-            .as_array()
-            .expect("provider descriptors")
-            .iter()
-            .any(|entry| entry["provider"] == "openai" && entry["transport"] == "openai-responses")
-    );
-    assert!(
-        json["desktopState"]["preferences"]["providerSetupOptions"]
-            .as_array()
-            .expect("provider setup options")
-            .iter()
-            .any(|entry| entry["provider"] == "openai" && entry["value"] == "openai-api-key")
-    );
+    assert!(json["desktopState"]["preferences"]["providerDescriptors"]
+        .as_array()
+        .expect("provider descriptors")
+        .iter()
+        .any(|entry| entry["provider"] == "openai" && entry["transport"] == "openai-responses"));
+    assert!(json["desktopState"]["preferences"]["providerSetupOptions"]
+        .as_array()
+        .expect("provider setup options")
+        .iter()
+        .any(|entry| entry["provider"] == "openai" && entry["value"] == "openai-api-key"));
     assert!(
         json["desktopState"]["preferences"]["providerModelPickerEntries"]
             .as_array()
@@ -1453,17 +2103,15 @@ esac
             .any(|entry| entry["provider"] == "ollama"
                 && entry["value"] == "provider-plugin:ollama:local")
     );
-    assert!(
-        json["desktopState"]["preferences"]["webProviderBoundaries"]
-            .as_array()
-            .expect("web provider boundaries")
-            .iter()
-            .any(|entry| entry["surface"] == "web-search"
-                && entry["provider"] == "searxng"
-                && entry["productBoundary"] == "rust-native-plugin"
-                && entry["executionRuntime"] == "python-sidecar"
-                && entry["runtimeMajor"].is_null())
-    );
+    assert!(json["desktopState"]["preferences"]["webProviderBoundaries"]
+        .as_array()
+        .expect("web provider boundaries")
+        .iter()
+        .any(|entry| entry["surface"] == "web-search"
+            && entry["provider"] == "searxng"
+            && entry["productBoundary"] == "rust-native-plugin"
+            && entry["executionRuntime"] == "python-sidecar"
+            && entry["runtimeMajor"].is_null()));
 }
 
 #[cfg(unix)]
@@ -1531,6 +2179,7 @@ esac
     assert_eq!(preferences["taskDefaults"]["selectedModel"], "ollama/local");
     assert_eq!(preferences["taskDefaults"]["selectedThinking"], "low");
     assert_eq!(preferences["taskDefaults"]["permissionMode"], "只读模式");
+    assert_eq!(preferences["taskDefaults"]["responseSpeed"], "简洁");
     assert_eq!(preferences["taskDefaults"]["allowTools"], false);
     assert_eq!(
         preferences["confirmationDefaults"]["confirmCommands"],
@@ -1550,6 +2199,484 @@ esac
         "本机默认位置"
     );
     assert_eq!(preferences["advancedDefaults"]["logLevel"], "详细");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_model_profile_test_and_save_persists_profile_secret_and_active_config() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-model-profile-save",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let provider_base_url = spawn_openai_compatible_provider_with_model(
+        "test connection",
+        "profile probe ok",
+        "test-model",
+    )
+    .await;
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let save_body = serde_json::json!({
+        "source": "custom",
+        "provider": "openai-compatible",
+        "baseUrl": provider_base_url,
+        "api": "openai-completions",
+        "apiKey": "test-key",
+        "model": "test-model",
+        "label": "Local test model"
+    })
+    .to_string();
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/model-profiles/test-and-save HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            save_body.len(),
+            save_body
+        ),
+    )
+    .await;
+
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
+    let preferences = &json["preferences"];
+    assert_eq!(preferences["selectedModel"], "openai-compatible/test-model");
+    assert!(preferences["modelOptions"]
+        .as_array()
+        .expect("model options")
+        .iter()
+        .any(|option| option == "openai-compatible/test-model"));
+    let profiles = preferences["modelProfiles"]
+        .as_array()
+        .expect("model profiles");
+    let profile = profiles
+        .iter()
+        .find(|profile| profile["modelRef"] == "openai-compatible/test-model")
+        .expect("saved model profile");
+    assert_eq!(profile["label"], "Local test model");
+    assert_eq!(profile["provider"], "openai-compatible");
+    assert_eq!(profile["model"], "test-model");
+    assert_eq!(profile["baseUrl"], provider_base_url);
+    assert_eq!(profile["api"], "openai-completions");
+    assert_eq!(profile["authMethod"], "api-key");
+    assert_eq!(profile["hasCredential"], true);
+    assert!(profile.get("apiKey").is_none());
+
+    let store_path = runtime_layout
+        .runtime_root
+        .join("config")
+        .join("desktop-model-profiles.json");
+    let store_text = fs::read_to_string(store_path).expect("model profile store");
+    assert!(store_text.contains("openai-compatible/test-model"));
+    assert!(
+        !store_text.contains("test-key"),
+        "profile store must not contain raw credentials"
+    );
+
+    let active_config: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(
+            runtime_layout
+                .runtime_root
+                .join("config")
+                .join("desktop-agent-provider.json"),
+        )
+        .expect("active provider config"),
+    )
+    .expect("active provider json");
+    assert_eq!(active_config["runtime"], "native-provider");
+    assert_eq!(active_config["provider"], "openai-compatible");
+    assert_eq!(active_config["baseUrl"], provider_base_url);
+    assert_eq!(active_config["model"], "test-model");
+    assert_eq!(active_config["api"], "openai-completions");
+    assert_eq!(active_config["apiKey"]["source"], "file");
+    let secret_ref = active_config["apiKey"]["id"]
+        .as_str()
+        .expect("secret file ref");
+    assert!(secret_ref.starts_with("config/secrets/desktop-models/"));
+    assert_eq!(
+        fs::read_to_string(runtime_layout.runtime_root.join(secret_ref))
+            .expect("model profile secret"),
+        "test-key\n"
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_model_profile_failed_test_does_not_persist() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-model-profile-failure",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let provider_base_url = spawn_openai_compatible_provider_failure(401, "bad key").await;
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let save_body = serde_json::json!({
+        "source": "custom",
+        "provider": "openai-compatible",
+        "baseUrl": provider_base_url,
+        "api": "openai-completions",
+        "apiKey": "test-key",
+        "model": "test-model",
+        "label": "Broken model"
+    })
+    .to_string();
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/model-profiles/test-and-save HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            save_body.len(),
+            save_body
+        ),
+    )
+    .await;
+
+    assert_eq!(status, 502);
+    assert!(!runtime_layout
+        .runtime_root
+        .join("config")
+        .join("desktop-model-profiles.json")
+        .exists());
+    assert!(!runtime_layout
+        .runtime_root
+        .join("config")
+        .join("desktop-agent-provider.json")
+        .exists());
+    assert!(!runtime_layout
+        .runtime_root
+        .join("config")
+        .join("secrets")
+        .join("desktop-models")
+        .exists());
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_selecting_saved_model_profile_applies_active_provider_config() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-model-profile-switch",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let first_base_url =
+        spawn_openai_compatible_provider_with_model("test connection", "one ok", "model-one").await;
+    let second_base_url =
+        spawn_openai_compatible_provider_with_model("test connection", "two ok", "model-two").await;
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    for (label, base_url, model) in [
+        ("First model", first_base_url.as_str(), "model-one"),
+        ("Second model", second_base_url.as_str(), "model-two"),
+    ] {
+        let save_body = serde_json::json!({
+            "source": "custom",
+            "provider": "openai-compatible",
+            "baseUrl": base_url,
+            "apiKey": "test-key",
+            "model": model,
+            "label": label
+        })
+        .to_string();
+        let (status, _) = request(
+            server.addr,
+            format!(
+                "POST /api/desktop/model-profiles/test-and-save HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                save_body.len(),
+                save_body
+            ),
+        )
+        .await;
+        assert_eq!(status, 200);
+    }
+
+    let preferences_body = r#"{"selectedModel":"openai-compatible/model-one"}"#;
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "PATCH /api/desktop/preferences HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            preferences_body.len(),
+            preferences_body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+
+    let active_config: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(
+            runtime_layout
+                .runtime_root
+                .join("config")
+                .join("desktop-agent-provider.json"),
+        )
+        .expect("active provider config"),
+    )
+    .expect("active provider json");
+    assert_eq!(active_config["provider"], "openai-compatible");
+    assert_eq!(active_config["baseUrl"], first_base_url);
+    assert_eq!(active_config["model"], "model-one");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_model_profiles_reload_as_sanitized_bootstrap_preferences() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-model-profile-bootstrap",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let provider_base_url =
+        spawn_openai_compatible_provider_with_model("test connection", "profile ok", "saved-model")
+            .await;
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+    let save_body = serde_json::json!({
+        "source": "custom",
+        "provider": "openai-compatible",
+        "baseUrl": provider_base_url,
+        "apiKey": "test-key",
+        "model": "saved-model",
+        "label": "Saved model"
+    })
+    .to_string();
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/model-profiles/test-and-save HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            save_body.len(),
+            save_body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+
+    let reloaded_server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session-2".to_string(),
+    })
+    .await
+    .expect("reloaded gateway should start");
+    let (status, body) = request(
+        reloaded_server.addr,
+        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
+    let preferences = &json["desktopState"]["preferences"];
+    assert!(preferences["modelOptions"]
+        .as_array()
+        .expect("model options")
+        .iter()
+        .any(|option| option == "openai-compatible/saved-model"));
+    let profile = preferences["modelProfiles"]
+        .as_array()
+        .expect("model profiles")
+        .iter()
+        .find(|profile| profile["modelRef"] == "openai-compatible/saved-model")
+        .expect("saved profile");
+    assert_eq!(profile["label"], "Saved model");
+    assert_eq!(profile["hasCredential"], true);
+    assert!(profile.get("apiKey").is_none());
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_preferences_apply_hot_settings_effects_without_restart() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-hot-settings-effects",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let body = r#"{
+      "notificationDefaults":{"notifyTaskDone":false,"notifyConfirmNeeded":true,"notifyDreamDone":false,"notifyAutomationFailed":true,"notificationSound":true},
+      "uiDefaults":{"defaultPage":"记忆","language":"English","appearance":"深色","launchAtLogin":true,"showInMenuBar":false},
+      "memoryDefaults":{"rememberPreferences":false,"rememberProjectContext":true,"memoryDreamEnabled":false,"memoryDreamFrequency":"手动","memoryCleanupConfirmation":"不自动清理"},
+      "advancedDefaults":{"logLevel":"详细"}
+    }"#;
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "PATCH /api/desktop/preferences HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+
+    let effective_path = runtime_layout
+        .runtime_root
+        .join("desktop")
+        .join("settings")
+        .join("effective-state.json");
+    let effective: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(effective_path).expect("effective settings state"),
+    )
+    .expect("effective settings json");
+    assert_eq!(effective["ui"]["launchAtLogin"], true);
+    assert_eq!(effective["ui"]["showInMenuBar"], false);
+    assert_eq!(effective["ui"]["appearance"], "深色");
+    assert_eq!(effective["ui"]["language"], "English");
+    assert_eq!(effective["notifications"]["notificationSound"], true);
+    assert_eq!(effective["memory"]["memoryDreamEnabled"], false);
+    assert_eq!(effective["memory"]["memoryDreamFrequency"], "手动");
+    assert_eq!(effective["advanced"]["logLevel"], "详细");
+
+    let log_level = fs::read_to_string(
+        runtime_layout
+            .runtime_root
+            .join("desktop")
+            .join("settings")
+            .join("runtime-log-level"),
+    )
+    .expect("runtime log level");
+    assert_eq!(log_level.trim(), "详细");
+
+    let second_body = r#"{"uiDefaults":{"appearance":"浅色","launchAtLogin":false,"showInMenuBar":true},"advancedDefaults":{"logLevel":"错误"}}"#;
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "PATCH /api/desktop/preferences HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            second_body.len(),
+            second_body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+    let effective: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(
+            runtime_layout
+                .runtime_root
+                .join("desktop")
+                .join("settings")
+                .join("effective-state.json"),
+        )
+        .expect("updated effective settings state"),
+    )
+    .expect("updated effective settings json");
+    assert_eq!(effective["ui"]["launchAtLogin"], false);
+    assert_eq!(effective["ui"]["showInMenuBar"], true);
+    assert_eq!(effective["ui"]["appearance"], "浅色");
+    assert_eq!(effective["advanced"]["logLevel"], "错误");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_memory_dream_respects_disabled_hot_preference() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-memory-dream-disabled",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let body = r#"{"memoryDefaults":{"memoryDreamEnabled":false,"memoryDreamFrequency":"手动"}}"#;
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "PATCH /api/desktop/preferences HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+
+    let (status, _) = post_desktop_json(
+        server.addr,
+        "/api/desktop/memory/dream/run",
+        r#"{"agentId":"agent-general"}"#,
+    )
+    .await;
+    assert_eq!(status, 409);
+    let (status, body) = request(
+        server.addr,
+        "GET /api/desktop/state HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .iter()
+        .any(|message| message["kind"] == "error" && message["code"] == "memory_dream_disabled"));
 }
 
 #[cfg(unix)]
@@ -1602,21 +2729,17 @@ esac
 
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
-    assert!(
-        json["conversation"]["resultItems"]
-            .as_array()
-            .expect("result items")
-            .iter()
-            .any(|item| item.as_str() == Some("provider says hello"))
-    );
+    assert!(json["conversation"]["resultItems"]
+        .as_array()
+        .expect("result items")
+        .iter()
+        .any(|item| item.as_str() == Some("provider says hello")));
     let messages = json["conversation"]["messages"]
         .as_array()
         .expect("conversation messages");
-    assert!(
-        messages
-            .iter()
-            .any(|message| message["kind"] == "user" && message["text"] == "hello from desktop")
-    );
+    assert!(messages
+        .iter()
+        .any(|message| message["kind"] == "user" && message["text"] == "hello from desktop"));
     assert!(messages.iter().any(|message| {
         message["kind"] == "assistant" && message["text"] == "provider says hello"
     }));
@@ -1697,13 +2820,11 @@ esac
 
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
-    assert!(
-        json["conversation"]["messages"]
-            .as_array()
-            .expect("conversation messages")
-            .iter()
-            .any(|message| message["kind"] == "assistant" && message["text"] == "minimax reply")
-    );
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("conversation messages")
+        .iter()
+        .any(|message| message["kind"] == "assistant" && message["text"] == "minimax reply"));
 }
 
 #[cfg(unix)]
@@ -1788,13 +2909,11 @@ esac
 
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
-    assert!(
-        json["conversation"]["messages"]
-            .as_array()
-            .expect("conversation messages")
-            .iter()
-            .any(|message| message["kind"] == "assistant" && message["text"] == "agent reply")
-    );
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("conversation messages")
+        .iter()
+        .any(|message| message["kind"] == "assistant" && message["text"] == "agent reply"));
 }
 
 #[cfg(unix)]
@@ -1986,13 +3105,11 @@ esac
     .await;
     assert_eq!(status, 200);
     let history: serde_json::Value = serde_json::from_str(&body).expect("history json");
-    assert!(
-        history["messages"]
-            .as_array()
-            .expect("messages")
-            .iter()
-            .any(|message| message["content"] == "follow up")
-    );
+    assert!(history["messages"]
+        .as_array()
+        .expect("messages")
+        .iter()
+        .any(|message| message["content"] == "follow up"));
 
     let (status, body) = request(
         server.addr,
@@ -2073,20 +3190,23 @@ esac
     );
     assert_eq!(
         json["desktopState"]["sidebar"]["threads"][0]["active"],
-        false
+        true
     );
-    assert!(
-        json["desktopState"]["conversation"]["resultItems"]
-            .as_array()
-            .expect("result items")
-            .is_empty()
-    );
-    assert!(
-        json["desktopState"]["conversation"]["messages"]
-            .as_array()
-            .expect("messages")
-            .is_empty()
-    );
+    let result_items = json["desktopState"]["conversation"]["resultItems"]
+        .as_array()
+        .expect("result items");
+    assert!(result_items.iter().any(|item| {
+        item.as_str()
+            .or_else(|| item["content"].as_str())
+            .is_some_and(|content| content.contains("persisted assistant reply"))
+    }));
+    let messages = json["desktopState"]["conversation"]["messages"]
+        .as_array()
+        .expect("messages");
+    assert!(messages
+        .iter()
+        .filter_map(|message| message["text"].as_str())
+        .any(|text| text.contains("remember this session")));
 }
 
 #[cfg(unix)]
@@ -2298,18 +3418,14 @@ esac
     let json: serde_json::Value = serde_json::from_str(&body).expect("new chat state json");
     assert_eq!(json["activeNavId"], "new-chat");
     assert_eq!(json["sidebar"]["threads"][0]["active"], false);
-    assert!(
-        json["conversation"]["messages"]
-            .as_array()
-            .expect("messages")
-            .is_empty()
-    );
-    assert!(
-        json["conversation"]["resultItems"]
-            .as_array()
-            .expect("result items")
-            .is_empty()
-    );
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .is_empty());
+    assert!(json["conversation"]["resultItems"]
+        .as_array()
+        .expect("result items")
+        .is_empty());
 }
 
 #[cfg(unix)]
@@ -2439,19 +3555,20 @@ esac
 #[cfg(unix)]
 #[tokio::test]
 async fn gateway_send_message_provider_failure_returns_typed_failure() {
-    let server = start_gateway_server(GatewayConfig {
-        app_name: "CrawClaw Desktop".to_string(),
-        app_version: "test".to_string(),
-        runtime_layout: create_runtime_fixture(
-            "desktop-send-message-no-provider",
-            r#"#!/bin/sh
+    let runtime_layout = create_runtime_fixture(
+        "desktop-send-message-no-provider",
+        r#"#!/bin/sh
 case "$*" in
   *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
   *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
   *) echo "unexpected args: $*" >&2; exit 9 ;;
 esac
 "#,
-        ),
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
         session_token: "session".to_string(),
     })
     .await
@@ -2487,16 +3604,39 @@ esac
     .await;
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
-    assert!(
-        json["conversation"]["messages"]
-            .as_array()
-            .expect("conversation messages")
-            .iter()
-            .any(|message| message["kind"] == "error" && message["code"] == "provider_unavailable")
-    );
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("conversation messages")
+        .iter()
+        .any(|message| message["kind"] == "error" && message["code"] == "provider_unavailable"));
     let events = read_stream_until(&mut events, "event: operationFailed").await;
     assert!(events.contains("event: operationFailed"));
     assert!(events.contains("provider_unavailable"));
+
+    let restarted_server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("restarted gateway should start");
+    let (status, body) = request(
+        restarted_server.addr,
+        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
+    let messages = json["desktopState"]["conversation"]["messages"]
+        .as_array()
+        .expect("conversation messages");
+    assert!(messages
+        .iter()
+        .any(|message| message["kind"] == "user" && message["text"] == "hello from desktop"));
+    assert!(messages
+        .iter()
+        .any(|message| message["kind"] == "error" && message["code"] == "provider_unavailable"));
 }
 
 #[cfg(unix)]
@@ -2713,12 +3853,10 @@ esac
     assert_eq!(json["activeNavId"], "memory");
     assert_eq!(json["memoryWorkspace"]["dream"]["status"], "completed");
     assert_eq!(json["memoryWorkspace"]["dream"]["agentId"], agent_id);
-    assert!(
-        json["memoryWorkspace"]["dream"]["message"]
-            .as_str()
-            .expect("dream message")
-            .contains("Memory Agent")
-    );
+    assert!(json["memoryWorkspace"]["dream"]["message"]
+        .as_str()
+        .expect("dream message")
+        .contains("Memory Agent"));
 
     let events = read_stream_until(&mut events, "event: stateChanged").await;
     assert!(events.contains("event: stateChanged"));
@@ -2764,6 +3902,18 @@ async fn request(addr: SocketAddr, request: impl Into<String>) -> (u16, String) 
         .map(|(_, body)| body.to_string())
         .unwrap_or_default();
     (status, body)
+}
+
+async fn post_desktop_json(addr: SocketAddr, path: &str, body: &str) -> (u16, String) {
+    request(
+        addr,
+        format!(
+            "POST {path} HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        ),
+    )
+    .await
 }
 
 async fn request_stream_prefix(addr: SocketAddr, request: impl Into<String>) -> String {
@@ -2977,11 +4127,9 @@ async fn spawn_openai_compatible_provider_with_checks(
         if let Some(expected_model) = expected_model {
             assert!(request.contains(&format!(r#""model":"{expected_model}""#)));
         }
-        assert!(
-            request
-                .to_lowercase()
-                .contains("authorization: bearer test-key")
-        );
+        assert!(request
+            .to_lowercase()
+            .contains("authorization: bearer test-key"));
 
         let (content_type, body) = if request.contains(r#""stream":true"#) {
             let chunk = serde_json::to_string(&serde_json::json!({
@@ -3022,6 +4170,105 @@ async fn spawn_openai_compatible_provider_with_checks(
 }
 
 #[cfg(unix)]
+async fn spawn_openai_compatible_provider_failure(status: u16, response_text: &str) -> String {
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+        .await
+        .expect("bind provider");
+    let addr = listener.local_addr().expect("provider addr");
+    let response_text = response_text.to_string();
+    tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.expect("accept provider request");
+        let mut bytes = Vec::new();
+        let mut buffer = [0; 4096];
+        loop {
+            let count = stream
+                .read(&mut buffer)
+                .await
+                .expect("read provider request");
+            assert_ne!(count, 0, "provider request closed early");
+            bytes.extend_from_slice(&buffer[..count]);
+            if is_complete_http_request(&bytes) {
+                break;
+            }
+        }
+        let request = String::from_utf8_lossy(&bytes);
+        assert!(request.starts_with("POST /v1/chat/completions "));
+        assert!(request
+            .to_lowercase()
+            .contains("authorization: bearer test-key"));
+        let body = serde_json::json!({
+            "error": {
+                "message": response_text
+            }
+        })
+        .to_string();
+        let response = format!(
+            "HTTP/1.1 {status} Error\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        stream
+            .write_all(response.as_bytes())
+            .await
+            .expect("write provider response");
+    });
+
+    format!("http://{addr}/v1")
+}
+
+#[cfg(unix)]
+async fn spawn_openai_media_provider(
+    expected_request_line: &'static str,
+    expected_body_fragment: &'static str,
+    response_body: &'static str,
+) -> String {
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+        .await
+        .expect("bind media provider");
+    let addr = listener.local_addr().expect("media provider addr");
+    tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.expect("accept media request");
+        let mut bytes = Vec::new();
+        let mut buffer = [0; 4096];
+        loop {
+            let count = stream.read(&mut buffer).await.expect("read media request");
+            if count == 0 {
+                break;
+            }
+            bytes.extend_from_slice(&buffer[..count]);
+            if is_complete_http_request(&bytes) {
+                break;
+            }
+        }
+        let request = String::from_utf8_lossy(&bytes);
+        assert!(
+            request.starts_with(expected_request_line),
+            "unexpected media request: {request}"
+        );
+        assert!(
+            request.contains("authorization: Bearer test-key")
+                || request.contains("Authorization: Bearer test-key"),
+            "media request should include bearer auth: {request}"
+        );
+        assert!(
+            request.contains(expected_body_fragment),
+            "media request missing expected fragment: {request}"
+        );
+        let response = format!(
+            "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}",
+            response_body.len(),
+            response_body
+        );
+        stream
+            .write_all(response.as_bytes())
+            .await
+            .expect("write media response");
+    });
+
+    format!("http://{addr}/v1")
+}
+
+#[cfg(unix)]
 fn write_pi_agent_provider_config(layout: &RuntimeLayout, base_url: &str) {
     let config_dir = layout.runtime_root.join("config");
     fs::create_dir_all(&config_dir).expect("runtime config dir");
@@ -3052,12 +4299,17 @@ async fn spawn_searxng_provider() -> String {
         let (mut stream, _) = listener.accept().await.expect("accept searxng request");
         let mut bytes = Vec::new();
         let mut buffer = [0; 4096];
-        let count = stream
-            .read(&mut buffer)
-            .await
-            .expect("read searxng request");
-        assert_ne!(count, 0, "searxng request closed early");
-        bytes.extend_from_slice(&buffer[..count]);
+        loop {
+            let count = stream
+                .read(&mut buffer)
+                .await
+                .expect("read searxng request");
+            assert_ne!(count, 0, "searxng request closed early");
+            bytes.extend_from_slice(&buffer[..count]);
+            if is_complete_http_request(&bytes) {
+                break;
+            }
+        }
         let request = String::from_utf8_lossy(&bytes);
         assert!(request.starts_with("GET /open/search?"));
         assert!(request.contains("q=rust+native"));

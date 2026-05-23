@@ -1,4 +1,5 @@
 use std::fmt;
+use std::net::IpAddr;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -199,8 +200,11 @@ pub async fn send_native_provider_conversation_with_options(
 ) -> Result<String, ProviderTransportError> {
     let request =
         build_native_provider_conversation_request_with_options(config, messages, options)?;
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
+    let mut client_builder = reqwest::Client::builder().timeout(Duration::from_secs(30));
+    if is_loopback_request_url(&request.url) {
+        client_builder = client_builder.no_proxy();
+    }
+    let client = client_builder
         .build()
         .map_err(|error| ProviderTransportError::Unavailable(error.to_string()))?;
     let mut builder = client.post(&request.url);
@@ -233,6 +237,19 @@ pub async fn send_native_provider_conversation_with_options(
         .await
         .map_err(|error| ProviderTransportError::InvalidResponse(error.to_string()))?;
     parse_native_provider_response(request.response_format, body)
+}
+
+fn is_loopback_request_url(url: &str) -> bool {
+    reqwest::Url::parse(url)
+        .ok()
+        .and_then(|url| url.host_str().map(ToOwned::to_owned))
+        .is_some_and(|host| {
+            host.eq_ignore_ascii_case("localhost")
+                || host
+                    .parse::<IpAddr>()
+                    .map(|address| address.is_loopback())
+                    .unwrap_or(false)
+        })
 }
 
 pub fn build_native_provider_request(
@@ -718,11 +735,21 @@ fn apply_openai_compatible_provider_policy(
                 }
             }
         }
+        "xiaomi" => {
+            if let Some(api_key) = non_empty(config.api_key.as_deref()) {
+                remove_header(headers, "Authorization");
+                upsert_header(headers, "api-key", api_key.to_string());
+            }
+        }
         "zai" => {
             body["tool_stream"] = Value::Bool(true);
         }
         _ => {}
     }
+}
+
+fn remove_header(headers: &mut Vec<(String, String)>, name: &str) {
+    headers.retain(|(existing, _)| !existing.eq_ignore_ascii_case(name));
 }
 
 fn upsert_header(headers: &mut Vec<(String, String)>, name: &str, value: impl Into<String>) {
@@ -1030,10 +1057,25 @@ fn apply_openai_responses_options(body: &mut Value, options: &NativeProviderRequ
     if options.stream {
         body["stream"] = Value::Bool(true);
     }
+    if let Some(level) = options.reasoning_level.as_deref() {
+        if body
+            .get("model")
+            .and_then(Value::as_str)
+            .map(is_openai_responses_reasoning_model)
+            .unwrap_or(false)
+        {
+            body["reasoning"] = json!({ "effort": map_reasoning_level(level) });
+        }
+    }
     if !options.tools.is_empty() {
         body["tools"] = Value::Array(options.tools.iter().map(openai_responses_tool).collect());
         body["tool_choice"] = Value::String("auto".to_string());
     }
+}
+
+fn is_openai_responses_reasoning_model(model_id: &str) -> bool {
+    let normalized = model_id.trim().to_ascii_lowercase();
+    normalized.starts_with("gpt-5") || normalized.starts_with('o')
 }
 
 fn apply_chat_completions_options(body: &mut Value, options: &NativeProviderRequestOptions) {

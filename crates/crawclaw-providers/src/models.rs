@@ -165,14 +165,14 @@ pub const BUNDLED_PROVIDER_DEFAULT_MODELS: &[BundledProviderDefaultModel] = &[
     },
     BundledProviderDefaultModel {
         provider: "opencode",
-        model: "opencode/zen",
-        name: "OpenCode Zen",
+        model: "claude-opus-4-6",
+        name: "Claude Opus 4.6 through OpenCode Zen",
         reasoning: true,
     },
     BundledProviderDefaultModel {
         provider: "opencode-go",
-        model: "opencode/zen",
-        name: "OpenCode Zen Go",
+        model: "kimi-k2.5",
+        name: "Kimi K2.5 through OpenCode Go",
         reasoning: true,
     },
     BundledProviderDefaultModel {
@@ -252,6 +252,368 @@ pub const BUNDLED_PROVIDER_DEFAULT_MODELS: &[BundledProviderDefaultModel] = &[
         model: "glm-4.6",
         name: "GLM 4.6",
         reasoning: true,
+    },
+];
+
+pub const BUNDLED_PROVIDER_MODEL_CHOICES: &[BundledProviderModelChoices] = &[
+    BundledProviderModelChoices {
+        provider: "amazon-bedrock",
+        models: &[
+            "anthropic.claude-sonnet-4-5-20250929-v1:0",
+            "us.anthropic.claude-opus-4-6-v1:0",
+            "us.anthropic.claude-sonnet-4-6-v1:0",
+            "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "anthropic",
+        models: &[
+            "sonnet-4.6",
+            "claude-opus-4-6",
+            "claude-sonnet-4-6",
+            "claude-opus-4-5",
+            "claude-sonnet-4-5",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "anthropic-vertex",
+        models: &[
+            "claude-sonnet-4-6",
+            "claude-opus-4-6",
+            "claude-sonnet-4-5",
+            "claude-opus-4-5",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "byteplus",
+        models: &[
+            "doubao-seed-1-6",
+            "doubao-seed-1-6-thinking",
+            "doubao-seed-code-preview",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "byteplus-plan",
+        models: &["doubao-seed-1-6-thinking", "doubao-seed-code-preview"],
+    },
+    BundledProviderModelChoices {
+        provider: "chutes",
+        models: &[
+            "deepseek-ai/DeepSeek-V3.2",
+            "zai-org/GLM-4.7-TEE",
+            "zai-org/GLM-4.7-FP8",
+            "deepseek-ai/DeepSeek-V3.2-TEE",
+            "Qwen/Qwen3-32B",
+            "chutesai/Mistral-Small-3.2-24B-Instruct-2506",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "cloudflare-ai-gateway",
+        models: &[
+            "sonnet-4.6",
+            "claude-opus-4-6",
+            "claude-sonnet-4-6",
+            "claude-sonnet-4-5",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "copilot-proxy",
+        models: &["gpt-5.4", "gpt-5.2", "gpt-5.2-codex", "gpt-4.1", "gpt-4o"],
+    },
+    BundledProviderModelChoices {
+        provider: "deepseek",
+        models: &["deepseek-chat", "deepseek-reasoner"],
+    },
+    BundledProviderModelChoices {
+        provider: "github-copilot",
+        models: &["gpt-5.4", "gpt-5.2", "gpt-5.2-codex", "gpt-4.1", "gpt-4o"],
+    },
+    BundledProviderModelChoices {
+        provider: "google",
+        models: &[
+            "gemini-3-pro-preview",
+            "gemini-3.1-pro-preview",
+            "gemini-3-flash-preview",
+            "gemini-3.1-flash-lite-preview",
+            "gemini-2.5-pro",
+            "gemini-2.5-flash",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "google-gemini-cli",
+        models: &[
+            "gemini-3-pro-preview",
+            "gemini-3.1-pro-preview",
+            "gemini-3-flash-preview",
+            "gemini-3.1-flash-lite-preview",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "huggingface",
+        models: &[
+            "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+            "deepseek-ai/DeepSeek-R1",
+            "deepseek-ai/DeepSeek-V3.2",
+            "Qwen/Qwen3-8B",
+            "Qwen/Qwen2.5-7B-Instruct",
+            "Qwen/Qwen3-32B",
+            "meta-llama/Llama-3.3-70B-Instruct",
+            "openai/gpt-oss-120b",
+            "zai-org/GLM-4.7",
+            "moonshotai/Kimi-K2.5",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "kilocode",
+        models: &[
+            "kilocode/code",
+            "kilo/auto",
+            "anthropic/claude-sonnet-4",
+            "openai/gpt-5.2",
+            "google/gemini-3-pro-preview",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "kimi",
+        models: &[
+            "kimi-code",
+            "kimi-k2.5",
+            "kimi-k2-0905-preview",
+            "kimi-k2-turbo-preview",
+            "kimi-k2-thinking",
+            "kimi-k2-thinking-turbo",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "kimi-coding",
+        models: &["kimi-code", "k2p5"],
+    },
+    BundledProviderModelChoices {
+        provider: "litellm",
+        models: &[
+            "gpt-5.4",
+            "claude-opus-4-6",
+            "claude-sonnet-4-6",
+            "gpt-4o",
+            "qwen3-coder",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "microsoft-foundry",
+        models: &["gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano", "gpt-4o"],
+    },
+    BundledProviderModelChoices {
+        provider: "minimax",
+        models: &["MiniMax-M2.7", "MiniMax-M2.7-highspeed"],
+    },
+    BundledProviderModelChoices {
+        provider: "minimax-portal",
+        models: &["MiniMax-M2.7", "MiniMax-M2.7-highspeed"],
+    },
+    BundledProviderModelChoices {
+        provider: "mistral",
+        models: &[
+            "mistral-large-latest",
+            "mistral-medium-2508",
+            "mistral-small-latest",
+            "magistral-medium-latest",
+            "magistral-small-latest",
+            "pixtral-large-latest",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "modelstudio",
+        models: &["qwen3-coder-plus", "qwen3.5-plus", "qwen3-coder-next"],
+    },
+    BundledProviderModelChoices {
+        provider: "moonshot",
+        models: &[
+            "kimi-k2-0905-preview",
+            "kimi-k2.5",
+            "kimi-k2-turbo-preview",
+            "kimi-k2-thinking",
+            "kimi-k2-thinking-turbo",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "nvidia",
+        models: &[
+            "nvidia/llama-3.3-nemotron-super-49b-v1",
+            "nvidia/llama-3.1-nemotron-70b-instruct",
+            "meta/llama-3.3-70b-instruct",
+            "nvidia/mistral-nemo-minitron-8b-8k-instruct",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "ollama",
+        models: &[
+            "glm-4.7-flash",
+            "gpt-oss:20b",
+            "llama3.3",
+            "kimi-k2.5:cloud",
+            "minimax-m2.5:cloud",
+            "glm-5:cloud",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "openai",
+        models: &[
+            "gpt-5.4",
+            "gpt-5.4-pro",
+            "gpt-5.4-mini",
+            "gpt-5.4-nano",
+            "gpt-5.2",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "openai-codex",
+        models: &[
+            "gpt-5.4",
+            "gpt-5.3-codex-spark",
+            "gpt-5.2-codex",
+            "gpt-5.1-codex",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "opencode",
+        models: &["claude-opus-4-6", "gpt-5.2", "gemini-3-pro"],
+    },
+    BundledProviderModelChoices {
+        provider: "opencode-go",
+        models: &["kimi-k2.5", "glm-5", "minimax-m2.5"],
+    },
+    BundledProviderModelChoices {
+        provider: "openrouter",
+        models: &[
+            "openai/gpt-5.4",
+            "anthropic/claude-opus-4-6",
+            "anthropic/claude-sonnet-4-6",
+            "google/gemini-3-pro-preview",
+            "x-ai/grok-4.20",
+            "moonshotai/kimi-k2.5",
+            "deepseek/deepseek-chat",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "qianfan",
+        models: &[
+            "ernie-4.5-turbo-128k",
+            "ernie-4.5-turbo-vl-32k",
+            "ernie-x1-turbo-32k",
+            "ernie-4.0-turbo-8k",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "sglang",
+        models: &[
+            "local",
+            "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+            "deepseek-ai/DeepSeek-V3.2",
+            "zai-org/GLM-4.7",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "synthetic",
+        models: &[
+            "synthetic/mock",
+            "hf:MiniMaxAI/MiniMax-M2.5",
+            "hf:moonshotai/Kimi-K2-Thinking",
+            "hf:zai-org/GLM-4.7",
+            "hf:deepseek-ai/DeepSeek-R1-0528",
+            "hf:deepseek-ai/DeepSeek-V3.1",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "together",
+        models: &[
+            "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+            "zai-org/GLM-4.7-FP8",
+            "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+            "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+            "deepseek-ai/DeepSeek-V3.1",
+            "deepseek-ai/DeepSeek-R1",
+            "moonshotai/Kimi-K2-Instruct",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "venice",
+        models: &[
+            "venice-uncensored",
+            "kimi-k2-5",
+            "kimi-k2-thinking",
+            "qwen3-coder-480b-a35b-instruct",
+            "qwen3-4b",
+            "deepseek-v3.2",
+            "claude-opus-4-6",
+            "openai-gpt-54",
+            "gemini-3-1-pro-preview",
+            "grok-code-fast-1",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "vercel-ai-gateway",
+        models: &[
+            "anthropic/claude-sonnet-4.6",
+            "anthropic/claude-opus-4.6",
+            "openai/gpt-5.4",
+            "google/gemini-3-pro-preview",
+            "xai/grok-4.20",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "vllm",
+        models: &[
+            "local",
+            "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+            "deepseek-ai/DeepSeek-V3.2",
+            "zai-org/GLM-4.7",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "volcengine",
+        models: &[
+            "doubao-seed-1-6",
+            "doubao-seed-1-8",
+            "doubao-seed-code-preview",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "volcengine-plan",
+        models: &[
+            "doubao-seed-1-6-thinking",
+            "ark-code-latest",
+            "doubao-seed-code-preview",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "xai",
+        models: &[
+            "grok-4.20",
+            "grok-4",
+            "grok-4-0709",
+            "grok-4-fast-reasoning",
+            "grok-4-fast-non-reasoning",
+            "grok-4-1-fast-reasoning",
+            "grok-4-1-fast-non-reasoning",
+            "grok-4.20-reasoning",
+            "grok-4.20-non-reasoning",
+            "grok-code-fast-1",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "xiaomi",
+        models: &[
+            "xmi-large",
+            "mimo-v2-flash",
+            "mimo-v2-pro",
+            "mimo-v2-omni",
+            "mimo-v2.5-pro",
+            "mimo-v2.5",
+        ],
+    },
+    BundledProviderModelChoices {
+        provider: "zai",
+        models: &["glm-4.6", "glm-5", "glm-4.7", "glm-4.7-flash"],
     },
 ];
 

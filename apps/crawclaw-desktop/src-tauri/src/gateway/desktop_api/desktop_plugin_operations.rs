@@ -13,17 +13,12 @@ pub(super) async fn invoke_plugin_tool_operation(
         thread_id: thread_id.clone(),
         tool_id: tool_id.clone(),
     });
-    {
-        let mut desktop_state = state.desktop_state.write().await;
-        desktop_state
-            .conversation
-            .messages
-            .push(conversation_tool_call_message(
-                tool_id.clone(),
-                title.clone(),
-                None,
-            ));
-    }
+    let _ = append_and_persist_conversation_message_with_emit(
+        state,
+        conversation_tool_call_message(tool_id.clone(), title.clone(), None),
+        false,
+    )
+    .await?;
     let result = match invoke_rust_native_plugin_tool(state, &plugin_id, &tool_id, &tool_input)
         .await
     {
@@ -34,19 +29,16 @@ pub(super) async fn invoke_plugin_tool_operation(
                 tool_id: tool_id.clone(),
                 ok: false,
             });
-            {
-                let mut desktop_state = state.desktop_state.write().await;
-                desktop_state
-                    .conversation
-                    .messages
-                    .push(conversation_tool_result_message(
-                        tool_id.clone(),
-                        title.clone(),
-                        false,
-                        error.clone(),
-                    ));
-            }
-            let _ = emit_state_changed(state).await;
+            let _ = append_and_persist_conversation_message(
+                state,
+                conversation_tool_result_message(
+                    tool_id.clone(),
+                    title.clone(),
+                    false,
+                    error.clone(),
+                ),
+            )
+            .await;
             return Err(plugin_host_status(state, PluginHostError::Invalid(error)));
         }
         None => {
@@ -57,39 +49,31 @@ pub(super) async fn invoke_plugin_tool_operation(
                 tool_id: tool_id.clone(),
                 ok: false,
             });
-            {
-                let mut desktop_state = state.desktop_state.write().await;
-                desktop_state
-                    .conversation
-                    .messages
-                    .push(conversation_tool_result_message(
-                        tool_id.clone(),
-                        title.clone(),
-                        false,
-                        error.clone(),
-                    ));
-            }
-            let _ = emit_state_changed(state).await;
+            let _ = append_and_persist_conversation_message(
+                state,
+                conversation_tool_result_message(
+                    tool_id.clone(),
+                    title.clone(),
+                    false,
+                    error.clone(),
+                ),
+            )
+            .await;
             return Err(plugin_host_status(state, PluginHostError::Invalid(error)));
         }
     };
     let result_text = plugin_tool_result_text(&result);
+    let _ = append_and_persist_conversation_message(
+        state,
+        conversation_tool_result_message(tool_id.clone(), title, true, result_text.clone()),
+    )
+    .await?;
     {
         let mut desktop_state = state.desktop_state.write().await;
-        desktop_state.active_nav_id = "plugins".to_string();
         desktop_state
             .conversation
             .result_items
             .push(format!("{plugin_id}/{tool_id}: {result_text}"));
-        desktop_state
-            .conversation
-            .messages
-            .push(conversation_tool_result_message(
-                tool_id.clone(),
-                title,
-                true,
-                result_text.clone(),
-            ));
     }
     let _ = state.events.send(DesktopEvent::ToolResult {
         thread_id,

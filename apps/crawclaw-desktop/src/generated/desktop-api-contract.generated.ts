@@ -80,17 +80,21 @@ export type ConversationMessage =
   | { kind: 'toolResult'; id: string; toolId: string; title: string; ok: boolean; text: string; createdAt: string }
   | { kind: 'permission'; id: string; requestId: string; title: string; detail: string; status: PermissionStatus; createdAt: string }
   | { kind: 'status'; id: string; title: string; detail: string; tone: BadgeTone; createdAt: string }
-  | { kind: 'attachment'; id: string; title: string; fileName: string; mediaType: string; detail?: string; createdAt: string }
-  | { kind: 'media'; id: string; mediaType: string; title: string; items: ConversationMediaItem[]; createdAt: string }
-  | { kind: 'workflow'; id: string; workflowKind: string; title: string; status: string; detail: string; steps: ConversationWorkflowStep[]; createdAt: string }
-  | { kind: 'voice'; id: string; direction: string; title: string; durationLabel: string; transcript?: string; createdAt: string }
-  | { kind: 'skillCall'; id: string; skillId: string; title: string; status: string; detail?: string; createdAt: string }
+  | { kind: 'attachment'; id: string; title: string; fileName: string; mediaType: string; assetId?: string; sizeBytes?: number; status?: string; errorCode?: string; detail?: string; createdAt: string }
+  | { kind: 'media'; id: string; mediaType: string; title: string; items: ConversationMediaItem[]; status?: string; errorCode?: string; createdAt: string }
+  | { kind: 'workflow'; id: string; workflowKind: string; title: string; status: string; detail: string; steps: ConversationWorkflowStep[]; workflowId?: string; runId?: string; errorCode?: string; createdAt: string }
+  | { kind: 'voice'; id: string; direction: string; title: string; durationLabel: string; assetId?: string; mimeType?: string; sizeBytes?: number; status?: string; errorCode?: string; transcript?: string; createdAt: string }
+  | { kind: 'skillCall'; id: string; skillId: string; title: string; status: string; executionId?: string; errorCode?: string; detail?: string; createdAt: string }
   | { kind: 'error'; id: string; code: string; title: string; detail: string; createdAt: string }
 
 export interface ConversationMediaItem {
   id: string
   label: string
   kind: string
+  assetId?: string
+  mimeType?: string
+  sizeBytes?: number
+  status?: string
   detail?: string
 }
 
@@ -287,39 +291,76 @@ export interface SendMessageInput {
   agentId?: string
 }
 
+export type ModelProfileSource = 'builtin' | 'custom'
+export type ModelProfileAuthMethod = 'api-key' | 'local' | 'custom'
+
+export interface ModelProfileSetupInput {
+  source?: ModelProfileSource
+  provider: string
+  model: string
+  label?: string
+  baseUrl?: string
+  api?: string
+  apiVersion?: string
+  apiKey?: string
+  authMethod?: ModelProfileAuthMethod
+}
+
 export interface AddAttachmentMessageInput {
   title: string
   fileName: string
   mediaType: string
+  confirm?: boolean
   detail?: string
+  source?: DesktopAssetSource
 }
 
 export interface AddMediaMessageInput {
   mediaType: string
   title: string
+  confirm?: boolean
   items?: ConversationMediaItem[]
+  source?: DesktopAssetSource
+  providerConfig?: unknown
 }
 
 export interface AddVoiceMessageInput {
   direction: string
   title: string
   durationLabel: string
+  prompt?: string
+  language?: string
   transcript?: string
+  source?: DesktopAssetSource
+  providerConfig?: unknown
 }
 
 export interface AddWorkflowMessageInput {
   workflowKind: string
+  action?: string
   title: string
-  status: string
+  confirm?: boolean
+  status?: string
   detail?: string
   steps?: ConversationWorkflowStep[]
+  input?: unknown
 }
 
 export interface AddSkillCallMessageInput {
   skillId: string
   title: string
-  status: string
+  status?: string
   detail?: string
+  text?: string
+  execute?: boolean
+}
+
+export interface DesktopAssetSource {
+  kind: 'tauriPath' | 'browserFile'
+  path?: string
+  fileName?: string
+  mimeType?: string
+  dataBase64?: string
 }
 
 export interface CreateAgentInput {
@@ -439,6 +480,23 @@ export interface AdvancedDefaults {
   logLevel: string
 }
 
+export interface DesktopModelProfileSummary {
+  id: string
+  label: string
+  modelRef: string
+  source: ModelProfileSource
+  provider: string
+  model: string
+  authMethod: ModelProfileAuthMethod
+  hasCredential: boolean
+  baseUrl?: string
+  api?: string
+  apiVersion?: string
+  lastConnectionStatus: string
+  lastConnectionDetail?: string
+  lastConnectedAt?: string
+}
+
 export interface DesktopPreferences {
   selectedModel: string
   selectedThinking: string
@@ -451,6 +509,7 @@ export interface DesktopPreferences {
   privacyDefaults: PrivacyDefaults
   advancedDefaults: AdvancedDefaults
   modelOptions: string[]
+  modelProfiles: DesktopModelProfileSummary[]
   providerDescriptors: unknown[]
   providerSetupOptions: unknown[]
   providerModelPickerEntries: unknown[]

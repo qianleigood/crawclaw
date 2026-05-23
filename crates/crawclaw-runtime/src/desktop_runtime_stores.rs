@@ -11,6 +11,11 @@ pub struct DesktopPreferencesStore {
 }
 
 #[derive(Clone)]
+pub struct DesktopModelProfileStore {
+    store_path: PathBuf,
+}
+
+#[derive(Clone)]
 pub struct DesktopSessionStore {
     sessions_dir: PathBuf,
     metadata_path: PathBuf,
@@ -38,6 +43,8 @@ pub struct DesktopPreferencesRecord {
     pub selected_thinking: String,
     pub permission_mode: String,
     #[serde(default)]
+    pub model_options: Vec<String>,
+    #[serde(default)]
     pub task_defaults: serde_json::Value,
     #[serde(default)]
     pub confirmation_defaults: serde_json::Value,
@@ -53,11 +60,37 @@ pub struct DesktopPreferencesRecord {
     pub advanced_defaults: serde_json::Value,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct DesktopModelProfileRecord {
+    pub id: String,
+    pub label: String,
+    pub model_ref: String,
+    pub source: String,
+    pub provider: String,
+    pub model: String,
+    pub auth_method: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_version: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api_key_ref: Option<serde_json::Value>,
+    pub last_connection_status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_connection_detail: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_connected_at: Option<String>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DesktopSessionRecord {
     pub thread_id: String,
     pub title: String,
     pub pinned: bool,
+    pub active: bool,
     pub messages: Vec<DesktopConversationMessageRecord>,
     pub result_items: Vec<String>,
 }
@@ -67,6 +100,7 @@ pub struct DesktopConversationMessageRecord {
     pub kind: String,
     pub text: String,
     pub source: Option<String>,
+    pub desktop_message: Option<Value>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -135,6 +169,22 @@ impl std::fmt::Display for DesktopPreferencesStoreError {
 }
 
 impl std::error::Error for DesktopPreferencesStoreError {}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum DesktopModelProfileStoreError {
+    Io(String),
+    Invalid(String),
+}
+
+impl std::fmt::Display for DesktopModelProfileStoreError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Io(message) | Self::Invalid(message) => formatter.write_str(message),
+        }
+    }
+}
+
+impl std::error::Error for DesktopModelProfileStoreError {}
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum DesktopSessionStoreError {
@@ -357,6 +407,77 @@ impl DesktopPreferencesStore {
     }
 }
 
+impl DesktopModelProfileStore {
+    pub fn new(runtime_root: PathBuf) -> Self {
+        Self {
+            store_path: runtime_root
+                .join("config")
+                .join("desktop-model-profiles.json"),
+        }
+    }
+
+    pub fn load_profiles(
+        &self,
+    ) -> Result<Vec<DesktopModelProfileRecord>, DesktopModelProfileStoreError> {
+        let raw = match fs::read_to_string(&self.store_path) {
+            Ok(raw) => raw,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+            Err(error) => {
+                return Err(DesktopModelProfileStoreError::Io(format!(
+                    "Failed to read desktop model profile store: {error}"
+                )));
+            }
+        };
+        serde_json::from_str(&raw).map_err(|error| {
+            DesktopModelProfileStoreError::Invalid(format!(
+                "Invalid desktop model profile store: {error}"
+            ))
+        })
+    }
+
+    pub fn upsert_profile(
+        &self,
+        profile: DesktopModelProfileRecord,
+    ) -> Result<(), DesktopModelProfileStoreError> {
+        let mut profiles = self.load_profiles()?;
+        if let Some(existing) = profiles
+            .iter_mut()
+            .find(|existing| existing.id == profile.id)
+        {
+            *existing = profile;
+        } else {
+            profiles.push(profile);
+        }
+        self.save_profiles(&profiles)
+    }
+
+    fn save_profiles(
+        &self,
+        profiles: &[DesktopModelProfileRecord],
+    ) -> Result<(), DesktopModelProfileStoreError> {
+        if let Some(parent) = self.store_path.parent() {
+            fs::create_dir_all(parent).map_err(|error| {
+                DesktopModelProfileStoreError::Io(format!(
+                    "Failed to create desktop model profile store directory: {error}"
+                ))
+            })?;
+        }
+        fs::write(
+            &self.store_path,
+            serde_json::to_vec_pretty(profiles).map_err(|error| {
+                DesktopModelProfileStoreError::Invalid(format!(
+                    "Failed to serialize desktop model profile store: {error}"
+                ))
+            })?,
+        )
+        .map_err(|error| {
+            DesktopModelProfileStoreError::Io(format!(
+                "Failed to write desktop model profile store: {error}"
+            ))
+        })
+    }
+}
+
 impl DesktopSessionStore {
     pub fn new(runtime_root: PathBuf) -> Self {
         let sessions_dir = runtime_root.join("sessions");
@@ -433,6 +554,7 @@ impl DesktopSessionStore {
                 thread_id,
                 title,
                 pinned: metadata.map(|metadata| metadata.pinned).unwrap_or(false),
+                active: metadata.map(|metadata| metadata.active).unwrap_or(false),
                 messages,
                 result_items,
             });
@@ -490,6 +612,7 @@ impl DesktopSessionStore {
             }
             metadata.status = Some("idle".to_string());
             metadata.archived = false;
+            metadata.active = true;
         })?;
         self.session_status(thread_id)?
             .ok_or_else(|| DesktopSessionStoreError::Invalid("session was not created".to_string()))
@@ -705,7 +828,41 @@ impl DesktopSessionStore {
             role: role.to_string(),
             content: content.to_string(),
             source: source.map(ToOwned::to_owned),
+            desktop_message: None,
         };
+        self.append_transcript_entry(thread_id, &entry)
+    }
+
+    pub fn append_desktop_message(
+        &self,
+        thread_id: &str,
+        role: &str,
+        content: &str,
+        source: Option<&str>,
+        desktop_message: Value,
+    ) -> Result<(), DesktopSessionStoreError> {
+        let entry = DesktopTranscriptEntry {
+            role: role.to_string(),
+            content: content.to_string(),
+            source: source.map(ToOwned::to_owned),
+            desktop_message: Some(desktop_message),
+        };
+        self.append_transcript_entry(thread_id, &entry)
+    }
+
+    fn append_transcript_entry(
+        &self,
+        thread_id: &str,
+        entry: &DesktopTranscriptEntry,
+    ) -> Result<(), DesktopSessionStoreError> {
+        let transcript_path = self.transcript_path(thread_id)?;
+        if let Some(parent) = transcript_path.parent() {
+            fs::create_dir_all(parent).map_err(|error| {
+                DesktopSessionStoreError::Io(format!(
+                    "Failed to create desktop session directory: {error}"
+                ))
+            })?;
+        }
         let mut transcript = fs::OpenOptions::new()
             .create(true)
             .append(true)
@@ -824,7 +981,33 @@ impl DesktopSessionStore {
         self.update_thread_metadata(thread_id, |metadata| {
             metadata.archived = true;
             metadata.pinned = false;
+            metadata.active = false;
         })
+    }
+
+    pub fn set_active_thread(&self, thread_id: &str) -> Result<(), DesktopSessionStoreError> {
+        validate_thread_id(thread_id)?;
+        let mut metadata_by_thread = self.load_metadata_map()?;
+        for metadata in metadata_by_thread.values_mut() {
+            metadata.active = false;
+        }
+        let metadata = metadata_by_thread
+            .entry(thread_id.to_string())
+            .or_insert_with(|| DesktopSessionMetadataRecord {
+                thread_id: thread_id.to_string(),
+                ..DesktopSessionMetadataRecord::default()
+            });
+        metadata.active = true;
+        metadata.archived = false;
+        self.save_metadata_map(metadata_by_thread)
+    }
+
+    pub fn clear_active_thread(&self) -> Result<(), DesktopSessionStoreError> {
+        let mut metadata_by_thread = self.load_metadata_map()?;
+        for metadata in metadata_by_thread.values_mut() {
+            metadata.active = false;
+        }
+        self.save_metadata_map(metadata_by_thread)
     }
 
     fn update_thread_metadata(
@@ -921,6 +1104,8 @@ pub(super) struct DesktopSessionMetadataRecord {
     #[serde(default)]
     pinned: bool,
     #[serde(default)]
+    active: bool,
+    #[serde(default)]
     archived: bool,
     #[serde(default)]
     status: Option<String>,
@@ -944,11 +1129,14 @@ impl DesktopSessionMetadataRecord {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub(super) struct DesktopTranscriptEntry {
     role: String,
     content: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     source: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    desktop_message: Option<Value>,
 }
 
 pub(super) fn parse_transcript_entries(
@@ -1016,6 +1204,19 @@ pub(super) fn transcript_result_item(entry: DesktopTranscriptEntry) -> Option<St
 pub(super) fn transcript_message_record(
     entry: DesktopTranscriptEntry,
 ) -> Option<DesktopConversationMessageRecord> {
+    if let Some(desktop_message) = entry.desktop_message {
+        let kind = desktop_message
+            .get("kind")
+            .and_then(Value::as_str)
+            .unwrap_or(entry.role.as_str())
+            .to_string();
+        return Some(DesktopConversationMessageRecord {
+            kind,
+            text: entry.content,
+            source: entry.source,
+            desktop_message: Some(desktop_message),
+        });
+    }
     let content = entry.content.trim();
     if content.is_empty() {
         return None;
@@ -1029,6 +1230,7 @@ pub(super) fn transcript_message_record(
         kind: kind.to_string(),
         text: content.to_string(),
         source: entry.source,
+        desktop_message: None,
     })
 }
 

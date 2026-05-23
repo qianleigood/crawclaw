@@ -1,13 +1,13 @@
-use axum::Json;
 use axum::body::Bytes;
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
+use axum::Json;
 
 use crate::models::DesktopState;
 
 use super::{
-    DesktopNativeMutation, GatewayState, ThreadMutation, ToggleMutation, authorize_headers,
-    parse_json_body, run_native_state_mutation, with_string,
+    authorize_headers, parse_json_body, run_native_state_mutation, with_string,
+    DesktopNativeMutation, GatewayState, ThreadMutation, ToggleMutation,
 };
 
 async fn run_body_mutation(
@@ -357,15 +357,26 @@ pub(super) async fn run_memory_dream(
     State(state): State<GatewayState>,
     headers: HeaderMap,
     body: Bytes,
-) -> Result<Json<DesktopState>, StatusCode> {
-    run_body_mutation(
-        state,
-        headers,
-        body,
-        DesktopNativeMutation::RunMemoryDream,
-        Vec::new(),
-    )
-    .await
+) -> Result<Json<DesktopState>, (StatusCode, Json<DesktopState>)> {
+    if let Err(status) = authorize_headers(&headers, &state) {
+        return Err(state_error_response(&state, status).await);
+    }
+    let input = match parse_json_body(body) {
+        Ok(input) => input,
+        Err(status) => return Err(state_error_response(&state, status).await),
+    };
+    match run_native_state_mutation(&state, DesktopNativeMutation::RunMemoryDream, input).await {
+        Ok(state) => Ok(state),
+        Err(status) => Err(state_error_response(&state, status).await),
+    }
+}
+
+async fn state_error_response(
+    state: &GatewayState,
+    status: StatusCode,
+) -> (StatusCode, Json<DesktopState>) {
+    let desktop_state = state.desktop_state.read().await.clone();
+    (status, Json(desktop_state))
 }
 
 pub(super) async fn abort_message(

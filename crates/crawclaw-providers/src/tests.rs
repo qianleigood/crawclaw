@@ -255,6 +255,10 @@ fn bundled_provider_descriptors_are_rust_authoritative() {
     assert_eq!(openai.transport.as_deref(), Some("openai-responses"));
     assert_eq!(openai.default_model.as_deref(), Some("gpt-5.4"));
     assert!(openai
+        .model_choices
+        .iter()
+        .any(|entry| entry == "gpt-5.4-pro"));
+    assert!(openai
         .auth_env_vars
         .iter()
         .any(|entry| entry == "OPENAI_API_KEY"));
@@ -283,6 +287,118 @@ fn bundled_provider_descriptors_are_rust_authoritative() {
         .map(|entry| entry.provider.as_str())
         .collect::<Vec<_>>();
     assert_eq!(missing_default_models, Vec::<&str>::new());
+
+    let missing_model_choices = descriptors
+        .iter()
+        .filter(|entry| entry.capabilities.chat && entry.model_choices.is_empty())
+        .map(|entry| entry.provider.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(missing_model_choices, Vec::<&str>::new());
+
+    let mut seen_choice_providers = BTreeSet::new();
+    for choices in BUNDLED_PROVIDER_MODEL_CHOICES {
+        assert!(
+            seen_choice_providers.insert(choices.provider),
+            "duplicate model choices provider {}",
+            choices.provider
+        );
+
+        let mut seen_models = BTreeSet::new();
+        for model in choices.models {
+            assert!(
+                seen_models.insert(*model),
+                "duplicate model choice {} for {}",
+                model,
+                choices.provider
+            );
+        }
+    }
+
+    let classified_providers = SCOPED_PROVIDER_MODEL_PREFIXES
+        .iter()
+        .map(|(provider, _)| *provider)
+        .chain(AGGREGATING_PROVIDER_MODEL_CHOICE_PROVIDERS.iter().copied())
+        .collect::<BTreeSet<_>>();
+    let unclassified_providers = BUNDLED_PROVIDER_MODEL_CHOICES
+        .iter()
+        .map(|choices| choices.provider)
+        .filter(|provider| !classified_providers.contains(provider))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        unclassified_providers,
+        Vec::<&str>::new(),
+        "every provider model choice list must be classified as scoped or aggregating"
+    );
+
+    for (provider, prefixes) in SCOPED_PROVIDER_MODEL_PREFIXES {
+        assert_provider_models_match_prefix(provider, prefixes);
+    }
+}
+
+const AGGREGATING_PROVIDER_MODEL_CHOICE_PROVIDERS: &[&str] = &[
+    "chutes",
+    "huggingface",
+    "kilocode",
+    "litellm",
+    "nvidia",
+    "ollama",
+    "opencode",
+    "opencode-go",
+    "openrouter",
+    "sglang",
+    "synthetic",
+    "together",
+    "venice",
+    "vercel-ai-gateway",
+    "vllm",
+];
+
+const SCOPED_PROVIDER_MODEL_PREFIXES: &[(&str, &[&str])] = &[
+    ("amazon-bedrock", &["anthropic.", "us.anthropic."]),
+    ("anthropic", &["sonnet-", "claude-"]),
+    ("anthropic-vertex", &["claude-"]),
+    ("byteplus", &["doubao-"]),
+    ("byteplus-plan", &["doubao-", "ark-"]),
+    ("cloudflare-ai-gateway", &["sonnet-", "claude-"]),
+    ("copilot-proxy", &["gpt-"]),
+    ("deepseek", &["deepseek-"]),
+    ("github-copilot", &["gpt-"]),
+    ("google", &["gemini-"]),
+    ("google-gemini-cli", &["gemini-"]),
+    ("kimi", &["kimi-"]),
+    ("kimi-coding", &["kimi-", "k2"]),
+    ("microsoft-foundry", &["gpt-"]),
+    ("minimax", &["MiniMax-"]),
+    ("minimax-portal", &["MiniMax-"]),
+    ("mistral", &["mistral-", "magistral-", "pixtral-"]),
+    ("modelstudio", &["qwen"]),
+    ("moonshot", &["kimi-"]),
+    ("openai", &["gpt-", "o"]),
+    ("openai-codex", &["gpt-"]),
+    ("qianfan", &["ernie-"]),
+    ("volcengine", &["doubao-"]),
+    ("volcengine-plan", &["doubao-", "ark-"]),
+    ("xai", &["grok-"]),
+    ("xiaomi", &["xmi-", "mimo-"]),
+    ("zai", &["glm-"]),
+];
+
+fn assert_provider_models_match_prefix(provider: &str, prefixes: &[&str]) {
+    let choices = BUNDLED_PROVIDER_MODEL_CHOICES
+        .iter()
+        .find(|entry| entry.provider == provider)
+        .unwrap_or_else(|| panic!("missing model choices for {provider}"));
+    let invalid = choices
+        .models
+        .iter()
+        .copied()
+        .filter(|model| !prefixes.iter().any(|prefix| model.starts_with(prefix)))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        invalid,
+        Vec::<&str>::new(),
+        "{provider} model choices should stay scoped to its model family"
+    );
 }
 
 #[test]
@@ -301,12 +417,23 @@ fn bundled_provider_product_surfaces_are_rust_authoritative() {
             && choice.method == "api-global"
             && choice.choice_id == "minimax-global-api"
     }));
+    assert!(auth_choices.iter().any(|choice| {
+        choice.plugin_id == "xiaomi"
+            && choice.provider == "xiaomi"
+            && choice.method == "token-plan"
+            && choice.choice_id == "xiaomi-token-plan"
+    }));
 
     let setup_options = bundled_provider_setup_options();
     assert!(setup_options.iter().any(|choice| {
         choice.provider == "openai"
             && choice.value == "openai-api-key"
             && choice.label == "OpenAI API key"
+    }));
+    assert!(setup_options.iter().any(|choice| {
+        choice.provider == "xiaomi"
+            && choice.value == "xiaomi-token-plan"
+            && choice.method == "token-plan"
     }));
 
     let model_pickers = bundled_provider_model_picker_entries();
@@ -853,6 +980,50 @@ fn applies_native_openai_compatible_provider_policies() {
         .iter()
         .any(|(name, value)| name == "X-OpenRouter-Title" && value == "CrawClaw"));
     assert_eq!(openrouter.body["reasoning"], json!({ "effort": "low" }));
+
+    let xiaomi_token_plan = build_native_provider_conversation_request_with_options(
+        &NativeProviderConfig {
+            provider: "xiaomi".to_string(),
+            base_url: Some("https://token-plan-cn.xiaomimimo.com/v1".to_string()),
+            api_key: Some("tp-secret".to_string()),
+            model: Some("mimo-v2.5-pro".to_string()),
+            api: None,
+            api_version: None,
+        },
+        &[NativeProviderMessage::user("hello")],
+        &NativeProviderRequestOptions::default(),
+    )
+    .expect("xiaomi token plan request");
+    assert!(xiaomi_token_plan
+        .headers
+        .iter()
+        .any(|(name, value)| name == "api-key" && value == "tp-secret"));
+    assert!(!xiaomi_token_plan
+        .headers
+        .iter()
+        .any(|(name, _)| name.eq_ignore_ascii_case("Authorization")));
+
+    let xiaomi_pay_as_you_go = build_native_provider_conversation_request_with_options(
+        &NativeProviderConfig {
+            provider: "xiaomi".to_string(),
+            base_url: Some("https://api.xiaomimimo.com/v1".to_string()),
+            api_key: Some("sk-secret".to_string()),
+            model: Some("xmi-large".to_string()),
+            api: None,
+            api_version: None,
+        },
+        &[NativeProviderMessage::user("hello")],
+        &NativeProviderRequestOptions::default(),
+    )
+    .expect("xiaomi pay-as-you-go request");
+    assert!(xiaomi_pay_as_you_go
+        .headers
+        .iter()
+        .any(|(name, value)| name == "api-key" && value == "sk-secret"));
+    assert!(!xiaomi_pay_as_you_go
+        .headers
+        .iter()
+        .any(|(name, _)| name.eq_ignore_ascii_case("Authorization")));
 }
 
 #[test]
@@ -874,6 +1045,47 @@ fn applies_native_xai_responses_policy() {
     assert_eq!(request.body["tool_stream"], Value::Bool(true));
     assert!(request.body.get("reasoning").is_none());
     assert!(request.body.get("reasoning_effort").is_none());
+}
+
+#[test]
+fn applies_native_openai_responses_reasoning_policy() {
+    let request = build_native_provider_conversation_request_with_options(
+        &NativeProviderConfig {
+            provider: "openai".to_string(),
+            base_url: Some("https://api.openai.com/v1".to_string()),
+            api_key: Some("secret".to_string()),
+            model: Some("gpt-5.4".to_string()),
+            api: None,
+            api_version: None,
+        },
+        &[NativeProviderMessage::user("hello")],
+        &NativeProviderRequestOptions {
+            reasoning_level: Some("high".to_string()),
+            ..NativeProviderRequestOptions::default()
+        },
+    )
+    .expect("openai responses request");
+
+    assert_eq!(request.body["reasoning"], json!({ "effort": "high" }));
+
+    let non_reasoning_request = build_native_provider_conversation_request_with_options(
+        &NativeProviderConfig {
+            provider: "openai".to_string(),
+            base_url: Some("https://api.openai.com/v1".to_string()),
+            api_key: Some("secret".to_string()),
+            model: Some("gpt-4o".to_string()),
+            api: None,
+            api_version: None,
+        },
+        &[NativeProviderMessage::user("hello")],
+        &NativeProviderRequestOptions {
+            reasoning_level: Some("high".to_string()),
+            ..NativeProviderRequestOptions::default()
+        },
+    )
+    .expect("openai non-reasoning responses request");
+
+    assert!(non_reasoning_request.body.get("reasoning").is_none());
 }
 
 #[test]

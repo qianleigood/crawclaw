@@ -44,6 +44,7 @@ type ChatThreadProps = {
   conversation: ConversationState
   onDecidePermission: (requestId: string, status: 'approved' | 'denied') => void
   permissionRequest: PermissionRequest
+  replyMode: string
 }
 
 type ChatThreadShowcaseProps = {
@@ -64,6 +65,7 @@ export function ChatThread({
   conversation,
   onDecidePermission,
   permissionRequest,
+  replyMode,
 }: ChatThreadProps) {
   return (
     <section className="desktop-content" aria-label="对话工作区">
@@ -71,6 +73,7 @@ export function ChatThread({
         messages={conversation.messages}
         onDecidePermission={onDecidePermission}
         permissionRequest={permissionRequest}
+        replyMode={replyMode}
       />
     </section>
   )
