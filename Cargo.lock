@@ -1518,6 +1518,8 @@ dependencies = [
  "tokio",
  "tower",
  "tower-http",
+ "tracing",
+ "tracing-subscriber",
  "uuid",
 ]
 
@@ -1539,6 +1541,7 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -1564,6 +1567,7 @@ dependencies = [
 name = "crawclaw-plugin-host"
 version = "2026.5.3"
 dependencies = [
+ "crawclaw-runtime",
  "serde",
  "serde_json",
  "tokio",
@@ -1625,6 +1629,7 @@ dependencies = [
  "sha2 0.10.9",
  "tempfile",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

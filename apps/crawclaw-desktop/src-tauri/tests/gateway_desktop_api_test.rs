@@ -1,7 +1,7 @@
 use std::fs;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crawclaw_desktop::gateway::desktop_api::{
     is_loopback_addr, start_gateway_server, GatewayConfig,
@@ -10,6 +10,7 @@ use crawclaw_desktop::runtime_engine::RuntimeLayout;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 const TEST_HTTP_READ_TIMEOUT: Duration = Duration::from_secs(30);
+static ADVANCED_SETTINGS_TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 use uuid::Uuid;
 
 #[tokio::test]
@@ -91,6 +92,116 @@ async fn gateway_mutations_require_session_header() {
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
     assert_eq!(json["activeNavId"], "plugins");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_bootstrap_exposes_core_skills_without_optional_skills() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-core-skills-bootstrap",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, body) = request(
+        server.addr,
+        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
+    let skills = json["desktopState"]["pluginsWorkspace"]["skills"]
+        .as_array()
+        .expect("skills array");
+    assert!(
+        skills
+            .iter()
+            .any(|skill| skill["skillKey"] == "coding-agent"
+                && skill["source"] == "core"
+                && skill["enabled"] == true
+                && skill["installStatus"] == "installed"),
+        "expected bundled core coding-agent skill in plugin workspace: {skills:?}"
+    );
+    assert!(
+        !skills
+            .iter()
+            .any(|skill| skill["skillKey"] == "suno-api-client"),
+        "optional skills must not be exposed as core skills"
+    );
+    assert!(runtime_layout
+        .runtime_root
+        .join("skills/coding-agent/SKILL.md")
+        .exists());
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_bootstrap_does_not_overwrite_user_skill_without_core_marker() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-core-skills-user-skill",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let skill_path = runtime_layout
+        .runtime_root
+        .join("skills/coding-agent/SKILL.md");
+    fs::create_dir_all(skill_path.parent().expect("skill parent")).expect("skill dir");
+    fs::write(
+        &skill_path,
+        "---\nname: user-coding-agent\ndescription: User owned skill.\n---\n\n# User Skill\n",
+    )
+    .expect("write user skill");
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, body) = request(
+        server.addr,
+        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+
+    assert_eq!(status, 200);
+    assert!(
+        fs::read_to_string(&skill_path)
+            .expect("skill content")
+            .contains("User owned skill."),
+        "core sync must not overwrite a user-owned skill directory"
+    );
+    let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
+    let skills = json["desktopState"]["pluginsWorkspace"]["skills"]
+        .as_array()
+        .expect("skills array");
+    let skill = skills
+        .iter()
+        .find(|skill| skill["skillKey"] == "coding-agent")
+        .expect("coding-agent skill");
+    assert_eq!(skill["source"], "custom");
+    assert_eq!(skill["name"], "user-coding-agent");
 }
 
 #[tokio::test]
@@ -239,6 +350,18 @@ esac
         json["desktopState"]["pluginsWorkspace"]["tools"][0]["name"],
         "File tools"
     );
+    let tools = json["desktopState"]["pluginsWorkspace"]["tools"]
+        .as_array()
+        .expect("plugin tools");
+    assert!(tools
+        .iter()
+        .any(|tool| { tool["pluginId"] == "crawclaw-runtime" && tool["id"] == "read" }));
+    assert!(tools
+        .iter()
+        .any(|tool| { tool["pluginId"] == "crawclaw-runtime" && tool["id"] == "bash" }));
+    assert!(tools
+        .iter()
+        .any(|tool| tool["pluginId"] == "browser" && tool["id"] == "browser"));
     assert_eq!(
         json["desktopState"]["pluginsWorkspace"]["skills"][0]["id"],
         "plugin-skill-review"
@@ -518,7 +641,8 @@ esac
     .await
     .expect("gateway should start");
 
-    let body = r#"{"input":{"action":"config","baseUrl":"http://127.0.0.1:8188"}}"#;
+    let body =
+        r#"{"confirmed":true,"input":{"action":"config","baseUrl":"http://127.0.0.1:8188"}}"#;
     let request_body = format!(
         "POST /api/desktop/plugins/comfyui/tools/comfyui_workflow/invoke HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
         body.len(),
@@ -1163,6 +1287,250 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
+async fn gateway_workflow_failure_respects_automation_failed_notifications() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-workflow-failure-notification",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, _) = post_desktop_json(
+        server.addr,
+        "/api/desktop/messages/workflows",
+        r#"{"workflowKind":"unsupported","title":"失败工作流","detail":"fallback"}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let notification = read_last_notification(&runtime_layout);
+    assert_eq!(notification["kind"], "automationFailed");
+    assert_eq!(notification["title"], "工作流执行失败");
+    assert!(notification["body"]
+        .as_str()
+        .expect("notification body")
+        .contains("Unsupported workflow kind"));
+
+    let preferences_body = r#"{"notificationDefaults":{"notifyAutomationFailed":false}}"#;
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "PATCH /api/desktop/preferences HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            preferences_body.len(),
+            preferences_body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+    fs::remove_file(last_notification_path(&runtime_layout)).expect("remove notification");
+
+    let (status, _) = post_desktop_json(
+        server.addr,
+        "/api/desktop/messages/workflows",
+        r#"{"workflowKind":"unsupported","title":"失败工作流","detail":"fallback"}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    assert!(!last_notification_path(&runtime_layout).exists());
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_plugin_install_endpoint_reuses_gateway_install_and_refreshes_workspace() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-plugin-install-endpoint",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let source_root = temp_runtime_root("desktop-plugin-install-source");
+    fs::create_dir_all(&source_root).expect("plugin source");
+    fs::write(
+        source_root.join("crawclaw.plugin.json"),
+        r#"{"id":"desktop-demo","name":"Desktop Demo","version":"1.0.0"}"#,
+    )
+    .expect("manifest");
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+    let body = serde_json::json!({
+        "source": source_root.to_string_lossy()
+    })
+    .to_string();
+
+    let (status, body) =
+        post_desktop_json(server.addr, "/api/desktop/plugins/install", &body).await;
+
+    assert_eq!(status, 200);
+    assert!(runtime_layout
+        .runtime_root
+        .join("plugins/desktop-demo/crawclaw.plugin.json")
+        .exists());
+    let state: serde_json::Value = serde_json::from_str(&body).expect("desktop state");
+    let installed = state["pluginsWorkspace"]["installed"]
+        .as_array()
+        .expect("installed plugins");
+    assert!(
+        installed.iter().any(|plugin| plugin["id"] == "desktop-demo"
+            && plugin["name"] == "Desktop Demo"
+            && plugin["installStatus"] == "installed"
+            && plugin["enabled"] == true),
+        "installed plugin should be reflected in desktop workspace: {installed:?}"
+    );
+
+    let disable_body = r#"{"enabled":false}"#;
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "PATCH /api/desktop/plugins/desktop-demo/enabled HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            disable_body.len(),
+            disable_body
+        ),
+    )
+    .await;
+
+    assert_eq!(status, 200);
+    let state: serde_json::Value = serde_json::from_str(&body).expect("desktop state");
+    let installed = state["pluginsWorkspace"]["installed"]
+        .as_array()
+        .expect("installed plugins");
+    assert!(
+        installed
+            .iter()
+            .any(|plugin| plugin["id"] == "desktop-demo" && plugin["enabled"] == false),
+        "disabled plugin should be reflected in desktop workspace: {installed:?}"
+    );
+
+    let (status, body) = post_desktop_json(
+        server.addr,
+        "/api/desktop/plugins/desktop-demo/uninstall",
+        "{}",
+    )
+    .await;
+
+    assert_eq!(status, 200);
+    assert!(!runtime_layout
+        .runtime_root
+        .join("plugins/desktop-demo/crawclaw.plugin.json")
+        .exists());
+    let state: serde_json::Value = serde_json::from_str(&body).expect("desktop state");
+    let installed = state["pluginsWorkspace"]["installed"]
+        .as_array()
+        .expect("installed plugins");
+    assert!(
+        !installed
+            .iter()
+            .any(|plugin| plugin["id"] == "desktop-demo"),
+        "uninstalled plugin should be removed from desktop workspace: {installed:?}"
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_plugin_skill_install_writes_runtime_skill_and_config_entry() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-plugin-skill-install",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+    let body = serde_json::json!({
+        "name": "Desktop Skill",
+        "trigger": "@desktop-skill",
+        "description": "Installed from the desktop plugin dialog."
+    })
+    .to_string();
+
+    let (status, body) = post_desktop_json(server.addr, "/api/desktop/plugins/skills", &body).await;
+
+    assert_eq!(status, 200);
+    let skill_path = runtime_layout
+        .runtime_root
+        .join("skills/desktop-skill/SKILL.md");
+    assert!(
+        skill_path.exists(),
+        "desktop skill should write a runtime SKILL.md"
+    );
+    let config_path = runtime_layout.runtime_root.join("config/crawclaw.json");
+    let config: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(config_path).expect("config"))
+            .expect("config json");
+    assert_eq!(
+        config["skills"]["entries"]["desktop-skill"]["enabled"],
+        true
+    );
+    let state: serde_json::Value = serde_json::from_str(&body).expect("desktop state");
+    assert!(state["pluginsWorkspace"]["skills"]
+        .as_array()
+        .expect("skills")
+        .iter()
+        .any(|skill| skill["skillKey"] == "desktop-skill"
+            && skill["source"] == "custom"
+            && skill["enabled"] == true
+            && skill["installStatus"] == "installed"));
+
+    let (status, body) = request(
+        server.addr,
+        "DELETE /api/desktop/plugins/skills/custom-skill-desktop-skill HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}",
+    )
+    .await;
+
+    assert_eq!(status, 200);
+    assert!(
+        !skill_path.exists(),
+        "desktop skill removal should delete the runtime SKILL.md"
+    );
+    let config: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(runtime_layout.runtime_root.join("config/crawclaw.json"))
+            .expect("config"),
+    )
+    .expect("config json");
+    assert_eq!(
+        config["skills"]["entries"]["desktop-skill"],
+        serde_json::Value::Null
+    );
+    let state: serde_json::Value = serde_json::from_str(&body).expect("desktop state");
+    assert!(!state["pluginsWorkspace"]["skills"]
+        .as_array()
+        .expect("skills")
+        .iter()
+        .any(|skill| skill["skillKey"] == "desktop-skill"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn gateway_preferences_model_options_and_settings_actions_persist() {
     let runtime_layout = create_runtime_fixture(
         "desktop-settings-actions",
@@ -1243,6 +1611,382 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
+async fn gateway_advanced_diagnostics_writes_sanitized_file_and_respects_log_level() {
+    let _advanced_guard = ADVANCED_SETTINGS_TEST_LOCK.lock().await;
+    let runtime_layout = create_runtime_fixture(
+        "desktop-advanced-diagnostics",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready","detail":"runtime ready for diagnostics"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    write_privacy_runtime_fixture(&runtime_layout);
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let body = r#"{"advancedDefaults":{"logLevel":"错误"}}"#;
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "PATCH /api/desktop/preferences HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+
+    let rust_log_path = runtime_layout.runtime_root.join("desktop/logs/rust.log");
+    let _ = fs::remove_file(&rust_log_path);
+    let (status, body) =
+        post_desktop_json(server.addr, "/api/desktop/settings/diagnostics", "{}").await;
+    assert_eq!(status, 200);
+    let state: serde_json::Value = serde_json::from_str(&body).expect("error diagnostics state");
+    let suppressed_diagnostics_path = state["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .iter()
+        .rev()
+        .find(|message| message["kind"] == "status" && message["title"] == "诊断信息已生成")
+        .and_then(|message| message["detail"].as_str())
+        .expect("suppressed diagnostics path");
+    let error_log = fs::read_to_string(&rust_log_path).unwrap_or_default();
+    assert!(
+        !error_log.contains(suppressed_diagnostics_path),
+        "error log level should suppress its diagnostics event: {error_log}"
+    );
+
+    let body = r#"{"advancedDefaults":{"logLevel":"详细"}}"#;
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "PATCH /api/desktop/preferences HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+
+    let (status, body) =
+        post_desktop_json(server.addr, "/api/desktop/settings/diagnostics", "{}").await;
+    assert_eq!(status, 200);
+    let state: serde_json::Value = serde_json::from_str(&body).expect("diagnostics state");
+    let diagnostics_path = state["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .iter()
+        .rev()
+        .find(|message| message["kind"] == "status" && message["title"] == "诊断信息已生成")
+        .and_then(|message| message["detail"].as_str())
+        .map(PathBuf::from)
+        .expect("diagnostics path");
+    assert!(
+        diagnostics_path.is_file(),
+        "diagnostics detail should point at generated file"
+    );
+
+    let diagnostics_text = fs::read_to_string(&diagnostics_path).expect("diagnostics file");
+    let diagnostics: serde_json::Value =
+        serde_json::from_str(&diagnostics_text).expect("diagnostics json");
+    assert_eq!(diagnostics["runtime"]["status"], "ready");
+    assert_eq!(
+        diagnostics["runtimeRoot"],
+        runtime_layout.runtime_root.to_string_lossy().as_ref()
+    );
+    assert_eq!(diagnostics["advanced"]["logLevel"], "详细");
+    assert_eq!(diagnostics["advanced"]["rustLogFilter"], "debug");
+    assert!(
+        diagnostics["state"]["threads"]
+            .as_u64()
+            .expect("thread count")
+            >= 1
+    );
+    assert!(diagnostics["state"]["agents"].is_number());
+    assert_eq!(diagnostics["state"]["memoryItems"], 1);
+    assert_eq!(diagnostics["state"]["workflows"], 1);
+    assert_eq!(
+        diagnostics["settingsEffects"]["runtimeLogLevel"]["value"],
+        "详细"
+    );
+    assert!(diagnostics["recentRustLog"]
+        .as_array()
+        .expect("recent rust log")
+        .iter()
+        .any(|line| line
+            .as_str()
+            .is_some_and(|line| line.contains("desktop_diagnostics_generated"))));
+    assert!(!diagnostics_text.contains("secret-token"));
+    assert!(!diagnostics_text.contains("super-secret"));
+    assert!(!diagnostics_text.contains("apiKey"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_advanced_reset_state_clears_ui_state_and_preserves_owned_data() {
+    let _advanced_guard = ADVANCED_SETTINGS_TEST_LOCK.lock().await;
+    let runtime_layout = create_runtime_fixture(
+        "desktop-advanced-reset",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    write_privacy_runtime_fixture(&runtime_layout);
+    write_text_fixture(&runtime_layout, "desktop/diagnostics/old.json", "{}");
+    write_text_fixture(&runtime_layout, "desktop/logs/rust.log", "old log");
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let body = r#"{"selectedModel":"reset-test-model","advancedDefaults":{"logLevel":"详细"}}"#;
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "PATCH /api/desktop/preferences HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+
+    let (status, body) = post_desktop_json(
+        server.addr,
+        "/api/desktop/settings/reset-state",
+        r#"{"confirm":"RESET"}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let state: serde_json::Value = serde_json::from_str(&body).expect("reset state");
+    assert_eq!(state["preferences"]["selectedModel"], "gpt-5.5");
+    assert_eq!(state["preferences"]["advancedDefaults"]["logLevel"], "标准");
+    assert_eq!(
+        state["preferences"]["privacyDefaults"]["dataLocation"],
+        runtime_layout.runtime_root.to_string_lossy().as_ref()
+    );
+    assert!(state["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .is_empty());
+    assert!(state["sidebar"]["threads"]
+        .as_array()
+        .expect("threads")
+        .is_empty());
+
+    for path in [
+        "sessions/privacy-thread.jsonl",
+        "config/desktop-preferences.json",
+        "desktop/diagnostics/old.json",
+        "desktop/logs/rust.log",
+    ] {
+        assert!(
+            !runtime_layout.runtime_root.join(path).exists(),
+            "reset-state should remove {path}"
+        );
+    }
+    let runtime_log_level = fs::read_to_string(
+        runtime_layout
+            .runtime_root
+            .join("desktop/settings/runtime-log-level"),
+    )
+    .expect("default runtime log level");
+    assert_eq!(runtime_log_level.trim(), "标准");
+    for path in [
+        "config/desktop-agent-provider.json",
+        "config/desktop-model-profiles.json",
+        "config/secrets/desktop-models/test.key",
+        "memory/runtime.db",
+        "memory/desktop-items.json",
+        "workflows/privacy-flow.json",
+    ] {
+        assert!(
+            runtime_layout.runtime_root.join(path).exists(),
+            "reset-state should preserve {path}"
+        );
+    }
+
+    let restarted_server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("restarted gateway should start");
+    let (status, body) = request(
+        restarted_server.addr,
+        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let state: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
+    assert!(state["desktopState"]["sidebar"]["threads"]
+        .as_array()
+        .expect("threads")
+        .is_empty());
+    assert!(state["desktopState"]["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .is_empty());
+    assert!(state["desktopState"]["preferences"]["modelProfiles"]
+        .as_array()
+        .expect("model profiles")
+        .iter()
+        .any(|profile| profile["modelRef"] == "openai-compatible/test-model"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_privacy_data_location_uses_runtime_root() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-privacy-data-location",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let body = r#"{"privacyDefaults":{"dataLocation":"本机默认位置"}}"#;
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "PATCH /api/desktop/preferences HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
+    assert_eq!(
+        json["preferences"]["privacyDefaults"]["dataLocation"],
+        runtime_layout.runtime_root.to_string_lossy().as_ref()
+    );
+
+    let restarted_server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("restarted gateway should start");
+    let (status, body) = request(
+        restarted_server.addr,
+        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
+    assert_eq!(
+        json["desktopState"]["preferences"]["privacyDefaults"]["dataLocation"],
+        runtime_layout.runtime_root.to_string_lossy().as_ref()
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_privacy_export_writes_sanitized_runtime_snapshot() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-privacy-export",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    write_privacy_runtime_fixture(&runtime_layout);
+    fs::create_dir_all(runtime_layout.runtime_root.join("desktop/exports")).expect("exports dir");
+    fs::write(
+        runtime_layout
+            .runtime_root
+            .join("desktop/exports/old-export.json"),
+        r#"{"old":true}"#,
+    )
+    .expect("old export");
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, body) =
+        post_desktop_json(server.addr, "/api/desktop/settings/export-data", "{}").await;
+    assert_eq!(status, 200);
+    let state: serde_json::Value = serde_json::from_str(&body).expect("export state");
+    let export_path = PathBuf::from(
+        state["conversation"]["messages"]
+            .as_array()
+            .expect("messages")
+            .last()
+            .and_then(|message| message["detail"].as_str())
+            .expect("export path"),
+    );
+    let raw = fs::read_to_string(export_path).expect("export json");
+    assert!(
+        !raw.contains("super-secret"),
+        "export must not contain raw API keys"
+    );
+    assert!(
+        !raw.contains("secret-token"),
+        "export must not include secret file contents"
+    );
+    let export: serde_json::Value = serde_json::from_str(&raw).expect("export value");
+    assert_eq!(
+        export["state"]["preferences"]["privacyDefaults"]["dataLocation"],
+        runtime_layout.runtime_root.to_string_lossy().as_ref()
+    );
+    assert_export_file(&export, "memory/runtime.db");
+    assert_export_file(&export, "memory/desktop-items.json");
+    assert_export_file(&export, "memory/durable/main/note.md");
+    assert_export_file(&export, "memory/experience/outbox.json");
+    assert_export_file(&export, "memory/session-summary/main.md");
+    assert_export_file(&export, "workflows/privacy-flow.json");
+    assert_export_file(&export, "desktop/notifications/policy.json");
+    assert_export_file(&export, "config/desktop-agent-provider.json");
+    assert_export_file(&export, "config/desktop-memory-policy.json");
+    assert_export_file(&export, "config/desktop-model-profiles.json");
+    assert_export_skipped(&export, "config/secrets/desktop-models/test.key", "secret");
+    assert_export_skipped(&export, "desktop/exports/old-export.json", "export");
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn gateway_settings_delete_and_reset_require_confirmation() {
     let runtime_layout = create_runtime_fixture(
         "desktop-settings-confirmation",
@@ -1263,12 +2007,20 @@ esac
     .await
     .expect("gateway should start");
 
-    fs::create_dir_all(runtime_layout.runtime_root.join("desktop/cache")).expect("cache dir");
-    fs::write(
-        runtime_layout.runtime_root.join("desktop/cache/item.tmp"),
-        "cache",
-    )
-    .expect("cache file");
+    for dir in ["cache", "downloads", "previews", "tmp"] {
+        fs::create_dir_all(runtime_layout.runtime_root.join("desktop").join(dir))
+            .expect("cache dir");
+        fs::write(
+            runtime_layout
+                .runtime_root
+                .join("desktop")
+                .join(dir)
+                .join("item.tmp"),
+            dir,
+        )
+        .expect("cache file");
+    }
+    write_privacy_runtime_fixture(&runtime_layout);
 
     let (status, _) =
         post_desktop_json(server.addr, "/api/desktop/settings/delete-local-data", "{}").await;
@@ -1280,12 +2032,30 @@ esac
     let (status, _) =
         post_desktop_json(server.addr, "/api/desktop/settings/clear-cache", "{}").await;
     assert_eq!(status, 200);
+    for dir in ["cache", "downloads", "previews", "tmp"] {
+        assert!(
+            !runtime_layout
+                .runtime_root
+                .join("desktop")
+                .join(dir)
+                .join("item.tmp")
+                .exists(),
+            "clear-cache should remove {dir} files"
+        );
+    }
     assert!(
-        !runtime_layout
+        runtime_layout
             .runtime_root
-            .join("desktop/cache/item.tmp")
+            .join("memory/runtime.db")
             .exists(),
-        "clear-cache should remove desktop cache files"
+        "clear-cache must not remove memory runtime data"
+    );
+    assert!(
+        runtime_layout
+            .runtime_root
+            .join("config/desktop-model-profiles.json")
+            .exists(),
+        "clear-cache must not remove model profiles"
     );
 
     let (status, body) = post_desktop_json(
@@ -1299,8 +2069,66 @@ esac
     assert!(json["conversation"]["messages"]
         .as_array()
         .expect("messages")
-        .iter()
-        .any(|message| message["kind"] == "status" && message["title"] == "本地桌面数据已删除"));
+        .is_empty());
+    for path in [
+        "desktop/notifications/policy.json",
+        "sessions/privacy-thread.jsonl",
+        "workflows/privacy-flow.json",
+        "agents/desktop-agents.json",
+        "memory/runtime.db",
+        "memory/desktop-items.json",
+        "memory/durable/main/note.md",
+        "memory/experience/outbox.json",
+        "memory/session-summary/main.md",
+        "config/desktop-preferences.json",
+        "config/desktop-memory-policy.json",
+        "config/desktop-agent-provider.json",
+        "config/desktop-model-profiles.json",
+    ] {
+        assert!(
+            !runtime_layout.runtime_root.join(path).exists(),
+            "delete-local-data should remove {path}"
+        );
+    }
+    assert!(
+        runtime_layout
+            .runtime_root
+            .join("config/secrets/desktop-models/test.key")
+            .exists(),
+        "delete-local-data must preserve desktop API key secret files"
+    );
+
+    let restarted_server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("restarted gateway should start");
+    let (status, body) = request(
+        restarted_server.addr,
+        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
+    assert_eq!(
+        json["desktopState"]["preferences"]["privacyDefaults"]["dataLocation"],
+        runtime_layout.runtime_root.to_string_lossy().as_ref()
+    );
+    assert!(json["desktopState"]["sidebar"]["threads"]
+        .as_array()
+        .expect("threads")
+        .is_empty());
+    assert!(json["desktopState"]["memoryWorkspace"]["items"]
+        .as_array()
+        .expect("memory items")
+        .is_empty());
+    assert!(json["desktopState"]["preferences"]["modelProfiles"]
+        .as_array()
+        .expect("model profiles")
+        .is_empty());
 }
 
 #[cfg(unix)]
@@ -1452,7 +2280,7 @@ esac
     .expect("gateway should start");
 
     let body = format!(
-        r#"{{"input":{{"query":"rust native","baseUrl":{},"count":1,"engines":["bing"],"autoStart":false}}}}"#,
+        r#"{{"confirmed":true,"input":{{"query":"rust native","baseUrl":{},"count":1,"engines":["bing"],"autoStart":false}}}}"#,
         serde_json::to_string(&base_url).expect("base url json")
     );
     let request_body = format!(
@@ -2117,6 +2945,7 @@ esac
 #[cfg(unix)]
 #[tokio::test]
 async fn gateway_expanded_preferences_persist_through_rust_runtime_store() {
+    let _advanced_guard = ADVANCED_SETTINGS_TEST_LOCK.lock().await;
     let runtime_layout = create_runtime_fixture(
         "desktop-expanded-preferences-store",
         r#"#!/bin/sh
@@ -2156,6 +2985,7 @@ esac
     .await;
     assert_eq!(status, 200);
 
+    let expected_data_location = runtime_layout.runtime_root.to_string_lossy().to_string();
     let restarted_server = start_gateway_server(GatewayConfig {
         app_name: "CrawClaw Desktop".to_string(),
         app_version: "test".to_string(),
@@ -2196,7 +3026,7 @@ esac
     );
     assert_eq!(
         preferences["privacyDefaults"]["dataLocation"],
-        "本机默认位置"
+        expected_data_location
     );
     assert_eq!(preferences["advancedDefaults"]["logLevel"], "详细");
 }
@@ -2532,6 +3362,7 @@ esac
 #[cfg(unix)]
 #[tokio::test]
 async fn gateway_preferences_apply_hot_settings_effects_without_restart() {
+    let _advanced_guard = ADVANCED_SETTINGS_TEST_LOCK.lock().await;
     let runtime_layout = create_runtime_fixture(
         "desktop-hot-settings-effects",
         r#"#!/bin/sh
@@ -2585,6 +3416,30 @@ esac
     assert_eq!(effective["memory"]["memoryDreamEnabled"], false);
     assert_eq!(effective["memory"]["memoryDreamFrequency"], "手动");
     assert_eq!(effective["advanced"]["logLevel"], "详细");
+    let notification_policy_path = runtime_layout
+        .runtime_root
+        .join("desktop")
+        .join("notifications")
+        .join("policy.json");
+    let notification_policy: serde_json::Value = serde_json::from_str(
+        &fs::read_to_string(notification_policy_path).expect("notification policy"),
+    )
+    .expect("notification policy json");
+    assert_eq!(notification_policy["enabled"], true);
+    assert_eq!(notification_policy["defaults"]["notifyTaskDone"], false);
+    assert_eq!(notification_policy["defaults"]["notificationSound"], true);
+    let policy_path = runtime_layout
+        .runtime_root
+        .join("config")
+        .join("desktop-memory-policy.json");
+    let policy: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(policy_path).expect("memory policy"))
+            .expect("memory policy json");
+    assert_eq!(policy["rememberPreferences"], false);
+    assert_eq!(policy["rememberProjectContext"], true);
+    assert_eq!(policy["memoryDreamEnabled"], false);
+    assert_eq!(policy["memoryDreamFrequency"], "手动");
+    assert_eq!(policy["memoryCleanupConfirmation"], "不自动清理");
 
     let log_level = fs::read_to_string(
         runtime_layout
@@ -2681,6 +3536,65 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
+async fn gateway_archive_memory_item_respects_cleanup_confirmation() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-memory-cleanup-confirm",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let item_body = r#"{
+      "title":"稳定偏好",
+      "summary":"用户偏好",
+      "content":"用户喜欢中文回复。",
+      "category":"偏好",
+      "tags":["重要"]
+    }"#;
+    let (status, body) =
+        post_desktop_json(server.addr, "/api/desktop/memory/items", item_body).await;
+    assert_eq!(status, 200);
+    let state: serde_json::Value = serde_json::from_str(&body).expect("state json");
+    let item_id = state["memoryWorkspace"]["selectedItemId"]
+        .as_str()
+        .expect("selected memory item");
+
+    let (status, _) = post_desktop_json(
+        server.addr,
+        &format!("/api/desktop/memory/items/{item_id}/archive"),
+        r#"{}"#,
+    )
+    .await;
+    assert_eq!(status, 409);
+
+    let (status, body) = post_desktop_json(
+        server.addr,
+        &format!("/api/desktop/memory/items/{item_id}/archive"),
+        r#"{"confirmed":true}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let state: serde_json::Value = serde_json::from_str(&body).expect("state json");
+    assert_eq!(
+        state["memoryWorkspace"]["items"][0]["archived"], true,
+        "confirmed cleanup should archive the item"
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn gateway_send_message_is_rust_backed_and_streams_session_events() {
     let runtime_layout = create_runtime_fixture(
         "desktop-send-message",
@@ -2704,6 +3618,18 @@ esac
     })
     .await
     .expect("gateway should start");
+
+    let preferences_body = r#"{"notificationDefaults":{"notificationSound":true}}"#;
+    let (status, _) = request(
+        server.addr,
+        format!(
+            "PATCH /api/desktop/preferences HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            preferences_body.len(),
+            preferences_body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
 
     let mut events = tokio::net::TcpStream::connect(server.addr)
         .await
@@ -2757,12 +3683,99 @@ esac
     assert!(transcript.contains(r#""content":"hello from desktop""#));
     assert!(transcript.contains(r#""role":"assistant""#));
     assert!(transcript.contains(r#""content":"provider says hello""#));
+    let memory_messages = crawclaw_runtime::memory::RuntimeStore::new(
+        runtime_layout
+            .runtime_root
+            .join("memory")
+            .join("runtime.db"),
+    )
+    .list_messages(thread_id, 10)
+    .expect("memory messages");
+    assert_eq!(memory_messages.len(), 2);
+    let notification = read_last_notification(&runtime_layout);
+    assert_eq!(notification["kind"], "taskDone");
+    assert_eq!(notification["title"], "对话已完成");
+    assert_eq!(notification["sound"], true);
 
     let events = read_stream_until(&mut events, "event: stateChanged").await;
     assert!(events.contains("event: sessionStarted"));
     assert!(events.contains("event: messageDelta"));
     assert!(events.contains("event: messageFinal"));
     assert!(events.contains("event: stateChanged"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_send_message_returns_running_assistant_before_provider_finishes() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-send-message-running",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let provider_base_url =
+        spawn_openai_compatible_provider_with_delay("hello running", "delayed reply", Duration::from_secs(1)).await;
+    write_openai_compatible_provider_config(&runtime_layout, &provider_base_url);
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let mut events = tokio::net::TcpStream::connect(server.addr)
+        .await
+        .expect("connect events");
+    events
+        .write_all(
+            b"GET /api/desktop/events?sessionToken=session HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n",
+        )
+        .await
+        .expect("write events request");
+    let _ = read_stream_until(&mut events, "event: runtime").await;
+
+    let body = r#"{"text":"hello running"}"#;
+    let started_at = Instant::now();
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/messages HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        ),
+    )
+    .await;
+
+    assert_eq!(status, 200);
+    assert!(
+        started_at.elapsed() < Duration::from_millis(500),
+        "message route should return before the provider response finishes"
+    );
+    let json: serde_json::Value = serde_json::from_str(&body).expect("running state json");
+    let messages = json["conversation"]["messages"]
+        .as_array()
+        .expect("conversation messages");
+    assert!(messages
+        .iter()
+        .any(|message| message["kind"] == "user" && message["text"] == "hello running"));
+    let assistant = messages
+        .iter()
+        .find(|message| message["kind"] == "assistant")
+        .expect("running assistant message");
+    assert_eq!(assistant["status"], "running");
+    assert_eq!(assistant["text"], "");
+    assert!(assistant["runId"].as_str().is_some_and(|run_id| run_id.starts_with("run-")));
+
+    let events = read_stream_until(&mut events, "event: messageFinal").await;
+    assert!(events.contains("event: messageFinal"));
+    assert!(events.contains("delayed reply"));
 }
 
 #[cfg(unix)]
@@ -3695,6 +4708,55 @@ esac
     assert!(steer_events.contains("no_active_message"));
 }
 
+#[tokio::test]
+async fn gateway_search_indexes_live_memory_items() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-search-live-memory",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let item_body = r#"{"title":"Searchable Memory","summary":"needle summary","content":"needle content","category":"项目","tags":["needle"]}"#;
+    let (status, state_body) =
+        post_desktop_json(server.addr, "/api/desktop/memory/items", item_body).await;
+    assert_eq!(status, 200);
+    let state: serde_json::Value = serde_json::from_str(&state_body).expect("state json");
+    let item_id = state["memoryWorkspace"]["selectedItemId"]
+        .as_str()
+        .expect("selected memory item")
+        .to_string();
+
+    let (status, body) = request(
+        server.addr,
+        "GET /api/desktop/search?q=needle HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let results: serde_json::Value = serde_json::from_str(&body).expect("search results");
+    assert!(results
+        .as_array()
+        .expect("search result array")
+        .iter()
+        .any(|result| {
+            result["label"] == "Searchable Memory"
+                && result["targetNavId"] == "memory"
+                && result["targetItemId"] == item_id
+        }));
+}
+
 #[cfg(unix)]
 #[tokio::test]
 async fn gateway_memory_mutations_persist_through_rust_runtime_store() {
@@ -3733,7 +4795,7 @@ esac
         .as_str()
         .expect("created memory item id");
 
-    let update_body = r#"{"summary":"updated summary","content":"remember this after update"}"#;
+    let update_body = r#"{"summary":"updated summary","content":"remember this after update","tags":["desktop","updated"],"source":"Updated source"}"#;
     let (status, _) = request(
         server.addr,
         format!(
@@ -3748,7 +4810,7 @@ esac
     let (status, _) = request(
         server.addr,
         format!(
-            "POST /api/desktop/memory/items/{item_id}/archive HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{{}}",
+            "POST /api/desktop/memory/items/{item_id}/archive HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: 18\r\nConnection: close\r\n\r\n{{\"confirmed\":true}}",
         ),
     )
     .await;
@@ -3779,6 +4841,8 @@ esac
     assert_eq!(item["title"], "Persisted fact");
     assert_eq!(item["summary"], "updated summary");
     assert_eq!(item["content"], "remember this after update");
+    assert_eq!(item["source"], "Updated source");
+    assert_eq!(item["tags"], serde_json::json!(["desktop", "updated"]));
     assert_eq!(item["archived"], true);
 }
 
@@ -3857,6 +4921,10 @@ esac
         .as_str()
         .expect("dream message")
         .contains("Memory Agent"));
+    let notification = read_last_notification(&runtime_layout);
+    assert_eq!(notification["kind"], "dreamDone");
+    assert_eq!(notification["title"], "记忆做梦已完成");
+    assert_eq!(notification["sound"], false);
 
     let events = read_stream_until(&mut events, "event: stateChanged").await;
     assert!(events.contains("event: stateChanged"));
@@ -3914,6 +4982,41 @@ async fn post_desktop_json(addr: SocketAddr, path: &str, body: &str) -> (u16, St
         ),
     )
     .await
+}
+
+fn last_notification_path(layout: &RuntimeLayout) -> PathBuf {
+    layout
+        .runtime_root
+        .join("desktop")
+        .join("notifications")
+        .join("last-notification.json")
+}
+
+fn read_last_notification(layout: &RuntimeLayout) -> serde_json::Value {
+    serde_json::from_str(
+        &fs::read_to_string(last_notification_path(layout)).expect("last notification"),
+    )
+    .expect("last notification json")
+}
+
+#[cfg(unix)]
+fn assert_export_file(export: &serde_json::Value, path: &str) {
+    let files = export["files"].as_array().expect("export files");
+    assert!(
+        files.iter().any(|file| file["path"].as_str() == Some(path)),
+        "export should include {path}: {files:?}"
+    );
+}
+
+#[cfg(unix)]
+fn assert_export_skipped(export: &serde_json::Value, path: &str, reason: &str) {
+    let skipped = export["skipped"].as_array().expect("export skipped");
+    assert!(
+        skipped.iter().any(|entry| {
+            entry["path"].as_str() == Some(path) && entry["reason"].as_str() == Some(reason)
+        }),
+        "export should skip {path} as {reason}: {skipped:?}"
+    );
 }
 
 async fn request_stream_prefix(addr: SocketAddr, request: impl Into<String>) -> String {
@@ -4030,6 +5133,22 @@ async fn spawn_openai_compatible_provider(expected_text: &str, response_text: &s
 }
 
 #[cfg(unix)]
+async fn spawn_openai_compatible_provider_with_delay(
+    expected_text: &str,
+    response_text: &str,
+    delay: Duration,
+) -> String {
+    spawn_openai_compatible_provider_sequence(vec![ProviderResponseFixture {
+        delay,
+        expected_model: None,
+        forbidden_substrings: Vec::new(),
+        required_substrings: vec![format!(r#""content":"{expected_text}""#)],
+        response_text: response_text.to_string(),
+    }])
+    .await
+}
+
+#[cfg(unix)]
 async fn spawn_openai_compatible_provider_with_model(
     expected_text: &str,
     response_text: &str,
@@ -4081,22 +5200,43 @@ async fn spawn_openai_compatible_provider_with_checks(
     required_substrings: &[&str],
     forbidden_substrings: &[&str],
 ) -> String {
+    spawn_openai_compatible_provider_sequence(vec![ProviderResponseFixture {
+        delay: Duration::ZERO,
+        expected_model: expected_model.map(str::to_string),
+        forbidden_substrings: forbidden_substrings
+            .iter()
+            .map(|value| (*value).to_string())
+            .collect(),
+        required_substrings: required_substrings
+            .iter()
+            .map(|value| (*value).to_string())
+            .collect(),
+        response_text: response_text.to_string(),
+    }])
+    .await
+}
+
+#[cfg(unix)]
+struct ProviderResponseFixture {
+    delay: Duration,
+    expected_model: Option<String>,
+    forbidden_substrings: Vec<String>,
+    required_substrings: Vec<String>,
+    response_text: String,
+}
+
+#[cfg(unix)]
+async fn spawn_openai_compatible_provider_sequence(
+    responses: Vec<ProviderResponseFixture>,
+) -> String {
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
         .await
         .expect("bind provider");
     let addr = listener.local_addr().expect("provider addr");
-    let response_text = response_text.to_string();
-    let expected_model = expected_model.map(str::to_string);
-    let required_substrings = required_substrings
-        .iter()
-        .map(|value| (*value).to_string())
-        .collect::<Vec<_>>();
-    let forbidden_substrings = forbidden_substrings
-        .iter()
-        .map(|value| (*value).to_string())
-        .collect::<Vec<_>>();
     tokio::spawn(async move {
-        let (mut stream, _) = listener.accept().await.expect("accept provider request");
+        for response_fixture in responses {
+            let (mut stream, _) = listener.accept().await.expect("accept provider request");
+            tokio::spawn(async move {
         let mut bytes = Vec::new();
         let mut buffer = [0; 4096];
         loop {
@@ -4112,31 +5252,32 @@ async fn spawn_openai_compatible_provider_with_checks(
         }
         let request = String::from_utf8_lossy(&bytes);
         assert!(request.starts_with("POST /v1/chat/completions "));
-        for required in &required_substrings {
+        for required in &response_fixture.required_substrings {
             assert!(
                 request.contains(required),
                 "provider request did not contain required substring {required}: {request}"
             );
         }
-        for forbidden in &forbidden_substrings {
+        for forbidden in &response_fixture.forbidden_substrings {
             assert!(
                 !request.contains(forbidden),
                 "provider request contained forbidden substring {forbidden}: {request}"
             );
         }
-        if let Some(expected_model) = expected_model {
+        if let Some(expected_model) = response_fixture.expected_model {
             assert!(request.contains(&format!(r#""model":"{expected_model}""#)));
         }
         assert!(request
             .to_lowercase()
             .contains("authorization: bearer test-key"));
+        tokio::time::sleep(response_fixture.delay).await;
 
         let (content_type, body) = if request.contains(r#""stream":true"#) {
             let chunk = serde_json::to_string(&serde_json::json!({
                 "choices": [
                     {
                         "delta": {
-                            "content": response_text
+                            "content": response_fixture.response_text
                         }
                     }
                 ]
@@ -4151,7 +5292,7 @@ async fn spawn_openai_compatible_provider_with_checks(
                 "application/json",
                 format!(
                     r#"{{"choices":[{{"message":{{"content":{}}}}}]}}"#,
-                    serde_json::to_string(&response_text).expect("response text json")
+                    serde_json::to_string(&response_fixture.response_text).expect("response text json")
                 ),
             )
         };
@@ -4164,6 +5305,8 @@ async fn spawn_openai_compatible_provider_with_checks(
             .write_all(response.as_bytes())
             .await
             .expect("write provider response");
+            });
+        }
     });
 
     format!("http://{addr}/v1")
@@ -4363,6 +5506,136 @@ fn write_session_transcript(layout: &RuntimeLayout, thread_id: &str, user: &str,
     );
     fs::write(sessions_dir.join(format!("{thread_id}.jsonl")), transcript)
         .expect("session transcript");
+}
+
+#[cfg(unix)]
+fn write_privacy_runtime_fixture(layout: &RuntimeLayout) {
+    write_session_transcript(layout, "privacy-thread", "remember this", "stored");
+    fs::write(
+        layout
+            .runtime_root
+            .join("sessions/desktop-session-metadata.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "privacy-thread": {
+                "title": "Privacy Thread",
+                "pinned": false,
+                "active": true,
+                "resultItems": []
+            }
+        }))
+        .expect("session metadata json"),
+    )
+    .expect("session metadata");
+    write_json_fixture(
+        layout,
+        "agents/desktop-agents.json",
+        serde_json::json!([{"id":"privacy-agent","name":"Privacy Agent"}]),
+    );
+    write_json_fixture(
+        layout,
+        "memory/desktop-items.json",
+        serde_json::json!([
+            {
+                "id": "memory-privacy",
+                "agentId": "default",
+                "title": "Privacy Memory",
+                "summary": "summary",
+                "content": "content",
+                "category": "偏好",
+                "tags": ["important"],
+                "source": "manual",
+                "updatedAt": "刚刚",
+                "archived": false
+            }
+        ]),
+    );
+    write_text_fixture(layout, "memory/runtime.db", "runtime-memory");
+    write_text_fixture(layout, "memory/durable/main/note.md", "# durable");
+    write_json_fixture(
+        layout,
+        "memory/experience/outbox.json",
+        serde_json::json!([{"id":"experience-privacy","content":"experience"}]),
+    );
+    write_text_fixture(layout, "memory/session-summary/main.md", "# summary");
+    write_json_fixture(
+        layout,
+        "workflows/privacy-flow.json",
+        serde_json::json!({"id":"privacy-flow","status":"draft"}),
+    );
+    write_json_fixture(
+        layout,
+        "desktop/notifications/policy.json",
+        serde_json::json!({"enabled":true}),
+    );
+    write_json_fixture(
+        layout,
+        "config/desktop-preferences.json",
+        serde_json::json!({
+            "selectedModel": "gpt-5.5",
+            "selectedThinking": "high",
+            "permissionMode": "工作区模式",
+            "privacyDefaults": {"dataLocation": "stale"}
+        }),
+    );
+    write_json_fixture(
+        layout,
+        "config/desktop-memory-policy.json",
+        serde_json::json!({"rememberPreferences":true,"rememberProjectContext":true}),
+    );
+    write_json_fixture(
+        layout,
+        "config/desktop-agent-provider.json",
+        serde_json::json!({
+            "runtime": "native-provider",
+            "provider": "openai-compatible",
+            "apiKey": "super-secret",
+            "model": "test-model"
+        }),
+    );
+    write_json_fixture(
+        layout,
+        "config/desktop-model-profiles.json",
+        serde_json::json!([
+            {
+                "id": "test-model",
+                "label": "Test Model",
+                "modelRef": "openai-compatible/test-model",
+                "source": "custom",
+                "provider": "openai-compatible",
+                "model": "test-model",
+                "authMethod": "api-key",
+                "apiKeyRef": {"source":"file","id":"config/secrets/desktop-models/test.key"},
+                "lastConnectionStatus": "ok"
+            }
+        ]),
+    );
+    write_text_fixture(
+        layout,
+        "config/secrets/desktop-models/test.key",
+        "secret-token",
+    );
+}
+
+#[cfg(unix)]
+fn write_json_fixture(layout: &RuntimeLayout, path: &str, value: serde_json::Value) {
+    let path = layout.runtime_root.join(path);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).expect("fixture parent");
+    }
+    fs::write(
+        path,
+        serde_json::to_vec_pretty(&value).expect("fixture json"),
+    )
+    .expect("fixture write");
+}
+
+#[cfg(unix)]
+fn write_text_fixture(layout: &RuntimeLayout, path: &str, value: &str) {
+    let path = layout.runtime_root.join(path);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).expect("fixture parent");
+    }
+    fs::write(path, value).expect("fixture write");
 }
 
 #[cfg(unix)]

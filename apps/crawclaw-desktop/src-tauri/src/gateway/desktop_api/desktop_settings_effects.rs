@@ -7,6 +7,8 @@ use serde_json::{json, Value};
 
 use crate::models::{DesktopPreferences, NotificationDefaults};
 
+use super::desktop_logging::configure_desktop_rust_logging;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum DesktopNotificationKind {
     TaskDone,
@@ -31,6 +33,7 @@ pub(super) fn apply_desktop_settings_effects(
     preferences: &DesktopPreferences,
 ) -> Result<(), String> {
     write_settings_effect_files(runtime_root, preferences)?;
+    configure_desktop_rust_logging(runtime_root, &preferences.advanced_defaults.log_level)?;
     if let Some(bridge) = NATIVE_SETTINGS_BRIDGE.get() {
         bridge.apply_preferences(preferences)?;
     }
@@ -126,6 +129,19 @@ fn write_settings_effect_files(
             "updatedAtUnixMs": now_unix_ms(),
         }),
     )?;
+    write_json_file(
+        &runtime_root
+            .join("config")
+            .join("desktop-memory-policy.json"),
+        &json!({
+            "rememberPreferences": preferences.memory_defaults.remember_preferences,
+            "rememberProjectContext": preferences.memory_defaults.remember_project_context,
+            "memoryDreamEnabled": preferences.memory_defaults.memory_dream_enabled,
+            "memoryDreamFrequency": preferences.memory_defaults.memory_dream_frequency,
+            "memoryCleanupConfirmation": preferences.memory_defaults.memory_cleanup_confirmation,
+            "updatedAtUnixMs": now_unix_ms(),
+        }),
+    )?;
     Ok(())
 }
 
@@ -164,6 +180,76 @@ fn notification_kind_id(kind: DesktopNotificationKind) -> &'static str {
         DesktopNotificationKind::ConfirmNeeded => "confirmNeeded",
         DesktopNotificationKind::DreamDone => "dreamDone",
         DesktopNotificationKind::AutomationFailed => "automationFailed",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::gateway::desktop_state::initial_desktop_state;
+    use crate::models::RuntimeStatus;
+    use crawclaw_core::{RuntimeCompatStatus, RuntimeStatusValue};
+    use uuid::Uuid;
+
+    fn test_preferences() -> DesktopPreferences {
+        initial_desktop_state(&RuntimeStatus {
+            status: RuntimeStatusValue::Ready,
+            detail: "ready".to_string(),
+            runtime_root: "/tmp/crawclaw-test".to_string(),
+            binary_path: "/tmp/crawclaw-test/bin/crawclaw-runtime".to_string(),
+            compat: RuntimeCompatStatus::default(),
+        })
+        .preferences
+    }
+
+    fn test_runtime_root(name: &str) -> std::path::PathBuf {
+        std::env::temp_dir().join(format!("crawclaw-desktop-{name}-{}", Uuid::new_v4()))
+    }
+
+    #[test]
+    fn notification_kind_gate_controls_recording_and_sound_state() {
+        let runtime_root = test_runtime_root("notification-gate");
+        let notification_path = runtime_root
+            .join("desktop")
+            .join("notifications")
+            .join("last-notification.json");
+        let mut preferences = test_preferences();
+        preferences.notification_defaults.notify_task_done = false;
+        preferences.notification_defaults.notification_sound = true;
+
+        let sent = send_desktop_notification(
+            &runtime_root,
+            &preferences,
+            DesktopNotificationKind::TaskDone,
+            "完成",
+            "任务完成。",
+        )
+        .expect("notification gate");
+
+        assert!(!sent);
+        assert!(!notification_path.exists());
+
+        preferences.notification_defaults.notify_task_done = true;
+        let sent = send_desktop_notification(
+            &runtime_root,
+            &preferences,
+            DesktopNotificationKind::TaskDone,
+            "完成",
+            "任务完成。",
+        )
+        .expect("notification send");
+
+        assert!(sent);
+        let notification: Value = serde_json::from_str(
+            &fs::read_to_string(&notification_path).expect("notification record"),
+        )
+        .expect("notification json");
+        assert_eq!(notification["kind"], "taskDone");
+        assert_eq!(notification["title"], "完成");
+        assert_eq!(notification["body"], "任务完成。");
+        assert_eq!(notification["sound"], true);
+
+        let _ = fs::remove_dir_all(runtime_root);
     }
 }
 

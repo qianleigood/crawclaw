@@ -19,6 +19,7 @@ export function subscribeDesktopEvents(onEvent: (event: DesktopEvent) => void): 
 
   source.addEventListener('runtime', handleMessage)
   source.addEventListener('stateChanged', handleMessage)
+  source.addEventListener('permissionRequested', handleMessage)
   source.addEventListener('permissionChanged', handleMessage)
   return () => source.close()
 }

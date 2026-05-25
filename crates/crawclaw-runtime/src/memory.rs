@@ -34,6 +34,7 @@ pub struct MemoryRuntimeConfig {
     pub dreaming: DreamingConfig,
     pub session_summary: SessionSummaryConfig,
     pub notebooklm: NotebookLmConfig,
+    pub desktop_policy: DesktopMemoryPolicyConfig,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -84,6 +85,16 @@ pub struct NotebookLmConfig {
     pub auth: NotebookLmAuthConfig,
     pub cli: NotebookLmCliConfig,
     pub write: NotebookLmWriteConfig,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DesktopMemoryPolicyConfig {
+    pub remember_preferences: bool,
+    pub remember_project_context: bool,
+    pub memory_dream_enabled: bool,
+    pub memory_dream_frequency: String,
+    pub memory_cleanup_confirmation: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -266,19 +277,55 @@ impl RustMemoryRuntime {
         messages: &[Value],
         pre_prompt_message_count: usize,
     ) -> Result<Value, String> {
+        tracing::debug!(
+            runtime_root = %self.runtime_root.display(),
+            session_id,
+            message_count = messages.len(),
+            pre_prompt_message_count,
+            "memory_after_turn_started"
+        );
         let new_messages = messages
             .iter()
             .skip(pre_prompt_message_count)
             .cloned()
             .collect::<Vec<_>>();
         let ingest = self.ingest_batch(session_id, session_key, &new_messages)?;
-        Ok(json!({
+        let mut result = json!({
             "status": "ok",
             "ingest": ingest,
             "durableExtraction": self.config.durable_extraction.enabled,
             "experienceExtraction": self.config.experience.enabled,
             "sessionSummary": self.config.session_summary.enabled
-        }))
+        });
+        if let Some(dream) = self.maybe_auto_dream(session_id) {
+            if let Some(object) = result.as_object_mut() {
+                object.insert("dream".to_string(), dream);
+            }
+        }
+        tracing::debug!(
+            runtime_root = %self.runtime_root.display(),
+            session_id,
+            ingested = new_messages.len(),
+            "memory_after_turn_completed"
+        );
+        Ok(result)
+    }
+
+    fn maybe_auto_dream(&self, session_id: &str) -> Option<Value> {
+        if !self.config.dreaming.enabled {
+            return None;
+        }
+        match self.dream_store().run_auto_if_due(
+            session_id,
+            &self.config.dreaming,
+            &self.config.desktop_policy,
+        ) {
+            Ok(value) if value.get("status").and_then(Value::as_str) == Some("completed") => {
+                Some(value)
+            }
+            Ok(_) => None,
+            Err(error) => Some(json!({ "status": "error", "error": error })),
+        }
     }
 
     pub async fn compact_with_agent_runtime(
@@ -319,6 +366,7 @@ impl RustMemoryRuntime {
                 "maxTurns": definition.max_turns
             }),
         );
+        options.insert("memoryAfterTurn".to_string(), json!(false));
         let result = AgentRuntime::new(self.runtime_root.clone())
             .run_turn(AgentRunRequest {
                 run_id: run_id.clone(),
@@ -496,6 +544,7 @@ impl RustMemoryRuntime {
                 "experience": self.config.experience,
                 "dreaming": self.config.dreaming,
                 "sessionSummary": self.config.session_summary,
+                "desktopPolicy": self.config.desktop_policy,
                 "notebooklm": {
                     "enabled": self.config.notebooklm.enabled,
                     "cli": {
@@ -916,7 +965,7 @@ impl MemoryRuntimeConfig {
         let raw = read_active_config()
             .and_then(|config| config.get("memory").cloned())
             .unwrap_or(Value::Null);
-        Self::from_value(&raw, runtime_root)
+        Self::from_value_with_desktop_policy(&raw, runtime_root)
     }
 
     pub fn from_value(raw: &Value, runtime_root: &Path) -> Self {
@@ -1017,6 +1066,79 @@ impl MemoryRuntimeConfig {
                     .and_then(|obj| obj.get("notebooklm"))
                     .unwrap_or(&Value::Null),
             ),
+            desktop_policy: DesktopMemoryPolicyConfig::default(),
+        }
+    }
+
+    pub fn from_value_with_desktop_policy(raw: &Value, runtime_root: &Path) -> Self {
+        let mut config = Self::from_value(raw, runtime_root);
+        config.apply_desktop_policy_overlay(runtime_root);
+        config
+    }
+
+    fn apply_desktop_policy_overlay(&mut self, runtime_root: &Path) {
+        let policy_path = runtime_root
+            .join("config")
+            .join("desktop-memory-policy.json");
+        let Ok(raw) = fs::read_to_string(policy_path) else {
+            return;
+        };
+        let Ok(policy_value) = serde_json::from_str::<Value>(&raw) else {
+            return;
+        };
+        let policy = DesktopMemoryPolicyConfig::from_value(&policy_value);
+        self.durable_extraction.enabled =
+            policy.remember_preferences || policy.remember_project_context;
+        self.experience.enabled = policy.remember_project_context;
+        self.dreaming.enabled =
+            policy.memory_dream_enabled && policy.memory_dream_frequency.trim() != "手动";
+        self.desktop_policy = policy;
+    }
+}
+
+impl Default for DesktopMemoryPolicyConfig {
+    fn default() -> Self {
+        Self {
+            remember_preferences: true,
+            remember_project_context: true,
+            memory_dream_enabled: true,
+            memory_dream_frequency: "空闲时".to_string(),
+            memory_cleanup_confirmation: "每次确认".to_string(),
+        }
+    }
+}
+
+impl DesktopMemoryPolicyConfig {
+    fn from_value(raw: &Value) -> Self {
+        let defaults = Self::default();
+        let object = raw.as_object();
+        Self {
+            remember_preferences: object
+                .and_then(|obj| obj.get("rememberPreferences"))
+                .and_then(Value::as_bool)
+                .unwrap_or(defaults.remember_preferences),
+            remember_project_context: object
+                .and_then(|obj| obj.get("rememberProjectContext"))
+                .and_then(Value::as_bool)
+                .unwrap_or(defaults.remember_project_context),
+            memory_dream_enabled: object
+                .and_then(|obj| obj.get("memoryDreamEnabled"))
+                .and_then(Value::as_bool)
+                .unwrap_or(defaults.memory_dream_enabled),
+            memory_dream_frequency: object
+                .and_then(|obj| obj.get("memoryDreamFrequency"))
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .unwrap_or(&defaults.memory_dream_frequency)
+                .to_string(),
+            memory_cleanup_confirmation: object
+                .and_then(|obj| obj.get("memoryCleanupConfirmation"))
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .unwrap_or(&defaults.memory_cleanup_confirmation)
+                .to_string(),
         }
     }
 }
@@ -1348,6 +1470,47 @@ impl DreamStore {
         history.push(entry.clone());
         write_json_array(&self.history_file(), &history)?;
         Ok(entry)
+    }
+
+    pub fn run_auto_if_due(
+        &self,
+        scope: &str,
+        dreaming: &DreamingConfig,
+        policy: &DesktopMemoryPolicyConfig,
+    ) -> Result<Value, String> {
+        let frequency = policy.memory_dream_frequency.trim();
+        if frequency == "手动" {
+            return Ok(json!({ "status": "skipped", "reason": "manual_only" }));
+        }
+        let now = now_millis() as u64;
+        let last_run = self
+            .history()?
+            .into_iter()
+            .filter(|entry| entry.get("scope").and_then(Value::as_str) == Some(scope))
+            .filter_map(|entry| entry.get("createdAtMillis").and_then(Value::as_u64))
+            .max()
+            .unwrap_or(0);
+        let min_gap_ms = if frequency == "每天" {
+            86_400_000
+        } else {
+            dreaming.scan_throttle_ms
+        };
+        if last_run > 0 && now.saturating_sub(last_run) < min_gap_ms {
+            return Ok(json!({ "status": "skipped", "reason": "not_due" }));
+        }
+        if frequency != "每天" {
+            let messages = RuntimeStore::new(self.runtime_root.join("memory").join("runtime.db"))
+                .list_messages(scope, dreaming.min_sessions as usize)?;
+            if messages.len() < dreaming.min_sessions as usize {
+                return Ok(json!({ "status": "skipped", "reason": "below_threshold" }));
+            }
+        }
+        let task = if frequency == "每天" {
+            "自动每日整理长期记忆。"
+        } else {
+            "空闲时自动整理长期记忆。"
+        };
+        self.run(scope, task)
     }
 
     fn history_file(&self) -> PathBuf {

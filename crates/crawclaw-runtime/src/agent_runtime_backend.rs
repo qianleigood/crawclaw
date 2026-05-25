@@ -21,6 +21,7 @@ pub struct AgentSendResult {
     pub thread_id: String,
     pub user_text: String,
     pub assistant_text: String,
+    pub memory_result: Option<Result<Value, String>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -81,6 +82,17 @@ pub(super) fn agent_run_option_is(
         .and_then(Value::as_str)
         .map(str::trim)
         .is_some_and(|value| value.eq_ignore_ascii_case(expected))
+}
+
+pub(super) fn agent_run_option_bool(options: &BTreeMap<String, Value>, key: &str) -> Option<bool> {
+    options.get(key).and_then(Value::as_bool)
+}
+
+fn runtime_now_millis() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .unwrap_or(0)
 }
 
 pub(super) fn build_btw_question_prompt(question: &str) -> String {
@@ -173,8 +185,9 @@ impl AgentRuntime {
                 .run_btw_turn(run_id, agent_id, session_key, question, model)
                 .await;
         }
+        let memory_after_turn = agent_run_option_bool(&options, "memoryAfterTurn").unwrap_or(true);
         let result = self
-            .send_message_with_options(
+            .send_message_with_options_inner(
                 session_key.clone(),
                 user_text.clone(),
                 AgentRuntimeSendOptions {
@@ -183,6 +196,7 @@ impl AgentRuntime {
                     permission_policy: None,
                     system_prompt: None,
                 },
+                memory_after_turn,
             )
             .await?;
         let assistant_text = result.assistant_text;
@@ -207,27 +221,22 @@ impl AgentRuntime {
                 message_id: format!("{run_id}:assistant"),
             },
         ];
-        match self.record_memory_after_turn(
-            &result.thread_id,
-            &session_key,
-            &run_id,
-            &user_text,
-            &assistant_text,
-        ) {
-            Ok(memory_result) => events.push(AgentRunEvent::ToolResult {
+        match result.memory_result {
+            Some(Ok(memory_result)) => events.push(AgentRunEvent::ToolResult {
                 run_id: run_id.clone(),
                 call_id: format!("{run_id}:memory-after-turn"),
                 tool_name: "memory.afterTurn".to_string(),
                 result: memory_result,
                 is_error: None,
             }),
-            Err(error) => events.push(AgentRunEvent::ToolResult {
+            Some(Err(error)) => events.push(AgentRunEvent::ToolResult {
                 run_id: run_id.clone(),
                 call_id: format!("{run_id}:memory-after-turn"),
                 tool_name: "memory.afterTurn".to_string(),
                 result: json!({ "error": error }),
                 is_error: Some(true),
             }),
+            None => {}
         }
         events.push(AgentRunEvent::RunCompleted {
             run_id: run_id.clone(),
@@ -332,6 +341,23 @@ impl AgentRuntime {
         user_text: String,
         options: AgentRuntimeSendOptions,
     ) -> Result<AgentSendResult, AgentRuntimeError> {
+        self.send_message_with_options_inner(thread_id, user_text, options, true)
+            .await
+    }
+
+    async fn send_message_with_options_inner(
+        &self,
+        thread_id: String,
+        user_text: String,
+        options: AgentRuntimeSendOptions,
+        memory_after_turn: bool,
+    ) -> Result<AgentSendResult, AgentRuntimeError> {
+        tracing::info!(
+            runtime_root = %self.runtime_root.display(),
+            thread_id = %thread_id,
+            memory_after_turn,
+            "agent_runtime_send_message_started"
+        );
         let config = self.read_provider_config()?;
         let history = self.load_thread_history(&thread_id)?;
         let provider_user_text = user_text_with_system_prompt(&options.system_prompt, &user_text);
@@ -378,10 +404,31 @@ impl AgentRuntime {
         };
 
         self.append_transcript(&thread_id, &user_text, &assistant_text)?;
+        let memory_result = memory_after_turn.then(|| {
+            tracing::debug!(
+                runtime_root = %self.runtime_root.display(),
+                thread_id = %thread_id,
+                "agent_runtime_memory_after_turn_started"
+            );
+            self.record_memory_after_turn(
+                &thread_id,
+                &thread_id,
+                &format!("send-{}", runtime_now_millis()),
+                &user_text,
+                &assistant_text,
+            )
+        });
+        tracing::info!(
+            runtime_root = %self.runtime_root.display(),
+            thread_id = %thread_id,
+            assistant_len = assistant_text.len(),
+            "agent_runtime_send_message_completed"
+        );
         Ok(AgentSendResult {
             thread_id,
             user_text,
             assistant_text,
+            memory_result,
         })
     }
 
@@ -440,6 +487,7 @@ impl AgentRuntime {
             thread_id,
             user_text,
             assistant_text,
+            memory_result: None,
         })
     }
 
@@ -516,7 +564,7 @@ impl AgentRuntime {
             .join("runtime.db")
             .to_string_lossy()
             .to_string();
-        let memory_config = crate::memory::MemoryRuntimeConfig::from_value(
+        let memory_config = crate::memory::MemoryRuntimeConfig::from_value_with_desktop_policy(
             &json!({
                 "runtimeStore": {
                     "dbPath": db_path
@@ -540,7 +588,15 @@ impl AgentRuntime {
                 "source": "agent-runtime"
             }),
         ];
-        runtime.after_turn(session_id, Some(session_key), &messages, 0)
+        let result = runtime.after_turn(session_id, Some(session_key), &messages, 0);
+        tracing::debug!(
+            runtime_root = %self.runtime_root.display(),
+            session_id,
+            session_key,
+            ok = result.is_ok(),
+            "agent_runtime_memory_after_turn_completed"
+        );
+        result
     }
 }
 
@@ -632,6 +688,11 @@ impl AgentRuntimeBackend for PiAgentRuntimeBackend {
                 request.runtime_root,
                 &request.tool_selection,
                 request.permission_policy.clone(),
+            );
+            tracing::debug!(
+                runtime_root = %request.runtime_root.display(),
+                thread_id = %request.thread_id,
+                "pi_agent_runtime_backend_started"
             );
             let agent_config = pi::sdk::AgentConfig {
                 system_prompt: None,

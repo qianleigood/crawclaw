@@ -603,17 +603,22 @@ pub struct AddAgentSkillInput {
 pub struct PluginsWorkspaceState {
     pub tools: Vec<PluginTool>,
     pub skills: Vec<PluginSkill>,
+    pub installed: Vec<InstalledPlugin>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginTool {
     pub id: String,
+    pub plugin_id: String,
     pub name: String,
     pub description: String,
     pub status: String,
     pub permission: String,
     pub icon: String,
+    pub enabled: bool,
+    pub source: String,
+    pub install_status: String,
     pub open: bool,
 }
 
@@ -621,12 +626,31 @@ pub struct PluginTool {
 #[serde(rename_all = "camelCase")]
 pub struct PluginSkill {
     pub id: String,
+    pub skill_key: String,
     pub name: String,
     pub trigger: String,
     pub description: String,
     pub status: String,
     pub source: String,
     pub icon: String,
+    pub enabled: bool,
+    pub install_status: String,
+    pub open: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct InstalledPlugin {
+    pub id: String,
+    pub name: String,
+    pub status: String,
+    pub source: String,
+    pub install_status: String,
+    pub enabled: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub manifest_path: Option<String>,
     pub open: bool,
 }
 
@@ -640,13 +664,24 @@ pub struct AddPluginSkillInput {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct PluginInstallInput {
+    pub source: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub marketplace_plugin: Option<String>,
+    #[serde(default)]
+    pub link: bool,
+    #[serde(default)]
+    pub pin: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct TaskDefaults {
     pub selected_model: String,
     pub selected_thinking: String,
     pub permission_mode: String,
     pub response_speed: String,
     pub allow_tools: bool,
-    pub show_reasoning_summary: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

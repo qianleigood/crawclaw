@@ -66,6 +66,7 @@ pub fn initial_desktop_state(runtime: &RuntimeStatus) -> DesktopState {
         plugins_workspace: PluginsWorkspaceState {
             tools: Vec::new(),
             skills: Vec::new(),
+            installed: Vec::new(),
         },
         preferences: DesktopPreferences {
             selected_model: "gpt-5.5".to_string(),
@@ -120,7 +121,6 @@ fn task_defaults() -> TaskDefaults {
         permission_mode: "工作区模式".to_string(),
         response_speed: "标准".to_string(),
         allow_tools: true,
-        show_reasoning_summary: false,
     }
 }
 

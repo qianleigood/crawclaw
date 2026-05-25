@@ -1,22 +1,34 @@
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::Json;
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine as _;
 use serde::Deserialize;
+use serde_json::{json, Map, Value};
+use std::path::Path as FsPath;
+use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::gateway::desktop_state::initial_desktop_state;
 use crate::models::{
     AdvancedDefaults, ConfirmationDefaults, DesktopState, MemoryDefaults, NotificationDefaults,
     PrivacyDefaults, TaskDefaults, UiDefaults,
 };
 
-use super::desktop_model_profile_routes::apply_active_model_profile_for_selection;
+use super::desktop_logging::{
+    desktop_rust_log_filter, desktop_rust_log_path, recent_desktop_rust_log_lines,
+};
+use super::desktop_model_profile_routes::{
+    apply_active_model_profile_for_selection, merge_persisted_model_profiles,
+};
 use super::desktop_settings_effects::{
     apply_desktop_settings_effects, send_desktop_notification, DesktopNotificationKind,
 };
 use super::{
     append_and_persist_conversation_message, authorize_headers, conversation_status_message,
-    emit_state_changed, normalize_task_defaults, persist_desktop_preferences,
-    sync_preference_aliases_from_task_defaults, sync_task_defaults_from_preference_aliases,
-    GatewayState,
+    emit_state_changed, merge_persisted_agents, merge_persisted_memory_items,
+    normalize_task_defaults, persist_desktop_preferences,
+    sync_preference_aliases_from_task_defaults, sync_privacy_defaults_from_runtime_root,
+    sync_task_defaults_from_preference_aliases, GatewayState,
 };
 
 #[derive(Deserialize)]
@@ -43,7 +55,6 @@ struct TaskDefaultsPatch {
     permission_mode: Option<String>,
     response_speed: Option<String>,
     allow_tools: Option<bool>,
-    show_reasoning_summary: Option<bool>,
 }
 
 #[derive(Deserialize)]
@@ -147,9 +158,16 @@ pub(super) async fn update_preferences(
         if aliases_changed {
             sync_task_defaults_from_preference_aliases(&mut preferences);
         }
+        sync_privacy_defaults_from_runtime_root(&mut preferences, &state.runtime_root);
         preferences
     };
     persist_desktop_preferences(&state, &updated_preferences)?;
+    tracing::info!(
+        runtime_root = %state.runtime_root.display(),
+        selected_model = %updated_preferences.selected_model,
+        log_level = %updated_preferences.advanced_defaults.log_level,
+        "desktop_preferences_updated"
+    );
     apply_active_model_profile_for_selection(
         &state.runtime_root,
         &state.model_profile_store,
@@ -181,23 +199,70 @@ pub(super) async fn settings_diagnostics(
     headers: HeaderMap,
 ) -> Result<Json<DesktopState>, StatusCode> {
     authorize_headers(&headers, &state)?;
-    let detail = {
-        let desktop_state = state.desktop_state.read().await;
-        format!(
-            "runtimeRoot={} threads={} agents={} tools={}",
-            state.runtime_root.to_string_lossy(),
-            desktop_state.sidebar.threads.len() + desktop_state.sidebar.pinned_threads.len(),
-            desktop_state.agent_workspace.agents.len(),
-            desktop_state.plugins_workspace.tools.len()
-        )
-    };
+    let diagnostics_path = state
+        .runtime_root
+        .join("desktop")
+        .join("diagnostics")
+        .join(format!(
+            "desktop-diagnostics-{}.json",
+            uuid::Uuid::new_v4().simple()
+        ));
+    tracing::info!(
+        runtime_root = %state.runtime_root.display(),
+        diagnostics_path = %diagnostics_path.display(),
+        "desktop_diagnostics_generated"
+    );
+    let diagnostics = build_advanced_diagnostics_snapshot(&state).await;
+    write_json_file(&diagnostics_path, &diagnostics).map_err(|error| {
+        emit_settings_error(&state, "settings_diagnostics_failed", error);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
     let _ = append_and_persist_conversation_message(
         &state,
-        conversation_status_message("诊断信息已生成".to_string(), detail, "ok".to_string()),
+        conversation_status_message(
+            "诊断信息已生成".to_string(),
+            diagnostics_path.to_string_lossy().to_string(),
+            "ok".to_string(),
+        ),
     )
     .await?;
     notify_settings_task_done(&state, "诊断信息已生成", "桌面诊断信息已写入当前对话。").await;
     emit_state_changed(&state).await
+}
+
+async fn build_advanced_diagnostics_snapshot(state: &GatewayState) -> Value {
+    let desktop_state = state.desktop_state.read().await;
+    let runtime = state.runtime_supervisor.status();
+    let settings_dir = state.runtime_root.join("desktop").join("settings");
+    json!({
+        "version": 1,
+        "generatedAtUnixMs": now_unix_ms(),
+        "runtimeRoot": state.runtime_root.to_string_lossy(),
+        "runtime": runtime,
+        "state": {
+            "threads": desktop_state.sidebar.threads.len()
+                + desktop_state.sidebar.pinned_threads.len()
+                + desktop_state.sidebar.discussion_threads.len(),
+            "agents": desktop_state.agent_workspace.agents.len(),
+            "tools": desktop_state.plugins_workspace.tools.len(),
+            "memoryItems": desktop_state.memory_workspace.items.len(),
+            "workflows": count_files_under(&state.runtime_root.join("workflows")),
+            "activeNavId": &desktop_state.active_nav_id,
+            "permissionRequestStatus": &desktop_state.permission_request.status,
+        },
+        "advanced": {
+            "logLevel": &desktop_state.preferences.advanced_defaults.log_level,
+            "rustLogFilter": desktop_rust_log_filter(&desktop_state.preferences.advanced_defaults.log_level),
+        },
+        "settingsEffects": {
+            "effectiveState": file_status(&settings_dir.join("effective-state.json")),
+            "runtimeLogLevel": runtime_log_level_status(&settings_dir.join("runtime-log-level")),
+            "notificationPolicy": file_status(&state.runtime_root.join("desktop/notifications/policy.json")),
+            "memoryPolicy": file_status(&state.runtime_root.join("config/desktop-memory-policy.json")),
+        },
+        "rustLogPath": desktop_rust_log_path(&state.runtime_root).to_string_lossy(),
+        "recentRustLog": recent_desktop_rust_log_lines(&state.runtime_root, 80),
+    })
 }
 
 pub(super) async fn settings_export_data(
@@ -219,15 +284,12 @@ pub(super) async fn settings_export_data(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
     }
-    let snapshot = {
-        let desktop_state = state.desktop_state.read().await;
-        serde_json::json!({
-            "preferences": desktop_state.preferences,
-            "conversation": desktop_state.conversation,
-            "agents": desktop_state.agent_workspace.agents,
-            "plugins": desktop_state.plugins_workspace,
-        })
-    };
+    let snapshot = build_privacy_export_snapshot(&state)
+        .await
+        .map_err(|error| {
+            emit_settings_error(&state, "settings_export_failed", error);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
     std::fs::write(
         &export_path,
         serde_json::to_vec_pretty(&snapshot).map_err(|error| {
@@ -252,15 +314,262 @@ pub(super) async fn settings_export_data(
     emit_state_changed(&state).await
 }
 
+async fn build_privacy_export_snapshot(state: &GatewayState) -> Result<Value, String> {
+    let desktop_state = state.desktop_state.read().await;
+    let (files, skipped) = collect_privacy_export_files(&state.runtime_root)?;
+    Ok(json!({
+        "version": 1,
+        "generatedAtUnixMs": now_unix_ms(),
+        "runtimeRoot": state.runtime_root.to_string_lossy(),
+        "state": {
+            "preferences": &desktop_state.preferences,
+            "conversation": &desktop_state.conversation,
+            "sessions": {
+                "threads": &desktop_state.sidebar.threads,
+                "pinnedThreads": &desktop_state.sidebar.pinned_threads,
+                "discussionThreads": &desktop_state.sidebar.discussion_threads,
+            },
+            "agents": &desktop_state.agent_workspace.agents,
+            "memoryWorkspace": &desktop_state.memory_workspace,
+            "plugins": &desktop_state.plugins_workspace,
+        },
+        "files": files,
+        "skipped": skipped,
+    }))
+}
+
+fn collect_privacy_export_files(runtime_root: &FsPath) -> Result<(Vec<Value>, Vec<Value>), String> {
+    let mut files = Vec::new();
+    let mut skipped = Vec::new();
+    for root_name in [
+        "desktop",
+        "sessions",
+        "agents",
+        "memory",
+        "workflows",
+        "config",
+        "credentials",
+    ] {
+        let path = runtime_root.join(root_name);
+        if path.exists() {
+            collect_privacy_export_path(runtime_root, &path, None, &mut files, &mut skipped)?;
+        }
+    }
+    Ok((files, skipped))
+}
+
+fn collect_privacy_export_path(
+    runtime_root: &FsPath,
+    path: &FsPath,
+    inherited_skip_reason: Option<&'static str>,
+    files: &mut Vec<Value>,
+    skipped: &mut Vec<Value>,
+) -> Result<(), String> {
+    let relative_path = export_relative_path(runtime_root, path)?;
+    let skip_reason = inherited_skip_reason.or_else(|| privacy_export_skip_reason(&relative_path));
+    let metadata = std::fs::symlink_metadata(path)
+        .map_err(|error| format!("Failed to inspect export path {}: {error}", path.display()))?;
+    if metadata.is_dir() {
+        let entries = std::fs::read_dir(path).map_err(|error| {
+            format!(
+                "Failed to read export directory {}: {error}",
+                path.display()
+            )
+        })?;
+        for entry in entries {
+            let entry =
+                entry.map_err(|error| format!("Failed to read export directory entry: {error}"))?;
+            collect_privacy_export_path(runtime_root, &entry.path(), skip_reason, files, skipped)?;
+        }
+        return Ok(());
+    }
+    if let Some(reason) = skip_reason {
+        skipped.push(json!({
+            "path": relative_path,
+            "reason": reason,
+            "bytes": metadata.len(),
+        }));
+        return Ok(());
+    }
+    if metadata.file_type().is_symlink() {
+        skipped.push(json!({
+            "path": relative_path,
+            "reason": "symlink",
+            "bytes": metadata.len(),
+        }));
+        return Ok(());
+    }
+    if !metadata.is_file() {
+        skipped.push(json!({
+            "path": relative_path,
+            "reason": "unsupported",
+            "bytes": metadata.len(),
+        }));
+        return Ok(());
+    }
+    let bytes = std::fs::read(path)
+        .map_err(|error| format!("Failed to read export file {}: {error}", path.display()))?;
+    files.push(privacy_export_file_entry(relative_path, &bytes)?);
+    Ok(())
+}
+
+fn privacy_export_file_entry(relative_path: String, bytes: &[u8]) -> Result<Value, String> {
+    let mut entry = Map::new();
+    entry.insert("path".to_string(), json!(relative_path));
+    entry.insert("bytes".to_string(), json!(bytes.len()));
+    match std::str::from_utf8(bytes) {
+        Ok(text) => match serde_json::from_str::<Value>(text) {
+            Ok(value) => {
+                entry.insert("type".to_string(), json!("json"));
+                entry.insert("content".to_string(), sanitize_privacy_export_json(value));
+            }
+            Err(_) => {
+                entry.insert("type".to_string(), json!("text"));
+                entry.insert("content".to_string(), json!(text));
+            }
+        },
+        Err(_) => {
+            entry.insert("type".to_string(), json!("binary"));
+            entry.insert("contentBase64".to_string(), json!(STANDARD.encode(bytes)));
+        }
+    }
+    Ok(Value::Object(entry))
+}
+
+fn sanitize_privacy_export_json(value: Value) -> Value {
+    match value {
+        Value::Object(object) => Value::Object(
+            object
+                .into_iter()
+                .map(|(key, value)| {
+                    if is_sensitive_export_key(&key) {
+                        (key, json!("[redacted]"))
+                    } else {
+                        (key, sanitize_privacy_export_json(value))
+                    }
+                })
+                .collect(),
+        ),
+        Value::Array(values) => Value::Array(
+            values
+                .into_iter()
+                .map(sanitize_privacy_export_json)
+                .collect(),
+        ),
+        value => value,
+    }
+}
+
+fn is_sensitive_export_key(key: &str) -> bool {
+    matches!(
+        key.to_ascii_lowercase().as_str(),
+        "apikey" | "api_key" | "secret" | "token" | "password" | "credential"
+    )
+}
+
+fn privacy_export_skip_reason(relative_path: &str) -> Option<&'static str> {
+    if relative_path == "config/secrets" || relative_path.starts_with("config/secrets/") {
+        Some("secret")
+    } else if relative_path == "desktop/exports" || relative_path.starts_with("desktop/exports/") {
+        Some("export")
+    } else if relative_path == "credentials" || relative_path.starts_with("credentials/") {
+        Some("credentials")
+    } else {
+        None
+    }
+}
+
+fn export_relative_path(runtime_root: &FsPath, path: &FsPath) -> Result<String, String> {
+    let relative = path.strip_prefix(runtime_root).map_err(|error| {
+        format!(
+            "Failed to relativize export path {}: {error}",
+            path.display()
+        )
+    })?;
+    Ok(relative
+        .components()
+        .map(|component| component.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/"))
+}
+
+fn write_json_file(path: &FsPath, value: &Value) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|error| format!("Failed to create {}: {error}", parent.display()))?;
+    }
+    let bytes = serde_json::to_vec_pretty(value)
+        .map_err(|error| format!("Failed to encode {}: {error}", path.display()))?;
+    std::fs::write(path, bytes)
+        .map_err(|error| format!("Failed to write {}: {error}", path.display()))
+}
+
+fn file_status(path: &FsPath) -> Value {
+    match std::fs::metadata(path) {
+        Ok(metadata) => json!({
+            "exists": true,
+            "path": path.to_string_lossy(),
+            "bytes": metadata.len(),
+        }),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => json!({
+            "exists": false,
+            "path": path.to_string_lossy(),
+        }),
+        Err(error) => json!({
+            "exists": false,
+            "path": path.to_string_lossy(),
+            "error": error.to_string(),
+        }),
+    }
+}
+
+fn runtime_log_level_status(path: &FsPath) -> Value {
+    let mut status = file_status(path);
+    if let Some(object) = status.as_object_mut() {
+        if let Ok(value) = std::fs::read_to_string(path) {
+            object.insert("value".to_string(), json!(value.trim()));
+        }
+    }
+    status
+}
+
+fn count_files_under(path: &FsPath) -> usize {
+    let Ok(entries) = std::fs::read_dir(path) else {
+        return 0;
+    };
+    entries
+        .filter_map(Result::ok)
+        .map(|entry| {
+            let path = entry.path();
+            if path.is_dir() {
+                count_files_under(&path)
+            } else if path.is_file() {
+                1
+            } else {
+                0
+            }
+        })
+        .sum()
+}
+
+fn now_unix_ms() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .unwrap_or(0)
+}
+
 pub(super) async fn settings_clear_cache(
     State(state): State<GatewayState>,
     headers: HeaderMap,
 ) -> Result<Json<DesktopState>, StatusCode> {
     authorize_headers(&headers, &state)?;
-    remove_dir_if_exists(state.runtime_root.join("desktop").join("cache")).map_err(|error| {
-        emit_settings_error(&state, "settings_clear_cache_failed", error);
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    for dir in ["cache", "downloads", "previews", "tmp"] {
+        remove_dir_if_exists(state.runtime_root.join("desktop").join(dir)).map_err(|error| {
+            emit_settings_error(&state, "settings_clear_cache_failed", error);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    }
     let _ = append_and_persist_conversation_message(
         &state,
         conversation_status_message(
@@ -286,39 +595,47 @@ pub(super) async fn settings_delete_local_data(
 ) -> Result<Json<DesktopState>, StatusCode> {
     authorize_headers(&headers, &state)?;
     require_confirmation(payload.confirm.as_deref(), "DELETE")?;
+    tracing::info!(
+        runtime_root = %state.runtime_root.display(),
+        "desktop_local_data_delete_requested"
+    );
     for path in [
         state.runtime_root.join("desktop"),
         state.runtime_root.join("sessions"),
         state.runtime_root.join("workflows"),
         state
             .runtime_root
-            .join("memory")
-            .join("desktop-memory.json"),
+            .join("agents")
+            .join("desktop-agents.json"),
+        state.runtime_root.join("memory"),
         state
             .runtime_root
             .join("config")
             .join("desktop-preferences.json"),
+        state
+            .runtime_root
+            .join("config")
+            .join("desktop-memory-policy.json"),
+        state
+            .runtime_root
+            .join("config")
+            .join("desktop-agent-provider.json"),
+        state
+            .runtime_root
+            .join("config")
+            .join("desktop-model-profiles.json"),
     ] {
         remove_path_if_exists(path).map_err(|error| {
             emit_settings_error(&state, "settings_delete_local_data_failed", error);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
     }
-    let _ = append_and_persist_conversation_message(
-        &state,
-        conversation_status_message(
-            "本地桌面数据已删除".to_string(),
-            "已删除桌面会话、缓存、导出、工作流和桌面偏好；credentials 未被删除。".to_string(),
-            "ok".to_string(),
-        ),
-    )
-    .await?;
-    notify_settings_task_done(
-        &state,
-        "本地桌面数据已删除",
-        "桌面自有数据已删除，credentials 已保留。",
-    )
-    .await;
+    {
+        let mut desktop_state = state.desktop_state.write().await;
+        let mut reset_state = initial_desktop_state(&state.runtime_supervisor.status());
+        sync_privacy_defaults_from_runtime_root(&mut reset_state.preferences, &state.runtime_root);
+        *desktop_state = reset_state;
+    }
     emit_state_changed(&state).await
 }
 
@@ -329,27 +646,40 @@ pub(super) async fn settings_reset_state(
 ) -> Result<Json<DesktopState>, StatusCode> {
     authorize_headers(&headers, &state)?;
     require_confirmation(payload.confirm.as_deref(), "RESET")?;
+    tracing::info!(
+        runtime_root = %state.runtime_root.display(),
+        "desktop_state_reset_requested"
+    );
     for path in [
         state.runtime_root.join("sessions"),
         state
             .runtime_root
             .join("config")
             .join("desktop-preferences.json"),
+        state.runtime_root.join("desktop").join("settings"),
+        state.runtime_root.join("desktop").join("diagnostics"),
+        state.runtime_root.join("desktop").join("logs"),
     ] {
         remove_path_if_exists(path).map_err(|error| {
             emit_settings_error(&state, "settings_reset_state_failed", error);
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
     }
-    let _ = append_and_persist_conversation_message(
-        &state,
-        conversation_status_message(
-            "桌面状态已重置".to_string(),
-            "已重置桌面会话和偏好；credentials 未被删除。".to_string(),
-            "ok".to_string(),
-        ),
-    )
-    .await?;
+    let mut reset_state = initial_desktop_state(&state.runtime_supervisor.status());
+    sync_privacy_defaults_from_runtime_root(&mut reset_state.preferences, &state.runtime_root);
+    merge_persisted_agents(&mut reset_state, &state.agent_store);
+    merge_persisted_memory_items(&mut reset_state, &state.memory_store);
+    merge_persisted_model_profiles(&mut reset_state, &state.model_profile_store);
+    apply_desktop_settings_effects(&state.runtime_root, &reset_state.preferences).map_err(
+        |error| {
+            emit_settings_error(&state, "settings_reset_state_failed", error);
+            StatusCode::INTERNAL_SERVER_ERROR
+        },
+    )?;
+    {
+        let mut desktop_state = state.desktop_state.write().await;
+        *desktop_state = reset_state;
+    }
     notify_settings_task_done(&state, "桌面状态已重置", "桌面会话和偏好重置已完成。").await;
     emit_state_changed(&state).await
 }
@@ -432,9 +762,6 @@ impl TaskDefaultsPatch {
         }
         if let Some(allow_tools) = self.allow_tools {
             task_defaults.allow_tools = allow_tools;
-        }
-        if let Some(show_reasoning_summary) = self.show_reasoning_summary {
-            task_defaults.show_reasoning_summary = show_reasoning_summary;
         }
         normalize_task_defaults(task_defaults);
     }

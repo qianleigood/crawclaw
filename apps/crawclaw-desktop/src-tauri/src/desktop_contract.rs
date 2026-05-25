@@ -323,6 +323,10 @@ export interface UpdateMemoryItemPatch {
   source?: string
 }
 
+export interface ArchiveMemoryItemInput {
+  confirmed?: boolean
+}
+
 export interface SendMessageInput {
   text: string
   agentId?: string
@@ -440,26 +444,46 @@ export interface AddAgentSkillInput {
 export interface PluginsWorkspaceState {
   tools: PluginTool[]
   skills: PluginSkill[]
+  installed: InstalledPlugin[]
 }
 
 export interface PluginTool {
   id: string
+  pluginId: string
   name: string
   description: string
   status: string
   permission: string
   icon: DesktopIconKey
+  enabled: boolean
+  source: string
+  installStatus: string
   open: boolean
 }
 
 export interface PluginSkill {
   id: string
+  skillKey: string
   name: string
   trigger: string
   description: string
   status: string
   source: string
   icon: DesktopIconKey
+  enabled: boolean
+  installStatus: string
+  open: boolean
+}
+
+export interface InstalledPlugin {
+  id: string
+  name: string
+  status: string
+  source: string
+  installStatus: string
+  enabled: boolean
+  version?: string
+  manifestPath?: string
   open: boolean
 }
 
@@ -469,13 +493,19 @@ export interface AddPluginSkillInput {
   description: string
 }
 
+export interface PluginInstallInput {
+  source: string
+  marketplacePlugin?: string
+  link: boolean
+  pin: boolean
+}
+
 export interface TaskDefaults {
   selectedModel: string
   selectedThinking: string
   permissionMode: string
   responseSpeed: string
   allowTools: boolean
-  showReasoningSummary: boolean
 }
 
 export interface ConfirmationDefaults {

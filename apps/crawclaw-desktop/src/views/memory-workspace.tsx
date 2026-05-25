@@ -3,12 +3,15 @@ import { useState, type FormEvent } from 'react'
 import type {
   AgentProfile,
   CreateMemoryItemInput,
+  DesktopPreferences,
+  MemoryItem,
   MemoryCategory,
   MemoryFilter,
   MemoryWorkspaceState,
   UpdateMemoryItemPatch,
 } from '../desktop-api'
 import { Badge } from '../ui/badge'
+import type { ConfirmationRequestInput } from '../ui/confirmation-dialog'
 import { Panel } from '../ui/panel'
 
 type MemoryDraft = {
@@ -40,9 +43,11 @@ function parseMemoryTags(value: string) {
 
 type MemoryWorkspaceProps = {
   agents: AgentProfile[]
+  memoryCleanupConfirmation: DesktopPreferences['memoryDefaults']['memoryCleanupConfirmation']
   memoryWorkspace: MemoryWorkspaceState
-  onArchiveMemory: (memoryId: string) => void
+  onArchiveMemory: (memoryId: string, confirmed?: boolean) => void
   onCreateMemory: (input: CreateMemoryItemInput) => void
+  onRequestConfirmation: (input: ConfirmationRequestInput) => Promise<boolean>
   onRunMemoryDream: (agentId: string) => void
   onSelectAgent: (agentId: string) => void
   onSetFilter: (filter: MemoryFilter) => void
@@ -52,9 +57,11 @@ type MemoryWorkspaceProps = {
 
 export function MemoryWorkspace({
   agents,
+  memoryCleanupConfirmation,
   memoryWorkspace,
   onArchiveMemory,
   onCreateMemory,
+  onRequestConfirmation,
   onRunMemoryDream,
   onSelectAgent,
   onSetFilter,
@@ -149,8 +156,22 @@ export function MemoryWorkspace({
       return
     }
 
-    onArchiveMemory(selectedMemory.id)
-    setIsEditing(false)
+    void (async () => {
+      const needsConfirmation = shouldConfirmMemoryCleanup(memoryCleanupConfirmation, selectedMemory)
+      if (needsConfirmation) {
+        const confirmed = await onRequestConfirmation({
+          title: '清理记忆',
+          detail: '这条记忆会从当前记忆列表移除。',
+          confirmLabel: '清理',
+          tone: 'danger',
+        })
+        if (!confirmed) {
+          return
+        }
+      }
+      onArchiveMemory(selectedMemory.id, needsConfirmation)
+      setIsEditing(false)
+    })()
   }
 
   const onStartMemoryDream = () => {
@@ -369,4 +390,25 @@ export function MemoryWorkspace({
       </div>
     </div>
   )
+}
+
+function shouldConfirmMemoryCleanup(
+  policy: DesktopPreferences['memoryDefaults']['memoryCleanupConfirmation'],
+  memory: MemoryItem,
+) {
+  if (policy === '不自动清理') {
+    return false
+  }
+  if (policy !== '仅重要记忆') {
+    return true
+  }
+  const searchable = [
+    memory.title,
+    memory.summary,
+    memory.category,
+    memory.source,
+    ...memory.tags,
+  ].join(' ').toLowerCase()
+  return ['偏好', '项目', '决策', '流程', '长期', '重要', 'preference', 'project', 'decision', 'procedure', 'long-term', 'important']
+    .some((keyword) => searchable.includes(keyword))
 }

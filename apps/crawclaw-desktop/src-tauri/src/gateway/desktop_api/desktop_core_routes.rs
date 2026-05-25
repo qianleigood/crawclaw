@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::convert::Infallible;
 
 use axum::extract::{Path, Query, State};
@@ -82,19 +83,135 @@ pub(super) async fn search(
 ) -> Json<Vec<SearchSuggestion>> {
     let normalized_query = query.q.unwrap_or_default().trim().to_lowercase();
     let desktop_state = state.desktop_state.read().await;
-    let suggestions = desktop_state
-        .search_suggestions
+    let mut suggestions = Vec::new();
+    let mut seen = BTreeSet::new();
+    for item in &desktop_state.search_suggestions {
+        push_search_suggestion(
+            &mut suggestions,
+            &mut seen,
+            &normalized_query,
+            item.clone(),
+            &format!("{} {}", item.label, item.meta),
+        );
+    }
+    for thread in desktop_state
+        .sidebar
+        .pinned_threads
         .iter()
-        .filter(|item| {
-            normalized_query.is_empty()
-                || format!("{} {}", item.label, item.meta)
-                    .to_lowercase()
-                    .contains(&normalized_query)
-        })
-        .cloned()
-        .collect();
+        .chain(desktop_state.sidebar.threads.iter())
+        .chain(desktop_state.sidebar.discussion_threads.iter())
+    {
+        push_search_suggestion(
+            &mut suggestions,
+            &mut seen,
+            &normalized_query,
+            SearchSuggestion {
+                id: format!("thread:{}", thread.id),
+                label: thread.title.clone(),
+                meta: "对话".to_string(),
+                icon: "messageCircle".to_string(),
+                target_nav_id: "new-chat".to_string(),
+                target_item_id: Some(thread.id.clone()),
+            },
+            &format!("{} {}", thread.title, thread.time),
+        );
+    }
+    for agent in &desktop_state.agent_workspace.agents {
+        push_search_suggestion(
+            &mut suggestions,
+            &mut seen,
+            &normalized_query,
+            SearchSuggestion {
+                id: format!("agent:{}", agent.id),
+                label: agent.name.clone(),
+                meta: format!("智能体 · {}", agent.role),
+                icon: "bot".to_string(),
+                target_nav_id: "agent".to_string(),
+                target_item_id: Some(agent.id.clone()),
+            },
+            &format!("{} {} {}", agent.name, agent.role, agent.description),
+        );
+    }
+    for memory in desktop_state
+        .memory_workspace
+        .items
+        .iter()
+        .filter(|item| !item.archived)
+    {
+        push_search_suggestion(
+            &mut suggestions,
+            &mut seen,
+            &normalized_query,
+            SearchSuggestion {
+                id: format!("memory:{}", memory.id),
+                label: memory.title.clone(),
+                meta: format!("记忆 · {}", memory.category),
+                icon: "brain".to_string(),
+                target_nav_id: "memory".to_string(),
+                target_item_id: Some(memory.id.clone()),
+            },
+            &format!(
+                "{} {} {} {}",
+                memory.title,
+                memory.summary,
+                memory.content,
+                memory.tags.join(" ")
+            ),
+        );
+    }
+    for skill in &desktop_state.plugins_workspace.skills {
+        push_search_suggestion(
+            &mut suggestions,
+            &mut seen,
+            &normalized_query,
+            SearchSuggestion {
+                id: format!("skill:{}", skill.id),
+                label: skill.name.clone(),
+                meta: format!("Skill · {}", skill.trigger),
+                icon: skill.icon.clone(),
+                target_nav_id: "plugins".to_string(),
+                target_item_id: Some(skill.id.clone()),
+            },
+            &format!("{} {} {}", skill.name, skill.trigger, skill.description),
+        );
+    }
+    for tool in &desktop_state.plugins_workspace.tools {
+        push_search_suggestion(
+            &mut suggestions,
+            &mut seen,
+            &normalized_query,
+            SearchSuggestion {
+                id: format!("tool:{}", tool.id),
+                label: tool.name.clone(),
+                meta: "工具".to_string(),
+                icon: tool.icon.clone(),
+                target_nav_id: "plugins".to_string(),
+                target_item_id: Some(tool.id.clone()),
+            },
+            &format!("{} {} {}", tool.name, tool.permission, tool.description),
+        );
+    }
 
     Json(suggestions)
+}
+
+fn push_search_suggestion(
+    suggestions: &mut Vec<SearchSuggestion>,
+    seen: &mut BTreeSet<String>,
+    normalized_query: &str,
+    suggestion: SearchSuggestion,
+    haystack: &str,
+) {
+    if !normalized_query.is_empty()
+        && !haystack.to_lowercase().contains(normalized_query)
+        && !suggestion.label.to_lowercase().contains(normalized_query)
+        && !suggestion.meta.to_lowercase().contains(normalized_query)
+    {
+        return;
+    }
+    if seen.insert(suggestion.id.clone()) {
+        suggestions.push(suggestion);
+    }
 }
 
 pub(super) async fn events(
@@ -167,6 +284,12 @@ pub(super) async fn send_message(
     if text.is_empty() {
         return Err(StatusCode::BAD_REQUEST);
     }
+    tracing::info!(
+        runtime_root = %state.runtime_root.display(),
+        has_agent = payload.agent_id.is_some(),
+        text_len = text.len(),
+        "desktop_send_message_requested"
+    );
     run_native_state_mutation(
         &state,
         DesktopNativeMutation::SendMessage,

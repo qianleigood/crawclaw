@@ -20,11 +20,14 @@ pub(super) enum DesktopNativeMutation {
     ArchiveMemoryItem,
     UpdateMemoryItem,
     AddPluginSkill,
+    RemovePluginSkill,
     InvokePluginTool,
     AddAgentSkill,
     RunMemoryDream,
     Thread(ThreadMutation),
     Toggle(ToggleMutation),
+    SetPluginToolEnabled,
+    SetPluginSkillEnabled,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -558,6 +561,7 @@ pub(super) async fn apply_native_operation(
         }
         DesktopNativeMutation::ArchiveMemoryItem => {
             let item_id = string_field(&input, "itemId").ok_or(StatusCode::BAD_REQUEST)?;
+            let confirmed = bool_field(&input, "confirmed").unwrap_or(false);
             let mut item = {
                 let desktop_state = state.desktop_state.read().await;
                 desktop_state
@@ -568,6 +572,7 @@ pub(super) async fn apply_native_operation(
                     .cloned()
                     .ok_or(StatusCode::NOT_FOUND)?
             };
+            ensure_memory_cleanup_allowed(state, &item, confirmed).await?;
             item.archived = true;
             item.updated_at = "刚刚".to_string();
             state
@@ -631,38 +636,82 @@ pub(super) async fn apply_native_operation(
             let trigger = normalize_skill_trigger(
                 string_field(&input, "trigger").unwrap_or_else(|| name.clone()),
             );
+            let skill_key = skill_key_from_trigger_or_name(&trigger, &name);
+            let description = string_field(&input, "description").unwrap_or_default();
+            write_runtime_plugin_skill(state, &skill_key, &name, &trigger, &description)
+                .map_err(|error| plugin_host_status(state, error))?;
             let skill = PluginHostSkill {
-                id: format!("plugin-skill-{}", Uuid::new_v4().simple()),
+                id: format!("custom-skill-{skill_key}"),
+                skill_key,
                 name,
                 trigger,
-                description: string_field(&input, "description").unwrap_or_default(),
+                description,
                 status: "enabled".to_string(),
-                source: "desktop".to_string(),
+                source: "custom".to_string(),
                 icon: "sparkles".to_string(),
+                enabled: true,
+                install_status: "installed".to_string(),
                 open: false,
             };
-            let skill = add_custom_plugin_skill(&state.runtime_root, skill)
-                .map_err(|error| plugin_host_status(state, error))?;
+            let plugin_skill = plugin_skill(skill);
             {
                 let mut desktop_state = state.desktop_state.write().await;
-                if let Some(existing) = desktop_state
-                    .plugins_workspace
-                    .skills
-                    .iter_mut()
-                    .find(|existing| existing.trigger == skill.trigger || existing.id == skill.id)
-                {
-                    *existing = plugin_skill(skill);
-                } else {
+                if let Some(existing) =
                     desktop_state
                         .plugins_workspace
                         .skills
-                        .push(plugin_skill(skill));
+                        .iter_mut()
+                        .find(|existing| {
+                            existing.trigger == plugin_skill.trigger
+                                || existing.id == plugin_skill.id
+                        })
+                {
+                    *existing = plugin_skill;
+                } else {
+                    desktop_state.plugins_workspace.skills.push(plugin_skill);
                 }
                 desktop_state.active_nav_id = "plugins".to_string();
             }
+            refresh_plugins_workspace(state).await?;
+            emit_state_changed(state).await
+        }
+        DesktopNativeMutation::RemovePluginSkill => {
+            let skill_id = string_field(&input, "skillId").ok_or(StatusCode::BAD_REQUEST)?;
+            let skill = {
+                let desktop_state = state.desktop_state.read().await;
+                desktop_state
+                    .plugins_workspace
+                    .skills
+                    .iter()
+                    .find(|skill| skill.id == skill_id)
+                    .cloned()
+            }
+            .ok_or(StatusCode::NOT_FOUND)?;
+            if skill.source == "core" {
+                return Err(StatusCode::CONFLICT);
+            }
+            remove_runtime_plugin_skill(state, &skill)
+                .map_err(|error| plugin_host_status(state, error))?;
+            refresh_plugins_workspace(state).await?;
             emit_state_changed(state).await
         }
         DesktopNativeMutation::InvokePluginTool => invoke_plugin_tool_operation(state, input).await,
+        DesktopNativeMutation::SetPluginToolEnabled => {
+            let tool_id = string_field(&input, "toolId").ok_or(StatusCode::BAD_REQUEST)?;
+            let enabled = bool_field(&input, "enabled").ok_or(StatusCode::BAD_REQUEST)?;
+            set_plugin_tool_enabled(&state.runtime_root, &tool_id, enabled)
+                .map_err(|error| plugin_host_status(state, error))?;
+            refresh_plugins_workspace(state).await?;
+            emit_state_changed(state).await
+        }
+        DesktopNativeMutation::SetPluginSkillEnabled => {
+            let skill_id = string_field(&input, "skillId").ok_or(StatusCode::BAD_REQUEST)?;
+            let enabled = bool_field(&input, "enabled").ok_or(StatusCode::BAD_REQUEST)?;
+            set_plugin_skill_enabled(&state.runtime_root, &skill_id, enabled)
+                .map_err(|error| plugin_host_status(state, error))?;
+            refresh_plugins_workspace(state).await?;
+            emit_state_changed(state).await
+        }
         DesktopNativeMutation::AddAgentSkill => {
             let agent_id = string_field(&input, "agentId").ok_or(StatusCode::BAD_REQUEST)?;
             let mut agent = {
@@ -759,6 +808,7 @@ pub(super) async fn apply_native_operation(
                     "maxTurns": definition.max_turns
                 }),
             );
+            options.insert("memoryAfterTurn".to_string(), json!(false));
             let dream_result = state
                 .agent_runtime
                 .run_turn(AgentRunRequest {
@@ -1133,6 +1183,68 @@ async fn ensure_desktop_workflow_action_allowed(
         .await;
     }
     Ok(())
+}
+
+async fn ensure_memory_cleanup_allowed(
+    state: &GatewayState,
+    item: &MemoryItem,
+    confirmed: bool,
+) -> Result<(), StatusCode> {
+    let preferences = state.desktop_state.read().await.preferences.clone();
+    if confirmed
+        || !memory_cleanup_requires_confirmation(
+            &preferences.memory_defaults.memory_cleanup_confirmation,
+            item,
+        )
+    {
+        return Ok(());
+    }
+    append_permission_blocking_error(
+        state,
+        "permission_required",
+        "当前记忆清理设置要求确认后再清理这条记忆。",
+        StatusCode::CONFLICT,
+    )
+    .await
+}
+
+fn memory_cleanup_requires_confirmation(policy: &str, item: &MemoryItem) -> bool {
+    match policy.trim() {
+        "不自动清理" => false,
+        "仅重要记忆" => memory_item_is_important(item),
+        _ => true,
+    }
+}
+
+fn memory_item_is_important(item: &MemoryItem) -> bool {
+    let searchable = [
+        item.title.as_str(),
+        item.summary.as_str(),
+        item.category.as_str(),
+        item.source.as_str(),
+    ]
+    .join(" ")
+    .to_lowercase();
+    let important_text = ["偏好", "项目", "决策", "流程", "长期", "重要"];
+    let important_ascii = [
+        "preference",
+        "project",
+        "decision",
+        "procedure",
+        "long-term",
+        "important",
+    ];
+    important_text
+        .iter()
+        .any(|value| searchable.contains(value))
+        || important_ascii
+            .iter()
+            .any(|value| searchable.contains(value))
+        || item.tags.iter().any(|tag| {
+            let tag = tag.to_lowercase();
+            important_text.iter().any(|value| tag.contains(value))
+                || important_ascii.iter().any(|value| tag.contains(value))
+        })
 }
 
 async fn append_permission_blocking_error(
@@ -1723,7 +1835,7 @@ fn agent_tool_from_plugin_tool(tool: &PluginTool) -> AgentTool {
         permission: tool.permission.clone(),
         icon: tool.icon.clone(),
         open: tool.open,
-        enabled: true,
+        enabled: tool.enabled,
     }
 }
 
@@ -1737,7 +1849,7 @@ fn agent_skill_from_plugin_skill(skill: &PluginSkill) -> AgentSkill {
         source: skill.source.clone(),
         icon: skill.icon.clone(),
         open: skill.open,
-        enabled: true,
+        enabled: skill.enabled,
     }
 }
 
@@ -1752,11 +1864,15 @@ fn non_empty_model_part(value: &str) -> String {
 pub(super) fn plugin_tool(tool: PluginHostTool) -> PluginTool {
     PluginTool {
         id: tool.id,
+        plugin_id: tool.plugin_id,
         name: tool.name,
         description: tool.description,
         status: tool.status,
         permission: tool.permission,
         icon: tool.icon,
+        enabled: tool.enabled,
+        source: tool.source,
+        install_status: tool.install_status,
         open: tool.open,
     }
 }
@@ -1764,13 +1880,30 @@ pub(super) fn plugin_tool(tool: PluginHostTool) -> PluginTool {
 pub(super) fn plugin_skill(skill: PluginHostSkill) -> PluginSkill {
     PluginSkill {
         id: skill.id,
+        skill_key: skill.skill_key,
         name: skill.name,
         trigger: skill.trigger,
         description: skill.description,
         status: skill.status,
         source: skill.source,
         icon: skill.icon,
+        enabled: skill.enabled,
+        install_status: skill.install_status,
         open: skill.open,
+    }
+}
+
+pub(super) fn plugin_installed(plugin: PluginHostInstalledPlugin) -> InstalledPlugin {
+    InstalledPlugin {
+        id: plugin.id,
+        name: plugin.name,
+        status: plugin.status,
+        source: plugin.source,
+        install_status: plugin.install_status,
+        enabled: plugin.enabled,
+        version: plugin.version,
+        manifest_path: plugin.manifest_path,
+        open: plugin.open,
     }
 }
 
@@ -2009,6 +2142,10 @@ pub(super) fn string_field(input: &Value, key: &str) -> Option<String> {
         .map(ToOwned::to_owned)
 }
 
+fn bool_field(input: &Value, key: &str) -> Option<bool> {
+    input.get(key).and_then(Value::as_bool)
+}
+
 pub(super) fn string_array_field(input: &Value, key: &str) -> Vec<String> {
     input
         .get(key)
@@ -2032,6 +2169,219 @@ pub(super) fn normalize_skill_trigger(trigger: String) -> String {
     } else {
         format!("@{trigger}")
     }
+}
+
+fn skill_key_from_trigger_or_name(trigger: &str, name: &str) -> String {
+    let candidate = trigger
+        .trim()
+        .strip_prefix('@')
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| name.trim());
+    let key = candidate
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() {
+                ch.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>()
+        .split('-')
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join("-");
+    if key.is_empty() {
+        format!("skill-{}", Uuid::new_v4().simple())
+    } else {
+        key
+    }
+}
+
+fn write_runtime_plugin_skill(
+    state: &GatewayState,
+    skill_key: &str,
+    name: &str,
+    trigger: &str,
+    description: &str,
+) -> Result<(), PluginHostError> {
+    let skill_dir = state.runtime_root.join("skills").join(skill_key);
+    let skill_path = skill_dir.join("SKILL.md");
+    std::fs::create_dir_all(&skill_dir).map_err(|error| {
+        PluginHostError::Io(format!(
+            "Failed to create skill directory {}: {error}",
+            skill_dir.display()
+        ))
+    })?;
+    let content = format!(
+        "---\nname: {name}\ndescription: {description}\n---\n\n# {name}\n\nTrigger: `{trigger}`\n\n{description}\n"
+    );
+    std::fs::write(&skill_path, content).map_err(|error| {
+        PluginHostError::Io(format!(
+            "Failed to write skill {}: {error}",
+            skill_path.display()
+        ))
+    })?;
+    write_runtime_skill_config(&state.runtime_root, skill_key)
+}
+
+fn remove_runtime_plugin_skill(
+    state: &GatewayState,
+    skill: &PluginSkill,
+) -> Result<(), PluginHostError> {
+    let skill_dir = state.runtime_root.join("skills").join(&skill.skill_key);
+    if skill_dir.join(".crawclaw-core-skill.json").exists() {
+        return Err(PluginHostError::Invalid(
+            "Core skills cannot be removed".to_string(),
+        ));
+    }
+    match std::fs::remove_dir_all(&skill_dir) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => {
+            return Err(PluginHostError::Io(format!(
+                "Failed to remove skill directory {}: {error}",
+                skill_dir.display()
+            )));
+        }
+    }
+    remove_runtime_skill_config(&state.runtime_root, &skill.skill_key)?;
+    remove_plugin_skill_state(&state.runtime_root, &skill.id)
+}
+
+fn write_runtime_skill_config(
+    runtime_root: &PathBuf,
+    skill_key: &str,
+) -> Result<(), PluginHostError> {
+    let config_path = runtime_root.join("config").join("crawclaw.json");
+    let mut config = match std::fs::read_to_string(&config_path) {
+        Ok(raw) => serde_json::from_str::<Value>(&raw).map_err(|error| {
+            PluginHostError::Invalid(format!(
+                "Invalid runtime config {}: {error}",
+                config_path.display()
+            ))
+        })?,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => json!({}),
+        Err(error) => {
+            return Err(PluginHostError::Io(format!(
+                "Failed to read runtime config {}: {error}",
+                config_path.display()
+            )));
+        }
+    };
+    ensure_json_object(&mut config);
+    set_object_path_value(
+        &mut config,
+        &["skills", "entries", skill_key, "enabled"],
+        Value::Bool(true),
+    )?;
+    set_object_path_value(
+        &mut config,
+        &["skills", "entries", skill_key, "source"],
+        Value::String("desktop".to_string()),
+    )?;
+    if let Some(parent) = config_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|error| {
+            PluginHostError::Io(format!(
+                "Failed to create runtime config directory {}: {error}",
+                parent.display()
+            ))
+        })?;
+    }
+    let raw = serde_json::to_vec_pretty(&config).map_err(|error| {
+        PluginHostError::Invalid(format!("Failed to serialize runtime config: {error}"))
+    })?;
+    std::fs::write(&config_path, raw).map_err(|error| {
+        PluginHostError::Io(format!(
+            "Failed to write runtime config {}: {error}",
+            config_path.display()
+        ))
+    })
+}
+
+fn remove_runtime_skill_config(
+    runtime_root: &PathBuf,
+    skill_key: &str,
+) -> Result<(), PluginHostError> {
+    let config_path = runtime_root.join("config").join("crawclaw.json");
+    let mut config = match std::fs::read_to_string(&config_path) {
+        Ok(raw) => serde_json::from_str::<Value>(&raw).map_err(|error| {
+            PluginHostError::Invalid(format!(
+                "Invalid runtime config {}: {error}",
+                config_path.display()
+            ))
+        })?,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => {
+            return Err(PluginHostError::Io(format!(
+                "Failed to read runtime config {}: {error}",
+                config_path.display()
+            )));
+        }
+    };
+    let _ = delete_object_path_value(&mut config, &["skills", "entries", skill_key])?;
+    let raw = serde_json::to_vec_pretty(&config).map_err(|error| {
+        PluginHostError::Invalid(format!("Failed to serialize runtime config: {error}"))
+    })?;
+    std::fs::write(&config_path, raw).map_err(|error| {
+        PluginHostError::Io(format!(
+            "Failed to write runtime config {}: {error}",
+            config_path.display()
+        ))
+    })
+}
+
+fn ensure_json_object(value: &mut Value) {
+    if !value.is_object() {
+        *value = json!({});
+    }
+}
+
+fn set_object_path_value(
+    value: &mut Value,
+    path: &[&str],
+    next: Value,
+) -> Result<(), PluginHostError> {
+    if path.is_empty() {
+        *value = next;
+        return Ok(());
+    }
+    ensure_json_object(value);
+    let mut current = value;
+    for segment in &path[..path.len() - 1] {
+        let object = current.as_object_mut().ok_or_else(|| {
+            PluginHostError::Invalid("runtime config path is not an object".to_string())
+        })?;
+        current = object
+            .entry((*segment).to_string())
+            .or_insert_with(|| json!({}));
+        ensure_json_object(current);
+    }
+    let object = current.as_object_mut().ok_or_else(|| {
+        PluginHostError::Invalid("runtime config path is not an object".to_string())
+    })?;
+    object.insert(path[path.len() - 1].to_string(), next);
+    Ok(())
+}
+
+fn delete_object_path_value(value: &mut Value, path: &[&str]) -> Result<bool, PluginHostError> {
+    if path.is_empty() {
+        return Ok(false);
+    }
+    let mut current = value;
+    for segment in &path[..path.len() - 1] {
+        let Some(object) = current.as_object_mut() else {
+            return Ok(false);
+        };
+        let Some(next) = object.get_mut(*segment) else {
+            return Ok(false);
+        };
+        current = next;
+    }
+    let object = current.as_object_mut().ok_or_else(|| {
+        PluginHostError::Invalid("runtime config path is not an object".to_string())
+    })?;
+    Ok(object.remove(path[path.len() - 1]).is_some())
 }
 
 pub(super) fn active_thread_id(desktop_state: &DesktopState) -> Option<String> {

@@ -31,7 +31,6 @@ import { modelSupportsConfigurableThinking } from './model-capabilities'
 import { normalizeReplyMode, replyModeLabel, replyModeOptions } from './reply-mode'
 
 export type SettingsSectionId = 'general' | 'model' | 'permissions' | 'memory' | 'notifications' | 'privacy' | 'advanced'
-type SettingsRowStatusValue = 'active' | 'planned' | 'preview'
 type SettingsPreferencePatch = DesktopPreferencesPatch
 type SettingsLanguage = 'en' | 'zh-CN'
 type ModelSetupStep = 0 | 1 | 2 | 3
@@ -439,10 +438,6 @@ const settingsCopy = {
       },
       settingsCategories: '设置分类',
     },
-    header: {
-      detail: '调整 CrawClaw 的默认规则和偏好，不重复管理智能体、记忆、插件或自动化。',
-      title: '设置',
-    },
     modelDraftPlaceholder: '输入模型名称',
     modelSetup: {
       authHint: 'API key 或 token 会保存为本机文件 SecretRef，设置页不会回显密钥。',
@@ -499,7 +494,7 @@ const settingsCopy = {
         title: '权限与确认',
       },
       privacy: {
-        detail: '查看本机数据位置，并保留后续清理与导出入口。',
+        detail: '查看当前桌面数据目录，并清理、导出或删除本机数据。',
         title: '数据与隐私',
       },
     },
@@ -511,7 +506,7 @@ const settingsCopy = {
       confirmExternalApps: ['操作外部应用前确认', '控制浏览器、日历或其他应用前先确认。'],
       confirmFileChanges: ['修改文件前确认', '写入或覆盖文件前先询问你。'],
       confirmHighRisk: ['高风险操作始终确认', '删除、发布、支付等操作始终需要确认。'],
-      dataLocation: ['本机数据位置', 'CrawClaw Desktop 默认把数据保存在本机。'],
+      dataLocation: ['当前桌面数据目录', 'CrawClaw Desktop 当前使用的本机 runtime 数据目录。'],
       defaultModel: ['默认模型', '选择 CrawClaw 默认使用的模型。'],
       defaultPage: ['默认打开页面', '启动后默认进入哪个工作区。'],
       diagnostics: ['诊断信息', '生成给开发者排查问题用的本机诊断信息。'],
@@ -537,17 +532,11 @@ const settingsCopy = {
       selectedThinking: ['思考等级', '决定回复前花多少时间推理。'],
       selectedThinkingUnsupported: ['思考等级', '当前模型不支持可调思考等级，会按模型默认策略运行。'],
       showInMenuBar: ['在菜单栏显示', '保留菜单栏入口，便于快速唤起。'],
-      showReasoningSummary: ['显示推理摘要', '在适合的回复里显示简短思考摘要。'],
       clearCache: ['清理缓存', '清理临时预览、下载和运行缓存。'],
       deleteLocalData: ['删除本机数据', '删除前会要求再次确认。'],
     },
     sidebar: {
       back: '返回应用',
-    },
-    status: {
-      active: '已接入',
-      planned: '计划中',
-      preview: '偏好预览',
     },
   },
   en: {
@@ -574,10 +563,6 @@ const settingsCopy = {
         privacy: 'Data and privacy',
       },
       settingsCategories: 'Settings categories',
-    },
-    header: {
-      detail: 'Adjust CrawClaw defaults and preferences without managing agents, memory, plugins, or automation again.',
-      title: 'Settings',
     },
     modelDraftPlaceholder: 'Enter model name',
     modelSetup: {
@@ -635,7 +620,7 @@ const settingsCopy = {
         title: 'Permissions and confirmations',
       },
       privacy: {
-        detail: 'View local data location and keep cleanup/export actions available.',
+        detail: 'View the current desktop data directory, then clean, export, or delete local data.',
         title: 'Data and privacy',
       },
     },
@@ -647,7 +632,7 @@ const settingsCopy = {
       confirmExternalApps: ['Confirm before external apps', 'Ask before controlling browsers, calendars, or other apps.'],
       confirmFileChanges: ['Confirm file changes', 'Ask before writing or overwriting files.'],
       confirmHighRisk: ['Always confirm high-risk actions', 'Deleting, publishing, paying, and similar actions always need confirmation.'],
-      dataLocation: ['Local data location', 'CrawClaw Desktop stores data locally by default.'],
+      dataLocation: ['Current desktop data directory', 'The local runtime data directory CrawClaw Desktop is using now.'],
       defaultModel: ['Default model', 'Choose the default model CrawClaw uses.'],
       defaultPage: ['Default page', 'Choose which workspace opens on startup.'],
       diagnostics: ['Diagnostics', 'Generate local diagnostics for debugging.'],
@@ -673,17 +658,11 @@ const settingsCopy = {
       selectedThinking: ['Reasoning level', 'Decide how much reasoning time replies use.'],
       selectedThinkingUnsupported: ['Reasoning level', 'The current model does not support configurable reasoning and will use its model default.'],
       showInMenuBar: ['Show in menu bar', 'Keep a menu bar entry for quick access.'],
-      showReasoningSummary: ['Show reasoning summary', 'Show a short reasoning summary when appropriate.'],
       clearCache: ['Clear cache', 'Clear temporary previews, downloads, and runtime cache.'],
       deleteLocalData: ['Delete local data', 'Requires another confirmation before deletion.'],
     },
     sidebar: {
       back: 'Back to app',
-    },
-    status: {
-      active: 'Connected',
-      planned: 'Planned',
-      preview: 'Preference preview',
     },
   },
 } as const
@@ -800,7 +779,6 @@ export function SettingsWorkspace({
     value: string,
     options: string[],
     onSelect: (value: string) => void,
-    status: SettingsRowStatusValue,
     getSelectedDetail?: (value: string) => string,
     getOptionLabel: (value: string) => string = (option) => settingValueLabel(language, option),
   ) => (
@@ -808,7 +786,6 @@ export function SettingsWorkspace({
       <div className="settings-field__label">
         <strong>{label}</strong>
         <span>{detail}</span>
-        <SettingsRowStatus language={language} status={status} />
       </div>
       <div className="settings-select-control">
         <select
@@ -834,7 +811,6 @@ export function SettingsWorkspace({
       copy.rows.modelConfig[0],
       copy.rows.modelConfig[1],
       `${taskDefaults.selectedModel} · ${taskDefaults.selectedThinking} · ${replyModeLabel(language, taskReplyMode)}`,
-      'active',
     )
   )
 
@@ -843,14 +819,12 @@ export function SettingsWorkspace({
     detail: string,
     checked: boolean,
     onToggle: () => void,
-    status: SettingsRowStatusValue,
     disabled = false,
   ) => (
     <div className="settings-field">
       <div className="settings-field__label">
         <strong>{label}</strong>
         <span>{detail}</span>
-        <SettingsRowStatus language={language} status={status} />
       </div>
       <button
         aria-label={label}
@@ -870,13 +844,11 @@ export function SettingsWorkspace({
     label: string,
     detail: string,
     value: string,
-    status: SettingsRowStatusValue,
   ) => (
     <div className="settings-field">
       <div className="settings-field__label">
         <strong>{label}</strong>
         <span>{detail}</span>
-        <SettingsRowStatus language={language} status={status} />
       </div>
       <span className="settings-value-pill">{value}</span>
     </div>
@@ -892,7 +864,6 @@ export function SettingsWorkspace({
       <div className="settings-field__label">
         <strong>{label}</strong>
         <span>{detail}</span>
-        <SettingsRowStatus language={language} status="active" />
       </div>
       <button className={`settings-action-button is-${tone}`} onClick={onClick} type="button">
         {copy.actions.execute}
@@ -905,7 +876,6 @@ export function SettingsWorkspace({
       <div className="settings-field__label">
         <strong>{copy.rows.addModel[0]}</strong>
         <span>{copy.rows.addModel[1]}</span>
-        <SettingsRowStatus language={language} status="active" />
       </div>
       <button className="settings-action-button" onClick={() => setIsModelSetupOpen(true)} type="button">
         <PlugZap aria-hidden="true" size={14} strokeWidth={2} />
@@ -933,11 +903,6 @@ export function SettingsWorkspace({
           preferences={preferences}
         />
       ) : null}
-      <header className="settings-workspace__header">
-        <h1>{copy.header.title}</h1>
-        <p>{copy.header.detail}</p>
-      </header>
-
       <div className="settings-workspace__body">
         <section aria-label={copy.aria.sections.general} className={getSettingsSectionClass('general')} id="settings-general">
           <header className="settings-section__header">
@@ -945,11 +910,11 @@ export function SettingsWorkspace({
             <p>{copy.sections.general.detail}</p>
           </header>
           <div className="settings-group">
-            {renderSettingsSelectRow(copy.rows.defaultPage[0], copy.rows.defaultPage[1], uiDefaults.defaultPage, ['新对话', '记忆', '智能体'], (value) => updateUiDefaults({ defaultPage: value }), 'active')}
-            {renderSettingsSelectRow(copy.rows.language[0], copy.rows.language[1], uiDefaults.language, ['中文', 'English'], (value) => updateUiDefaults({ language: value }), 'active')}
-            {renderSettingsSelectRow(copy.rows.appearance[0], copy.rows.appearance[1], uiDefaults.appearance, ['跟随系统', '浅色', '深色'], (value) => updateUiDefaults({ appearance: value }), 'active')}
-            {renderSettingsToggleRow(copy.rows.launchAtLogin[0], copy.rows.launchAtLogin[1], uiDefaults.launchAtLogin, () => updateUiDefaults({ launchAtLogin: !uiDefaults.launchAtLogin }), 'active')}
-            {renderSettingsToggleRow(copy.rows.showInMenuBar[0], copy.rows.showInMenuBar[1], uiDefaults.showInMenuBar, () => updateUiDefaults({ showInMenuBar: !uiDefaults.showInMenuBar }), 'active')}
+            {renderSettingsSelectRow(copy.rows.defaultPage[0], copy.rows.defaultPage[1], uiDefaults.defaultPage, ['新对话', '记忆', '智能体'], (value) => updateUiDefaults({ defaultPage: value }))}
+            {renderSettingsSelectRow(copy.rows.language[0], copy.rows.language[1], uiDefaults.language, ['中文', 'English'], (value) => updateUiDefaults({ language: value }))}
+            {renderSettingsSelectRow(copy.rows.appearance[0], copy.rows.appearance[1], uiDefaults.appearance, ['跟随系统', '浅色', '深色'], (value) => updateUiDefaults({ appearance: value }))}
+            {renderSettingsToggleRow(copy.rows.launchAtLogin[0], copy.rows.launchAtLogin[1], uiDefaults.launchAtLogin, () => updateUiDefaults({ launchAtLogin: !uiDefaults.launchAtLogin }))}
+            {renderSettingsToggleRow(copy.rows.showInMenuBar[0], copy.rows.showInMenuBar[1], uiDefaults.showInMenuBar, () => updateUiDefaults({ showInMenuBar: !uiDefaults.showInMenuBar }))}
           </div>
         </section>
 
@@ -960,12 +925,11 @@ export function SettingsWorkspace({
           </header>
           <div className="settings-group">
             {renderModelConfigurationSelector()}
-            {renderSettingsSelectRow(copy.rows.defaultModel[0], copy.rows.defaultModel[1], taskDefaults.selectedModel, modelOptions, (value) => updateTaskDefaults({ selectedModel: value }), 'active', undefined, identityLabel)}
+            {renderSettingsSelectRow(copy.rows.defaultModel[0], copy.rows.defaultModel[1], taskDefaults.selectedModel, modelOptions, (value) => updateTaskDefaults({ selectedModel: value }), undefined, identityLabel)}
             {renderAddModelRow()}
-            {renderSettingsSelectRow(copy.rows.selectedThinking[0], taskDefaultsThinkingSupported ? copy.rows.selectedThinking[1] : copy.rows.selectedThinkingUnsupported[1], taskDefaults.selectedThinking, preferences.thinkingOptions, (value) => updateTaskDefaults({ selectedThinking: value }), taskDefaultsThinkingSupported ? 'active' : 'preview')}
-            {renderSettingsSelectRow(copy.rows.responseSpeed[0], copy.rows.responseSpeed[1], taskReplyMode, replyModeOptions, (value) => updateTaskDefaults({ responseSpeed: value }), 'active', undefined, (value) => replyModeLabel(language, value))}
-            {renderSettingsToggleRow(copy.rows.allowTools[0], copy.rows.allowTools[1], taskDefaults.allowTools, () => updateTaskDefaults({ allowTools: !taskDefaults.allowTools }), 'active')}
-            {renderSettingsToggleRow(copy.rows.showReasoningSummary[0], copy.rows.showReasoningSummary[1], taskDefaults.showReasoningSummary, () => updateTaskDefaults({ showReasoningSummary: !taskDefaults.showReasoningSummary }), 'active')}
+            {renderSettingsSelectRow(copy.rows.selectedThinking[0], taskDefaultsThinkingSupported ? copy.rows.selectedThinking[1] : copy.rows.selectedThinkingUnsupported[1], taskDefaults.selectedThinking, preferences.thinkingOptions, (value) => updateTaskDefaults({ selectedThinking: value }))}
+            {renderSettingsSelectRow(copy.rows.responseSpeed[0], copy.rows.responseSpeed[1], taskReplyMode, replyModeOptions, (value) => updateTaskDefaults({ responseSpeed: value }), undefined, (value) => replyModeLabel(language, value))}
+            {renderSettingsToggleRow(copy.rows.allowTools[0], copy.rows.allowTools[1], taskDefaults.allowTools, () => updateTaskDefaults({ allowTools: !taskDefaults.allowTools }))}
           </div>
         </section>
 
@@ -981,13 +945,12 @@ export function SettingsWorkspace({
               taskDefaults.permissionMode,
               preferences.permissionModeOptions,
               (value) => updateTaskDefaults({ permissionMode: value }),
-              'active',
               getPermissionModeDescription,
             )}
-            {renderSettingsToggleRow(copy.rows.confirmFileChanges[0], copy.rows.confirmFileChanges[1], confirmationDefaults.confirmFileChanges, () => updateConfirmationDefaults({ confirmFileChanges: !confirmationDefaults.confirmFileChanges }), 'active')}
-            {renderSettingsToggleRow(copy.rows.confirmCommands[0], copy.rows.confirmCommands[1], confirmationDefaults.confirmCommands, () => updateConfirmationDefaults({ confirmCommands: !confirmationDefaults.confirmCommands }), 'active')}
-            {renderSettingsToggleRow(copy.rows.confirmExternalApps[0], copy.rows.confirmExternalApps[1], confirmationDefaults.confirmExternalApps, () => updateConfirmationDefaults({ confirmExternalApps: !confirmationDefaults.confirmExternalApps }), 'active')}
-            {renderSettingsToggleRow(copy.rows.confirmHighRisk[0], copy.rows.confirmHighRisk[1], confirmationDefaults.confirmHighRisk, () => updateConfirmationDefaults({ confirmHighRisk: !confirmationDefaults.confirmHighRisk }), 'active')}
+            {renderSettingsToggleRow(copy.rows.confirmFileChanges[0], copy.rows.confirmFileChanges[1], confirmationDefaults.confirmFileChanges, () => updateConfirmationDefaults({ confirmFileChanges: !confirmationDefaults.confirmFileChanges }))}
+            {renderSettingsToggleRow(copy.rows.confirmCommands[0], copy.rows.confirmCommands[1], confirmationDefaults.confirmCommands, () => updateConfirmationDefaults({ confirmCommands: !confirmationDefaults.confirmCommands }))}
+            {renderSettingsToggleRow(copy.rows.confirmExternalApps[0], copy.rows.confirmExternalApps[1], confirmationDefaults.confirmExternalApps, () => updateConfirmationDefaults({ confirmExternalApps: !confirmationDefaults.confirmExternalApps }))}
+            {renderSettingsToggleRow(copy.rows.confirmHighRisk[0], copy.rows.confirmHighRisk[1], confirmationDefaults.confirmHighRisk, () => updateConfirmationDefaults({ confirmHighRisk: !confirmationDefaults.confirmHighRisk }))}
           </div>
         </section>
 
@@ -997,11 +960,11 @@ export function SettingsWorkspace({
             <p>{copy.sections.memory.detail}</p>
           </header>
           <div className="settings-group">
-            {renderSettingsToggleRow(copy.rows.rememberPreferences[0], copy.rows.rememberPreferences[1], memoryDefaults.rememberPreferences, () => updateMemoryDefaults({ rememberPreferences: !memoryDefaults.rememberPreferences }), 'active')}
-            {renderSettingsToggleRow(copy.rows.rememberProjectContext[0], copy.rows.rememberProjectContext[1], memoryDefaults.rememberProjectContext, () => updateMemoryDefaults({ rememberProjectContext: !memoryDefaults.rememberProjectContext }), 'active')}
-            {renderSettingsToggleRow(copy.rows.memoryDreamEnabled[0], copy.rows.memoryDreamEnabled[1], memoryDefaults.memoryDreamEnabled, () => updateMemoryDefaults({ memoryDreamEnabled: !memoryDefaults.memoryDreamEnabled }), 'active')}
-            {renderSettingsSelectRow(copy.rows.memoryDreamFrequency[0], copy.rows.memoryDreamFrequency[1], memoryDefaults.memoryDreamFrequency, ['空闲时', '每天', '手动'], (value) => updateMemoryDefaults({ memoryDreamFrequency: value }), 'active')}
-            {renderSettingsSelectRow(copy.rows.memoryCleanupConfirmation[0], copy.rows.memoryCleanupConfirmation[1], memoryDefaults.memoryCleanupConfirmation, ['每次确认', '仅重要记忆', '不自动清理'], (value) => updateMemoryDefaults({ memoryCleanupConfirmation: value }), 'active')}
+            {renderSettingsToggleRow(copy.rows.rememberPreferences[0], copy.rows.rememberPreferences[1], memoryDefaults.rememberPreferences, () => updateMemoryDefaults({ rememberPreferences: !memoryDefaults.rememberPreferences }))}
+            {renderSettingsToggleRow(copy.rows.rememberProjectContext[0], copy.rows.rememberProjectContext[1], memoryDefaults.rememberProjectContext, () => updateMemoryDefaults({ rememberProjectContext: !memoryDefaults.rememberProjectContext }))}
+            {renderSettingsToggleRow(copy.rows.memoryDreamEnabled[0], copy.rows.memoryDreamEnabled[1], memoryDefaults.memoryDreamEnabled, () => updateMemoryDefaults({ memoryDreamEnabled: !memoryDefaults.memoryDreamEnabled }))}
+            {renderSettingsSelectRow(copy.rows.memoryDreamFrequency[0], copy.rows.memoryDreamFrequency[1], memoryDefaults.memoryDreamFrequency, ['空闲时', '每天', '手动'], (value) => updateMemoryDefaults({ memoryDreamFrequency: value }))}
+            {renderSettingsSelectRow(copy.rows.memoryCleanupConfirmation[0], copy.rows.memoryCleanupConfirmation[1], memoryDefaults.memoryCleanupConfirmation, ['每次确认', '仅重要记忆', '不自动清理'], (value) => updateMemoryDefaults({ memoryCleanupConfirmation: value }))}
           </div>
         </section>
 
@@ -1011,11 +974,11 @@ export function SettingsWorkspace({
             <p>{copy.sections.notifications.detail}</p>
           </header>
           <div className="settings-group">
-            {renderSettingsToggleRow(copy.rows.notifyTaskDone[0], copy.rows.notifyTaskDone[1], notificationDefaults.notifyTaskDone, () => updateNotificationDefaults({ notifyTaskDone: !notificationDefaults.notifyTaskDone }), 'active')}
-            {renderSettingsToggleRow(copy.rows.notifyConfirmNeeded[0], copy.rows.notifyConfirmNeeded[1], notificationDefaults.notifyConfirmNeeded, () => updateNotificationDefaults({ notifyConfirmNeeded: !notificationDefaults.notifyConfirmNeeded }), 'active')}
-            {renderSettingsToggleRow(copy.rows.notifyDreamDone[0], copy.rows.notifyDreamDone[1], notificationDefaults.notifyDreamDone, () => updateNotificationDefaults({ notifyDreamDone: !notificationDefaults.notifyDreamDone }), 'active')}
-            {renderSettingsToggleRow(copy.rows.notifyAutomationFailed[0], copy.rows.notifyAutomationFailed[1], notificationDefaults.notifyAutomationFailed, () => updateNotificationDefaults({ notifyAutomationFailed: !notificationDefaults.notifyAutomationFailed }), 'active')}
-            {renderSettingsToggleRow(copy.rows.notificationSound[0], copy.rows.notificationSound[1], notificationDefaults.notificationSound, () => updateNotificationDefaults({ notificationSound: !notificationDefaults.notificationSound }), 'active')}
+            {renderSettingsToggleRow(copy.rows.notifyTaskDone[0], copy.rows.notifyTaskDone[1], notificationDefaults.notifyTaskDone, () => updateNotificationDefaults({ notifyTaskDone: !notificationDefaults.notifyTaskDone }))}
+            {renderSettingsToggleRow(copy.rows.notifyConfirmNeeded[0], copy.rows.notifyConfirmNeeded[1], notificationDefaults.notifyConfirmNeeded, () => updateNotificationDefaults({ notifyConfirmNeeded: !notificationDefaults.notifyConfirmNeeded }))}
+            {renderSettingsToggleRow(copy.rows.notifyDreamDone[0], copy.rows.notifyDreamDone[1], notificationDefaults.notifyDreamDone, () => updateNotificationDefaults({ notifyDreamDone: !notificationDefaults.notifyDreamDone }))}
+            {renderSettingsToggleRow(copy.rows.notifyAutomationFailed[0], copy.rows.notifyAutomationFailed[1], notificationDefaults.notifyAutomationFailed, () => updateNotificationDefaults({ notifyAutomationFailed: !notificationDefaults.notifyAutomationFailed }))}
+            {renderSettingsToggleRow(copy.rows.notificationSound[0], copy.rows.notificationSound[1], notificationDefaults.notificationSound, () => updateNotificationDefaults({ notificationSound: !notificationDefaults.notificationSound }))}
           </div>
         </section>
 
@@ -1025,7 +988,7 @@ export function SettingsWorkspace({
             <p>{copy.sections.privacy.detail}</p>
           </header>
           <div className="settings-group">
-            {renderSettingsValueRow(copy.rows.dataLocation[0], copy.rows.dataLocation[1], settingValueLabel(language, privacyDefaults.dataLocation), 'active')}
+            {renderSettingsValueRow(copy.rows.dataLocation[0], copy.rows.dataLocation[1], settingValueLabel(language, privacyDefaults.dataLocation))}
             {renderSettingsActionRow(copy.rows.clearCache[0], copy.rows.clearCache[1], onClearCache)}
             {renderSettingsActionRow(copy.rows.exportData[0], copy.rows.exportData[1], onExportData)}
             {renderSettingsActionRow(copy.rows.deleteLocalData[0], copy.rows.deleteLocalData[1], onDeleteLocalData, 'danger')}
@@ -1038,8 +1001,8 @@ export function SettingsWorkspace({
             <p>{copy.sections.advanced.detail}</p>
           </header>
           <div className="settings-group">
-            {renderSettingsSelectRow(copy.rows.logLevel[0], copy.rows.logLevel[1], advancedDefaults.logLevel, ['标准', '详细', '错误'], (value) => updateAdvancedDefaults({ logLevel: value }), 'active')}
-            {renderSettingsValueRow(copy.rows.runtimeStatus[0], copy.rows.runtimeStatus[1], runtimeStatus, 'active')}
+            {renderSettingsSelectRow(copy.rows.logLevel[0], copy.rows.logLevel[1], advancedDefaults.logLevel, ['标准', '详细', '错误'], (value) => updateAdvancedDefaults({ logLevel: value }))}
+            {renderSettingsValueRow(copy.rows.runtimeStatus[0], copy.rows.runtimeStatus[1], runtimeStatus)}
             {renderSettingsActionRow(copy.rows.diagnostics[0], copy.rows.diagnostics[1], onGenerateDiagnostics)}
             {renderSettingsActionRow(copy.rows.resetState[0], copy.rows.resetState[1], onResetState, 'danger')}
           </div>
@@ -1444,17 +1407,6 @@ function SavedModelProfiles({ profiles }: { profiles: DesktopModelProfileSummary
       ))}
     </div>
   )
-}
-
-function SettingsRowStatus({
-  language,
-  status,
-}: {
-  language?: SettingsLanguage
-  status: SettingsRowStatusValue
-}) {
-  const copy = settingsCopy[language ?? 'zh-CN']
-  return <span className={`settings-row-status is-${status}`}>{copy.status[status]}</span>
 }
 
 export function SettingsSidebar({

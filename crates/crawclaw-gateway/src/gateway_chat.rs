@@ -302,6 +302,9 @@ pub(super) async fn special_agent_run_with_agent_runtime(
             "maxTurns": definition.max_turns
         }),
     );
+    if definition.guard == Some(SpecialAgentToolGuard::MemoryMaintenance) {
+        options.insert("memoryAfterTurn".to_string(), json!(false));
+    }
     let agent_request = AgentRunRequest {
         run_id: run_id.clone(),
         agent_id: kind.to_string(),
@@ -537,11 +540,24 @@ pub(super) async fn chat_send(state: &GatewayState, params: Value) -> Result<Val
     let run_id = string_param(&params, &["idempotencyKey", "runId"])
         .unwrap_or_else(|| format!("rust-chat-{}", now_millis()));
     let session_key = normalize_session_key(&required_param(&params, &["sessionKey", "key"])?)?;
+    tracing::info!(
+        runtime_root = %state.runtime_root.display(),
+        run_id = %run_id,
+        session_key = %session_key,
+        "rust_gateway_chat_send_started"
+    );
     let mut run_params = params;
     ensure_json_object(&mut run_params).insert("runId".to_string(), Value::String(run_id.clone()));
     let result = match execute_agent_run_turn(state, &run_params, "rust-chat").await {
         Ok(result) => result,
         Err(error) => {
+            tracing::info!(
+                runtime_root = %state.runtime_root.display(),
+                run_id = %run_id,
+                session_key = %session_key,
+                error = %error,
+                "rust_gateway_chat_send_failed"
+            );
             let payload = json!({
             "runId": run_id,
             "sessionKey": session_key,
@@ -575,6 +591,12 @@ pub(super) async fn chat_send(state: &GatewayState, params: Value) -> Result<Val
         "stopReason": "end_turn"
     });
     emit(state, "chat", payload.clone());
+    tracing::info!(
+        runtime_root = %state.runtime_root.display(),
+        run_id = %run_id,
+        session_key = %thread_id,
+        "rust_gateway_chat_send_completed"
+    );
     Ok(json!({
         "ok": true,
         "status": "completed",

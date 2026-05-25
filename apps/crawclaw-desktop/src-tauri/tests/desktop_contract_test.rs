@@ -25,6 +25,8 @@ fn desktop_api_contract_exposes_structured_conversation_messages() {
     let source = crawclaw_desktop::desktop_contract::desktop_api_contract_source();
 
     assert!(source.contains("export type ConversationMessage ="));
+    assert!(source.contains("status?: 'running' | 'done' | 'cancelled' | 'failed'"));
+    assert!(source.contains("runId?: string"));
     assert!(source.contains("kind: 'toolResult'"));
     assert!(source.contains("messages: ConversationMessage[]"));
 }

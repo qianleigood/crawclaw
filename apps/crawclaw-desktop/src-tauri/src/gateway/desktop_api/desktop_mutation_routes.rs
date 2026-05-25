@@ -40,6 +40,22 @@ pub(super) async fn add_plugin_skill(
     .await
 }
 
+pub(super) async fn remove_plugin_skill(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    Path(skill_id): Path<String>,
+    body: Bytes,
+) -> Result<Json<DesktopState>, StatusCode> {
+    run_body_mutation(
+        state,
+        headers,
+        body,
+        DesktopNativeMutation::RemovePluginSkill,
+        vec![("skillId", skill_id)],
+    )
+    .await
+}
+
 pub(super) async fn toggle_plugin_skill(
     State(state): State<GatewayState>,
     headers: HeaderMap,
@@ -68,6 +84,38 @@ pub(super) async fn toggle_plugin_tool(
         body,
         DesktopNativeMutation::Toggle(ToggleMutation::PluginTool),
         vec![("toolId", tool_id)],
+    )
+    .await
+}
+
+pub(super) async fn set_plugin_tool_enabled_route(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    Path(tool_id): Path<String>,
+    body: Bytes,
+) -> Result<Json<DesktopState>, StatusCode> {
+    run_body_mutation(
+        state,
+        headers,
+        body,
+        DesktopNativeMutation::SetPluginToolEnabled,
+        vec![("toolId", tool_id)],
+    )
+    .await
+}
+
+pub(super) async fn set_plugin_skill_enabled_route(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    Path(skill_id): Path<String>,
+    body: Bytes,
+) -> Result<Json<DesktopState>, StatusCode> {
+    run_body_mutation(
+        state,
+        headers,
+        body,
+        DesktopNativeMutation::SetPluginSkillEnabled,
+        vec![("skillId", skill_id)],
     )
     .await
 }

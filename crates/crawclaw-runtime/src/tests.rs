@@ -289,6 +289,67 @@ fn rust_runtime_repo_guardrails_keep_desktop_settings_view_split() {
 }
 
 #[test]
+fn rust_runtime_repo_guardrails_keep_desktop_dialogs_app_owned() {
+    let root = repo_root();
+    let desktop_src = root.join("apps/crawclaw-desktop/src");
+    let mut files = Vec::new();
+    collect_ts_files(&desktop_src, &mut files);
+
+    let window_confirm_hits = files
+        .iter()
+        .filter_map(|path| {
+            let source = fs::read_to_string(path).expect("read desktop renderer source");
+            source
+                .contains("window.confirm")
+                .then(|| slash_path(path.strip_prefix(&root).expect("relative path")))
+        })
+        .collect::<Vec<_>>();
+    assert!(
+        window_confirm_hits.is_empty(),
+        "desktop confirmations must use app-owned dialogs, not native window.confirm: {window_confirm_hits:?}"
+    );
+
+    let app_source = fs::read_to_string(root.join("apps/crawclaw-desktop/src/App.tsx"))
+        .expect("read desktop app");
+    assert!(
+        !app_source.contains("addPluginSkillLocally"),
+        "plugin skill additions must surface backend failure instead of creating a local fallback skill"
+    );
+}
+
+#[test]
+fn rust_runtime_repo_guardrails_keep_plugin_workspace_full_chain_ui() {
+    let root = repo_root();
+    let plugin_workspace_path =
+        root.join("apps/crawclaw-desktop/src/views/plugins-workspace.tsx");
+    let plugin_source =
+        fs::read_to_string(&plugin_workspace_path).expect("read plugin workspace");
+    for needle in [
+        "Tools",
+        "Skills",
+        "Installed",
+        "onInstallPlugin",
+        "onInvokePluginTool",
+        "tools:",
+        "installed:",
+    ] {
+        assert!(
+            plugin_source.contains(needle),
+            "plugins-workspace.tsx must expose the full plugin center surface: missing {needle}"
+        );
+    }
+
+    let app_source =
+        fs::read_to_string(root.join("apps/crawclaw-desktop/src/App.tsx")).expect("read app");
+    for needle in ["installPlugin", "invokePluginTool", "togglePluginTool"] {
+        assert!(
+            app_source.contains(needle),
+            "App.tsx must wire plugin workspace operation {needle}"
+        );
+    }
+}
+
+#[test]
 fn rust_runtime_repo_guardrails_keep_desktop_agent_view_split() {
     let root = repo_root();
     let app_path = root.join("apps/crawclaw-desktop/src/App.tsx");
@@ -1751,6 +1812,11 @@ async fn agent_runtime_uses_pi_agent_rust_direct_backend_by_default() {
         .expect("transcript");
     assert!(transcript.contains(r#""content":"hello direct""#));
     assert!(transcript.contains(r#""content":"hello from pi_agent_rust""#));
+    let memory_messages =
+        crate::memory::RuntimeStore::new(runtime_root.join("memory").join("runtime.db"))
+            .list_messages("thread-pi", 10)
+            .expect("memory messages");
+    assert_eq!(memory_messages.len(), 2);
 }
 
 #[tokio::test]
@@ -1861,6 +1927,104 @@ async fn agent_runtime_run_turn_emits_rust_event_contract() {
             .list_messages("thread-events", 10)
             .expect("memory messages");
     assert_eq!(memory_messages.len(), 2);
+}
+
+#[tokio::test]
+async fn agent_runtime_run_turn_can_disable_memory_after_turn() {
+    let runtime_root = unique_test_runtime_root("agent-run-turn-no-memory");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+
+    let runtime = AgentRuntime::with_pi_agent_backend(
+        runtime_root.clone(),
+        Arc::new(FakeAgentRuntimeBackend {
+            reply: "no memory reply".to_string(),
+        }),
+    );
+    let result = runtime
+        .run_turn(AgentRunRequest {
+            run_id: "run-no-memory".to_string(),
+            agent_id: "main".to_string(),
+            session_key: "thread-no-memory".to_string(),
+            inbound: ChannelInboundEnvelope {
+                channel: "gateway".to_string(),
+                account_id: Some("local".to_string()),
+                from: "user".to_string(),
+                to: "agent:main".to_string(),
+                chat_type: ChannelChatType::Direct,
+                body: "hello without memory".to_string(),
+                raw_body: Some("hello without memory".to_string()),
+                message_id: Some("in-no-memory".to_string()),
+                thread_id: Some("thread-no-memory".to_string()),
+                media_urls: Vec::new(),
+                metadata: BTreeMap::new(),
+            },
+            model: AgentModelSelection {
+                provider: "test-provider".to_string(),
+                model: "test-model".to_string(),
+                reasoning_level: None,
+            },
+            enabled_tools: Vec::new(),
+            options: BTreeMap::from([("memoryAfterTurn".to_string(), json!(false))]),
+        })
+        .await
+        .expect("run turn");
+
+    assert_eq!(result.assistant_text, "no memory reply");
+    assert!(!serde_json::to_value(&result.events)
+        .expect("events json")
+        .as_array()
+        .expect("events array")
+        .iter()
+        .any(|event| event["toolName"] == "memory.afterTurn"));
+    let memory_db = runtime_root.join("memory").join("runtime.db");
+    if memory_db.exists() {
+        let memory_messages = crate::memory::RuntimeStore::new(memory_db)
+            .list_messages("thread-no-memory", 10)
+            .expect("memory messages");
+        assert!(memory_messages.is_empty());
+    }
+}
+
+#[tokio::test]
+async fn memory_runtime_loads_desktop_policy_overlay() {
+    let runtime_root = unique_test_runtime_root("memory-policy-overlay");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-memory-policy.json"),
+        serde_json::to_vec_pretty(&json!({
+            "rememberPreferences": false,
+            "rememberProjectContext": false,
+            "memoryDreamEnabled": false,
+            "memoryDreamFrequency": "手动",
+            "memoryCleanupConfirmation": "每次确认"
+        }))
+        .expect("policy json"),
+    )
+    .expect("write policy");
+
+    let status = crate::memory::RustMemoryRuntime::new(runtime_root)
+        .status()
+        .expect("memory status");
+
+    assert_eq!(status["config"]["durableExtraction"]["enabled"], false);
+    assert_eq!(status["config"]["experience"]["enabled"], false);
+    assert_eq!(status["config"]["dreaming"]["enabled"], false);
+    assert_eq!(
+        status["config"]["desktopPolicy"]["memoryDreamFrequency"],
+        "手动"
+    );
 }
 
 #[tokio::test]

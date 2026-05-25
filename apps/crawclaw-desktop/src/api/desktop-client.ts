@@ -6,6 +6,7 @@ import type {
   AddSkillCallMessageInput,
   AddVoiceMessageInput,
   AddWorkflowMessageInput,
+  ArchiveMemoryItemInput,
   BootstrapResponse,
   CreateAgentInput,
   CreateMemoryItemInput,
@@ -18,6 +19,7 @@ import type {
   MemoryFilter,
   ModelProfileSetupInput,
   PermissionStatus,
+  PluginInstallInput,
   SearchSuggestion,
   SendMessageInput,
   UpdateAgentInput,
@@ -288,16 +290,50 @@ export async function togglePluginTool(toolId: string): Promise<DesktopState> {
   })
 }
 
+export async function setPluginToolEnabled(toolId: string, enabled: boolean): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/plugins/tools/${encodeURIComponent(toolId)}/enabled`, {
+    body: { enabled },
+    method: 'PATCH',
+  })
+}
+
 export async function togglePluginSkill(skillId: string): Promise<DesktopState> {
   return mutateDesktopState(`/api/desktop/plugins/skills/${encodeURIComponent(skillId)}/toggle`, {
     method: 'POST',
   })
 }
 
+export async function setPluginSkillEnabled(skillId: string, enabled: boolean): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/plugins/skills/${encodeURIComponent(skillId)}/enabled`, {
+    body: { enabled },
+    method: 'PATCH',
+  })
+}
+
 export async function invokePluginTool(pluginId: string, toolId: string, input: unknown = {}): Promise<DesktopState> {
   return mutateDesktopState(`/api/desktop/plugins/${encodeURIComponent(pluginId)}/tools/${encodeURIComponent(toolId)}/invoke`, {
-    body: { input },
+    body: { confirmed: true, input },
     method: 'POST',
+  })
+}
+
+export async function installPlugin(input: PluginInstallInput): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/plugins/install', {
+    body: input,
+    method: 'POST',
+  })
+}
+
+export async function uninstallPlugin(pluginId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/plugins/${encodeURIComponent(pluginId)}/uninstall`, {
+    method: 'POST',
+  })
+}
+
+export async function setInstalledPluginEnabled(pluginId: string, enabled: boolean): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/plugins/${encodeURIComponent(pluginId)}/enabled`, {
+    body: { enabled },
+    method: 'PATCH',
   })
 }
 
@@ -305,6 +341,13 @@ export async function addPluginSkill(skill: AddPluginSkillInput): Promise<Deskto
   return mutateDesktopState('/api/desktop/plugins/skills', {
     body: skill,
     method: 'POST',
+  })
+}
+
+export async function removePluginSkill(skillId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/plugins/skills/${encodeURIComponent(skillId)}`, {
+    body: {},
+    method: 'DELETE',
   })
 }
 
@@ -387,8 +430,10 @@ export async function updateMemoryItem(itemId: string, patch: UpdateMemoryItemPa
   })
 }
 
-export async function archiveMemoryItem(itemId: string): Promise<DesktopState> {
+export async function archiveMemoryItem(itemId: string, confirmed = false): Promise<DesktopState> {
+  const body: ArchiveMemoryItemInput = { confirmed }
   return mutateDesktopState(`/api/desktop/memory/items/${encodeURIComponent(itemId)}/archive`, {
+    body,
     method: 'POST',
   })
 }
@@ -404,7 +449,7 @@ async function mutateDesktopState(
   path: string,
   request: {
     body?: unknown
-    method: 'PATCH' | 'POST'
+    method: 'DELETE' | 'PATCH' | 'POST'
   },
 ): Promise<DesktopState> {
   const context = await ensureContext()

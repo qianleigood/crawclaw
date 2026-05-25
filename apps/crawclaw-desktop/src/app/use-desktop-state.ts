@@ -97,6 +97,13 @@ export function useDesktopStateController(): DesktopStateController {
               permissionRequest: event.permissionRequest,
             }))
           }
+
+          if (event.type === 'permissionRequested') {
+            setDesktopState((state) => ({
+              ...state,
+              permissionRequest: event.permissionRequest,
+            }))
+          }
         })
       })
       .catch((error: unknown) => {

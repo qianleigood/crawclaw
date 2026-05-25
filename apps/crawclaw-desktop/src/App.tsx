@@ -32,6 +32,7 @@ import {
   exportDesktopData,
   pinThread,
   renameThread,
+  removePluginSkill,
   runMemoryDream,
   searchDesktop,
   selectAgent,
@@ -40,24 +41,27 @@ import {
   selectNav,
   selectThread,
   sendMessage,
+  setInstalledPluginEnabled,
+  setPluginSkillEnabled,
+  setPluginToolEnabled,
   setMemoryFilter as setDesktopMemoryFilter,
   setMemoryQuery as setDesktopMemoryQuery,
   testAndSaveModelProfile,
   clearDesktopCache,
   deleteDesktopLocalData,
   generateDesktopDiagnostics,
+  installPlugin,
+  invokePluginTool,
   resetDesktopState,
-  togglePluginSkill,
   unpinThread,
+  uninstallPlugin,
   updateMemoryItem,
   updatePreferences,
-  type AddPluginSkillInput,
   type DesktopPreferencesPatch,
   type DesktopPreferences,
   type DesktopIconKey,
   type DesktopState,
   type ModelProfileSetupInput,
-  type PluginSkill,
 } from './desktop-api'
 import { useDesktopStateController } from './app/use-desktop-state'
 import { AgentWorkspace } from './views/agent-workspace'
@@ -72,6 +76,11 @@ import {
 import { SearchOverlay } from './ui/search-overlay'
 import { Sidebar } from './ui/sidebar'
 import type { SidebarNavItem, SidebarThread } from './ui/sidebar'
+import {
+  ConfirmationDialog,
+  type ConfirmationRequestInput,
+} from './ui/confirmation-dialog'
+import { getCurrentDesktopApiContext } from './api/desktop-transport'
 
 const iconByKey: Record<DesktopIconKey, LucideIcon> = {
   blocks: Blocks,
@@ -119,62 +128,6 @@ function DesktopIcon({
 }) {
   const Icon = iconByKey[icon]
   return <Icon aria-hidden="true" size={size} strokeWidth={2} />
-}
-
-function localPluginSkillId(trigger: string) {
-  return `skill-custom-${trigger.replace(/^@/, '').replace(/[^a-zA-Z0-9_.-]+/g, '-')}`
-}
-
-function addPluginSkillLocally(state: DesktopState, input: AddPluginSkillInput): DesktopState {
-  const id = localPluginSkillId(input.trigger)
-  const skill: PluginSkill = {
-    description: input.description,
-    icon: 'sparkles',
-    id,
-    name: input.name,
-    open: false,
-    source: '自定义',
-    status: '本地',
-    trigger: input.trigger,
-  }
-  const hasSkill = state.pluginsWorkspace.skills.some((item) => item.trigger === input.trigger)
-  const hasCommand = state.conversation.skillCommands.some((item) => item.mention.trim() === input.trigger)
-  const hasSearchSuggestion = state.searchSuggestions.some((item) => item.id === `search-${id}`)
-
-  return {
-    ...state,
-    conversation: {
-      ...state.conversation,
-      skillCommands: hasCommand
-        ? state.conversation.skillCommands
-        : [
-          ...state.conversation.skillCommands,
-          {
-            detail: input.description,
-            icon: skill.icon,
-            id,
-            label: input.name,
-            mention: `${input.trigger} `,
-          },
-        ],
-    },
-    pluginsWorkspace: {
-      ...state.pluginsWorkspace,
-      skills: hasSkill ? state.pluginsWorkspace.skills : [...state.pluginsWorkspace.skills, skill],
-    },
-    searchSuggestions: hasSearchSuggestion
-      ? state.searchSuggestions
-      : [
-        ...state.searchSuggestions,
-        {
-          icon: skill.icon,
-          id: `search-${id}`,
-          label: input.name,
-          meta: 'Skill',
-          targetNavId: 'plugins',
-        },
-      ],
-  }
 }
 
 function mergeDesktopPreferences(
@@ -227,6 +180,11 @@ function mergeDesktopPreferences(
   return next
 }
 
+type PendingConfirmation = ConfirmationRequestInput & {
+  id: number
+  resolve: (confirmed: boolean) => void
+}
+
 function clearActiveConversation(state: DesktopState): DesktopState {
   return {
     ...state,
@@ -241,6 +199,56 @@ function clearActiveConversation(state: DesktopState): DesktopState {
       discussionThreads: state.sidebar.discussionThreads.map((thread) => ({ ...thread, active: false })),
       pinnedThreads: state.sidebar.pinnedThreads.map((thread) => ({ ...thread, active: false })),
       threads: state.sidebar.threads.map((thread) => ({ ...thread, active: false })),
+    },
+  }
+}
+
+function setPluginToolEnabledLocally(state: DesktopState, toolId: string, enabled: boolean): DesktopState {
+  return {
+    ...state,
+    pluginsWorkspace: {
+      ...state.pluginsWorkspace,
+      tools: state.pluginsWorkspace.tools.map((tool) => tool.id === toolId ? { ...tool, enabled } : tool),
+    },
+  }
+}
+
+function setPluginSkillEnabledLocally(state: DesktopState, skillId: string, enabled: boolean): DesktopState {
+  return {
+    ...state,
+    pluginsWorkspace: {
+      ...state.pluginsWorkspace,
+      skills: state.pluginsWorkspace.skills.map((skill) => skill.id === skillId ? { ...skill, enabled } : skill),
+    },
+  }
+}
+
+function removePluginSkillLocally(state: DesktopState, skillId: string): DesktopState {
+  return {
+    ...state,
+    pluginsWorkspace: {
+      ...state.pluginsWorkspace,
+      skills: state.pluginsWorkspace.skills.filter((skill) => skill.id !== skillId || skill.source === 'core'),
+    },
+  }
+}
+
+function uninstallPluginLocally(state: DesktopState, pluginId: string): DesktopState {
+  return {
+    ...state,
+    pluginsWorkspace: {
+      ...state.pluginsWorkspace,
+      installed: state.pluginsWorkspace.installed.filter((plugin) => plugin.id !== pluginId),
+    },
+  }
+}
+
+function setInstalledPluginEnabledLocally(state: DesktopState, pluginId: string, enabled: boolean): DesktopState {
+  return {
+    ...state,
+    pluginsWorkspace: {
+      ...state.pluginsWorkspace,
+      installed: state.pluginsWorkspace.installed.map((plugin) => plugin.id === pluginId ? { ...plugin, enabled } : plugin),
     },
   }
 }
@@ -284,6 +292,7 @@ export default function App() {
   const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsSectionId>('general')
   const [queuedChatInputText, setQueuedChatInputText] = useState('')
   const [selectedChatAgentId, setSelectedChatAgentId] = useState('')
+  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null)
   const activeNavId = desktopState.activeNavId
   const appAppearanceClass = appearanceClass(desktopState.preferences.uiDefaults.appearance)
   const appLanguageCode = languageCode(desktopState.preferences.uiDefaults.language)
@@ -354,6 +363,65 @@ export default function App() {
     setDesktopState(nextState)
   }
 
+  const requestConfirmation = useCallback((input: ConfirmationRequestInput): Promise<boolean> => (
+    new Promise((resolve) => {
+      setPendingConfirmation((current) => {
+        current?.resolve(false)
+        return {
+          ...input,
+          id: Date.now(),
+          resolve,
+        }
+      })
+    })
+  ), [])
+
+  const settleConfirmation = (confirmed: boolean) => {
+    const resolver = pendingConfirmation?.resolve
+    setPendingConfirmation(null)
+    resolver?.(confirmed)
+  }
+
+  const updatePluginToolEnabled = (toolId: string, enabled: boolean) => {
+    if (!getCurrentDesktopApiContext()) {
+      setDesktopState((state) => setPluginToolEnabledLocally(state, toolId, enabled))
+      return
+    }
+    void applyDesktopState(() => setPluginToolEnabled(toolId, enabled))
+  }
+
+  const updatePluginSkillEnabled = (skillId: string, enabled: boolean) => {
+    if (!getCurrentDesktopApiContext()) {
+      setDesktopState((state) => setPluginSkillEnabledLocally(state, skillId, enabled))
+      return
+    }
+    void applyDesktopState(() => setPluginSkillEnabled(skillId, enabled))
+  }
+
+  const removePluginSkillFromUi = async (skillId: string) => {
+    if (!getCurrentDesktopApiContext()) {
+      setDesktopState((state) => removePluginSkillLocally(state, skillId))
+      return
+    }
+    await applyDesktopState(() => removePluginSkill(skillId))
+  }
+
+  const uninstallPluginFromUi = async (pluginId: string) => {
+    if (!getCurrentDesktopApiContext()) {
+      setDesktopState((state) => uninstallPluginLocally(state, pluginId))
+      return
+    }
+    await applyDesktopState(() => uninstallPlugin(pluginId))
+  }
+
+  const updateInstalledPluginEnabled = (pluginId: string, enabled: boolean) => {
+    if (!getCurrentDesktopApiContext()) {
+      setDesktopState((state) => setInstalledPluginEnabledLocally(state, pluginId, enabled))
+      return
+    }
+    void applyDesktopState(() => setInstalledPluginEnabled(pluginId, enabled))
+  }
+
   const selectSettingsSection = (id: SettingsSectionId) => {
     setActiveSettingsSection(id)
   }
@@ -394,6 +462,10 @@ export default function App() {
       let nextState = await selectNav(item.targetNavId)
       if (item.targetNavId === 'memory' && item.targetItemId) {
         nextState = await selectMemoryItem(item.targetItemId)
+      } else if (item.targetNavId === 'new-chat' && item.targetItemId) {
+        nextState = await selectThread(item.targetItemId)
+      } else if (item.targetNavId === 'agent' && item.targetItemId) {
+        nextState = await selectAgent(item.targetItemId)
       }
       return nextState
     })
@@ -476,6 +548,7 @@ export default function App() {
             onDecidePermission={(requestId, status) => void applyDesktopState(() => decidePermission(requestId, status))}
             onPreferenceUpdate={applyPreferenceUpdate}
             onQueuedInputTextConsumed={() => setQueuedChatInputText('')}
+            onRequestConfirmation={requestConfirmation}
             onSelectedChatAgentChange={setSelectedChatAgentId}
             onSendMessage={(message) => void applyDesktopState(() => sendMessage(message, {
               agentId: selectedChatAgentId || undefined,
@@ -498,25 +571,43 @@ export default function App() {
               />
             ) : activeNavId === 'plugins' ? (
               <PluginsWorkspace
+                installed={desktopState.pluginsWorkspace.installed}
                 onFeaturedPlugin={tryFeaturedPlugin}
-                onInstallSkill={async (input) => {
-                  try {
-                    const nextState = await addPluginSkill(input)
-                    setDesktopState(nextState)
-                  } catch {
-                    setDesktopState((state) => addPluginSkillLocally(state, input))
-                  }
+                onInstallPlugin={async (input) => {
+                  const nextState = await installPlugin(input)
+                  setDesktopState(nextState)
                 }}
-                onTogglePluginSkill={(skillId) => void applyDesktopState(() => togglePluginSkill(skillId))}
-                renderSkillIcon={(icon) => <DesktopIcon icon={icon} />}
+                onInstallSkill={async (input) => {
+                  const nextState = await addPluginSkill(input)
+                  setDesktopState(nextState)
+                }}
+                onInvokePluginTool={async (pluginId, toolId, input) => {
+                  const nextState = await invokePluginTool(pluginId, toolId, input)
+                  setDesktopState(nextState)
+                }}
+                onRequestConfirmation={requestConfirmation}
+                onRemovePluginSkill={removePluginSkillFromUi}
+                onSetInstalledPluginEnabled={updateInstalledPluginEnabled}
+                onSetPluginSkillEnabled={updatePluginSkillEnabled}
+                onSetPluginToolEnabled={updatePluginToolEnabled}
+                onUninstallPlugin={uninstallPluginFromUi}
+                onUseSkill={(skill) => void applyDesktopState(() => addSkillCallMessage({
+                  detail: skill.description,
+                  skillId: skill.id,
+                  status: 'ready',
+                  title: skill.name,
+                }))}
                 skills={desktopState.pluginsWorkspace.skills}
+                tools={desktopState.pluginsWorkspace.tools}
               />
             ) : activeNavId === 'memory' ? (
               <MemoryWorkspace
                 agents={desktopState.agentWorkspace.agents}
+                memoryCleanupConfirmation={desktopState.preferences.memoryDefaults.memoryCleanupConfirmation}
                 memoryWorkspace={memoryWorkspace}
-                onArchiveMemory={(memoryId) => void applyDesktopState(() => archiveMemoryItem(memoryId))}
+                onArchiveMemory={(memoryId, confirmed) => void applyDesktopState(() => archiveMemoryItem(memoryId, confirmed))}
                 onCreateMemory={(input) => void applyDesktopState(() => createMemoryItem(input))}
+                onRequestConfirmation={requestConfirmation}
                 onRunMemoryDream={(agentId) => void applyDesktopState(() => runMemoryDream(agentId))}
                 onSelectAgent={(agentId) => void applyDesktopState(() => selectMemoryAgent(agentId))}
                 onSetFilter={(filter) => void applyDesktopState(() => setDesktopMemoryFilter(filter))}
@@ -530,18 +621,34 @@ export default function App() {
                 modelOptions={modelOptions}
                 onClearCache={() => void applyDesktopState(() => clearDesktopCache())}
                 onDeleteLocalData={() => {
-                  if (window.confirm('删除本机桌面数据？credentials 和真实项目文件不会删除。')) {
-                    void applyDesktopState(() => deleteDesktopLocalData('DELETE'))
-                  }
+                  void (async () => {
+                    const confirmed = await requestConfirmation({
+                      title: '删除本机桌面数据',
+                      detail: '会删除桌面 runtime 数据，保留 credentials、API key 和真实项目文件。',
+                      confirmLabel: '删除',
+                      tone: 'danger',
+                    })
+                    if (confirmed) {
+                      void applyDesktopState(() => deleteDesktopLocalData('DELETE'))
+                    }
+                  })()
                 }}
                 onExportData={() => void applyDesktopState(() => exportDesktopData())}
                 onGenerateDiagnostics={() => void applyDesktopState(() => generateDesktopDiagnostics())}
                 onModelProfileTestAndSave={saveModelProfile}
                 onPreferenceUpdate={applyPreferenceUpdate}
                 onResetState={() => {
-                  if (window.confirm('重置桌面状态？会清空桌面会话和偏好。')) {
-                    void applyDesktopState(() => resetDesktopState('RESET'))
-                  }
+                  void (async () => {
+                    const confirmed = await requestConfirmation({
+                      title: '重置桌面状态',
+                      detail: '会清空桌面会话、偏好、诊断和日志，保留模型配置、记忆、工作流和密钥。',
+                      confirmLabel: '重置',
+                      tone: 'danger',
+                    })
+                    if (confirmed) {
+                      void applyDesktopState(() => resetDesktopState('RESET'))
+                    }
+                  })()
                 }}
                 preferences={desktopState.preferences}
                 runtimeStatus={runtimeChecks.find((item) => item.label === 'Runtime')?.value ?? '未知'}
@@ -563,6 +670,17 @@ export default function App() {
           </section>
         )}
       </main>
+      {pendingConfirmation ? (
+        <ConfirmationDialog
+          cancelLabel={pendingConfirmation.cancelLabel}
+          confirmLabel={pendingConfirmation.confirmLabel}
+          detail={pendingConfirmation.detail}
+          onCancel={() => settleConfirmation(false)}
+          onConfirm={() => settleConfirmation(true)}
+          title={pendingConfirmation.title}
+          tone={pendingConfirmation.tone}
+        />
+      ) : null}
     </div>
   )
 }

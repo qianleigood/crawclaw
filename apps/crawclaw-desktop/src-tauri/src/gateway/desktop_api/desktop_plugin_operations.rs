@@ -1,4 +1,147 @@
+use axum::body::Bytes;
+use axum::extract::Path;
+use axum::extract::State;
+use axum::http::{HeaderMap, StatusCode};
+use axum::Json;
+
 use super::*;
+
+pub(super) async fn install_plugin(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> Result<Json<DesktopState>, StatusCode> {
+    authorize_headers(&headers, &state)?;
+    let input = parse_json_body(body)?;
+    let params = plugin_install_params(&input)?;
+    let result = crawclaw_gateway::call_gateway_method_for_runtime_root(
+        state.runtime_root.clone(),
+        state.runtime_root.join("config"),
+        "plugins.install",
+        params,
+    )
+    .await
+    .map_err(|error| {
+        emit_operation_failed(&state, "plugin_install_failed", error);
+        StatusCode::BAD_REQUEST
+    })?;
+    refresh_plugins_workspace(&state).await?;
+    {
+        let mut desktop_state = state.desktop_state.write().await;
+        if let Some(plugin_id) = result
+            .get("pluginId")
+            .and_then(Value::as_str)
+            .or_else(|| result.get("id").and_then(Value::as_str))
+        {
+            desktop_state
+                .conversation
+                .result_items
+                .push(format!("插件已安装: {plugin_id}"));
+        }
+    }
+    emit_state_changed(&state).await
+}
+
+pub(super) async fn uninstall_plugin(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    Path(plugin_id): Path<String>,
+) -> Result<Json<DesktopState>, StatusCode> {
+    authorize_headers(&headers, &state)?;
+    let params = json!({ "id": plugin_id });
+    let result = crawclaw_gateway::call_gateway_method_for_runtime_root(
+        state.runtime_root.clone(),
+        state.runtime_root.join("config"),
+        "plugins.uninstall",
+        params,
+    )
+    .await
+    .map_err(|error| {
+        emit_operation_failed(&state, "plugin_uninstall_failed", error);
+        StatusCode::BAD_REQUEST
+    })?;
+    refresh_plugins_workspace(&state).await?;
+    {
+        let mut desktop_state = state.desktop_state.write().await;
+        if let Some(plugin_id) = result
+            .get("pluginId")
+            .and_then(Value::as_str)
+            .or_else(|| result.get("id").and_then(Value::as_str))
+        {
+            desktop_state
+                .conversation
+                .result_items
+                .push(format!("插件已卸载: {plugin_id}"));
+        }
+    }
+    emit_state_changed(&state).await
+}
+
+pub(super) async fn set_installed_plugin_enabled(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    Path(plugin_id): Path<String>,
+    body: Bytes,
+) -> Result<Json<DesktopState>, StatusCode> {
+    authorize_headers(&headers, &state)?;
+    let input = parse_json_body(body)?;
+    let enabled = input
+        .get("enabled")
+        .and_then(Value::as_bool)
+        .ok_or(StatusCode::BAD_REQUEST)?;
+    let method = if enabled {
+        "plugins.enable"
+    } else {
+        "plugins.disable"
+    };
+    crawclaw_gateway::call_gateway_method_for_runtime_root(
+        state.runtime_root.clone(),
+        state.runtime_root.join("config"),
+        method,
+        json!({ "id": plugin_id }),
+    )
+    .await
+    .map_err(|error| {
+        emit_operation_failed(&state, "plugin_enabled_failed", error);
+        StatusCode::BAD_REQUEST
+    })?;
+    refresh_plugins_workspace(&state).await?;
+    emit_state_changed(&state).await
+}
+
+fn plugin_install_params(input: &Value) -> Result<Value, StatusCode> {
+    let source = string_field(input, "source").ok_or(StatusCode::BAD_REQUEST)?;
+    let mut params = Map::new();
+    if let Some(marketplace_plugin) = string_field(input, "marketplacePlugin")
+        .or_else(|| string_field(input, "marketplace_plugin"))
+    {
+        params.insert(
+            "marketplaceSource".to_string(),
+            Value::String(source.to_string()),
+        );
+        params.insert(
+            "marketplacePlugin".to_string(),
+            Value::String(marketplace_plugin),
+        );
+    } else if looks_like_bundled_plugin_id(&source) {
+        params.insert("pluginId".to_string(), Value::String(source));
+    } else {
+        params.insert("raw".to_string(), Value::String(source));
+    }
+    if let Some(link) = input.get("link").and_then(Value::as_bool) {
+        params.insert("link".to_string(), Value::Bool(link));
+    }
+    if let Some(pin) = input.get("pin").and_then(Value::as_bool) {
+        params.insert("pin".to_string(), Value::Bool(pin));
+    }
+    Ok(Value::Object(params))
+}
+
+fn looks_like_bundled_plugin_id(source: &str) -> bool {
+    source
+        .chars()
+        .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '-')
+}
 
 pub(super) async fn invoke_plugin_tool_operation(
     state: &GatewayState,
@@ -9,6 +152,11 @@ pub(super) async fn invoke_plugin_tool_operation(
     let tool_input = input.get("input").cloned().unwrap_or_else(|| json!({}));
     let thread_id = format!("plugin:{plugin_id}");
     let title = format!("{plugin_id}/{tool_id}");
+    let confirmed = input
+        .get("confirmed")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    ensure_plugin_tool_allowed(state, &plugin_id, &tool_id, &title, confirmed).await?;
     let _ = state.events.send(DesktopEvent::ToolCall {
         thread_id: thread_id.clone(),
         tool_id: tool_id.clone(),
@@ -83,13 +231,130 @@ pub(super) async fn invoke_plugin_tool_operation(
     emit_state_changed(state).await
 }
 
+async fn ensure_plugin_tool_allowed(
+    state: &GatewayState,
+    plugin_id: &str,
+    tool_id: &str,
+    title: &str,
+    confirmed: bool,
+) -> Result<(), StatusCode> {
+    let (permission, name, enabled, preferences) = {
+        let desktop_state = state.desktop_state.read().await;
+        let Some(tool) = desktop_state
+            .plugins_workspace
+            .tools
+            .iter()
+            .find(|tool| tool.plugin_id == plugin_id && tool.id == tool_id)
+            .cloned()
+        else {
+            return Ok(());
+        };
+        (
+            tool.permission,
+            tool.name,
+            tool.enabled,
+            desktop_state.preferences.clone(),
+        )
+    };
+    if !enabled || !preferences.task_defaults.allow_tools {
+        emit_operation_failed(
+            state,
+            "plugin_tool_disabled",
+            format!("Tool {title} is disabled by desktop preferences."),
+        );
+        return Err(StatusCode::FORBIDDEN);
+    }
+    if preferences.task_defaults.permission_mode == "只读模式"
+        && !is_read_only_plugin_permission(&permission)
+    {
+        emit_operation_failed(
+            state,
+            "permission_denied",
+            format!("只读模式不允许运行 {title}。"),
+        );
+        return Err(StatusCode::FORBIDDEN);
+    }
+    let Some((category, should_confirm)) =
+        plugin_permission_confirmation(&permission, &preferences.confirmation_defaults)
+    else {
+        return Ok(());
+    };
+    if !should_confirm || confirmed {
+        return Ok(());
+    }
+    let decision = request_runtime_permission(
+        state.clone(),
+        AgentRuntimePermissionRequest {
+            category,
+            detail: format!("{name} 将以 {permission} 权限试运行。"),
+            title: format!("运行插件工具 {title}"),
+            tool_call_id: format!("plugin:{plugin_id}:{tool_id}"),
+            tool_name: title.to_string(),
+        },
+    )
+    .await;
+    if decision == AgentRuntimePermissionDecision::Approved {
+        Ok(())
+    } else {
+        emit_operation_failed(
+            state,
+            "permission_denied",
+            format!("已拒绝运行插件工具 {title}。"),
+        );
+        Err(StatusCode::FORBIDDEN)
+    }
+}
+
+fn is_read_only_plugin_permission(permission: &str) -> bool {
+    matches!(permission, "local" | "read" | "readonly" | "只读")
+}
+
+fn plugin_permission_confirmation(
+    permission: &str,
+    confirmations: &ConfirmationDefaults,
+) -> Option<(AgentRuntimePermissionCategory, bool)> {
+    match permission {
+        "local" | "read" | "readonly" | "只读" => None,
+        "workspace" => Some((
+            AgentRuntimePermissionCategory::FileChange,
+            confirmations.confirm_file_changes,
+        )),
+        "command" => Some((
+            AgentRuntimePermissionCategory::Command,
+            confirmations.confirm_commands,
+        )),
+        "externalApp" => Some((
+            AgentRuntimePermissionCategory::ExternalApp,
+            confirmations.confirm_external_apps,
+        )),
+        "network" => Some((
+            AgentRuntimePermissionCategory::ExternalApp,
+            confirmations.confirm_external_apps,
+        )),
+        "requiresApproval" | "highRisk" => Some((
+            AgentRuntimePermissionCategory::HighRisk,
+            confirmations.confirm_high_risk,
+        )),
+        _ => Some((
+            AgentRuntimePermissionCategory::ExternalApp,
+            confirmations.confirm_external_apps || confirmations.confirm_high_risk,
+        )),
+    }
+}
+
 pub(super) async fn invoke_rust_native_plugin_tool(
     state: &GatewayState,
     plugin_id: &str,
     tool_id: &str,
     input: &Value,
 ) -> Option<Result<Value, String>> {
-    match (plugin_id, tool_id) {
+    if plugin_id == "crawclaw-runtime" {
+        return Some(
+            crawclaw_runtime::execute_rust_core_tool(&state.runtime_root, tool_id, input.clone())
+                .await,
+        );
+    }
+    let result = match (plugin_id, tool_id) {
         ("comfyui", "comfyui_workflow") => Some(invoke_comfyui_native_tool(state, input).await),
         ("searxng", "searxng_search") => Some(
             run_searxng_search(native_tool_input(state, input))
@@ -110,7 +375,28 @@ pub(super) async fn invoke_rust_native_plugin_tool(
                 .map_err(|error| error.to_string()),
         ),
         _ => None,
+    };
+    if result.is_some() {
+        return result;
     }
+    let operation =
+        crawclaw_runtime::native_plugin_tool_descriptors_for_runtime_root(&state.runtime_root)
+            .into_iter()
+            .find_map(|(descriptor_plugin_id, descriptor)| {
+                (descriptor_plugin_id == plugin_id && descriptor.name == tool_id)
+                    .then(|| descriptor.invocation.operation)
+            })?;
+    Some(
+        crawclaw_runtime::execute_native_plugin_invoke_operation(
+            &state.runtime_root,
+            json!({
+                "pluginId": plugin_id,
+                "operation": operation,
+                "input": input,
+            }),
+        )
+        .await,
+    )
 }
 
 pub(super) async fn invoke_comfyui_native_tool(

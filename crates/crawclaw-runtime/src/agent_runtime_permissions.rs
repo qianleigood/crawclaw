@@ -171,11 +171,26 @@ impl pi::sdk::Tool for PermissionCheckedTool {
             ));
         };
         let request = permission_request(tool_call_id, &tool_name, self.category, &input);
+        tracing::info!(
+            tool_name = %tool_name,
+            tool_call_id,
+            "agent_runtime_permission_confirmation_requested"
+        );
         match requester.request_permission(request).await {
             AgentRuntimePermissionDecision::Approved => {
+                tracing::info!(
+                    tool_name = %tool_name,
+                    tool_call_id,
+                    "agent_runtime_permission_approved"
+                );
                 self.inner.execute(tool_call_id, input, on_update).await
             }
             AgentRuntimePermissionDecision::Denied => {
+                tracing::info!(
+                    tool_name = %tool_name,
+                    tool_call_id,
+                    "agent_runtime_permission_denied"
+                );
                 Err(permission_error(&tool_name, "permission denied"))
             }
         }

@@ -78,7 +78,7 @@ use crawclaw_runtime::{
     resolve_native_channel_lifecycle_update,
     special_agents::{
         find_special_agent, special_agent_definitions, SpecialAgentDefinition,
-        SpecialAgentRunRequest,
+        SpecialAgentRunRequest, SpecialAgentToolGuard,
     },
     AgentModelSelection, AgentRunEvent, AgentRunRequest, AgentRunResult, AgentRuntime,
     ChannelCapabilityDescriptor, ChannelChatType, ChannelDirectoryLookupRequest,
@@ -111,6 +111,7 @@ pub struct GatewayRunConfig {
     pub bind: GatewayBind,
     pub port: u16,
     pub runtime_root: Option<PathBuf>,
+    pub state_dir: Option<PathBuf>,
     pub auth_token: Option<String>,
     pub auth_password: Option<String>,
 }
@@ -121,6 +122,7 @@ impl Default for GatewayRunConfig {
             bind: GatewayBind::Loopback,
             port: 18789,
             runtime_root: None,
+            state_dir: None,
             auth_token: env::var("CRAWCLAW_GATEWAY_TOKEN")
                 .ok()
                 .map(|value| value.trim().to_string())
@@ -224,6 +226,11 @@ pub async fn run_gateway(config: GatewayRunConfig) -> Result<(), String> {
         .await
         .map_err(|error| format!("failed to bind Rust Gateway: {error}"))?;
     let state = GatewayState::new(config);
+    tracing::info!(
+        runtime_root = %state.runtime_root.display(),
+        state_dir = %state.state_dir.display(),
+        "rust_gateway_started"
+    );
     let app = Router::new()
         .route("/", get(ws))
         .route("/healthz", get(health))
@@ -252,9 +259,23 @@ pub async fn call_local_gateway_method(method: &str, params: Value) -> Result<Va
     handle_gateway_method(&state, method, params).await
 }
 
+pub async fn call_gateway_method_for_runtime_root(
+    runtime_root: PathBuf,
+    state_dir: PathBuf,
+    method: &str,
+    params: Value,
+) -> Result<Value, String> {
+    let state = GatewayState::new(GatewayRunConfig {
+        runtime_root: Some(runtime_root),
+        state_dir: Some(state_dir),
+        ..GatewayRunConfig::default()
+    });
+    handle_gateway_method(&state, method, params).await
+}
+
 impl GatewayState {
     fn new(config: GatewayRunConfig) -> Self {
-        let state_dir = resolve_gateway_state_dir();
+        let state_dir = config.state_dir.unwrap_or_else(resolve_gateway_state_dir);
         let runtime_root = config.runtime_root.unwrap_or_else(|| {
             env::var_os("CRAWCLAW_RUNTIME_ROOT")
                 .filter(|value| !value.is_empty())

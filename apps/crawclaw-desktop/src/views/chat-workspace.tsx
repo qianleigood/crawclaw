@@ -33,6 +33,7 @@ import type {
   SkillSuggestion,
 } from '../desktop-api'
 import { Composer, PermissionModeButton } from '../ui/composer'
+import type { ConfirmationRequestInput } from '../ui/confirmation-dialog'
 import { IconButton } from '../ui/icon-button'
 import { ChatThread } from './chat-thread'
 import type { PreferencePatch } from './chat-workspace-model'
@@ -51,6 +52,7 @@ type ChatWorkspaceProps = {
   onDecidePermission: (requestId: string, status: 'approved' | 'denied') => void
   onPreferenceUpdate: (patch: Partial<PreferencePatch>) => void
   onQueuedInputTextConsumed?: () => void
+  onRequestConfirmation: (input: ConfirmationRequestInput) => Promise<boolean>
   onSendMessage: (message: string) => void
   onSelectedChatAgentChange: (agentId: string) => void
   permissionRequest: PermissionRequest
@@ -72,6 +74,7 @@ export function ChatWorkspace({
   onDecidePermission,
   onPreferenceUpdate,
   onQueuedInputTextConsumed,
+  onRequestConfirmation,
   onSendMessage,
   onSelectedChatAgentChange,
   permissionRequest,
@@ -212,9 +215,16 @@ export function ChatWorkspace({
 
   const addMediaComposerMessage = (mediaType: 'image' | 'video') => {
     void pickDesktopFile(mediaType === 'image' ? 'image/*' : 'video/*', async (file) => {
-      if (preferences.confirmationDefaults.confirmFileChanges && !window.confirm('保存所选媒体到 CrawClaw 桌面资源目录？')) {
-        setIsAttachmentMenuOpen(false)
-        return
+      if (preferences.confirmationDefaults.confirmFileChanges) {
+        const confirmed = await onRequestConfirmation({
+          title: mediaType === 'image' ? '保存图片媒体' : '保存视频媒体',
+          detail: '会把所选媒体保存到 CrawClaw 桌面资源目录，用于本轮对话引用。',
+          confirmLabel: '保存',
+        })
+        if (!confirmed) {
+          setIsAttachmentMenuOpen(false)
+          return
+        }
       }
       const dataBase64 = await fileToBase64(file)
       onAddMediaMessage({
@@ -245,9 +255,16 @@ export function ChatWorkspace({
 
   const addAttachmentComposerMessage = () => {
     void pickDesktopFile('', async (file) => {
-      if (preferences.confirmationDefaults.confirmFileChanges && !window.confirm('保存所选文件到 CrawClaw 桌面资源目录？')) {
-        setIsAttachmentMenuOpen(false)
-        return
+      if (preferences.confirmationDefaults.confirmFileChanges) {
+        const confirmed = await onRequestConfirmation({
+          title: '保存文件附件',
+          detail: '会把所选文件保存到 CrawClaw 桌面资源目录，用于本轮对话引用。',
+          confirmLabel: '保存',
+        })
+        if (!confirmed) {
+          setIsAttachmentMenuOpen(false)
+          return
+        }
       }
       const dataBase64 = await fileToBase64(file)
       onAddAttachmentMessage({
@@ -306,21 +323,31 @@ export function ChatWorkspace({
 
     const requiresHighRiskConfirm = preferences.confirmationDefaults.confirmHighRisk
       && isHighRiskWorkflowAction(workflowKind, workflowCopy.action)
-    if (requiresHighRiskConfirm && !window.confirm('执行此工作流会调用外部服务或修改本地状态，确认继续？')) {
+    void (async () => {
+      if (requiresHighRiskConfirm) {
+        const confirmed = await onRequestConfirmation({
+          title: '执行工作流',
+          detail: '该工作流可能调用外部服务或修改本地状态。确认后才会加入本轮对话执行。',
+          confirmLabel: '继续',
+          tone: 'danger',
+        })
+        if (!confirmed) {
+          setIsAttachmentMenuOpen(false)
+          return
+        }
+      }
+      onAddWorkflowMessage({
+        action: workflowCopy.action,
+        confirm: requiresHighRiskConfirm ? true : undefined,
+        detail: workflowCopy.detail,
+        input: workflowCopy.input,
+        status: 'running',
+        steps: workflowCopy.steps,
+        title: workflowCopy.title,
+        workflowKind,
+      })
       setIsAttachmentMenuOpen(false)
-      return
-    }
-    onAddWorkflowMessage({
-      action: workflowCopy.action,
-      confirm: requiresHighRiskConfirm ? true : undefined,
-      detail: workflowCopy.detail,
-      input: workflowCopy.input,
-      status: 'running',
-      steps: workflowCopy.steps,
-      title: workflowCopy.title,
-      workflowKind,
-    })
-    setIsAttachmentMenuOpen(false)
+    })()
   }
 
   const toggleVoiceInput = () => {

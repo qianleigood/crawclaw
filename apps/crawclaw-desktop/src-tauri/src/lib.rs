@@ -67,12 +67,12 @@ impl DesktopNativeSettingsBridge for TauriSettingsBridge {
         Ok(())
     }
 
-    fn show_notification(&self, title: &str, body: &str, _sound: bool) -> Result<(), String> {
-        self.app
-            .notification()
-            .builder()
-            .title(title)
-            .body(body)
+    fn show_notification(&self, title: &str, body: &str, sound: bool) -> Result<(), String> {
+        let mut builder = self.app.notification().builder().title(title).body(body);
+        if sound {
+            builder = builder.sound("default");
+        }
+        builder
             .show()
             .map_err(|error| format!("Failed to show desktop notification: {error}"))?;
         Ok(())

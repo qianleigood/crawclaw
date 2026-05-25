@@ -1,12 +1,12 @@
 use std::collections::{BTreeMap, HashMap};
 use std::net::SocketAddr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{bail, Context, Result};
 use axum::body::Bytes;
 use axum::http::{HeaderMap, Method, StatusCode};
-use axum::routing::{get, patch, post};
+use axum::routing::{delete, get, patch, post};
 use axum::{Json, Router};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Map, Value};
@@ -20,18 +20,20 @@ use crawclaw_native_plugins::comfyui::handle_comfyui;
 use crawclaw_native_plugins::qwen3_tts::{build_synthesis_payload, synthesize_qwen3_tts};
 use crawclaw_native_plugins::web::{run_searxng_search, run_spider_fetch};
 use crawclaw_plugin_host::{
-    add_custom_plugin_skill, load_plugin_manifest, toggle_plugin_skill_open,
-    toggle_plugin_tool_open, PluginHostError, PluginHostSkill, PluginHostTool,
+    load_plugin_manifest, remove_plugin_skill_state, set_plugin_skill_enabled,
+    set_plugin_tool_enabled, sync_core_skills, toggle_plugin_skill_open, toggle_plugin_tool_open,
+    PluginHostError, PluginHostInstalledPlugin, PluginHostSkill, PluginHostTool,
 };
 use crawclaw_runtime::{
     special_agents::find_special_agent, AgentModelSelection, AgentRunRequest, AgentRuntime,
-    AgentRuntimeConfirmationPolicy, AgentRuntimeError, AgentRuntimePermissionDecision,
-    AgentRuntimePermissionMode, AgentRuntimePermissionPolicy, AgentRuntimePermissionRequest,
-    AgentRuntimePermissionRequester, AgentRuntimeSendOptions, AgentRuntimeToolSelection,
-    ChannelChatType, ChannelInboundEnvelope, DesktopAgentStore, DesktopAgentStoreError,
-    DesktopMemoryRecord, DesktopMemoryStore, DesktopMemoryStoreError, DesktopModelProfileStore,
-    DesktopPreferencesRecord, DesktopPreferencesStore, DesktopPreferencesStoreError,
-    DesktopSessionRecord, DesktopSessionStore, DesktopSessionStoreError,
+    AgentRuntimeConfirmationPolicy, AgentRuntimeError, AgentRuntimePermissionCategory,
+    AgentRuntimePermissionDecision, AgentRuntimePermissionMode, AgentRuntimePermissionPolicy,
+    AgentRuntimePermissionRequest, AgentRuntimePermissionRequester, AgentRuntimeSendOptions,
+    AgentRuntimeToolSelection, ChannelChatType, ChannelInboundEnvelope, DesktopAgentStore,
+    DesktopAgentStoreError, DesktopMemoryRecord, DesktopMemoryStore, DesktopMemoryStoreError,
+    DesktopModelProfileStore, DesktopPreferencesRecord, DesktopPreferencesStore,
+    DesktopPreferencesStoreError, DesktopSessionRecord, DesktopSessionStore,
+    DesktopSessionStoreError,
 };
 
 use crate::gateway::desktop_state::initial_desktop_state;
@@ -41,14 +43,16 @@ use crate::models::{
     AgentChannelConfigField, AgentEmotionProfile, AgentProfile, AgentSkill, AgentTool,
     AgentVoiceConfig, ConfirmationDefaults, ConversationMediaItem, ConversationMessage,
     ConversationWorkflowStep, DesktopApiInfo, DesktopAppInfo, DesktopEvent, DesktopPreferences,
-    DesktopState, MemoryDefaults, MemoryItem, NotificationDefaults, PermissionStatus, PluginSkill,
-    PluginTool, PrivacyDefaults, RuntimeCheck, SidebarThread, TaskDefaults, UiDefaults,
+    DesktopState, InstalledPlugin, MemoryDefaults, MemoryItem, NotificationDefaults,
+    PermissionStatus, PluginSkill, PluginTool, PrivacyDefaults, RuntimeCheck, SidebarThread,
+    TaskDefaults, UiDefaults,
 };
 use crate::runtime_engine::RuntimeLayout;
 
 mod desktop_agent_model;
 mod desktop_agent_routes;
 mod desktop_core_routes;
+mod desktop_logging;
 mod desktop_memory_routes;
 mod desktop_model_profile_routes;
 mod desktop_mutation_routes;
@@ -67,6 +71,7 @@ use self::desktop_core_routes::{
     bootstrap, desktop_state, events, permission_decision, runtime_status, search, select_nav,
     select_thread, send_message,
 };
+use self::desktop_logging::configure_desktop_rust_logging;
 use self::desktop_memory_routes::{
     select_memory_agent, select_memory_item, set_memory_filter, set_memory_query,
 };
@@ -78,22 +83,26 @@ use self::desktop_mutation_routes::{
     abort_message, add_agent_skill, add_attachment_message, add_media_message, add_plugin_skill,
     add_skill_call_message, add_voice_message, add_workflow_message, archive_memory_item,
     archive_thread, create_agent, create_memory_item, invoke_plugin_tool, pin_thread,
-    rename_thread_route, run_memory_dream, steer_message, toggle_agent_skill, toggle_agent_tool,
+    remove_plugin_skill, rename_thread_route, run_memory_dream, set_plugin_skill_enabled_route,
+    set_plugin_tool_enabled_route, steer_message, toggle_agent_skill, toggle_agent_tool,
     toggle_plugin_skill, toggle_plugin_tool, unpin_thread, update_agent, update_memory_item,
 };
 use self::desktop_native_operations::{
     active_thread_id, append_and_persist_conversation_message,
-    append_and_persist_conversation_message_with_emit, parse_json_body, plugin_skill, plugin_tool,
-    run_native_state_mutation, string_field, with_string, DesktopNativeMutation, ThreadMutation,
-    ToggleMutation,
+    append_and_persist_conversation_message_with_emit, parse_json_body, plugin_installed,
+    plugin_skill, plugin_tool, run_native_state_mutation, string_field, with_string,
+    DesktopNativeMutation, ThreadMutation, ToggleMutation,
 };
 use self::desktop_plugin_operations::{
-    invoke_plugin_tool_operation, invoke_rust_native_plugin_tool, plugin_tool_result_text,
+    install_plugin, invoke_plugin_tool_operation, invoke_rust_native_plugin_tool,
+    plugin_tool_result_text, set_installed_plugin_enabled, uninstall_plugin,
 };
 use self::desktop_session_routes::{
     list_sessions, list_subagents, send_session, session_history, spawn_session, yield_session,
 };
-use self::desktop_settings_effects::apply_desktop_settings_effects;
+use self::desktop_settings_effects::{
+    apply_desktop_settings_effects, send_desktop_notification, DesktopNotificationKind,
+};
 
 const SESSION_HEADER: &str = "x-crawclaw-desktop-session";
 
@@ -184,6 +193,10 @@ async fn build_state(
     merge_persisted_agents(&mut desktop_state, &agent_store);
     merge_persisted_memory_items(&mut desktop_state, &memory_store);
     merge_persisted_preferences(&mut desktop_state, &preferences_store);
+    sync_privacy_defaults_from_runtime_root(
+        &mut desktop_state.preferences,
+        &runtime_layout.runtime_root,
+    );
     merge_persisted_model_profiles(&mut desktop_state, &model_profile_store);
     merge_persisted_sessions(&mut desktop_state, &session_store);
     merge_plugin_manifest(&mut desktop_state, &runtime_layout);
@@ -219,6 +232,24 @@ async fn build_state(
                 tone: "error".to_string(),
             }),
     }
+    if let Err(error) = configure_desktop_rust_logging(
+        &runtime_layout.runtime_root,
+        &desktop_state.preferences.advanced_defaults.log_level,
+    ) {
+        desktop_state
+            .conversation
+            .runtime_checks
+            .push(RuntimeCheck {
+                label: "Desktop Rust logging".to_string(),
+                value: error,
+                tone: "error".to_string(),
+            });
+    }
+    tracing::info!(
+        runtime_root = %runtime_layout.runtime_root.display(),
+        status = ?runtime.status,
+        "desktop_gateway_state_built"
+    );
     let (events, _) = broadcast::channel(32);
     GatewayState {
         app: DesktopAppInfo {
@@ -271,6 +302,12 @@ async fn request_runtime_permission(
         detail: request.detail,
         status: PermissionStatus::Pending,
     };
+    tracing::info!(
+        runtime_root = %state.runtime_root.display(),
+        request_id = %permission_request.id,
+        title = %permission_request.title,
+        "desktop_runtime_permission_requested"
+    );
     let (sender, receiver) = oneshot::channel();
     state
         .permission_waiters
@@ -282,6 +319,20 @@ async fn request_runtime_permission(
         desktop_state.permission_request = permission_request.clone();
         upsert_permission_message(&mut desktop_state, &permission_request);
     }
+    let preferences = state.desktop_state.read().await.preferences.clone();
+    if let Err(error) = send_desktop_notification(
+        &state.runtime_root,
+        &preferences,
+        DesktopNotificationKind::ConfirmNeeded,
+        &permission_request.title,
+        &permission_request.detail,
+    ) {
+        let _ = state.events.send(DesktopEvent::OperationFailed {
+            code: "desktop_notification_failed".to_string(),
+            message: error,
+        });
+    }
+    let _ = emit_state_changed(&state).await;
     let _ = state
         .events
         .send(DesktopEvent::PermissionRequested { permission_request });
@@ -318,12 +369,29 @@ fn desktop_permission_policy(
 }
 
 fn merge_plugin_manifest(desktop_state: &mut DesktopState, runtime_layout: &RuntimeLayout) {
+    if let Some(source_root) = resolve_core_skills_root() {
+        if let Err(error) = sync_core_skills(&runtime_layout.runtime_root, &source_root) {
+            desktop_state
+                .conversation
+                .runtime_checks
+                .push(RuntimeCheck {
+                    label: "Desktop core skills".to_string(),
+                    value: error.to_string(),
+                    tone: "error".to_string(),
+                });
+        }
+    }
     match load_plugin_manifest(&runtime_layout.runtime_root) {
         Ok(read_model) => {
             desktop_state.plugins_workspace.tools =
                 read_model.tools.into_iter().map(plugin_tool).collect();
             desktop_state.plugins_workspace.skills =
                 read_model.skills.into_iter().map(plugin_skill).collect();
+            desktop_state.plugins_workspace.installed = read_model
+                .installed
+                .into_iter()
+                .map(plugin_installed)
+                .collect();
         }
         Err(error) => desktop_state
             .conversation
@@ -334,6 +402,46 @@ fn merge_plugin_manifest(desktop_state: &mut DesktopState, runtime_layout: &Runt
                 tone: "error".to_string(),
             }),
     }
+}
+
+async fn refresh_plugins_workspace(state: &GatewayState) -> Result<(), StatusCode> {
+    if let Some(source_root) = resolve_core_skills_root() {
+        sync_core_skills(&state.runtime_root, &source_root)
+            .map_err(|error| plugin_host_status(state, error))?;
+    }
+    let read_model = load_plugin_manifest(&state.runtime_root)
+        .map_err(|error| plugin_host_status(state, error))?;
+    let mut desktop_state = state.desktop_state.write().await;
+    desktop_state.plugins_workspace.tools = read_model.tools.into_iter().map(plugin_tool).collect();
+    desktop_state.plugins_workspace.skills =
+        read_model.skills.into_iter().map(plugin_skill).collect();
+    desktop_state.plugins_workspace.installed = read_model
+        .installed
+        .into_iter()
+        .map(plugin_installed)
+        .collect();
+    desktop_state.active_nav_id = "plugins".to_string();
+    Ok(())
+}
+
+fn resolve_core_skills_root() -> Option<PathBuf> {
+    if let Some(path) = std::env::var_os("CRAWCLAW_CORE_SKILLS_ROOT")
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from)
+        .filter(|path| path.join("coding-agent").join("SKILL.md").exists())
+    {
+        return Some(path);
+    }
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    find_core_skills_root(manifest_dir)
+        .or_else(|| std::env::current_dir().ok().and_then(find_core_skills_root))
+}
+
+fn find_core_skills_root(start: PathBuf) -> Option<PathBuf> {
+    start
+        .ancestors()
+        .map(|ancestor| ancestor.join("skills"))
+        .find(|skills_root| skills_root.join("coding-agent").join("SKILL.md").exists())
 }
 
 fn merge_persisted_preferences(
@@ -411,6 +519,17 @@ fn merge_persisted_preferences(
                 tone: "error".to_string(),
             }),
     }
+}
+
+fn runtime_data_location(runtime_root: &Path) -> String {
+    runtime_root.to_string_lossy().to_string()
+}
+
+pub(super) fn sync_privacy_defaults_from_runtime_root(
+    preferences: &mut DesktopPreferences,
+    runtime_root: &Path,
+) {
+    preferences.privacy_defaults.data_location = runtime_data_location(runtime_root);
 }
 
 fn merge_persisted_preference_group<T>(
@@ -901,6 +1020,18 @@ mod tests {
                 "工具 bash 想运行：printf ok"
             );
         }
+        let notification_path = state
+            .runtime_root
+            .join("desktop")
+            .join("notifications")
+            .join("last-notification.json");
+        let notification: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(notification_path).expect("notification"),
+        )
+        .expect("notification json");
+        assert_eq!(notification["kind"], "confirmNeeded");
+        assert_eq!(notification["title"], "确认执行命令");
+        assert_eq!(notification["body"], "工具 bash 想运行：printf ok");
 
         let mut headers = HeaderMap::new();
         headers.insert("x-crawclaw-desktop-session", "session".parse().unwrap());
@@ -917,6 +1048,65 @@ mod tests {
 
         let decision = decision_task.await.expect("permission waiter");
         assert_eq!(decision, AgentRuntimePermissionDecision::Approved);
+    }
+
+    #[tokio::test]
+    async fn runtime_permission_request_emits_state_changed_for_ui_confirmation() {
+        let state = build_state(
+            "CrawClaw Desktop".to_string(),
+            "test".to_string(),
+            "http://127.0.0.1:1".to_string(),
+            "session".to_string(),
+            test_runtime_layout("permission-request-state-changed"),
+        )
+        .await;
+        let mut events = state.events.subscribe();
+        let decision_task = tokio::spawn(request_runtime_permission(
+            state.clone(),
+            AgentRuntimePermissionRequest {
+                tool_call_id: "tool-call-2".to_string(),
+                tool_name: "bash".to_string(),
+                title: "确认执行命令".to_string(),
+                detail: "工具 bash 想运行：printf ok".to_string(),
+                category: AgentRuntimePermissionCategory::Command,
+            },
+        ));
+
+        let state_changed = tokio::time::timeout(Duration::from_secs(2), async {
+            loop {
+                if let Ok(DesktopEvent::StateChanged { desktop_state }) = events.recv().await {
+                    if desktop_state.permission_request.status == PermissionStatus::Pending {
+                        return desktop_state;
+                    }
+                }
+            }
+        })
+        .await
+        .expect("stateChanged with pending permission");
+        assert_eq!(state_changed.permission_request.title, "确认执行命令");
+        assert!(state_changed.conversation.messages.iter().any(|message| {
+            matches!(message, ConversationMessage::Permission {
+                request_id,
+                status: PermissionStatus::Pending,
+                ..
+            } if request_id == &state_changed.permission_request.id)
+        }));
+
+        let request_id = state_changed.permission_request.id.clone();
+        let mut headers = HeaderMap::new();
+        headers.insert("x-crawclaw-desktop-session", "session".parse().unwrap());
+        let _ = permission_decision(
+            State(state),
+            headers,
+            Path(request_id),
+            Json(PermissionDecisionRequest {
+                decision: PermissionStatus::Denied,
+            }),
+        )
+        .await
+        .expect("permission decision");
+        let decision = decision_task.await.expect("permission waiter");
+        assert_eq!(decision, AgentRuntimePermissionDecision::Denied);
     }
 
     fn test_runtime_layout(name: &str) -> RuntimeLayout {
@@ -1054,13 +1244,34 @@ fn router(state: GatewayState) -> Router {
             post(settings_reset_state),
         )
         .route("/api/desktop/plugins/skills", post(add_plugin_skill))
+        .route("/api/desktop/plugins/install", post(install_plugin))
+        .route(
+            "/api/desktop/plugins/{plugin_id}/uninstall",
+            post(uninstall_plugin),
+        )
+        .route(
+            "/api/desktop/plugins/{plugin_id}/enabled",
+            patch(set_installed_plugin_enabled),
+        )
+        .route(
+            "/api/desktop/plugins/skills/{skill_id}",
+            delete(remove_plugin_skill),
+        )
         .route(
             "/api/desktop/plugins/skills/{skill_id}/toggle",
             post(toggle_plugin_skill),
         )
         .route(
+            "/api/desktop/plugins/skills/{skill_id}/enabled",
+            patch(set_plugin_skill_enabled_route),
+        )
+        .route(
             "/api/desktop/plugins/tools/{tool_id}/toggle",
             post(toggle_plugin_tool),
+        )
+        .route(
+            "/api/desktop/plugins/tools/{tool_id}/enabled",
+            patch(set_plugin_tool_enabled_route),
         )
         .route(
             "/api/desktop/plugins/{plugin_id}/tools/{tool_id}/invoke",
@@ -1173,6 +1384,7 @@ fn persist_desktop_preferences(
     preferences: &DesktopPreferences,
 ) -> Result<(), StatusCode> {
     let mut preferences = preferences.clone();
+    sync_privacy_defaults_from_runtime_root(&mut preferences, &state.runtime_root);
     sync_preference_aliases_from_task_defaults(&mut preferences);
     state
         .preferences_store
