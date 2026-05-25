@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -198,12 +198,20 @@ async fn build_state(
 ) -> GatewayState {
     let runtime_supervisor = RuntimeSupervisor::probe(runtime_layout.clone()).await;
     let runtime = runtime_supervisor.status();
+    let memory_store_root = desktop_store_root(&runtime_layout.runtime_root);
     let agent_store = DesktopAgentStore::new(runtime_layout.runtime_root.clone());
-    let memory_store = DesktopMemoryStore::new(runtime_layout.runtime_root.clone());
+    let memory_store = DesktopMemoryStore::new(memory_store_root.clone());
+    let legacy_memory_store = (memory_store_root != runtime_layout.runtime_root)
+        .then(|| DesktopMemoryStore::new(runtime_layout.runtime_root.clone()));
     let model_profile_store = DesktopModelProfileStore::new(runtime_layout.runtime_root.clone());
     let preferences_store = DesktopPreferencesStore::new(runtime_layout.runtime_root.clone());
     let session_store = DesktopSessionStore::new(runtime_layout.runtime_root.clone());
     let mut desktop_state = initial_desktop_state(&runtime);
+    migrate_legacy_desktop_memory_items(
+        &mut desktop_state,
+        &memory_store,
+        legacy_memory_store.as_ref(),
+    );
     merge_persisted_agents(&mut desktop_state, &agent_store);
     merge_persisted_memory_items(&mut desktop_state, &memory_store);
     merge_persisted_preferences(&mut desktop_state, &preferences_store);
@@ -1119,6 +1127,36 @@ mod tests {
         assert_eq!(decision, AgentRuntimePermissionDecision::Denied);
     }
 
+    #[test]
+    fn desktop_store_root_moves_packaged_macos_state_out_of_app_bundle() {
+        let runtime_root = PathBuf::from(
+            "/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw",
+        );
+        let store_root =
+            desktop_store_root_from_home(&runtime_root, Some(std::path::Path::new("/Users/test")));
+
+        assert_eq!(
+            store_root,
+            PathBuf::from(
+                "/Users/test/Library/Application Support/crawclaw-desktop/runtime/crawclaw"
+            )
+        );
+        assert!(!store_root.starts_with("/Applications/CrawClaw Desktop.app"));
+    }
+
+    #[test]
+    fn desktop_store_root_keeps_dev_runtime_root() {
+        let runtime_root = PathBuf::from("/tmp/crawclaw-dev/runtime/crawclaw");
+
+        assert_eq!(
+            desktop_store_root_from_home(
+                &runtime_root,
+                Some(std::path::Path::new("/Users/test")),
+            ),
+            runtime_root
+        );
+    }
+
     fn test_runtime_layout(name: &str) -> RuntimeLayout {
         let runtime_root =
             std::env::temp_dir().join(format!("crawclaw-desktop-{name}-{}", Uuid::new_v4()));
@@ -1129,6 +1167,28 @@ mod tests {
             runtime_root,
         }
     }
+}
+
+fn desktop_store_root(runtime_root: &Path) -> PathBuf {
+    let home = std::env::var_os("HOME").map(PathBuf::from);
+    desktop_store_root_from_home(runtime_root, home.as_deref())
+}
+
+fn desktop_store_root_from_home(runtime_root: &Path, home: Option<&Path>) -> PathBuf {
+    if runtime_root
+        .to_string_lossy()
+        .contains(".app/Contents/Resources/")
+    {
+        if let Some(home) = home {
+            return home
+                .join("Library")
+                .join("Application Support")
+                .join("crawclaw-desktop")
+                .join("runtime")
+                .join("crawclaw");
+        }
+    }
+    runtime_root.to_path_buf()
 }
 
 fn merge_persisted_memory_items(
@@ -1153,6 +1213,48 @@ fn merge_persisted_memory_items(
                 tone: "error".to_string(),
             }),
     }
+}
+
+fn migrate_legacy_desktop_memory_items(
+    desktop_state: &mut DesktopState,
+    memory_store: &DesktopMemoryStore,
+    legacy_memory_store: Option<&DesktopMemoryStore>,
+) {
+    let Some(legacy_memory_store) = legacy_memory_store else {
+        return;
+    };
+    match migrate_legacy_desktop_memory_items_inner(memory_store, legacy_memory_store) {
+        Ok(_) => {}
+        Err(error) => desktop_state
+            .conversation
+            .runtime_checks
+            .push(RuntimeCheck {
+                label: "Desktop memory migration".to_string(),
+                value: error.to_string(),
+                tone: "error".to_string(),
+            }),
+    }
+}
+
+fn migrate_legacy_desktop_memory_items_inner(
+    memory_store: &DesktopMemoryStore,
+    legacy_memory_store: &DesktopMemoryStore,
+) -> Result<usize, DesktopMemoryStoreError> {
+    let legacy_items = legacy_memory_store.load_items()?;
+    if legacy_items.is_empty() {
+        return Ok(0);
+    }
+    let current_items = memory_store.load_items()?;
+    let mut existing_ids: BTreeSet<String> =
+        current_items.into_iter().map(|item| item.id).collect();
+    let mut migrated = 0;
+    for item in legacy_items {
+        if existing_ids.insert(item.id.clone()) {
+            memory_store.upsert_item(item)?;
+            migrated += 1;
+        }
+    }
+    Ok(migrated)
 }
 
 fn merge_persisted_agents(desktop_state: &mut DesktopState, agent_store: &DesktopAgentStore) {

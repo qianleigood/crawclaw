@@ -691,7 +691,9 @@ export default function App() {
               />
             ) : activeNavId === 'automation' ? (
               <AutomationWorkspace
+                confirmHighRisk={desktopState.preferences.confirmationDefaults.confirmHighRisk}
                 onAddWorkflowMessage={(input) => void applyDesktopState(() => addWorkflowMessage(input))}
+                onRequestConfirmation={requestConfirmation}
               />
             ) : activeNavId === 'memory' ? (
               <MemoryWorkspace

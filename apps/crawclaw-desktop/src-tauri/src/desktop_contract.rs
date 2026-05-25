@@ -285,7 +285,7 @@ export interface MemoryWorkspaceState {
 }
 
 export interface MemoryDreamState {
-  status: 'idle' | 'running'
+  status: 'idle' | 'running' | 'completed' | 'failed'
   agentId: string
   message: string
   lastRunAt: string

@@ -6,9 +6,12 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import type { AddWorkflowMessageInput } from '../desktop-api'
+import type { ConfirmationRequestInput } from '../ui/confirmation-dialog'
 
 type AutomationWorkspaceProps = {
+  confirmHighRisk: boolean
   onAddWorkflowMessage: (input: AddWorkflowMessageInput) => void
+  onRequestConfirmation: (input: ConfirmationRequestInput) => Promise<boolean>
 }
 
 type AutomationKind = 'comfyui' | 'n8n' | 'schedule'
@@ -43,17 +46,37 @@ const automationCards: Array<{
   },
 ]
 
-export function AutomationWorkspace({ onAddWorkflowMessage }: AutomationWorkspaceProps) {
+export function AutomationWorkspace({
+  confirmHighRisk,
+  onAddWorkflowMessage,
+  onRequestConfirmation,
+}: AutomationWorkspaceProps) {
   const [comfyBaseUrl, setComfyBaseUrl] = useState('http://127.0.0.1:8188')
   const [n8nWorkflowId, setN8nWorkflowId] = useState('')
   const [cronName, setCronName] = useState('desktop-check')
 
   const runAutomation = (kind: AutomationKind, action: string) => {
-    onAddWorkflowMessage(createWorkflowMessage(kind, action, {
-      comfyBaseUrl,
-      cronName,
-      n8nWorkflowId,
-    }))
+    const requiresConfirmation = confirmHighRisk && isHighRiskAutomationAction(kind, action)
+    void (async () => {
+      if (requiresConfirmation) {
+        const confirmed = await onRequestConfirmation({
+          cancelLabel: '取消',
+          confirmLabel: '执行',
+          detail: '该自动化可能调用外部服务或修改本机状态，确认后才会提交到 Desktop API。',
+          title: '执行自动化',
+          tone: 'danger',
+        })
+        if (!confirmed) {
+          return
+        }
+      }
+      onAddWorkflowMessage(createWorkflowMessage(kind, action, {
+        comfyBaseUrl,
+        confirm: requiresConfirmation,
+        cronName,
+        n8nWorkflowId,
+      }))
+    })()
   }
 
   return (
@@ -121,6 +144,7 @@ function createWorkflowMessage(
   action: string,
   values: {
     comfyBaseUrl: string
+    confirm: boolean
     cronName: string
     n8nWorkflowId: string
   },
@@ -133,6 +157,7 @@ function createWorkflowMessage(
   if (kind === 'comfyui') {
     return {
       action,
+      confirm: values.confirm ? true : undefined,
       detail: 'ComfyUI 工作流请求已从自动化工作区发起。',
       input: { action, baseUrl: values.comfyBaseUrl },
       status: 'running',
@@ -144,6 +169,7 @@ function createWorkflowMessage(
   if (kind === 'n8n') {
     return {
       action,
+      confirm: values.confirm ? true : undefined,
       detail: 'n8n 工作流请求已从自动化工作区发起。',
       input: values.n8nWorkflowId ? { workflowId: values.n8nWorkflowId } : { limit: 10 },
       status: 'running',
@@ -154,6 +180,7 @@ function createWorkflowMessage(
   }
   return {
     action,
+    confirm: values.confirm ? true : undefined,
     detail: 'Cron 自动化请求已从自动化工作区发起。',
     input: action === 'cron.create' ? { name: values.cronName } : {},
     status: 'running',
@@ -161,4 +188,14 @@ function createWorkflowMessage(
     title: action === 'cron.status' ? 'Cron 状态' : 'Cron 创建',
     workflowKind: 'schedule',
   }
+}
+
+function isHighRiskAutomationAction(kind: AutomationKind, action: string) {
+  if (kind === 'comfyui') {
+    return action === 'run'
+  }
+  if (kind === 'n8n') {
+    return action === 'run'
+  }
+  return action === 'cron.create'
 }
