@@ -98,7 +98,9 @@ export function Sidebar({
     setRenameTarget(null)
   }
 
-  const copyThreadLink = () => {
+  const copyThreadLink = (item: SidebarThread) => {
+    const threadLink = `crawclaw://desktop/threads/${encodeURIComponent(item.id)}`
+    void writeClipboardText(threadLink).catch(() => undefined)
     setContextMenu(null)
   }
 
@@ -173,7 +175,7 @@ export function Sidebar({
             <Pencil aria-hidden="true" size={14} strokeWidth={2.1} />
             <span>重命名</span>
           </button>
-          <button onClick={copyThreadLink} role="menuitem" type="button">
+          <button onClick={() => copyThreadLink(contextMenu.item)} role="menuitem" type="button">
             <Copy aria-hidden="true" size={14} strokeWidth={2.1} />
             <span>复制链接</span>
           </button>
@@ -214,6 +216,23 @@ export function Sidebar({
       ) : null}
     </aside>
   )
+}
+
+async function writeClipboardText(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text)
+    return
+  }
+
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', '')
+  textarea.style.position = 'fixed'
+  textarea.style.left = '-9999px'
+  document.body.append(textarea)
+  textarea.select()
+  document.execCommand('copy')
+  textarea.remove()
 }
 
 function ThreadGroup({

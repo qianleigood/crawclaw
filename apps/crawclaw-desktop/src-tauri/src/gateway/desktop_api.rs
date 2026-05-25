@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::ffi::OsStr;
 use std::fs;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -197,17 +198,43 @@ async fn build_state(
     session_token: String,
     runtime_layout: RuntimeLayout,
 ) -> GatewayState {
+    let legacy_runtime_root = runtime_layout.runtime_root.clone();
+    let state_runtime_root = desktop_store_root(&legacy_runtime_root);
+    let runtime_sync_error = if state_runtime_root != legacy_runtime_root {
+        sync_packaged_runtime_assets(&legacy_runtime_root, &state_runtime_root)
+            .and_then(|_| {
+                migrate_legacy_mutable_runtime_data(&legacy_runtime_root, &state_runtime_root)
+            })
+            .err()
+    } else {
+        None
+    };
+    let runtime_layout = if state_runtime_root != legacy_runtime_root {
+        runtime_layout_for_store_root(&runtime_layout, &state_runtime_root)
+    } else {
+        runtime_layout
+    };
     let runtime_supervisor = RuntimeSupervisor::probe(runtime_layout.clone()).await;
     let runtime = runtime_supervisor.status();
-    let memory_store_root = desktop_store_root(&runtime_layout.runtime_root);
+    let memory_store_root = runtime_layout.runtime_root.clone();
     let agent_store = DesktopAgentStore::new(runtime_layout.runtime_root.clone());
     let memory_store = DesktopMemoryStore::new(memory_store_root.clone());
-    let legacy_memory_store = (memory_store_root != runtime_layout.runtime_root)
-        .then(|| DesktopMemoryStore::new(runtime_layout.runtime_root.clone()));
+    let legacy_memory_store = (memory_store_root != legacy_runtime_root)
+        .then(|| DesktopMemoryStore::new(legacy_runtime_root.clone()));
     let model_profile_store = DesktopModelProfileStore::new(runtime_layout.runtime_root.clone());
     let preferences_store = DesktopPreferencesStore::new(runtime_layout.runtime_root.clone());
     let session_store = DesktopSessionStore::new(runtime_layout.runtime_root.clone());
     let mut desktop_state = initial_desktop_state(&runtime);
+    if let Some(error) = runtime_sync_error {
+        desktop_state
+            .conversation
+            .runtime_checks
+            .push(RuntimeCheck {
+                label: "Desktop runtime data".to_string(),
+                value: error,
+                tone: "error".to_string(),
+            });
+    }
     migrate_legacy_desktop_memory_items(
         &mut desktop_state,
         &memory_store,
@@ -216,7 +243,7 @@ async fn build_state(
     migrate_legacy_workspace_memory_items(
         &mut desktop_state,
         &memory_store,
-        &runtime_layout.runtime_root,
+        &legacy_runtime_root,
         &memory_store_root,
     );
     merge_persisted_agents(&mut desktop_state, &agent_store);
@@ -952,7 +979,10 @@ mod tests {
         AgentRuntimePermissionCategory, AgentRuntimePermissionDecision,
         AgentRuntimePermissionRequest,
     };
+    use std::sync::Mutex as StdMutex;
     use std::time::Duration;
+
+    static HOME_ENV_LOCK: StdMutex<()> = StdMutex::new(());
 
     fn ready_runtime_status() -> RuntimeStatus {
         RuntimeStatus {
@@ -1150,6 +1180,60 @@ mod tests {
         assert!(!store_root.starts_with("/Applications/CrawClaw Desktop.app"));
     }
 
+    #[tokio::test]
+    async fn gateway_state_uses_packaged_macos_store_root_for_mutable_state() {
+        let _guard = HOME_ENV_LOCK.lock().expect("home env lock");
+        let previous_home = std::env::var_os("HOME");
+        let temp_root = std::env::temp_dir().join(format!(
+            "crawclaw-desktop-packaged-store-{}",
+            Uuid::new_v4()
+        ));
+        let home = temp_root.join("home");
+        fs::create_dir_all(&home).expect("home");
+        std::env::set_var("HOME", &home);
+
+        let packaged_runtime_root =
+            temp_root.join("CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw");
+        let expected_store_root = home
+            .join("Library")
+            .join("Application Support")
+            .join("crawclaw-desktop")
+            .join("runtime")
+            .join("crawclaw");
+        let state = build_state(
+            "CrawClaw Desktop".to_string(),
+            "test".to_string(),
+            "http://127.0.0.1:0".to_string(),
+            "session".to_string(),
+            RuntimeLayout {
+                binary_path: packaged_runtime_root.join("bin").join("crawclaw-runtime"),
+                channel_manifest_path: packaged_runtime_root.join("channels").join("manifest.json"),
+                manifest_path: packaged_runtime_root.join("runtimes").join("manifest.json"),
+                runtime_root: packaged_runtime_root,
+            },
+        )
+        .await;
+
+        assert_eq!(state.runtime_root, expected_store_root);
+        assert_eq!(
+            state
+                .desktop_state
+                .read()
+                .await
+                .preferences
+                .privacy_defaults
+                .data_location,
+            expected_store_root.to_string_lossy()
+        );
+
+        if let Some(previous_home) = previous_home {
+            std::env::set_var("HOME", previous_home);
+        } else {
+            std::env::remove_var("HOME");
+        }
+        let _ = fs::remove_dir_all(temp_root);
+    }
+
     #[test]
     fn desktop_store_root_keeps_dev_runtime_root() {
         let runtime_root = PathBuf::from("/tmp/crawclaw-dev/runtime/crawclaw");
@@ -1158,6 +1242,48 @@ mod tests {
             desktop_store_root_from_home(&runtime_root, Some(std::path::Path::new("/Users/test")),),
             runtime_root
         );
+    }
+
+    #[test]
+    fn legacy_mutable_runtime_data_migration_keeps_existing_store_files() {
+        let temp_root = std::env::temp_dir().join(format!(
+            "crawclaw-desktop-mutable-migration-{}",
+            Uuid::new_v4()
+        ));
+        let source_root = temp_root.join("source");
+        let target_root = temp_root.join("target");
+        fs::create_dir_all(source_root.join("agents")).expect("source agents");
+        fs::create_dir_all(source_root.join("config")).expect("source config");
+        fs::create_dir_all(target_root.join("config")).expect("target config");
+        fs::write(
+            source_root.join("agents").join("desktop-agents.json"),
+            r#"[{"id":"legacy"}]"#,
+        )
+        .expect("source agents file");
+        fs::write(
+            source_root.join("config").join("desktop-preferences.json"),
+            r#"{"selectedModel":"legacy"}"#,
+        )
+        .expect("source preferences");
+        fs::write(
+            target_root.join("config").join("desktop-preferences.json"),
+            r#"{"selectedModel":"current"}"#,
+        )
+        .expect("target preferences");
+
+        migrate_legacy_mutable_runtime_data(&source_root, &target_root).expect("migrate");
+
+        assert_eq!(
+            fs::read_to_string(target_root.join("agents").join("desktop-agents.json"))
+                .expect("target agents"),
+            r#"[{"id":"legacy"}]"#
+        );
+        assert_eq!(
+            fs::read_to_string(target_root.join("config").join("desktop-preferences.json"))
+                .expect("target preferences"),
+            r#"{"selectedModel":"current"}"#
+        );
+        let _ = fs::remove_dir_all(temp_root);
     }
 
     #[test]
@@ -1257,6 +1383,210 @@ fn desktop_store_root_from_home(runtime_root: &Path, home: Option<&Path>) -> Pat
         }
     }
     runtime_root.to_path_buf()
+}
+
+fn runtime_layout_for_store_root(
+    runtime_layout: &RuntimeLayout,
+    store_root: &Path,
+) -> RuntimeLayout {
+    let runtime_binary_name = runtime_layout.binary_path.file_name().unwrap_or_else(|| {
+        if cfg!(windows) {
+            OsStr::new("crawclaw-runtime.exe")
+        } else {
+            OsStr::new("crawclaw-runtime")
+        }
+    });
+    RuntimeLayout {
+        binary_path: store_root.join("bin").join(runtime_binary_name),
+        channel_manifest_path: store_root.join("channels").join("manifest.json"),
+        manifest_path: store_root.join("runtimes").join("manifest.json"),
+        runtime_root: store_root.to_path_buf(),
+    }
+}
+
+fn sync_packaged_runtime_assets(source_root: &Path, target_root: &Path) -> Result<(), String> {
+    fs::create_dir_all(target_root).map_err(|error| {
+        format!(
+            "Failed to create desktop runtime data directory {}: {error}",
+            target_root.display()
+        )
+    })?;
+    for dir in ["bin", "channels", "providers", "runtimes"] {
+        copy_runtime_dir_if_exists(
+            &source_root.join(dir),
+            &target_root.join(dir),
+            RuntimeCopyMode::OverwriteStale,
+        )?;
+    }
+    copy_runtime_file_if_exists(
+        &source_root.join("plugins").join("manifest.json"),
+        &target_root.join("plugins").join("manifest.json"),
+        RuntimeCopyMode::OverwriteStale,
+    )?;
+    sync_packaged_plugin_dirs(source_root, target_root)?;
+    Ok(())
+}
+
+fn sync_packaged_plugin_dirs(source_root: &Path, target_root: &Path) -> Result<(), String> {
+    let plugins_root = source_root.join("plugins");
+    let entries = match fs::read_dir(&plugins_root) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => {
+            return Err(format!(
+                "Failed to read packaged plugin directory {}: {error}",
+                plugins_root.display()
+            ));
+        }
+    };
+    for entry in entries {
+        let entry = entry.map_err(|error| {
+            format!(
+                "Failed to read packaged plugin directory entry {}: {error}",
+                plugins_root.display()
+            )
+        })?;
+        let source_path = entry.path();
+        if !source_path.is_dir() || !source_path.join("crawclaw.plugin.json").exists() {
+            continue;
+        }
+        copy_runtime_dir_if_exists(
+            &source_path,
+            &target_root.join("plugins").join(entry.file_name()),
+            RuntimeCopyMode::OverwriteStale,
+        )?;
+    }
+    Ok(())
+}
+
+fn migrate_legacy_mutable_runtime_data(
+    source_root: &Path,
+    target_root: &Path,
+) -> Result<(), String> {
+    for dir in [
+        "agents",
+        "config",
+        "desktop",
+        "memory",
+        "sessions",
+        "workflows",
+    ] {
+        copy_runtime_dir_if_exists(
+            &source_root.join(dir),
+            &target_root.join(dir),
+            RuntimeCopyMode::MissingOnly,
+        )?;
+    }
+    Ok(())
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RuntimeCopyMode {
+    MissingOnly,
+    OverwriteStale,
+}
+
+fn copy_runtime_dir_if_exists(
+    source: &Path,
+    target: &Path,
+    mode: RuntimeCopyMode,
+) -> Result<(), String> {
+    let entries = match fs::read_dir(source) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => {
+            return Err(format!(
+                "Failed to read desktop runtime directory {}: {error}",
+                source.display()
+            ));
+        }
+    };
+    fs::create_dir_all(target).map_err(|error| {
+        format!(
+            "Failed to create desktop runtime directory {}: {error}",
+            target.display()
+        )
+    })?;
+    for entry in entries {
+        let entry = entry.map_err(|error| {
+            format!(
+                "Failed to read desktop runtime directory entry {}: {error}",
+                source.display()
+            )
+        })?;
+        let source_path = entry.path();
+        let target_path = target.join(entry.file_name());
+        if source_path.is_dir() {
+            copy_runtime_dir_if_exists(&source_path, &target_path, mode)?;
+        } else if source_path.is_file() {
+            copy_runtime_file_if_exists(&source_path, &target_path, mode)?;
+        }
+    }
+    Ok(())
+}
+
+fn copy_runtime_file_if_exists(
+    source: &Path,
+    target: &Path,
+    mode: RuntimeCopyMode,
+) -> Result<(), String> {
+    let metadata = match fs::metadata(source) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => {
+            return Err(format!(
+                "Failed to inspect desktop runtime file {}: {error}",
+                source.display()
+            ));
+        }
+    };
+    if mode == RuntimeCopyMode::MissingOnly && target.exists() {
+        return Ok(());
+    }
+    if mode == RuntimeCopyMode::OverwriteStale && !should_copy_runtime_file(&metadata, target) {
+        return Ok(());
+    }
+    if let Some(parent) = target.parent() {
+        fs::create_dir_all(parent).map_err(|error| {
+            format!(
+                "Failed to create desktop runtime directory {}: {error}",
+                parent.display()
+            )
+        })?;
+    }
+    fs::copy(source, target).map_err(|error| {
+        format!(
+            "Failed to copy desktop runtime file {} to {}: {error}",
+            source.display(),
+            target.display()
+        )
+    })?;
+    #[cfg(unix)]
+    {
+        fs::set_permissions(target, metadata.permissions()).map_err(|error| {
+            format!(
+                "Failed to preserve desktop runtime file permissions {}: {error}",
+                target.display()
+            )
+        })?;
+    }
+    Ok(())
+}
+
+fn should_copy_runtime_file(source_metadata: &fs::Metadata, target: &Path) -> bool {
+    let Ok(target_metadata) = fs::metadata(target) else {
+        return true;
+    };
+    if source_metadata.len() != target_metadata.len() {
+        return true;
+    }
+    let Ok(source_modified) = source_metadata.modified() else {
+        return false;
+    };
+    let Ok(target_modified) = target_metadata.modified() else {
+        return true;
+    };
+    source_modified > target_modified
 }
 
 fn merge_persisted_memory_items(
