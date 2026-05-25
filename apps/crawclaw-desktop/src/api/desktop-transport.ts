@@ -53,13 +53,27 @@ export async function resolveDesktopApiBaseUrl(): Promise<string> {
     return queryBaseUrl
   }
 
+  const tauriBaseUrl = await desktopApiBaseUrlFromTauri()
+  if (tauriBaseUrl) {
+    return tauriBaseUrl
+  }
+
   const storedBaseUrl = desktopApiBaseUrlFromStorage()
   if (storedBaseUrl) {
     return storedBaseUrl
   }
 
+  return ''
+}
+
+async function desktopApiBaseUrlFromTauri(): Promise<string> {
   try {
-    return normalizeDesktopApiBaseUrl(await invoke<string>('desktop_api_base_url'))
+    const candidate = normalizeDesktopApiBaseUrl(await invoke<string>('desktop_api_base_url'))
+    if (!candidate || !isLoopbackDesktopApiBaseUrl(candidate)) {
+      return ''
+    }
+    persistDesktopApiBaseUrl(candidate)
+    return candidate
   } catch {
     return ''
   }
@@ -76,11 +90,7 @@ function desktopApiBaseUrlFromLocation(): string {
   }
   const baseUrl = normalizeDesktopApiBaseUrl(candidate)
 
-  try {
-    window.localStorage.setItem(DESKTOP_API_BASE_URL_STORAGE_KEY, baseUrl)
-  } catch {
-    // Storage is optional for development browser sessions.
-  }
+  persistDesktopApiBaseUrl(baseUrl)
   return baseUrl
 }
 
@@ -118,6 +128,18 @@ function normalizeDesktopApiBaseUrl(value: string): string {
 
 function isLoopbackHostname(hostname: string): boolean {
   return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '::1'
+}
+
+function persistDesktopApiBaseUrl(baseUrl: string) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    window.localStorage.setItem(DESKTOP_API_BASE_URL_STORAGE_KEY, baseUrl)
+  } catch {
+    // Storage is optional for development browser sessions.
+  }
 }
 
 export async function requestDesktopState(
