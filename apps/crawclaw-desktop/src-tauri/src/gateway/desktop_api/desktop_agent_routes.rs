@@ -875,7 +875,6 @@ pub(super) async fn select_agent(
             .any(|agent| agent.id == agent_id)
         {
             desktop_state.agent_workspace.selected_agent_id = agent_id.clone();
-            desktop_state.memory_workspace.selected_agent_id = agent_id;
         }
     }
     emit_state_changed(&state).await

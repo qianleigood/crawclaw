@@ -1587,7 +1587,6 @@ fn merge_persisted_agents(desktop_state: &mut DesktopState, agent_store: &Deskto
             }
             if let Some(agent) = persisted_agents.first() {
                 desktop_state.agent_workspace.selected_agent_id = agent.id.clone();
-                desktop_state.memory_workspace.selected_agent_id = agent.id.clone();
             }
             desktop_state.agent_workspace.agents = persisted_agents;
         }

@@ -182,7 +182,16 @@ function createWorkflowMessage(
     action,
     confirm: values.confirm ? true : undefined,
     detail: 'Cron 自动化请求已从自动化工作区发起。',
-    input: action === 'cron.create' ? { name: values.cronName } : {},
+    input: action === 'cron.create'
+      ? {
+        name: values.cronName.trim() || 'desktop-check',
+        schedule: {
+          kind: 'every',
+          everyMs: 86_400_000,
+        },
+        text: `Desktop automation check: ${values.cronName.trim() || 'desktop-check'}`,
+      }
+      : {},
     status: 'running',
     steps: commonSteps,
     title: action === 'cron.status' ? 'Cron 状态' : 'Cron 创建',

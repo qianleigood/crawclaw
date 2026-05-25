@@ -1237,6 +1237,7 @@ fn normalize_cron_runtime_operation(operation: &str) -> Result<String, String> {
         "cron.stop" | "cron_stop" => "cron.stop",
         "cron.status" | "cron_status" => "cron.status",
         "cron.list" | "cron_list" => "cron.list",
+        "cron.create" | "cron_create" => "cron.add",
         "cron.add" | "cron_add" => "cron.add",
         "cron.update" | "cron_update" => "cron.update",
         "cron.remove" | "cron_remove" => "cron.remove",

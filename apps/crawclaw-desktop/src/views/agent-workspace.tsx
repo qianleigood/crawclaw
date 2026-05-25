@@ -2,9 +2,13 @@ import { Plus, Wrench } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
 import type {
   AgentProfile,
+  AgentSkill,
+  AgentTool,
   AgentWorkspaceState,
   CreateAgentInput,
   DesktopPreferences,
+  PluginSkill,
+  PluginTool,
   UpdateAgentInput,
 } from '../desktop-api'
 import { AgentCreateWizard } from './agent-create-wizard'
@@ -24,6 +28,8 @@ type AgentAvatarStyle = CSSProperties & {
 }
 
 type AgentWorkspaceProps = {
+  availableSkills: PluginSkill[]
+  availableTools: PluginTool[]
   modelOptions: string[]
   onCreateAgent: (input: CreateAgentInput) => void
   onSelectAgent: (agentId: string) => void
@@ -88,7 +94,36 @@ function agentVoiceLabel(agent: AgentProfile) {
   return agent.voice.enabled ? '语音已启用' : '语音关闭'
 }
 
+function pluginToolsToAgentOptions(tools: PluginTool[]): AgentTool[] {
+  return tools.map((tool) => ({
+    description: tool.description,
+    enabled: false,
+    icon: tool.icon,
+    id: tool.id,
+    name: tool.name,
+    open: tool.open,
+    permission: tool.permission,
+    status: tool.status,
+  }))
+}
+
+function pluginSkillsToAgentOptions(skills: PluginSkill[]): AgentSkill[] {
+  return skills.map((skill) => ({
+    description: skill.description,
+    enabled: false,
+    icon: skill.icon,
+    id: skill.id,
+    name: skill.name,
+    open: skill.open,
+    source: skill.source,
+    status: skill.status,
+    trigger: skill.trigger,
+  }))
+}
+
 export function AgentWorkspace({
+  availableSkills,
+  availableTools,
   modelOptions,
   onCreateAgent,
   onSelectAgent,
@@ -98,8 +133,9 @@ export function AgentWorkspace({
 }: AgentWorkspaceProps) {
   const [isAgentWizardOpen, setIsAgentWizardOpen] = useState(false)
   const [editingAgentId, setEditingAgentId] = useState('')
-  const agentCapabilityTemplate = workspace.agents[0]
   const editingAgent = workspace.agents.find((agent) => agent.id === editingAgentId) ?? null
+  const agentSkillOptions = pluginSkillsToAgentOptions(availableSkills)
+  const agentToolOptions = pluginToolsToAgentOptions(availableTools)
 
   return (
     <div className="agent-workspace">
@@ -183,8 +219,8 @@ export function AgentWorkspace({
           onCreateAgent={onCreateAgent}
           onUpdateAgent={onUpdateAgent}
           preferences={preferences}
-          skillOptions={editingAgent?.skills ?? agentCapabilityTemplate?.skills ?? []}
-          toolOptions={editingAgent?.tools ?? agentCapabilityTemplate?.tools ?? []}
+          skillOptions={agentSkillOptions}
+          toolOptions={agentToolOptions}
         />
       ) : null}
     </div>

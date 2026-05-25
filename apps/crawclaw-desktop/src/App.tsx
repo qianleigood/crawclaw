@@ -651,6 +651,8 @@ export default function App() {
           <section className="desktop-content" aria-label={`${activeNavLabel} 工作区`}>
             {activeNavId === 'agent' ? (
               <AgentWorkspace
+                availableSkills={desktopState.pluginsWorkspace.skills}
+                availableTools={desktopState.pluginsWorkspace.tools}
                 modelOptions={modelOptions}
                 onCreateAgent={(input) => void applyDesktopState(() => createAgent(input))}
                 onSelectAgent={(agentId) => void applyDesktopState(() => selectAgent(agentId))}

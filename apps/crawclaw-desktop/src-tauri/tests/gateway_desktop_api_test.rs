@@ -1308,6 +1308,63 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
+async fn gateway_workflow_message_creates_cron_job_from_desktop_payload() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-workflow-cron-create",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let body = serde_json::json!({
+        "workflowKind": "schedule",
+        "action": "cron.create",
+        "confirm": true,
+        "title": "Cron 创建",
+        "status": "running",
+        "input": {
+            "name": "desktop-check",
+            "schedule": { "kind": "every", "everyMs": 86_400_000u64 },
+            "text": "Desktop automation check: desktop-check"
+        }
+    })
+    .to_string();
+    let (status, body) =
+        post_desktop_json(server.addr, "/api/desktop/messages/workflows", &body).await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
+    let messages = json["conversation"]["messages"]
+        .as_array()
+        .expect("messages");
+    assert!(messages.iter().any(|message| {
+        message["kind"] == "workflow"
+            && message["workflowKind"] == "schedule"
+            && message["status"] == "done"
+            && message["steps"]
+                .as_array()
+                .map(|steps| steps.iter().all(|step| step["status"] == "done"))
+                .unwrap_or(false)
+            && message["detail"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("desktop-check")
+    }));
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn gateway_workflow_failure_respects_automation_failed_notifications() {
     let runtime_layout = create_runtime_fixture(
         "desktop-workflow-failure-notification",
@@ -2586,6 +2643,107 @@ esac
     .await;
 
     assert_eq!(status, 404);
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_agent_selection_does_not_change_memory_scope() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-agent-memory-scope",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let memory_body = r#"{"title":"Default memory","summary":"visible","content":"keep visible"}"#;
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/memory/items HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            memory_body.len(),
+            memory_body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("memory state json");
+    let memory_item_id = json["memoryWorkspace"]["selectedItemId"]
+        .as_str()
+        .expect("selected memory item")
+        .to_string();
+    assert_eq!(json["memoryWorkspace"]["selectedAgentId"], "main");
+
+    let agent_body = r#"{"name":"Planner","role":"Planning agent"}"#;
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/agents HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            agent_body.len(),
+            agent_body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("agent state json");
+    let agent_id = json["agentWorkspace"]["selectedAgentId"]
+        .as_str()
+        .expect("selected agent")
+        .to_string();
+    assert_eq!(json["memoryWorkspace"]["selectedAgentId"], "main");
+    assert_eq!(json["memoryWorkspace"]["selectedItemId"], memory_item_id);
+
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/agents/{agent_id}/select HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{{}}"
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("select state json");
+    assert_eq!(json["agentWorkspace"]["selectedAgentId"], agent_id);
+    assert_eq!(json["memoryWorkspace"]["selectedAgentId"], "main");
+    assert_eq!(json["memoryWorkspace"]["selectedItemId"], memory_item_id);
+
+    let restarted_server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("restarted gateway should start");
+    let (status, body) = request(
+        restarted_server.addr,
+        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
+    assert_eq!(
+        json["desktopState"]["agentWorkspace"]["selectedAgentId"],
+        agent_id
+    );
+    assert_eq!(
+        json["desktopState"]["memoryWorkspace"]["selectedAgentId"],
+        "main"
+    );
+    assert_eq!(
+        json["desktopState"]["memoryWorkspace"]["selectedItemId"],
+        memory_item_id
+    );
 }
 
 #[cfg(unix)]

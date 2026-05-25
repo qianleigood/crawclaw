@@ -17,6 +17,7 @@ use crate::gateway::desktop_api::{new_gateway_session_token, start_gateway_serve
 use crate::models::DesktopPreferences;
 use crate::runtime_engine::resolve_runtime_layout;
 
+const MAIN_WINDOW_LABEL: &str = "main";
 const TRAY_ID: &str = "crawclaw-main";
 
 #[derive(Clone)]
@@ -113,10 +114,19 @@ pub fn run() {
             app.manage(DesktopApiState {
                 base_url: server.base_url,
             });
+            ensure_main_window(app.handle())?;
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("failed to run CrawClaw Desktop");
+        .build(tauri::generate_context!())
+        .expect("failed to build CrawClaw Desktop")
+        .run(|app, event| match event {
+            tauri::RunEvent::Ready | tauri::RunEvent::Reopen { .. } => {
+                if let Err(error) = ensure_main_window(app) {
+                    eprintln!("[desktop] failed to show main window: {error}");
+                }
+            }
+            _ => {}
+        });
 }
 
 fn tauri_theme_from_preference(appearance: &str) -> Option<Theme> {
@@ -136,4 +146,26 @@ fn create_menu_bar_tray(app: &mut tauri::App) -> tauri::Result<()> {
         .tooltip("CrawClaw Desktop")
         .build(app)
         .map(|_| ())
+}
+
+fn ensure_main_window(app: &AppHandle) -> tauri::Result<()> {
+    let window = if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+        window
+    } else {
+        let Some(window_config) = app
+            .config()
+            .app
+            .windows
+            .iter()
+            .find(|window| window.label == MAIN_WINDOW_LABEL)
+            .or_else(|| app.config().app.windows.first())
+        else {
+            return Ok(());
+        };
+        tauri::WebviewWindowBuilder::from_config(app, window_config)?.build()?
+    };
+    window.show()?;
+    let _ = window.unminimize();
+    window.set_focus()?;
+    Ok(())
 }

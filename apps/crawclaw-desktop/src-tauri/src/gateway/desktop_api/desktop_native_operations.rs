@@ -109,8 +109,6 @@ struct AddWorkflowMessageInput {
     #[serde(default)]
     confirm: bool,
     #[serde(default)]
-    status: Option<String>,
-    #[serde(default)]
     detail: String,
     #[serde(default)]
     steps: Vec<ConversationWorkflowStep>,
@@ -394,8 +392,7 @@ pub(super) async fn apply_native_operation(
             persist_agent_profile(state, &agent)?;
             {
                 let mut desktop_state = state.desktop_state.write().await;
-                desktop_state.agent_workspace.selected_agent_id = id.clone();
-                desktop_state.memory_workspace.selected_agent_id = id.clone();
+                desktop_state.agent_workspace.selected_agent_id = id;
                 desktop_state.agent_workspace.agents.push(agent);
             }
             emit_state_changed(state).await
@@ -2054,13 +2051,13 @@ async fn run_workflow_message(
             let mut message = conversation_workflow_message(
                 workflow_kind,
                 title,
-                input.status.unwrap_or_else(|| "done".to_string()),
+                "done".to_string(),
                 if detail.trim().is_empty() {
                     fallback_detail
                 } else {
                     detail
                 },
-                steps,
+                finalize_success_workflow_steps(steps),
             );
             if let ConversationMessage::Workflow {
                 workflow_id,
@@ -2106,6 +2103,17 @@ async fn run_workflow_message(
             message
         }
     }
+}
+
+fn finalize_success_workflow_steps(
+    mut steps: Vec<ConversationWorkflowStep>,
+) -> Vec<ConversationWorkflowStep> {
+    for step in &mut steps {
+        if step.status == "active" || step.status == "pending" || step.status == "running" {
+            step.status = "done".to_string();
+        }
+    }
+    steps
 }
 
 async fn notify_desktop(
