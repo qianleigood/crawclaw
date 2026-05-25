@@ -2086,7 +2086,7 @@ fn router(state: GatewayState) -> Router {
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)
-                .allow_methods([Method::GET, Method::POST, Method::PATCH])
+                .allow_methods([Method::DELETE, Method::GET, Method::POST, Method::PATCH])
                 .allow_headers(Any),
         )
         .with_state(state)

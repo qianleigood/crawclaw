@@ -15,6 +15,7 @@ import {
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from 'react'
 import {
@@ -376,6 +377,7 @@ export default function App() {
   const [queuedChatInputText, setQueuedChatInputText] = useState('')
   const [selectedChatAgentId, setSelectedChatAgentId] = useState('')
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null)
+  const pendingConfirmationResolverRef = useRef<((confirmed: boolean) => void) | null>(null)
   const activeNavId = desktopState.activeNavId
   const appAppearanceClass = appearanceClass(desktopState.preferences.uiDefaults.appearance)
   const appLanguageCode = languageCode(desktopState.preferences.uiDefaults.language)
@@ -449,19 +451,19 @@ export default function App() {
 
   const requestConfirmation = useCallback((input: ConfirmationRequestInput): Promise<boolean> => (
     new Promise((resolve) => {
-      setPendingConfirmation((current) => {
-        current?.resolve(false)
-        return {
-          ...input,
-          id: Date.now(),
-          resolve,
-        }
+      pendingConfirmationResolverRef.current?.(false)
+      pendingConfirmationResolverRef.current = resolve
+      setPendingConfirmation({
+        ...input,
+        id: Date.now(),
+        resolve,
       })
     })
   ), [])
 
   const settleConfirmation = (confirmed: boolean) => {
-    const resolver = pendingConfirmation?.resolve
+    const resolver = pendingConfirmation?.resolve ?? pendingConfirmationResolverRef.current
+    pendingConfirmationResolverRef.current = null
     setPendingConfirmation(null)
     resolver?.(confirmed)
   }
@@ -487,7 +489,8 @@ export default function App() {
       setDesktopState((state) => removePluginSkillLocally(state, skillId))
       return
     }
-    await applyDesktopState(() => removePluginSkill(skillId))
+    const nextState = await removePluginSkill(skillId)
+    setDesktopState(nextState)
   }
 
   const uninstallPluginFromUi = async (pluginId: string) => {
@@ -495,7 +498,8 @@ export default function App() {
       setDesktopState((state) => uninstallPluginLocally(state, pluginId))
       return
     }
-    await applyDesktopState(() => uninstallPlugin(pluginId))
+    const nextState = await uninstallPlugin(pluginId)
+    setDesktopState(nextState)
   }
 
   const updateInstalledPluginEnabled = (pluginId: string, enabled: boolean) => {
