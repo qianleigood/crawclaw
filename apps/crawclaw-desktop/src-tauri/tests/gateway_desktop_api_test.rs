@@ -2270,6 +2270,8 @@ esac
 
     assert_eq!(status, 500);
     let events = read_stream_until(&mut events, "event: stateChanged").await;
+    assert!(events.contains(r#""desktopState":"#));
+    assert!(!events.contains(r#""desktop_state":"#));
     assert!(events.contains(r#""kind":"toolResult""#));
     assert!(events.contains(r#""toolId":"missing_tool""#));
     assert!(events.contains(r#""ok":false"#));

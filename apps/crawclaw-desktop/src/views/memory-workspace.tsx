@@ -17,6 +17,7 @@ import { Panel } from '../ui/panel'
 type MemoryDraft = {
   category: MemoryCategory
   content: string
+  source: string
   summary: string
   tags: string
   title: string
@@ -29,6 +30,7 @@ const editableMemoryCategories = memoryCategories.filter((category): category is
 const blankMemoryDraft = (): MemoryDraft => ({
   category: '其他',
   content: '',
+  source: '手动',
   summary: '',
   tags: '',
   title: '',
@@ -89,7 +91,9 @@ export function MemoryWorkspace({
   const selectedMemoryAgent = agents.find((agent) => agent.id === memoryWorkspace.selectedAgentId)
   const isMemoryDreaming = memoryWorkspace.dream.status === 'running'
   const onSetFormOpen = setIsFormOpen
-  const onSetMemoryDraft = setMemoryDraft
+  const updateMemoryDraft = <Key extends keyof MemoryDraft>(key: Key, value: MemoryDraft[Key]) => {
+    setMemoryDraft((draft) => ({ ...draft, [key]: value }))
+  }
 
   const onSubmitMemory = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -104,6 +108,7 @@ export function MemoryWorkspace({
       agentId: memoryWorkspace.selectedAgentId,
       category: memoryDraft.category,
       content,
+      source: memoryDraft.source.trim() || undefined,
       summary,
       tags: parseMemoryTags(memoryDraft.tags),
       title,
@@ -120,6 +125,7 @@ export function MemoryWorkspace({
     setMemoryDraft({
       category: selectedMemory.category,
       content: selectedMemory.content,
+      source: selectedMemory.source,
       summary: selectedMemory.summary,
       tags: selectedMemory.tags.join(', '),
       title: selectedMemory.title,
@@ -143,6 +149,7 @@ export function MemoryWorkspace({
     const patch: UpdateMemoryItemPatch = {
       category: memoryDraft.category,
       content: memoryDraft.content.trim(),
+      source: memoryDraft.source.trim() || undefined,
       summary,
       tags: parseMemoryTags(memoryDraft.tags),
       title,
@@ -260,21 +267,21 @@ export function MemoryWorkspace({
           <label>
             标题
             <input
-              onChange={(event) => onSetMemoryDraft((draft) => ({ ...draft, title: event.currentTarget.value }))}
+              onChange={(event) => updateMemoryDraft('title', event.currentTarget.value)}
               value={memoryDraft.title}
             />
           </label>
           <label>
             一句话摘要
             <input
-              onChange={(event) => onSetMemoryDraft((draft) => ({ ...draft, summary: event.currentTarget.value }))}
+              onChange={(event) => updateMemoryDraft('summary', event.currentTarget.value)}
               value={memoryDraft.summary}
             />
           </label>
           <label>
             内容
             <textarea
-              onChange={(event) => onSetMemoryDraft((draft) => ({ ...draft, content: event.currentTarget.value }))}
+              onChange={(event) => updateMemoryDraft('content', event.currentTarget.value)}
               value={memoryDraft.content}
             />
           </label>
@@ -283,7 +290,7 @@ export function MemoryWorkspace({
             <select
               onChange={(event) => {
                 const value = event.currentTarget.value as MemoryCategory
-                onSetMemoryDraft((draft) => ({ ...draft, category: value }))
+                updateMemoryDraft('category', value)
               }}
               value={memoryDraft.category}
             >
@@ -295,8 +302,15 @@ export function MemoryWorkspace({
           <label>
             标签
             <input
-              onChange={(event) => onSetMemoryDraft((draft) => ({ ...draft, tags: event.currentTarget.value }))}
+              onChange={(event) => updateMemoryDraft('tags', event.currentTarget.value)}
               value={memoryDraft.tags}
+            />
+          </label>
+          <label>
+            来源
+            <input
+              onChange={(event) => updateMemoryDraft('source', event.currentTarget.value)}
+              value={memoryDraft.source}
             />
           </label>
           <button className="workspace-primary-button" type="submit">保存记忆</button>
@@ -311,21 +325,21 @@ export function MemoryWorkspace({
                 <label>
                   详情标题
                   <input
-                    onChange={(event) => onSetMemoryDraft((draft) => ({ ...draft, title: event.currentTarget.value }))}
+                    onChange={(event) => updateMemoryDraft('title', event.currentTarget.value)}
                     value={memoryDraft.title}
                   />
                 </label>
                 <label>
                   详情摘要
                   <input
-                    onChange={(event) => onSetMemoryDraft((draft) => ({ ...draft, summary: event.currentTarget.value }))}
+                    onChange={(event) => updateMemoryDraft('summary', event.currentTarget.value)}
                     value={memoryDraft.summary}
                   />
                 </label>
                 <label>
                   详情内容
                   <textarea
-                    onChange={(event) => onSetMemoryDraft((draft) => ({ ...draft, content: event.currentTarget.value }))}
+                    onChange={(event) => updateMemoryDraft('content', event.currentTarget.value)}
                     value={memoryDraft.content}
                   />
                 </label>
@@ -334,7 +348,7 @@ export function MemoryWorkspace({
                   <select
                     onChange={(event) => {
                       const value = event.currentTarget.value as MemoryCategory
-                      onSetMemoryDraft((draft) => ({ ...draft, category: value }))
+                      updateMemoryDraft('category', value)
                     }}
                     value={memoryDraft.category}
                   >
@@ -346,8 +360,15 @@ export function MemoryWorkspace({
                 <label>
                   详情标签
                   <input
-                    onChange={(event) => onSetMemoryDraft((draft) => ({ ...draft, tags: event.currentTarget.value }))}
+                    onChange={(event) => updateMemoryDraft('tags', event.currentTarget.value)}
                     value={memoryDraft.tags}
+                  />
+                </label>
+                <label>
+                  详情来源
+                  <input
+                    onChange={(event) => updateMemoryDraft('source', event.currentTarget.value)}
+                    value={memoryDraft.source}
                   />
                 </label>
                 <button className="workspace-primary-button" type="submit">保存修改</button>

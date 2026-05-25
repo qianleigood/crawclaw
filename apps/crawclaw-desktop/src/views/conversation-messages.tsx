@@ -104,7 +104,11 @@ function MessageBubble({
           <MessageAvatar kind="assistant" />
           <article className="chat-message conversation-message">
             <p className="chat-message__speaker">CrawClaw</p>
-            <p>{message.text}</p>
+            {message.status && message.status !== 'done' ? (
+              <Badge tone={assistantStatusTone(message.status)}>{assistantStatusLabel(message.status)}</Badge>
+            ) : null}
+            <p>{message.text || assistantFallbackText(message.status)}</p>
+            {message.errorCode ? <small>{message.errorCode}</small> : null}
             <small>{message.createdAt}</small>
           </article>
         </>
@@ -486,6 +490,44 @@ function statusToneLabel(tone: BadgeTone) {
     return '等待'
   }
   return '状态'
+}
+
+type AssistantMessageStatus = Extract<ConversationMessage, { kind: 'assistant' }>['status']
+
+function assistantStatusLabel(status: AssistantMessageStatus) {
+  if (status === 'running') {
+    return '生成中'
+  }
+  if (status === 'cancelled') {
+    return '已取消'
+  }
+  if (status === 'failed') {
+    return '失败'
+  }
+  return '完成'
+}
+
+function assistantStatusTone(status: AssistantMessageStatus): BadgeTone {
+  if (status === 'failed') {
+    return 'danger'
+  }
+  if (status === 'cancelled') {
+    return 'idle'
+  }
+  return 'neutral'
+}
+
+function assistantFallbackText(status: AssistantMessageStatus) {
+  if (status === 'running') {
+    return '正在生成回复...'
+  }
+  if (status === 'cancelled') {
+    return '已停止本次生成。'
+  }
+  if (status === 'failed') {
+    return '生成失败。'
+  }
+  return ''
 }
 
 function workflowStatusLabel(status: string) {

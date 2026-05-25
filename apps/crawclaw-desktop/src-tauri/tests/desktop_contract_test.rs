@@ -1,7 +1,10 @@
 use std::fs;
 use std::path::PathBuf;
 
-use crawclaw_desktop::models::ConversationMessage;
+use crawclaw_desktop::gateway::desktop_state::initial_desktop_state;
+use crawclaw_desktop::models::{
+    ConversationMessage, DesktopEvent, RuntimeCompatStatus, RuntimeStatus, RuntimeStatusValue,
+};
 
 #[test]
 fn desktop_api_contract_generated_types_are_current() {
@@ -48,4 +51,23 @@ fn desktop_api_contract_conversation_message_wire_shape_is_camel_case() {
     assert_eq!(json["createdAt"], "刚刚");
     assert!(json.get("tool_id").is_none());
     assert!(json.get("created_at").is_none());
+}
+
+#[test]
+fn desktop_api_contract_event_payload_wire_shape_is_camel_case() {
+    let state = initial_desktop_state(&RuntimeStatus {
+        status: RuntimeStatusValue::Ready,
+        detail: "ready".to_string(),
+        runtime_root: "/tmp/crawclaw-test".to_string(),
+        binary_path: "/tmp/crawclaw-test/bin/crawclaw-runtime".to_string(),
+        compat: RuntimeCompatStatus::default(),
+    });
+    let event = DesktopEvent::StateChanged {
+        desktop_state: state,
+    };
+
+    let json = serde_json::to_value(event).expect("serialize desktop event");
+    assert_eq!(json["type"], "stateChanged");
+    assert!(json.get("desktopState").is_some());
+    assert!(json.get("desktop_state").is_none());
 }
