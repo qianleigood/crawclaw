@@ -39,6 +39,27 @@ fn accepts_release_fixture_without_js_runtime_surface() {
 }
 
 #[test]
+fn rejects_tauri_frontend_absolute_asset_urls() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    write_release_fixture(
+        temp.path(),
+        FixtureOptions {
+            absolute_frontend_asset_urls: true,
+            ..FixtureOptions::default()
+        },
+    );
+
+    let mut options = DesktopRuntimeCheckOptions::new(temp.path());
+    options.check_generated_paths = false;
+    options.check_packaged_bundle = false;
+    options.smoke_commands = false;
+
+    let error = check_desktop_runtime_release_inputs(&options)
+        .expect_err("absolute asset URLs should be rejected");
+    assert!(error.contains("must use relative asset URLs"), "{error}");
+}
+
+#[test]
 fn skips_packaged_runtime_check_when_app_bundle_is_absent() {
     let temp = tempfile::tempdir().expect("tempdir");
     write_release_fixture(temp.path(), FixtureOptions::default());
@@ -124,6 +145,7 @@ fn rejects_extra_agent_browser_platform_binaries() {
 
 #[derive(Default)]
 struct FixtureOptions {
+    absolute_frontend_asset_urls: bool,
     node_runtime_entrypoint: bool,
     plugin_sdk_runtime_artifact: bool,
     extra_agent_browser_platform_binary: bool,
@@ -148,6 +170,9 @@ fn write_release_fixture(root: &Path, options: FixtureOptions) {
         &json!({
             "productName": "CrawClaw Desktop",
             "identifier": "ai.crawclaw.desktop",
+            "app": {
+                "windows": [{ "label": "main", "url": "index.html" }]
+            },
             "bundle": {
                 "resources": {
                     "../.runtime/crawclaw": "runtime/crawclaw"
@@ -155,7 +180,16 @@ fn write_release_fixture(root: &Path, options: FixtureOptions) {
             }
         }),
     );
-    fs::write(root.join("apps/crawclaw-desktop/dist/index.html"), "").expect("index html");
+    let frontend_index = if options.absolute_frontend_asset_urls {
+        r#"<script type="module" src="/assets/index.js"></script>"#
+    } else {
+        r#"<script type="module" src="./assets/index.js"></script>"#
+    };
+    fs::write(
+        root.join("apps/crawclaw-desktop/dist/index.html"),
+        frontend_index,
+    )
+    .expect("index html");
 
     write_executable(&paths.runtime_binary_path);
     write_executable(&paths.gateway_binary_path);

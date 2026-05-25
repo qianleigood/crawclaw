@@ -188,15 +188,14 @@ pub fn check_desktop_runtime_release_inputs(
     if resource != Some("runtime/crawclaw") {
         return Err("Tauri embedded runtime resource: expected runtime/crawclaw".to_string());
     }
-    assert_file(
-        &options
-            .root_dir
-            .join("apps")
-            .join("crawclaw-desktop")
-            .join("dist")
-            .join("index.html"),
-        "Tauri React frontend dist/index.html",
-    )?;
+    let frontend_index_path = options
+        .root_dir
+        .join("apps")
+        .join("crawclaw-desktop")
+        .join("dist")
+        .join("index.html");
+    assert_file(&frontend_index_path, "Tauri React frontend dist/index.html")?;
+    assert_tauri_frontend_uses_relative_assets(&frontend_index_path)?;
 
     let paths = resolve_desktop_runtime_stage_paths(&options.root_dir);
     assert_runtime_tree(&paths, "embedded", options.smoke_commands)?;
@@ -262,6 +261,18 @@ fn resolve_desktop_packaged_runtime_paths(
             .join(platform_binary_name("crawclaw-native-plugins", platform)),
         runtime_root,
     })
+}
+
+fn assert_tauri_frontend_uses_relative_assets(index_path: &Path) -> Result<(), String> {
+    let html = fs::read_to_string(index_path)
+        .map_err(|error| format!("failed to read Tauri frontend index.html: {error}"))?;
+    if html.contains("src=\"/") || html.contains("href=\"/") {
+        return Err(
+            "Tauri React frontend dist/index.html must use relative asset URLs; set Vite base to ./"
+                .to_string(),
+        );
+    }
+    Ok(())
 }
 
 fn normalize_root_dir(root_dir: &Path) -> PathBuf {
