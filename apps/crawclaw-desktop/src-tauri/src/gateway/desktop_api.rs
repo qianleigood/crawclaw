@@ -106,6 +106,7 @@ use self::desktop_settings_effects::{
 };
 
 const SESSION_HEADER: &str = "x-crawclaw-desktop-session";
+pub(super) const DEFAULT_MEMORY_AGENT_ID: &str = "main";
 
 #[derive(Clone)]
 pub struct GatewayConfig {

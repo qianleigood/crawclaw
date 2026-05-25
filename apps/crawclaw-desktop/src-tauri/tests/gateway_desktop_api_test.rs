@@ -4990,6 +4990,64 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
+async fn gateway_memory_workspace_uses_default_scope_without_desktop_agents() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-memory-default-scope",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, body) = request(
+        server.addr,
+        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
+    assert_eq!(
+        json["desktopState"]["agentWorkspace"]["agents"]
+            .as_array()
+            .expect("desktop agents")
+            .len(),
+        0
+    );
+    assert_eq!(
+        json["desktopState"]["memoryWorkspace"]["selectedAgentId"],
+        "main"
+    );
+
+    let create_body =
+        r#"{"title":"Default scope","summary":"visible","content":"remember without an agent"}"#;
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/memory/items HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            create_body.len(),
+            create_body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("create state json");
+    assert_eq!(json["memoryWorkspace"]["selectedAgentId"], "main");
+    assert_eq!(json["memoryWorkspace"]["items"][0]["agentId"], "main");
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn gateway_memory_mutations_persist_through_rust_runtime_store() {
     let runtime_layout = create_runtime_fixture(
         "desktop-memory-store",

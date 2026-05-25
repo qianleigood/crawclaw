@@ -62,6 +62,7 @@ import {
   updateAgent,
   updateMemoryItem,
   updatePreferences,
+  type AgentProfile,
   type DesktopPreferencesPatch,
   type DesktopPreferences,
   type DesktopIconKey,
@@ -123,6 +124,82 @@ const navPanels: Record<string, { detail: string; items: string[]; title: string
     detail: '管理智能体可以复用的本地记忆与项目偏好。',
     items: ['项目偏好', 'UI 设计约束', '运行经验'],
   },
+}
+
+const defaultMemoryAgentId = 'main'
+
+const defaultMemoryAgentProfile: AgentProfile = {
+  id: defaultMemoryAgentId,
+  name: '本机默认',
+  role: '本机任务智能体',
+  description: 'CrawClaw Desktop 的默认本机任务身份。',
+  status: 'ready',
+  model: 'gpt-5.5',
+  thinking: 'high',
+  permissionMode: '工作区模式',
+  emotion: {
+    style: 'neutral',
+    tone: 'direct',
+    boundaries: [],
+    promptMd: '',
+  },
+  voice: {
+    enabled: false,
+    inputEnabled: false,
+    outputEnabled: false,
+    wakeEnabled: false,
+    source: 'qwen-preset',
+    presetVoice: 'Cherry',
+    designPrompt: '',
+    cloneVoiceName: '',
+    cloneSampleName: '',
+    style: '',
+    pace: '',
+  },
+  channels: [],
+  avatar: {
+    initials: '本',
+    gradient: 'cyan',
+  },
+  tools: [],
+  skills: [],
+}
+
+function memoryScopeAgentProfile(agentId: string): AgentProfile {
+  if (agentId === defaultMemoryAgentId) {
+    return defaultMemoryAgentProfile
+  }
+  return {
+    ...defaultMemoryAgentProfile,
+    id: agentId,
+    name: `记忆作用域 ${agentId}`,
+    role: '记忆作用域',
+    description: '由已保存记忆自动补齐的作用域。',
+    avatar: {
+      initials: '记',
+      gradient: 'slate',
+    },
+  }
+}
+
+function memoryAgentsForWorkspace(
+  agents: AgentProfile[],
+  memoryWorkspace: DesktopState['memoryWorkspace'],
+): AgentProfile[] {
+  const byId = new Map(agents.map((agent) => [agent.id, agent]))
+  const scopedIds = [
+    defaultMemoryAgentId,
+    memoryWorkspace.selectedAgentId,
+    ...memoryWorkspace.items.map((item) => item.agentId),
+  ]
+
+  for (const id of scopedIds) {
+    if (id && !byId.has(id)) {
+      byId.set(id, memoryScopeAgentProfile(id))
+    }
+  }
+
+  return Array.from(byId.values())
 }
 
 function DesktopIcon({
@@ -307,6 +384,7 @@ export default function App() {
   const activeNavPanel = activeNavId === 'new-chat' ? null : navPanels[activeNavId]
   const runtimeChecks = desktopState.conversation.runtimeChecks
   const memoryWorkspace = desktopState.memoryWorkspace
+  const memoryAgents = memoryAgentsForWorkspace(desktopState.agentWorkspace.agents, memoryWorkspace)
   const selectedModel = desktopState.preferences.selectedModel
   const modelOptions = Array.from(new Set([
     ...desktopState.preferences.modelOptions,
@@ -617,7 +695,7 @@ export default function App() {
               />
             ) : activeNavId === 'memory' ? (
               <MemoryWorkspace
-                agents={desktopState.agentWorkspace.agents}
+                agents={memoryAgents}
                 memoryCleanupConfirmation={desktopState.preferences.memoryDefaults.memoryCleanupConfirmation}
                 memoryWorkspace={memoryWorkspace}
                 onArchiveMemory={(memoryId, confirmed) => void applyDesktopState(() => archiveMemoryItem(memoryId, confirmed))}

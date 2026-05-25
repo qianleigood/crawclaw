@@ -51,7 +51,7 @@ pub fn initial_desktop_state(runtime: &RuntimeStatus) -> DesktopState {
             agents: Vec::new(),
         },
         memory_workspace: MemoryWorkspaceState {
-            selected_agent_id: String::new(),
+            selected_agent_id: "main".to_string(),
             selected_item_id: String::new(),
             filter: "全部".to_string(),
             query: String::new(),

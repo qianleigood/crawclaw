@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use crate::models::DesktopState;
 
-use super::{authorize_headers, emit_state_changed, GatewayState};
+use super::{authorize_headers, emit_state_changed, GatewayState, DEFAULT_MEMORY_AGENT_ID};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -47,12 +47,25 @@ pub(super) async fn select_memory_agent(
     authorize_headers(&headers, &state)?;
     {
         let mut desktop_state = state.desktop_state.write().await;
-        if desktop_state
-            .agent_workspace
-            .agents
-            .iter()
-            .any(|agent| agent.id == agent_id)
-        {
+        let can_select = agent_id == DEFAULT_MEMORY_AGENT_ID
+            || desktop_state
+                .agent_workspace
+                .agents
+                .iter()
+                .any(|agent| agent.id == agent_id)
+            || desktop_state
+                .memory_workspace
+                .items
+                .iter()
+                .any(|item| item.agent_id == agent_id);
+        if can_select {
+            desktop_state.memory_workspace.selected_item_id = desktop_state
+                .memory_workspace
+                .items
+                .iter()
+                .find(|item| item.agent_id == agent_id && !item.archived)
+                .map(|item| item.id.clone())
+                .unwrap_or_default();
             desktop_state.memory_workspace.selected_agent_id = agent_id;
         }
     }

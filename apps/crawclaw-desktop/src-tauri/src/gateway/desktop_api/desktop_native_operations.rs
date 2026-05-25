@@ -464,9 +464,11 @@ pub(super) async fn apply_native_operation(
                 updated_at: "刚刚".to_string(),
                 archived: false,
             };
+            let item_agent_id = item.agent_id.clone();
             persist_memory_item(state, &item)?;
             {
                 let mut desktop_state = state.desktop_state.write().await;
+                desktop_state.memory_workspace.selected_agent_id = item_agent_id;
                 desktop_state.memory_workspace.selected_item_id = id.clone();
                 desktop_state.memory_workspace.items.push(item);
             }
@@ -708,6 +710,13 @@ pub(super) async fn apply_native_operation(
                     .iter()
                     .find(|agent| agent.id == selected_agent_id)
                     .cloned()
+                    .or_else(|| {
+                        if selected_agent_id == DEFAULT_MEMORY_AGENT_ID {
+                            Some(default_memory_agent_profile())
+                        } else {
+                            None
+                        }
+                    })
                     .ok_or(StatusCode::NOT_FOUND)?
             };
             let definition =
@@ -3011,6 +3020,16 @@ pub(super) fn first_visible_memory_item_id(
         .iter()
         .find(|item| item.agent_id == agent_id && !item.archived)
         .map(|item| item.id.clone())
+}
+
+fn default_memory_agent_profile() -> AgentProfile {
+    agent_profile(
+        DEFAULT_MEMORY_AGENT_ID.to_string(),
+        "本机默认".to_string(),
+        "本机任务智能体".to_string(),
+        "CrawClaw Desktop 的默认本机任务身份。".to_string(),
+        Vec::new(),
+    )
 }
 
 pub(super) fn activate_first_visible_thread(desktop_state: &mut DesktopState) -> Option<String> {
