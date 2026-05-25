@@ -1,13 +1,16 @@
-use axum::body::Bytes;
-use axum::extract::{Path, State};
-use axum::http::{HeaderMap, StatusCode};
+use axum::body::{Body, Bytes};
+use axum::extract::{Path, Query, State};
+use axum::http::{header, HeaderMap, StatusCode};
+use axum::response::Response;
 use axum::Json;
+use std::collections::HashMap;
 
 use crate::models::DesktopState;
 
 use super::{
-    authorize_headers, parse_json_body, run_native_state_mutation, with_string,
-    DesktopNativeMutation, GatewayState, ThreadMutation, ToggleMutation,
+    authorize_headers, authorize_token, parse_json_body, record_desktop_asset_action,
+    resolve_desktop_asset, run_native_state_mutation, with_string, DesktopNativeMutation,
+    GatewayState, ThreadMutation, ToggleMutation, SESSION_HEADER,
 };
 
 async fn run_body_mutation(
@@ -455,4 +458,48 @@ pub(super) async fn steer_message(
         Vec::new(),
     )
     .await
+}
+
+pub(super) async fn desktop_asset_content(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    Query(query): Query<HashMap<String, String>>,
+    Path(asset_id): Path<String>,
+) -> Result<Response, StatusCode> {
+    let header_token = headers
+        .get(SESSION_HEADER)
+        .and_then(|value| value.to_str().ok());
+    let query_token = query.get("sessionToken").map(String::as_str);
+    authorize_token(query_token.or(header_token), &state)?;
+    let asset = resolve_desktop_asset(&state, &asset_id)?;
+    let bytes = std::fs::read(&asset.path).map_err(|error| {
+        super::emit_operation_failed(
+            &state,
+            "asset_read_failed",
+            format!("Failed to read desktop asset: {error}"),
+        );
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    Response::builder()
+        .header(header::CONTENT_TYPE, asset.media_type)
+        .body(Body::from(bytes))
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+pub(super) async fn open_desktop_asset(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    Path(asset_id): Path<String>,
+) -> Result<Json<DesktopState>, StatusCode> {
+    authorize_headers(&headers, &state)?;
+    record_desktop_asset_action(&state, &asset_id, "open").await
+}
+
+pub(super) async fn reveal_desktop_asset(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    Path(asset_id): Path<String>,
+) -> Result<Json<DesktopState>, StatusCode> {
+    authorize_headers(&headers, &state)?;
+    record_desktop_asset_action(&state, &asset_id, "reveal").await
 }

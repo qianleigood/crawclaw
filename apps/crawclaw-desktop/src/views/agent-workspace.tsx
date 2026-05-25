@@ -5,6 +5,7 @@ import type {
   AgentWorkspaceState,
   CreateAgentInput,
   DesktopPreferences,
+  UpdateAgentInput,
 } from '../desktop-api'
 import { AgentCreateWizard } from './agent-create-wizard'
 
@@ -26,6 +27,7 @@ type AgentWorkspaceProps = {
   modelOptions: string[]
   onCreateAgent: (input: CreateAgentInput) => void
   onSelectAgent: (agentId: string) => void
+  onUpdateAgent: (agentId: string, input: UpdateAgentInput) => void
   preferences: DesktopPreferences
   workspace: AgentWorkspaceState
 }
@@ -90,11 +92,14 @@ export function AgentWorkspace({
   modelOptions,
   onCreateAgent,
   onSelectAgent,
+  onUpdateAgent,
   preferences,
   workspace,
 }: AgentWorkspaceProps) {
   const [isAgentWizardOpen, setIsAgentWizardOpen] = useState(false)
+  const [editingAgentId, setEditingAgentId] = useState('')
   const agentCapabilityTemplate = workspace.agents[0]
+  const editingAgent = workspace.agents.find((agent) => agent.id === editingAgentId) ?? null
 
   return (
     <div className="agent-workspace">
@@ -152,7 +157,10 @@ export function AgentWorkspace({
               <button
                 aria-label={`配置智能体：${agent.name}`}
                 className="agent-list-item__configure"
-                onClick={() => onSelectAgent(agent.id)}
+                onClick={() => {
+                  onSelectAgent(agent.id)
+                  setEditingAgentId(agent.id)
+                }}
                 type="button"
               >
                 <Wrench aria-hidden="true" size={14} strokeWidth={2.1} />
@@ -163,14 +171,20 @@ export function AgentWorkspace({
         </ul>
       </section>
 
-      {isAgentWizardOpen ? (
+      {isAgentWizardOpen || editingAgent ? (
         <AgentCreateWizard
+          agent={editingAgent ?? undefined}
+          mode={editingAgent ? 'edit' : 'create'}
           modelOptions={modelOptions}
-          onClose={() => setIsAgentWizardOpen(false)}
+          onClose={() => {
+            setIsAgentWizardOpen(false)
+            setEditingAgentId('')
+          }}
           onCreateAgent={onCreateAgent}
+          onUpdateAgent={onUpdateAgent}
           preferences={preferences}
-          skillOptions={agentCapabilityTemplate?.skills ?? []}
-          toolOptions={agentCapabilityTemplate?.tools ?? []}
+          skillOptions={editingAgent?.skills ?? agentCapabilityTemplate?.skills ?? []}
+          toolOptions={editingAgent?.tools ?? agentCapabilityTemplate?.tools ?? []}
         />
       ) : null}
     </div>

@@ -146,6 +146,12 @@ pub enum ConversationMessage {
     Assistant {
         id: String,
         text: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        status: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        run_id: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        error_code: Option<String>,
         created_at: String,
     },
     ToolCall {

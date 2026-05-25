@@ -43,6 +43,8 @@ function ChatAvatar({ author }: { author: 'assistant' | 'user' }) {
 type ChatThreadProps = {
   conversation: ConversationState
   onDecidePermission: (requestId: string, status: 'approved' | 'denied') => void
+  onOpenAsset: (assetId: string) => void
+  onRevealAsset: (assetId: string) => void
   permissionRequest: PermissionRequest
   replyMode: string
 }
@@ -64,6 +66,8 @@ type ChatThreadShowcaseProps = {
 export function ChatThread({
   conversation,
   onDecidePermission,
+  onOpenAsset,
+  onRevealAsset,
   permissionRequest,
   replyMode,
 }: ChatThreadProps) {
@@ -72,6 +76,8 @@ export function ChatThread({
       <ConversationMessageList
         messages={conversation.messages}
         onDecidePermission={onDecidePermission}
+        onOpenAsset={onOpenAsset}
+        onRevealAsset={onRevealAsset}
         permissionRequest={permissionRequest}
         replyMode={replyMode}
       />

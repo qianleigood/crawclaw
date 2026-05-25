@@ -2,21 +2,33 @@ import {
   AlertTriangle,
   Blocks,
   CheckCircle2,
+  ExternalLink,
   FileText,
+  FolderOpen,
   Image as ImageIcon,
   Mic,
+  Play,
   ShieldCheck,
   Sparkles,
   UserRound,
   Wrench,
 } from 'lucide-react'
-import type { BadgeTone, ConversationMessage, PermissionRequest, PermissionStatus } from '../desktop-api'
+import {
+  desktopAssetContentUrl,
+  type BadgeTone,
+  type ConversationMediaItem,
+  type ConversationMessage,
+  type PermissionRequest,
+  type PermissionStatus,
+} from '../desktop-api'
 import { Badge } from '../ui/badge'
 import { normalizeReplyMode, type ReplyMode } from './reply-mode'
 
 type ConversationMessageListProps = {
   messages: ConversationMessage[]
   onDecidePermission: (requestId: string, status: 'approved' | 'denied') => void
+  onOpenAsset: (assetId: string) => void
+  onRevealAsset: (assetId: string) => void
   permissionRequest: PermissionRequest
   replyMode: string
 }
@@ -24,6 +36,8 @@ type ConversationMessageListProps = {
 export function ConversationMessageList({
   messages,
   onDecidePermission,
+  onOpenAsset,
+  onRevealAsset,
   permissionRequest,
   replyMode: replyModeValue,
 }: ConversationMessageListProps) {
@@ -47,6 +61,8 @@ export function ConversationMessageList({
           <MessageBubble
             message={message}
             onDecidePermission={onDecidePermission}
+            onOpenAsset={onOpenAsset}
+            onRevealAsset={onRevealAsset}
             permissionRequest={permissionRequest}
             replyMode={replyMode}
           />
@@ -59,11 +75,15 @@ export function ConversationMessageList({
 function MessageBubble({
   message,
   onDecidePermission,
+  onOpenAsset,
+  onRevealAsset,
   permissionRequest,
   replyMode,
 }: {
   message: ConversationMessage
   onDecidePermission: (requestId: string, status: 'approved' | 'denied') => void
+  onOpenAsset: (assetId: string) => void
+  onRevealAsset: (assetId: string) => void
   permissionRequest: PermissionRequest
   replyMode: ReplyMode
 }) {
@@ -179,6 +199,13 @@ function MessageBubble({
               {message.status ? <span>{workflowStatusLabel(message.status)}{message.errorCode ? ` · ${message.errorCode}` : ''}</span> : null}
               {message.assetId ? <span>{message.assetId}{message.sizeBytes ? ` · ${formatBytes(message.sizeBytes)}` : ''}</span> : null}
               {message.detail ? <span>{message.detail}</span> : null}
+              {message.assetId ? (
+                <AssetActionButtons
+                  assetId={message.assetId}
+                  onOpenAsset={onOpenAsset}
+                  onRevealAsset={onRevealAsset}
+                />
+              ) : null}
             </div>
           </article>
         </>
@@ -198,14 +225,18 @@ function MessageBubble({
               {message.items.length > 0
                 ? message.items.map((item) => (
                   <figure className={`media-bubble media-bubble--${item.kind}`} key={item.id}>
-                    <div className={`media-visual media-visual--${item.kind === 'video' ? 'video' : 'image'}`}>
-                      <span className="media-loading" aria-hidden="true" />
-                      {item.kind === 'video' ? <span className="video-play is-playing" aria-hidden="true" /> : null}
-                    </div>
+                    <AssetMediaPreview item={item} />
                     <figcaption>
                       <span className="media-caption__label">{item.label}</span>
                       <span className="media-caption__meta">
                         <small>{item.detail ?? item.mimeType ?? item.kind}{item.sizeBytes ? ` · ${formatBytes(item.sizeBytes)}` : ''}</small>
+                        {item.assetId ? (
+                          <AssetActionButtons
+                            assetId={item.assetId}
+                            onOpenAsset={onOpenAsset}
+                            onRevealAsset={onRevealAsset}
+                          />
+                        ) : null}
                       </span>
                     </figcaption>
                   </figure>
@@ -275,6 +306,16 @@ function MessageBubble({
               <p>{message.title} · {message.durationLabel} · {message.direction}</p>
               {message.status ? <p>{workflowStatusLabel(message.status)}{message.errorCode ? ` · ${message.errorCode}` : ''}</p> : null}
               {message.assetId ? <p>{message.assetId}{message.sizeBytes ? ` · ${formatBytes(message.sizeBytes)}` : ''}</p> : null}
+              {message.assetId ? (
+                <>
+                  <audio controls src={desktopAssetContentUrl(message.assetId) ?? undefined} />
+                  <AssetActionButtons
+                    assetId={message.assetId}
+                    onOpenAsset={onOpenAsset}
+                    onRevealAsset={onRevealAsset}
+                  />
+                </>
+              ) : null}
               {message.transcript ? <p>{message.transcript}</p> : null}
               <small>{message.createdAt}</small>
             </div>
@@ -318,6 +359,55 @@ function MessageBubble({
   }
 
   return null
+}
+
+function AssetMediaPreview({ item }: { item: ConversationMediaItem }) {
+  const assetUrl = item.assetId ? desktopAssetContentUrl(item.assetId) : null
+  if (assetUrl && (item.kind === 'image' || item.mimeType?.startsWith('image/'))) {
+    return (
+      <div className="media-visual media-visual--image has-asset">
+        <img alt={item.label} src={assetUrl} />
+      </div>
+    )
+  }
+  if (assetUrl && (item.kind === 'video' || item.mimeType?.startsWith('video/'))) {
+    return (
+      <div className="media-visual media-visual--video has-asset">
+        <video controls src={assetUrl} />
+      </div>
+    )
+  }
+  return (
+    <div className={`media-visual media-visual--${item.kind === 'video' ? 'video' : 'image'}`}>
+      <span className="media-loading" aria-hidden="true" />
+      {item.kind === 'video' ? (
+        <span className="video-play is-playing" aria-hidden="true">
+          <Play size={16} fill="currentColor" strokeWidth={0} />
+        </span>
+      ) : null}
+    </div>
+  )
+}
+
+function AssetActionButtons({
+  assetId,
+  onOpenAsset,
+  onRevealAsset,
+}: {
+  assetId: string
+  onOpenAsset: (assetId: string) => void
+  onRevealAsset: (assetId: string) => void
+}) {
+  return (
+    <span className="asset-actions">
+      <button aria-label="打开资源" onClick={() => onOpenAsset(assetId)} type="button">
+        <ExternalLink aria-hidden="true" size={13} strokeWidth={2} />
+      </button>
+      <button aria-label="在访达中显示资源" onClick={() => onRevealAsset(assetId)} type="button">
+        <FolderOpen aria-hidden="true" size={13} strokeWidth={2} />
+      </button>
+    </span>
+  )
 }
 
 function shouldShowMessage(message: ConversationMessage, replyMode: ReplyMode): boolean {

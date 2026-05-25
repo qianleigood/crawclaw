@@ -27,6 +27,7 @@ import type {
 } from '../generated/desktop-api-contract.generated'
 import {
   ensureDesktopApiContext,
+  getCurrentDesktopApiContext,
   requestDesktop,
   requestDesktopState,
   resolveDesktopApiBaseUrl,
@@ -224,11 +225,31 @@ export async function abortMessage(): Promise<DesktopState> {
   })
 }
 
-export async function steerMessage(text: string): Promise<DesktopState> {
+export async function steerMessage(text: string, mode: 'restart' | 'followUp'): Promise<DesktopState> {
   return mutateDesktopState('/api/desktop/messages/steer', {
-    body: { text },
+    body: { mode, text },
     method: 'POST',
   })
+}
+
+export async function openDesktopAsset(assetId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/assets/${encodeURIComponent(assetId)}/open`, {
+    method: 'POST',
+  })
+}
+
+export async function revealDesktopAsset(assetId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/assets/${encodeURIComponent(assetId)}/reveal`, {
+    method: 'POST',
+  })
+}
+
+export function desktopAssetContentUrl(assetId: string): string | null {
+  const context = getCurrentDesktopApiContext()
+  if (!context) {
+    return null
+  }
+  return `${context.baseUrl}/api/desktop/assets/${encodeURIComponent(assetId)}/content?sessionToken=${encodeURIComponent(context.api.sessionToken)}`
 }
 
 export async function decidePermission(requestId: string, decision: Exclude<PermissionStatus, 'pending'>): Promise<DesktopState> {

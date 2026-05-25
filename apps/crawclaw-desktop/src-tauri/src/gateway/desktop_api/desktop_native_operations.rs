@@ -46,6 +46,7 @@ pub(super) enum ToggleMutation {
     AgentSkill,
 }
 
+#[derive(Clone)]
 struct DesktopSendContext {
     thread_id: String,
     options: AgentRuntimeSendOptions,
@@ -154,6 +155,12 @@ struct DesktopAssetRecord {
     path: PathBuf,
 }
 
+pub(super) struct ResolvedDesktopAsset {
+    pub file_name: String,
+    pub media_type: String,
+    pub path: PathBuf,
+}
+
 pub(super) async fn run_native_state_mutation(
     state: &GatewayState,
     operation: DesktopNativeMutation,
@@ -174,92 +181,7 @@ pub(super) async fn apply_native_operation(
         DesktopNativeMutation::SendMessage => {
             let text = string_field(&input, "text").ok_or(StatusCode::BAD_REQUEST)?;
             let send_context = desktop_send_context(state, &input).await?;
-            let send_result = match state
-                .agent_runtime
-                .send_message_with_options(
-                    send_context.thread_id,
-                    text.clone(),
-                    send_context.options,
-                )
-                .await
-            {
-                Ok(send_result) => send_result,
-                Err(error) => {
-                    let _ = state.events.send(DesktopEvent::OperationFailed {
-                        code: error.code().to_string(),
-                        message: error.message().to_string(),
-                    });
-                    let _ = append_and_persist_conversation_message_with_emit(
-                        state,
-                        conversation_user_message(text),
-                        false,
-                    )
-                    .await;
-                    let _ = append_and_persist_conversation_message_with_emit(
-                        state,
-                        conversation_error_message(error.code(), error.message().to_string()),
-                        true,
-                    )
-                    .await;
-                    return Err(agent_runtime_error_status(&error));
-                }
-            };
-            state
-                .session_store
-                .set_active_thread(&send_result.thread_id)
-                .map_err(|error| session_store_status(state, error))?;
-            {
-                let mut desktop_state = state.desktop_state.write().await;
-                if !has_thread(&desktop_state, &send_result.thread_id) {
-                    desktop_state.sidebar.threads.insert(
-                        0,
-                        SidebarThread {
-                            id: send_result.thread_id.clone(),
-                            title: title_from_message(&send_result.user_text),
-                            time: "刚刚".to_string(),
-                            active: true,
-                            agent_avatar: true,
-                        },
-                    );
-                }
-                desktop_state
-                    .conversation
-                    .result_items
-                    .push(format!("用户: {}", send_result.user_text));
-                desktop_state
-                    .conversation
-                    .result_items
-                    .push(send_result.assistant_text.clone());
-                desktop_state
-                    .conversation
-                    .messages
-                    .push(conversation_user_message(send_result.user_text.clone()));
-                desktop_state
-                    .conversation
-                    .messages
-                    .push(conversation_assistant_message(
-                        send_result.assistant_text.clone(),
-                    ));
-            }
-            let _ = state.events.send(DesktopEvent::SessionStarted {
-                thread_id: send_result.thread_id.clone(),
-            });
-            let _ = state.events.send(DesktopEvent::MessageDelta {
-                thread_id: send_result.thread_id.clone(),
-                text: send_result.assistant_text.clone(),
-            });
-            let _ = state.events.send(DesktopEvent::MessageFinal {
-                thread_id: send_result.thread_id,
-                text: send_result.assistant_text,
-            });
-            notify_desktop(
-                state,
-                DesktopNotificationKind::TaskDone,
-                "对话已完成",
-                "模型回复已生成。",
-            )
-            .await;
-            emit_state_changed(state).await
+            start_desktop_message_generation((*state).clone(), text, send_context).await
         }
         DesktopNativeMutation::AddAttachmentMessage => {
             let input = parse_desktop_message_input::<AddAttachmentMessageInput>(state, input)?;
@@ -453,17 +375,8 @@ pub(super) async fn apply_native_operation(
             )
             .await
         }
-        DesktopNativeMutation::AbortMessage | DesktopNativeMutation::SteerMessage => {
-            if operation == DesktopNativeMutation::SteerMessage {
-                let _ = string_field(&input, "text").ok_or(StatusCode::BAD_REQUEST)?;
-            }
-            emit_operation_failed(
-                state,
-                "no_active_message",
-                "No active Rust desktop message generation is running.",
-            );
-            Err(StatusCode::CONFLICT)
-        }
+        DesktopNativeMutation::AbortMessage => abort_desktop_message_generation(state).await,
+        DesktopNativeMutation::SteerMessage => steer_desktop_message_generation(state, input).await,
         DesktopNativeMutation::CreateAgent => {
             let name = string_field(&input, "name").unwrap_or_else(|| "New Agent".to_string());
             let role = string_field(&input, "role").unwrap_or_else(|| "Agent".to_string());
@@ -615,6 +528,12 @@ pub(super) async fn apply_native_operation(
             }
             if let Some(category) = string_field(&input, "category") {
                 updated_item.category = category;
+            }
+            if input.get("tags").is_some() {
+                updated_item.tags = string_array_field(&input, "tags");
+            }
+            if let Some(source) = string_field(&input, "source") {
+                updated_item.source = source;
             }
             updated_item.updated_at = "刚刚".to_string();
             persist_memory_item(state, &updated_item)?;
@@ -809,7 +728,18 @@ pub(super) async fn apply_native_operation(
                 }),
             );
             options.insert("memoryAfterTurn".to_string(), json!(false));
-            let dream_result = state
+            {
+                let mut desktop_state = state.desktop_state.write().await;
+                desktop_state.active_nav_id = "memory".to_string();
+                desktop_state.memory_workspace.selected_agent_id = agent.id.clone();
+                desktop_state.memory_workspace.dream.status = "running".to_string();
+                desktop_state.memory_workspace.dream.agent_id = agent.id.clone();
+                desktop_state.memory_workspace.dream.message =
+                    format!("正在整理 {} 的记忆。", agent.name);
+                desktop_state.memory_workspace.dream.last_run_at = "刚刚".to_string();
+            }
+            let _ = emit_state_changed(state).await;
+            let dream_result = match state
                 .agent_runtime
                 .run_turn(AgentRunRequest {
                     run_id,
@@ -841,10 +771,22 @@ pub(super) async fn apply_native_operation(
                     options,
                 })
                 .await
-                .map_err(|error| {
+            {
+                Ok(dream_result) => dream_result,
+                Err(error) => {
                     eprintln!("[desktop-gateway] memory dream failed: {}", error.message());
-                    StatusCode::INTERNAL_SERVER_ERROR
-                })?;
+                    {
+                        let mut desktop_state = state.desktop_state.write().await;
+                        desktop_state.memory_workspace.dream.status = "failed".to_string();
+                        desktop_state.memory_workspace.dream.agent_id = agent.id.clone();
+                        desktop_state.memory_workspace.dream.message =
+                            format!("{} 的记忆整理失败：{}", agent.name, error.message());
+                        desktop_state.memory_workspace.dream.last_run_at = "刚刚".to_string();
+                    }
+                    let _ = emit_state_changed(state).await;
+                    return Err(StatusCode::INTERNAL_SERVER_ERROR);
+                }
+            };
             {
                 let mut desktop_state = state.desktop_state.write().await;
                 desktop_state.active_nav_id = "memory".to_string();
@@ -874,6 +816,533 @@ pub(super) async fn apply_native_operation(
             update_thread_operation(state, operation, input).await
         }
         DesktopNativeMutation::Toggle(operation) => toggle_operation(state, operation, input).await,
+    }
+}
+
+async fn start_desktop_message_generation(
+    state: GatewayState,
+    text: String,
+    send_context: DesktopSendContext,
+) -> Result<Json<DesktopState>, StatusCode> {
+    start_desktop_message_generation_task(state.clone(), text, send_context).await?;
+    emit_state_changed(&state).await
+}
+
+async fn start_desktop_message_generation_task(
+    state: GatewayState,
+    text: String,
+    send_context: DesktopSendContext,
+) -> Result<(), StatusCode> {
+    let run_id = format!("run-{}", Uuid::new_v4().simple());
+    let assistant_message_id = now_message_id("assistant");
+    let (start_sender, start_receiver) = oneshot::channel();
+    let task_state = state.clone();
+    let task_context = send_context.clone();
+    let task_text = text.clone();
+    let task_run_id = run_id.clone();
+    let task_assistant_message_id = assistant_message_id.clone();
+    let handle = tokio::spawn(async move {
+        let _ = start_receiver.await;
+        finish_desktop_message_generation(
+            task_state,
+            task_run_id,
+            task_assistant_message_id,
+            task_context,
+            task_text,
+        )
+        .await;
+    });
+    let abort_handle = handle.abort_handle();
+    {
+        let mut active_generation = state.active_generation.lock().await;
+        if active_generation.is_some() {
+            abort_handle.abort();
+            emit_operation_failed(
+                &state,
+                "active_message_running",
+                "A Rust desktop message generation is already running.",
+            );
+            return Err(StatusCode::CONFLICT);
+        }
+        *active_generation = Some(ActiveDesktopGeneration {
+            run_id: run_id.clone(),
+            thread_id: send_context.thread_id.clone(),
+            assistant_message_id: assistant_message_id.clone(),
+            user_text: text.clone(),
+            options: send_context.options.clone(),
+            abort_handle: abort_handle.clone(),
+            queued_follow_ups: Vec::new(),
+        });
+    }
+    if let Err(status) = prepare_running_generation_state(
+        &state,
+        &send_context.thread_id,
+        &assistant_message_id,
+        &run_id,
+        &text,
+    )
+    .await
+    {
+        abort_handle.abort();
+        let mut active_generation = state.active_generation.lock().await;
+        if matches!(
+            active_generation.as_ref(),
+            Some(active) if active.run_id == run_id
+        ) {
+            *active_generation = None;
+        }
+        return Err(status);
+    }
+    let _ = start_sender.send(());
+    let _ = state.events.send(DesktopEvent::SessionStarted {
+        thread_id: send_context.thread_id,
+    });
+    Ok(())
+}
+
+async fn prepare_running_generation_state(
+    state: &GatewayState,
+    thread_id: &str,
+    assistant_message_id: &str,
+    run_id: &str,
+    text: &str,
+) -> Result<(), StatusCode> {
+    let created_thread = {
+        let desktop_state = state.desktop_state.read().await;
+        !has_thread(&desktop_state, thread_id)
+    };
+    if created_thread {
+        state
+            .session_store
+            .create_session(thread_id, Some(text), None)
+            .map_err(|error| session_store_status(state, error))?;
+    }
+    state
+        .session_store
+        .set_active_thread(thread_id)
+        .map_err(|error| session_store_status(state, error))?;
+
+    let mut desktop_state = state.desktop_state.write().await;
+    for thread in &mut desktop_state.sidebar.pinned_threads {
+        thread.active = thread.id == thread_id;
+    }
+    for thread in &mut desktop_state.sidebar.threads {
+        thread.active = thread.id == thread_id;
+    }
+    for thread in &mut desktop_state.sidebar.discussion_threads {
+        thread.active = thread.id == thread_id;
+    }
+    if created_thread {
+        desktop_state.sidebar.threads.insert(
+            0,
+            SidebarThread {
+                id: thread_id.to_string(),
+                title: title_from_message(text),
+                time: "刚刚".to_string(),
+                active: true,
+                agent_avatar: true,
+            },
+        );
+    }
+    desktop_state
+        .conversation
+        .result_items
+        .push(format!("用户: {text}"));
+    desktop_state
+        .conversation
+        .messages
+        .push(conversation_user_message(text.to_string()));
+    desktop_state
+        .conversation
+        .messages
+        .push(conversation_running_assistant_message(
+            assistant_message_id.to_string(),
+            run_id.to_string(),
+        ));
+    Ok(())
+}
+
+async fn finish_desktop_message_generation(
+    state: GatewayState,
+    run_id: String,
+    assistant_message_id: String,
+    send_context: DesktopSendContext,
+    text: String,
+) {
+    let result = state
+        .agent_runtime
+        .send_message_with_options(
+            send_context.thread_id.clone(),
+            text,
+            send_context.options.clone(),
+        )
+        .await;
+    match result {
+        Ok(send_result) => {
+            let mut queued_follow_ups = Vec::new();
+            let mut active_abort_handle = None;
+            {
+                let mut desktop_state = state.desktop_state.write().await;
+                update_assistant_generation_message(
+                    &mut desktop_state,
+                    &assistant_message_id,
+                    send_result.assistant_text.clone(),
+                    "done",
+                    None,
+                );
+                desktop_state
+                    .conversation
+                    .result_items
+                    .push(send_result.assistant_text.clone());
+            }
+            {
+                let mut active_generation = state.active_generation.lock().await;
+                if matches!(
+                    active_generation.as_ref(),
+                    Some(active) if active.run_id == run_id
+                ) {
+                    if let Some(mut active) = active_generation.take() {
+                        active_abort_handle = Some(active.abort_handle);
+                        queued_follow_ups.append(&mut active.queued_follow_ups);
+                    }
+                }
+            }
+            let _ = state.events.send(DesktopEvent::MessageDelta {
+                thread_id: send_result.thread_id.clone(),
+                text: send_result.assistant_text.clone(),
+            });
+            let _ = state.events.send(DesktopEvent::MessageFinal {
+                thread_id: send_result.thread_id.clone(),
+                text: send_result.assistant_text,
+            });
+            notify_desktop(
+                &state,
+                DesktopNotificationKind::TaskDone,
+                "对话已完成",
+                "模型回复已生成。",
+            )
+            .await;
+            let _ = emit_state_changed(&state).await;
+            if let Some(abort_handle) = active_abort_handle {
+                run_queued_follow_up_generations(
+                    state.clone(),
+                    send_result.thread_id,
+                    send_context.options,
+                    abort_handle,
+                    queued_follow_ups,
+                )
+                .await;
+            }
+        }
+        Err(error) => {
+            let error_code = error.code().to_string();
+            let error_message = error.message().to_string();
+            {
+                let mut desktop_state = state.desktop_state.write().await;
+                update_assistant_generation_message(
+                    &mut desktop_state,
+                    &assistant_message_id,
+                    error_message.clone(),
+                    "failed",
+                    Some(error_code.clone()),
+                );
+                desktop_state
+                    .conversation
+                    .result_items
+                    .push(error_message.clone());
+            }
+            {
+                let mut active_generation = state.active_generation.lock().await;
+                if matches!(
+                    active_generation.as_ref(),
+                    Some(active) if active.run_id == run_id
+                ) {
+                    *active_generation = None;
+                }
+            }
+            let _ = state.events.send(DesktopEvent::OperationFailed {
+                code: error_code,
+                message: error_message,
+            });
+            let _ = emit_state_changed(&state).await;
+        }
+    }
+}
+
+async fn run_queued_follow_up_generations(
+    state: GatewayState,
+    thread_id: String,
+    options: AgentRuntimeSendOptions,
+    abort_handle: tokio::task::AbortHandle,
+    queued_follow_ups: Vec<String>,
+) {
+    let mut pending_follow_ups = std::collections::VecDeque::from(queued_follow_ups);
+    while let Some(follow_up) = pending_follow_ups.pop_front() {
+        let run_id = format!("run-{}", Uuid::new_v4().simple());
+        let assistant_message_id = now_message_id("assistant");
+        {
+            let mut active_generation = state.active_generation.lock().await;
+            if active_generation.is_some() {
+                emit_operation_failed(
+                    &state,
+                    "active_message_running",
+                    "A Rust desktop message generation is already running.",
+                );
+                continue;
+            }
+            *active_generation = Some(ActiveDesktopGeneration {
+                run_id: run_id.clone(),
+                thread_id: thread_id.clone(),
+                assistant_message_id: assistant_message_id.clone(),
+                user_text: follow_up.clone(),
+                options: options.clone(),
+                abort_handle: abort_handle.clone(),
+                queued_follow_ups: Vec::new(),
+            });
+        }
+        if let Err(status) = prepare_running_generation_state(
+            &state,
+            &thread_id,
+            &assistant_message_id,
+            &run_id,
+            &follow_up,
+        )
+        .await
+        {
+            let mut active_generation = state.active_generation.lock().await;
+            if matches!(
+                active_generation.as_ref(),
+                Some(active) if active.run_id == run_id
+            ) {
+                *active_generation = None;
+            }
+            emit_operation_failed(
+                &state,
+                "queued_follow_up_failed",
+                format!("Queued follow-up could not start: {status}"),
+            );
+            continue;
+        }
+        let _ = state.events.send(DesktopEvent::SessionStarted {
+            thread_id: thread_id.clone(),
+        });
+        let _ = emit_state_changed(&state).await;
+
+        match state
+            .agent_runtime
+            .send_message_with_options(thread_id.clone(), follow_up, options.clone())
+            .await
+        {
+            Ok(send_result) => {
+                let mut newly_queued = Vec::new();
+                {
+                    let mut desktop_state = state.desktop_state.write().await;
+                    update_assistant_generation_message(
+                        &mut desktop_state,
+                        &assistant_message_id,
+                        send_result.assistant_text.clone(),
+                        "done",
+                        None,
+                    );
+                    desktop_state
+                        .conversation
+                        .result_items
+                        .push(send_result.assistant_text.clone());
+                }
+                {
+                    let mut active_generation = state.active_generation.lock().await;
+                    if matches!(
+                        active_generation.as_ref(),
+                        Some(active) if active.run_id == run_id
+                    ) {
+                        if let Some(mut active) = active_generation.take() {
+                            newly_queued.append(&mut active.queued_follow_ups);
+                        }
+                    }
+                }
+                let _ = state.events.send(DesktopEvent::MessageDelta {
+                    thread_id: send_result.thread_id.clone(),
+                    text: send_result.assistant_text.clone(),
+                });
+                let _ = state.events.send(DesktopEvent::MessageFinal {
+                    thread_id: send_result.thread_id,
+                    text: send_result.assistant_text,
+                });
+                let _ = emit_state_changed(&state).await;
+                pending_follow_ups.extend(newly_queued);
+            }
+            Err(error) => {
+                let error_code = error.code().to_string();
+                let error_message = error.message().to_string();
+                {
+                    let mut desktop_state = state.desktop_state.write().await;
+                    update_assistant_generation_message(
+                        &mut desktop_state,
+                        &assistant_message_id,
+                        error_message.clone(),
+                        "failed",
+                        Some(error_code.clone()),
+                    );
+                    desktop_state
+                        .conversation
+                        .result_items
+                        .push(error_message.clone());
+                }
+                {
+                    let mut active_generation = state.active_generation.lock().await;
+                    if matches!(
+                        active_generation.as_ref(),
+                        Some(active) if active.run_id == run_id
+                    ) {
+                        *active_generation = None;
+                    }
+                }
+                let _ = state.events.send(DesktopEvent::OperationFailed {
+                    code: error_code,
+                    message: error_message,
+                });
+                let _ = emit_state_changed(&state).await;
+            }
+        }
+    }
+}
+
+async fn abort_desktop_message_generation(
+    state: &GatewayState,
+) -> Result<Json<DesktopState>, StatusCode> {
+    let active_generation = state.active_generation.lock().await.take();
+    let Some(active_generation) = active_generation else {
+        emit_operation_failed(
+            state,
+            "no_active_message",
+            "No active Rust desktop message generation is running.",
+        );
+        return Err(StatusCode::CONFLICT);
+    };
+    active_generation.abort_handle.abort();
+    {
+        let mut desktop_state = state.desktop_state.write().await;
+        update_assistant_generation_message(
+            &mut desktop_state,
+            &active_generation.assistant_message_id,
+            String::new(),
+            "cancelled",
+            None,
+        );
+    }
+    emit_state_changed(state).await
+}
+
+async fn steer_desktop_message_generation(
+    state: &GatewayState,
+    input: Value,
+) -> Result<Json<DesktopState>, StatusCode> {
+    let text = string_field(&input, "text").ok_or(StatusCode::BAD_REQUEST)?;
+    let mode = string_field(&input, "mode").ok_or(StatusCode::BAD_REQUEST)?;
+    match mode.as_str() {
+        "followUp" => {
+            {
+                let mut active_generation = state.active_generation.lock().await;
+                let Some(active) = active_generation.as_mut() else {
+                    emit_operation_failed(
+                        state,
+                        "no_active_message",
+                        "No active Rust desktop message generation is running.",
+                    );
+                    return Err(StatusCode::CONFLICT);
+                };
+                active.queued_follow_ups.push(text.clone());
+            }
+            {
+                let mut desktop_state = state.desktop_state.write().await;
+                desktop_state
+                    .conversation
+                    .messages
+                    .push(conversation_status_message(
+                        "追问已排队".to_string(),
+                        text,
+                        "neutral".to_string(),
+                    ));
+            }
+            emit_state_changed(state).await
+        }
+        "restart" => {
+            let active_generation = state.active_generation.lock().await.take();
+            let Some(active) = active_generation else {
+                emit_operation_failed(
+                    state,
+                    "no_active_message",
+                    "No active Rust desktop message generation is running.",
+                );
+                return Err(StatusCode::CONFLICT);
+            };
+            active.abort_handle.abort();
+            {
+                let mut desktop_state = state.desktop_state.write().await;
+                update_assistant_generation_message(
+                    &mut desktop_state,
+                    &active.assistant_message_id,
+                    String::new(),
+                    "cancelled",
+                    None,
+                );
+            }
+            let restart_text = format!("{}\n\n修正指令：{}", active.user_text, text);
+            start_desktop_message_generation(
+                (*state).clone(),
+                restart_text,
+                DesktopSendContext {
+                    thread_id: active.thread_id,
+                    options: active.options,
+                },
+            )
+            .await
+        }
+        _ => {
+            emit_operation_failed(
+                state,
+                "invalid_steer_mode",
+                "Desktop steer mode must be restart or followUp.",
+            );
+            Err(StatusCode::BAD_REQUEST)
+        }
+    }
+}
+
+fn conversation_running_assistant_message(id: String, run_id: String) -> ConversationMessage {
+    ConversationMessage::Assistant {
+        id,
+        text: String::new(),
+        status: Some("running".to_string()),
+        run_id: Some(run_id),
+        error_code: None,
+        created_at: "刚刚".to_string(),
+    }
+}
+
+fn update_assistant_generation_message(
+    desktop_state: &mut DesktopState,
+    assistant_message_id: &str,
+    next_text: String,
+    next_status: &str,
+    next_error_code: Option<String>,
+) {
+    if let Some(ConversationMessage::Assistant {
+        text,
+        status,
+        error_code,
+        ..
+    }) = desktop_state
+        .conversation
+        .messages
+        .iter_mut()
+        .find(|message| {
+            matches!(message, ConversationMessage::Assistant { id, .. } if id == assistant_message_id)
+        })
+    {
+        *text = next_text;
+        *status = Some(next_status.to_string());
+        *error_code = next_error_code;
     }
 }
 
@@ -1124,6 +1593,153 @@ fn validate_asset_file_name(file_name: &str) -> Result<(), String> {
         return Err(format!("Invalid desktop asset file name: {file_name}"));
     }
     Ok(())
+}
+
+pub(super) fn resolve_desktop_asset(
+    state: &GatewayState,
+    asset_id: &str,
+) -> Result<ResolvedDesktopAsset, StatusCode> {
+    validate_asset_id(asset_id).map_err(|message| {
+        emit_operation_failed(state, "invalid_asset", message);
+        StatusCode::BAD_REQUEST
+    })?;
+    let assets_dir = state.runtime_root.join("desktop").join("assets");
+    let canonical_assets_dir = assets_dir.canonicalize().map_err(|_| {
+        emit_operation_failed(
+            state,
+            "asset_not_found",
+            "Desktop asset is not available.".to_string(),
+        );
+        StatusCode::NOT_FOUND
+    })?;
+    let prefix = format!("{asset_id}-");
+    let entries = std::fs::read_dir(&canonical_assets_dir).map_err(|error| {
+        emit_operation_failed(
+            state,
+            "asset_read_failed",
+            format!("Failed to read desktop assets directory: {error}"),
+        );
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    for entry in entries.flatten() {
+        let file_name = entry.file_name().to_string_lossy().to_string();
+        if !file_name.starts_with(&prefix) {
+            continue;
+        }
+        let path = entry.path().canonicalize().map_err(|error| {
+            emit_operation_failed(
+                state,
+                "asset_read_failed",
+                format!("Failed to resolve desktop asset: {error}"),
+            );
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+        if !path.starts_with(&canonical_assets_dir) {
+            emit_operation_failed(
+                state,
+                "invalid_asset",
+                "Desktop asset path is outside the asset directory.".to_string(),
+            );
+            return Err(StatusCode::BAD_REQUEST);
+        }
+        let display_name = file_name
+            .strip_prefix(&prefix)
+            .unwrap_or(&file_name)
+            .to_string();
+        return Ok(ResolvedDesktopAsset {
+            media_type: media_type_from_asset_path(&path),
+            file_name: display_name,
+            path,
+        });
+    }
+    emit_operation_failed(
+        state,
+        "asset_not_found",
+        "Desktop asset is not available.".to_string(),
+    );
+    Err(StatusCode::NOT_FOUND)
+}
+
+pub(super) async fn record_desktop_asset_action(
+    state: &GatewayState,
+    asset_id: &str,
+    action: &str,
+) -> Result<Json<DesktopState>, StatusCode> {
+    let asset = resolve_desktop_asset(state, asset_id)?;
+    run_desktop_asset_action(&asset, action).map_err(|message| {
+        emit_operation_failed(state, "asset_action_failed", message);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    let title = match action {
+        "reveal" => "已在访达中定位资源",
+        _ => "已打开资源",
+    };
+    append_and_persist_conversation_message(
+        state,
+        conversation_status_message(title.to_string(), asset.file_name, "neutral".to_string()),
+    )
+    .await
+}
+
+fn validate_asset_id(asset_id: &str) -> Result<(), String> {
+    if asset_id.is_empty()
+        || asset_id.contains('/')
+        || asset_id.contains('\\')
+        || asset_id.contains("..")
+        || !asset_id.starts_with("asset-")
+    {
+        return Err("Invalid desktop asset id.".to_string());
+    }
+    Ok(())
+}
+
+fn media_type_from_asset_path(path: &Path) -> String {
+    match path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "apng" => "image/apng",
+        "avif" => "image/avif",
+        "gif" => "image/gif",
+        "jpg" | "jpeg" => "image/jpeg",
+        "mp3" => "audio/mpeg",
+        "mp4" => "video/mp4",
+        "ogg" => "audio/ogg",
+        "png" => "image/png",
+        "svg" => "image/svg+xml",
+        "wav" => "audio/wav",
+        "webm" => "audio/webm",
+        "webp" => "image/webp",
+        _ => "application/octet-stream",
+    }
+    .to_string()
+}
+
+fn run_desktop_asset_action(asset: &ResolvedDesktopAsset, action: &str) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        let mut command = std::process::Command::new("open");
+        if action == "reveal" {
+            command.arg("-R");
+        }
+        let status = command
+            .arg(&asset.path)
+            .status()
+            .map_err(|error| format!("Failed to run open for desktop asset: {error}"))?;
+        if !status.success() {
+            return Err("macOS open command failed for desktop asset.".to_string());
+        }
+        return Ok(());
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = asset;
+        let _ = action;
+        Err("Desktop asset open is only supported on macOS.".to_string())
+    }
 }
 
 fn decode_browser_file_base64(encoded: &str) -> Result<Vec<u8>, base64::DecodeError> {
@@ -1494,16 +2110,6 @@ async fn notify_desktop(
         send_desktop_notification(&state.runtime_root, &preferences, kind, title, body)
     {
         emit_operation_failed(state, "desktop_notification_failed", error);
-    }
-}
-
-pub(super) fn agent_runtime_error_status(error: &AgentRuntimeError) -> StatusCode {
-    match error {
-        AgentRuntimeError::ProviderUnavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
-        AgentRuntimeError::UnsupportedProvider(_) => StatusCode::NOT_IMPLEMENTED,
-        AgentRuntimeError::ProviderFailed(_) | AgentRuntimeError::TranscriptFailed(_) => {
-            StatusCode::INTERNAL_SERVER_ERROR
-        }
     }
 }
 

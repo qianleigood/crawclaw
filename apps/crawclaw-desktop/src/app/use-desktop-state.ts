@@ -104,6 +104,20 @@ export function useDesktopStateController(): DesktopStateController {
               permissionRequest: event.permissionRequest,
             }))
           }
+
+          if (event.type === 'operationFailed') {
+            setDesktopState((state) => ({
+              ...state,
+              conversation: {
+                ...state.conversation,
+                messages: [
+                  ...state.conversation.messages,
+                  createOperationErrorMessage(event.message),
+                ],
+                resultItems: [event.message],
+              },
+            }))
+          }
         })
       })
       .catch((error: unknown) => {

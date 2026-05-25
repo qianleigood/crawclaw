@@ -26,14 +26,13 @@ use crawclaw_plugin_host::{
 };
 use crawclaw_runtime::{
     special_agents::find_special_agent, AgentModelSelection, AgentRunRequest, AgentRuntime,
-    AgentRuntimeConfirmationPolicy, AgentRuntimeError, AgentRuntimePermissionCategory,
-    AgentRuntimePermissionDecision, AgentRuntimePermissionMode, AgentRuntimePermissionPolicy,
-    AgentRuntimePermissionRequest, AgentRuntimePermissionRequester, AgentRuntimeSendOptions,
-    AgentRuntimeToolSelection, ChannelChatType, ChannelInboundEnvelope, DesktopAgentStore,
-    DesktopAgentStoreError, DesktopMemoryRecord, DesktopMemoryStore, DesktopMemoryStoreError,
-    DesktopModelProfileStore, DesktopPreferencesRecord, DesktopPreferencesStore,
-    DesktopPreferencesStoreError, DesktopSessionRecord, DesktopSessionStore,
-    DesktopSessionStoreError,
+    AgentRuntimeConfirmationPolicy, AgentRuntimePermissionCategory, AgentRuntimePermissionDecision,
+    AgentRuntimePermissionMode, AgentRuntimePermissionPolicy, AgentRuntimePermissionRequest,
+    AgentRuntimePermissionRequester, AgentRuntimeSendOptions, AgentRuntimeToolSelection,
+    ChannelChatType, ChannelInboundEnvelope, DesktopAgentStore, DesktopAgentStoreError,
+    DesktopMemoryRecord, DesktopMemoryStore, DesktopMemoryStoreError, DesktopModelProfileStore,
+    DesktopPreferencesRecord, DesktopPreferencesStore, DesktopPreferencesStoreError,
+    DesktopSessionRecord, DesktopSessionStore, DesktopSessionStoreError,
 };
 
 use crate::gateway::desktop_state::initial_desktop_state;
@@ -82,16 +81,18 @@ use self::desktop_model_profile_routes::{
 use self::desktop_mutation_routes::{
     abort_message, add_agent_skill, add_attachment_message, add_media_message, add_plugin_skill,
     add_skill_call_message, add_voice_message, add_workflow_message, archive_memory_item,
-    archive_thread, create_agent, create_memory_item, invoke_plugin_tool, pin_thread,
-    remove_plugin_skill, rename_thread_route, run_memory_dream, set_plugin_skill_enabled_route,
-    set_plugin_tool_enabled_route, steer_message, toggle_agent_skill, toggle_agent_tool,
-    toggle_plugin_skill, toggle_plugin_tool, unpin_thread, update_agent, update_memory_item,
+    archive_thread, create_agent, create_memory_item, desktop_asset_content, invoke_plugin_tool,
+    open_desktop_asset, pin_thread, remove_plugin_skill, rename_thread_route, reveal_desktop_asset,
+    run_memory_dream, set_plugin_skill_enabled_route, set_plugin_tool_enabled_route, steer_message,
+    toggle_agent_skill, toggle_agent_tool, toggle_plugin_skill, toggle_plugin_tool, unpin_thread,
+    update_agent, update_memory_item,
 };
 use self::desktop_native_operations::{
     active_thread_id, append_and_persist_conversation_message,
     append_and_persist_conversation_message_with_emit, parse_json_body, plugin_installed,
-    plugin_skill, plugin_tool, run_native_state_mutation, string_field, with_string,
-    DesktopNativeMutation, ThreadMutation, ToggleMutation,
+    plugin_skill, plugin_tool, record_desktop_asset_action, resolve_desktop_asset,
+    run_native_state_mutation, string_field, with_string, DesktopNativeMutation, ThreadMutation,
+    ToggleMutation,
 };
 use self::desktop_plugin_operations::{
     install_plugin, invoke_plugin_tool_operation, invoke_rust_native_plugin_tool,
@@ -132,8 +133,20 @@ struct GatewayState {
     preferences_store: DesktopPreferencesStore,
     session_store: DesktopSessionStore,
     desktop_state: Arc<RwLock<DesktopState>>,
+    active_generation: Arc<Mutex<Option<ActiveDesktopGeneration>>>,
     permission_waiters: Arc<Mutex<HashMap<String, oneshot::Sender<PermissionStatus>>>>,
     events: broadcast::Sender<DesktopEvent>,
+}
+
+#[derive(Clone)]
+struct ActiveDesktopGeneration {
+    run_id: String,
+    thread_id: String,
+    assistant_message_id: String,
+    user_text: String,
+    options: AgentRuntimeSendOptions,
+    abort_handle: tokio::task::AbortHandle,
+    queued_follow_ups: Vec<String>,
 }
 
 pub fn new_gateway_session_token() -> String {
@@ -270,6 +283,7 @@ async fn build_state(
         preferences_store,
         session_store,
         desktop_state: Arc::new(RwLock::new(desktop_state)),
+        active_generation: Arc::new(Mutex::new(None)),
         permission_waiters: Arc::new(Mutex::new(HashMap::new())),
         events,
     }
@@ -685,6 +699,9 @@ fn conversation_messages_from_session(
                 "assistant" => ConversationMessage::Assistant {
                     id,
                     text: message.text.clone(),
+                    status: Some("done".to_string()),
+                    run_id: None,
+                    error_code: None,
                     created_at: "已保存".to_string(),
                 },
                 _ => ConversationMessage::Status {
@@ -706,14 +723,6 @@ fn now_message_id(prefix: &str) -> String {
 fn conversation_user_message(text: String) -> ConversationMessage {
     ConversationMessage::User {
         id: now_message_id("user"),
-        text,
-        created_at: "刚刚".to_string(),
-    }
-}
-
-fn conversation_assistant_message(text: String) -> ConversationMessage {
-    ConversationMessage::Assistant {
-        id: now_message_id("assistant"),
         text,
         created_at: "刚刚".to_string(),
     }
@@ -1214,6 +1223,18 @@ fn router(state: GatewayState) -> Router {
         .route("/api/desktop/messages/skills", post(add_skill_call_message))
         .route("/api/desktop/messages/abort", post(abort_message))
         .route("/api/desktop/messages/steer", post(steer_message))
+        .route(
+            "/api/desktop/assets/{asset_id}/content",
+            get(desktop_asset_content),
+        )
+        .route(
+            "/api/desktop/assets/{asset_id}/open",
+            post(open_desktop_asset),
+        )
+        .route(
+            "/api/desktop/assets/{asset_id}/reveal",
+            post(reveal_desktop_asset),
+        )
         .route(
             "/api/desktop/permissions/{request_id}/decision",
             post(permission_decision),

@@ -3,16 +3,19 @@ import {
   X,
 } from 'lucide-react'
 import {
+  useEffect,
   useState,
   type ChangeEvent,
 } from 'react'
 import type {
   AgentChannelConfig,
+  AgentProfile,
   AgentSkill,
   AgentTool,
   AgentVoiceConfig,
   CreateAgentInput,
   DesktopPreferences,
+  UpdateAgentInput,
 } from '../desktop-api'
 
 import {
@@ -20,6 +23,7 @@ import {
   createAgentAvatar,
   createAgentChannelConfig,
   createAgentDraft,
+  createAgentDraftFromProfile,
   createVoiceStyleFromEmotionPrompt,
   deriveAgentDraftDescription,
   deriveAgentDraftRole,
@@ -30,24 +34,32 @@ import {
 import { AgentWizardStepContent } from './agent-create-wizard-steps'
 
 type AgentCreateWizardProps = {
+  agent?: AgentProfile
+  mode?: 'create' | 'edit'
   modelOptions: string[]
   onClose: () => void
   onCreateAgent: (input: CreateAgentInput) => void
+  onUpdateAgent?: (agentId: string, input: UpdateAgentInput) => void
   preferences: DesktopPreferences
   skillOptions: AgentSkill[]
   toolOptions: AgentTool[]
 }
 
 export function AgentCreateWizard({
+  agent,
+  mode = 'create',
   modelOptions,
   onClose,
   onCreateAgent,
+  onUpdateAgent,
   preferences,
   skillOptions,
   toolOptions,
 }: AgentCreateWizardProps) {
   const [agentWizardStep, setAgentWizardStep] = useState(0)
-  const [agentDraft, setAgentDraft] = useState<AgentCreateDraft>(() => createAgentDraft(preferences))
+  const [agentDraft, setAgentDraft] = useState<AgentCreateDraft>(() => (
+    agent ? createAgentDraftFromProfile(agent) : createAgentDraft(preferences)
+  ))
   const agentWizardAvatar = createAgentAvatar(agentDraft)
   const agentWizardActiveStep = agentWizardSteps[agentWizardStep]
   const derivedAgentRole = deriveAgentDraftRole(agentDraft)
@@ -58,9 +70,14 @@ export function AgentCreateWizard({
     || (agentWizardActiveStep === '渠道' && hasAgentChannel)
     || (agentWizardActiveStep !== '身份情感' && agentWizardActiveStep !== '渠道')
 
+  useEffect(() => {
+    setAgentDraft(agent ? createAgentDraftFromProfile(agent) : createAgentDraft(preferences))
+    setAgentWizardStep(0)
+  }, [agent, preferences])
+
 
   const closeAgentWizard = () => {
-    setAgentDraft(createAgentDraft(preferences))
+    setAgentDraft(agent ? createAgentDraftFromProfile(agent) : createAgentDraft(preferences))
     setAgentWizardStep(0)
     onClose()
   }
@@ -234,7 +251,11 @@ export function AgentCreateWizard({
       return
     }
 
-    onCreateAgent(payload)
+    if (mode === 'edit' && agent && onUpdateAgent) {
+      onUpdateAgent(agent.id, payload)
+    } else {
+      onCreateAgent(payload)
+    }
     setAgentDraft(createAgentDraft(preferences))
     setAgentWizardStep(0)
     onClose()
@@ -261,10 +282,10 @@ export function AgentCreateWizard({
             <Bot aria-hidden="true" size={18} strokeWidth={2.2} />
           </span>
           <div>
-            <h2 id="agent-create-dialog-title">新建智能体</h2>
-            <p>按步骤完成配置，最后一次性创建。</p>
+            <h2 id="agent-create-dialog-title">{mode === 'edit' ? '编辑智能体' : '新建智能体'}</h2>
+            <p>{mode === 'edit' ? '调整配置后一次性保存。' : '按步骤完成配置，最后一次性创建。'}</p>
           </div>
-          <button aria-label="关闭新建智能体" onClick={closeAgentWizard} type="button">
+          <button aria-label={mode === 'edit' ? '关闭编辑智能体' : '关闭新建智能体'} onClick={closeAgentWizard} type="button">
             <X aria-hidden="true" size={16} strokeWidth={2} />
           </button>
         </header>
@@ -324,7 +345,7 @@ export function AgentCreateWizard({
               onClick={submitAgentWizard}
               type="button"
             >
-              创建智能体
+              {mode === 'edit' ? '保存配置' : '创建智能体'}
             </button>
           ) : (
             <button disabled={!canAdvanceAgentWizard} onClick={goToNextAgentWizardStep} type="button">下一步</button>

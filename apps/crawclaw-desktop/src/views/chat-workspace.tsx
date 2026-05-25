@@ -4,12 +4,15 @@ import {
   Bot,
   Brain,
   ChevronDown,
+  CircleStop,
   Clock3,
+  CornerDownRight,
   FileText,
   Image as ImageIcon,
   Mic,
   Play,
   Plus,
+  RefreshCcw,
   ShieldCheck,
 } from 'lucide-react'
 import {
@@ -49,12 +52,16 @@ type ChatWorkspaceProps = {
   onAddSkillCallMessage: (input: AddSkillCallMessageInput) => void
   onAddVoiceMessage: (input: AddVoiceMessageInput) => void
   onAddWorkflowMessage: (input: AddWorkflowMessageInput) => void
+  onAbortMessage: () => void
   onDecidePermission: (requestId: string, status: 'approved' | 'denied') => void
+  onOpenAsset: (assetId: string) => void
   onPreferenceUpdate: (patch: Partial<PreferencePatch>) => void
   onQueuedInputTextConsumed?: () => void
+  onRevealAsset: (assetId: string) => void
   onRequestConfirmation: (input: ConfirmationRequestInput) => Promise<boolean>
   onSendMessage: (message: string) => void
   onSelectedChatAgentChange: (agentId: string) => void
+  onSteerMessage: (text: string, mode: 'restart' | 'followUp') => void
   permissionRequest: PermissionRequest
   preferences: DesktopPreferences
   queuedInputText?: string
@@ -71,12 +78,16 @@ export function ChatWorkspace({
   onAddSkillCallMessage,
   onAddVoiceMessage,
   onAddWorkflowMessage,
+  onAbortMessage,
   onDecidePermission,
+  onOpenAsset,
   onPreferenceUpdate,
   onQueuedInputTextConsumed,
+  onRevealAsset,
   onRequestConfirmation,
   onSendMessage,
   onSelectedChatAgentChange,
+  onSteerMessage,
   permissionRequest,
   preferences,
   queuedInputText,
@@ -87,6 +98,7 @@ export function ChatWorkspace({
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false)
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false)
   const [isListening, setIsListening] = useState(false)
+  const [steerText, setSteerText] = useState('')
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const voiceChunksRef = useRef<Blob[]>([])
   const voiceStartedAtRef = useRef<number>(0)
@@ -99,6 +111,9 @@ export function ChatWorkspace({
     : conversation.skillCommands
   const approvalState = permissionRequest.status
   const hasPermissionRequest = Boolean(permissionRequest.id)
+  const hasRunningGeneration = conversation.messages.some((message) => (
+    message.kind === 'assistant' && message.status === 'running'
+  ))
   const permissionMode = selectedAgent?.permissionMode ?? preferences.permissionMode
   const selectedModel = selectedAgent?.model ?? preferences.selectedModel
   const selectedThinking = selectedAgent?.thinking ?? preferences.selectedThinking
@@ -199,13 +214,22 @@ export function ChatWorkspace({
 
   const submitDraft = () => {
     const message = composerText.trim()
-    if (!message) {
+    if (!message || hasRunningGeneration) {
       return
     }
 
     onSendMessage(message)
     setComposerText('')
     setIsCommandMenuOpen(false)
+  }
+
+  const submitSteer = (mode: 'restart' | 'followUp') => {
+    const text = steerText.trim()
+    if (!text) {
+      return
+    }
+    onSteerMessage(text, mode)
+    setSteerText('')
   }
 
   const updateComposerText = (value: string) => {
@@ -415,14 +439,42 @@ export function ChatWorkspace({
       <ChatThread
         conversation={conversation}
         onDecidePermission={onDecidePermission}
+        onOpenAsset={onOpenAsset}
+        onRevealAsset={onRevealAsset}
         permissionRequest={permissionRequest}
         replyMode={replyMode}
       />
 
       <Composer
-        approvalNotice={hasPermissionRequest
+        approvalNotice={hasRunningGeneration || hasPermissionRequest
           ? (
           <>
+            {hasRunningGeneration ? (
+              <div className="generation-control" aria-label="当前生成控制">
+                <input
+                  aria-label="修正当前回复"
+                  onChange={(event) => setSteerText(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      submitSteer('followUp')
+                    }
+                  }}
+                  placeholder="修正当前回复..."
+                  type="text"
+                  value={steerText}
+                />
+                <button disabled={!steerText.trim()} onClick={() => submitSteer('restart')} type="button">
+                  <RefreshCcw aria-hidden="true" size={14} strokeWidth={2} />
+                  重启生成
+                </button>
+                <button disabled={!steerText.trim()} onClick={() => submitSteer('followUp')} type="button">
+                  <CornerDownRight aria-hidden="true" size={14} strokeWidth={2} />
+                  排队追问
+                </button>
+              </div>
+            ) : null}
+            {hasPermissionRequest ? (
             <div className={`permission-review is-${approvalState}`} aria-label="权限审核">
               <div className="permission-review__icon">
                 <ShieldCheck aria-hidden="true" size={15} strokeWidth={2.1} />
@@ -454,6 +506,7 @@ export function ChatWorkspace({
                 </div>
               ) : null}
             </div>
+            ) : null}
           </>
             )
           : null}
@@ -716,7 +769,11 @@ export function ChatWorkspace({
               label={isListening ? '停止收声' : '语音输入'}
               onClick={toggleVoiceInput}
             />
-            <IconButton className="composer-send" icon={ArrowUp} label="发送" onClick={submitDraft} />
+            {hasRunningGeneration ? (
+              <IconButton className="composer-send is-stopping" icon={CircleStop} label="停止" onClick={onAbortMessage} />
+            ) : (
+              <IconButton className="composer-send" icon={ArrowUp} label="发送" onClick={submitDraft} />
+            )}
           </>
         }
         value={composerText}

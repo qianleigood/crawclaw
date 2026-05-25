@@ -112,7 +112,7 @@ export interface SidebarThreadData {
 
 export type ConversationMessage =
   | { kind: 'user'; id: string; text: string; createdAt: string }
-  | { kind: 'assistant'; id: string; text: string; createdAt: string }
+  | { kind: 'assistant'; id: string; text: string; status?: 'running' | 'done' | 'cancelled' | 'failed'; runId?: string; errorCode?: string; createdAt: string }
   | { kind: 'toolCall'; id: string; toolId: string; title: string; detail?: string; createdAt: string }
   | { kind: 'toolResult'; id: string; toolId: string; title: string; ok: boolean; text: string; createdAt: string }
   | { kind: 'permission'; id: string; requestId: string; title: string; detail: string; status: PermissionStatus; createdAt: string }
@@ -330,6 +330,13 @@ export interface ArchiveMemoryItemInput {
 export interface SendMessageInput {
   text: string
   agentId?: string
+}
+
+export type SteerMessageMode = 'restart' | 'followUp'
+
+export interface SteerMessageInput {
+  text: string
+  mode: SteerMessageMode
 }
 
 export type ModelProfileSource = 'builtin' | 'custom'

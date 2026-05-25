@@ -24,6 +24,7 @@ import {
   addSkillCallMessage,
   addVoiceMessage,
   addWorkflowMessage,
+  abortMessage,
   archiveMemoryItem,
   archiveThread,
   createAgent,
@@ -46,15 +47,19 @@ import {
   setPluginToolEnabled,
   setMemoryFilter as setDesktopMemoryFilter,
   setMemoryQuery as setDesktopMemoryQuery,
+  steerMessage,
   testAndSaveModelProfile,
   clearDesktopCache,
   deleteDesktopLocalData,
   generateDesktopDiagnostics,
   installPlugin,
   invokePluginTool,
+  openDesktopAsset,
   resetDesktopState,
+  revealDesktopAsset,
   unpinThread,
   uninstallPlugin,
+  updateAgent,
   updateMemoryItem,
   updatePreferences,
   type DesktopPreferencesPatch,
@@ -65,6 +70,7 @@ import {
 } from './desktop-api'
 import { useDesktopStateController } from './app/use-desktop-state'
 import { AgentWorkspace } from './views/agent-workspace'
+import { AutomationWorkspace } from './views/automation-workspace'
 import { ChatWorkspace } from './views/chat-workspace'
 import { MemoryWorkspace } from './views/memory-workspace'
 import { PluginsWorkspace } from './views/plugins-workspace'
@@ -545,14 +551,18 @@ export default function App() {
             onAddSkillCallMessage={(input) => void applyDesktopState(() => addSkillCallMessage(input))}
             onAddVoiceMessage={(input) => void applyDesktopState(() => addVoiceMessage(input))}
             onAddWorkflowMessage={(input) => void applyDesktopState(() => addWorkflowMessage(input))}
+            onAbortMessage={() => void applyDesktopState(() => abortMessage())}
             onDecidePermission={(requestId, status) => void applyDesktopState(() => decidePermission(requestId, status))}
+            onOpenAsset={(assetId) => void applyDesktopState(() => openDesktopAsset(assetId))}
             onPreferenceUpdate={applyPreferenceUpdate}
             onQueuedInputTextConsumed={() => setQueuedChatInputText('')}
+            onRevealAsset={(assetId) => void applyDesktopState(() => revealDesktopAsset(assetId))}
             onRequestConfirmation={requestConfirmation}
             onSelectedChatAgentChange={setSelectedChatAgentId}
             onSendMessage={(message) => void applyDesktopState(() => sendMessage(message, {
               agentId: selectedChatAgentId || undefined,
             }))}
+            onSteerMessage={(text, mode) => void applyDesktopState(() => steerMessage(text, mode))}
             permissionRequest={desktopState.permissionRequest}
             preferences={desktopState.preferences}
             queuedInputText={queuedChatInputText}
@@ -566,6 +576,7 @@ export default function App() {
                 modelOptions={modelOptions}
                 onCreateAgent={(input) => void applyDesktopState(() => createAgent(input))}
                 onSelectAgent={(agentId) => void applyDesktopState(() => selectAgent(agentId))}
+                onUpdateAgent={(agentId, input) => void applyDesktopState(() => updateAgent(agentId, input))}
                 preferences={desktopState.preferences}
                 workspace={desktopState.agentWorkspace}
               />
@@ -599,6 +610,10 @@ export default function App() {
                 }))}
                 skills={desktopState.pluginsWorkspace.skills}
                 tools={desktopState.pluginsWorkspace.tools}
+              />
+            ) : activeNavId === 'automation' ? (
+              <AutomationWorkspace
+                onAddWorkflowMessage={(input) => void applyDesktopState(() => addWorkflowMessage(input))}
               />
             ) : activeNavId === 'memory' ? (
               <MemoryWorkspace

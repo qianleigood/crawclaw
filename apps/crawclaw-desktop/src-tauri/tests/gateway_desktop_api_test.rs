@@ -79,7 +79,7 @@ async fn gateway_mutations_require_session_header() {
 
     assert_eq!(status, 401);
 
-    let (status, body) = request(
+    let (status, response_body) = request(
         server.addr,
         format!(
             "POST /api/desktop/navigation/select HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
@@ -90,7 +90,7 @@ async fn gateway_mutations_require_session_header() {
     .await;
 
     assert_eq!(status, 200);
-    let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
+    let json: serde_json::Value = serde_json::from_str(&response_body).expect("state json");
     assert_eq!(json["activeNavId"], "plugins");
 }
 
@@ -993,6 +993,27 @@ esac
         fs::read_to_string(asset_path).expect("copied asset"),
         "desktop attachment body"
     );
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "GET /api/desktop/assets/{asset_id}/content HTTP/1.1\r\nHost: 127.0.0.1\r\nx-crawclaw-desktop-session: session\r\nConnection: close\r\n\r\n"
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+    assert_eq!(body, "desktop attachment body");
+    let (status, _) = request(
+        server.addr,
+        "GET /api/desktop/assets/asset-missing/content HTTP/1.1\r\nHost: 127.0.0.1\r\nx-crawclaw-desktop-session: session\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 404);
+    let (status, _) =
+        post_desktop_json(server.addr, "/api/desktop/assets/asset-..bad/reveal", "{}").await;
+    assert_eq!(status, 400);
+    let (status, _) =
+        post_desktop_json(server.addr, "/api/desktop/assets/asset-missing/open", "{}").await;
+    assert_eq!(status, 404);
 
     let (status, response_body) = post_desktop_json(
         server.addr,
@@ -3655,23 +3676,36 @@ esac
 
     assert_eq!(status, 200);
     let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
-    assert!(json["conversation"]["resultItems"]
-        .as_array()
-        .expect("result items")
-        .iter()
-        .any(|item| item.as_str() == Some("provider says hello")));
     let messages = json["conversation"]["messages"]
         .as_array()
         .expect("conversation messages");
     assert!(messages
         .iter()
         .any(|message| message["kind"] == "user" && message["text"] == "hello from desktop"));
-    assert!(messages.iter().any(|message| {
-        message["kind"] == "assistant" && message["text"] == "provider says hello"
-    }));
+    assert!(messages
+        .iter()
+        .any(|message| message["kind"] == "assistant" && message["status"] == "running"));
     let thread_id = json["sidebar"]["threads"][0]["id"]
         .as_str()
         .expect("thread id");
+    let events = read_stream_until(&mut events, "event: messageFinal").await;
+    assert!(events.contains("event: messageDelta"));
+    assert!(events.contains("event: messageFinal"));
+    let json = wait_for_assistant_text(server.addr, "provider says hello").await;
+    assert!(json["conversation"]["resultItems"]
+        .as_array()
+        .expect("result items")
+        .iter()
+        .any(|item| item.as_str() == Some("provider says hello")));
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("conversation messages")
+        .iter()
+        .any(|message| {
+            message["kind"] == "assistant"
+                && message["status"] == "done"
+                && message["text"] == "provider says hello"
+        }));
     let transcript = fs::read_to_string(
         runtime_layout
             .runtime_root
@@ -3696,12 +3730,7 @@ esac
     assert_eq!(notification["kind"], "taskDone");
     assert_eq!(notification["title"], "对话已完成");
     assert_eq!(notification["sound"], true);
-
-    let events = read_stream_until(&mut events, "event: stateChanged").await;
     assert!(events.contains("event: sessionStarted"));
-    assert!(events.contains("event: messageDelta"));
-    assert!(events.contains("event: messageFinal"));
-    assert!(events.contains("event: stateChanged"));
 }
 
 #[cfg(unix)]
@@ -3717,8 +3746,12 @@ case "$*" in
 esac
 "#,
     );
-    let provider_base_url =
-        spawn_openai_compatible_provider_with_delay("hello running", "delayed reply", Duration::from_secs(1)).await;
+    let provider_base_url = spawn_openai_compatible_provider_with_delay(
+        "hello running",
+        "delayed reply",
+        Duration::from_secs(1),
+    )
+    .await;
     write_openai_compatible_provider_config(&runtime_layout, &provider_base_url);
 
     let server = start_gateway_server(GatewayConfig {
@@ -3771,7 +3804,9 @@ esac
         .expect("running assistant message");
     assert_eq!(assistant["status"], "running");
     assert_eq!(assistant["text"], "");
-    assert!(assistant["runId"].as_str().is_some_and(|run_id| run_id.starts_with("run-")));
+    assert!(assistant["runId"]
+        .as_str()
+        .is_some_and(|run_id| run_id.starts_with("run-")));
 
     let events = read_stream_until(&mut events, "event: messageFinal").await;
     assert!(events.contains("event: messageFinal"));
@@ -3821,7 +3856,7 @@ esac
     assert_eq!(status, 200);
 
     let body = r#"{"text":"hello minimax"}"#;
-    let (status, body) = request(
+    let (status, _) = request(
         server.addr,
         format!(
             "POST /api/desktop/messages HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
@@ -3832,12 +3867,16 @@ esac
     .await;
 
     assert_eq!(status, 200);
-    let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
+    let json = wait_for_assistant_text(server.addr, "minimax reply").await;
     assert!(json["conversation"]["messages"]
         .as_array()
         .expect("conversation messages")
         .iter()
-        .any(|message| message["kind"] == "assistant" && message["text"] == "minimax reply"));
+        .any(|message| {
+            message["kind"] == "assistant"
+                && message["status"] == "done"
+                && message["text"] == "minimax reply"
+        }));
 }
 
 #[cfg(unix)]
@@ -3910,7 +3949,7 @@ esac
         .expect("agent id");
 
     let send_body = format!(r#"{{"text":"hello selected agent","agentId":"{agent_id}"}}"#);
-    let (status, body) = request(
+    let (status, _) = request(
         server.addr,
         format!(
             "POST /api/desktop/messages HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
@@ -3921,12 +3960,16 @@ esac
     .await;
 
     assert_eq!(status, 200);
-    let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
+    let json = wait_for_assistant_text(server.addr, "agent reply").await;
     assert!(json["conversation"]["messages"]
         .as_array()
         .expect("conversation messages")
         .iter()
-        .any(|message| message["kind"] == "assistant" && message["text"] == "agent reply"));
+        .any(|message| {
+            message["kind"] == "assistant"
+                && message["status"] == "done"
+                && message["text"] == "agent reply"
+        }));
 }
 
 #[cfg(unix)]
@@ -4033,6 +4076,16 @@ esac
     .await;
 
     assert_eq!(status, 200);
+    let json = wait_for_assistant_text(server.addr, "agent reply without tools").await;
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("conversation messages")
+        .iter()
+        .any(|message| {
+            message["kind"] == "assistant"
+                && message["status"] == "done"
+                && message["text"] == "agent reply without tools"
+        }));
 }
 
 #[cfg(unix)]
@@ -4176,6 +4229,7 @@ esac
     let thread_id = json["sidebar"]["threads"][0]["id"]
         .as_str()
         .expect("thread id");
+    let _ = wait_for_assistant_text(server.addr, "persisted assistant reply").await;
 
     let restarted_server = start_gateway_server(GatewayConfig {
         app_name: "CrawClaw Desktop".to_string(),
@@ -4263,6 +4317,7 @@ esac
     let thread_id = json["sidebar"]["threads"][0]["id"]
         .as_str()
         .expect("thread id");
+    let _ = wait_for_assistant_text(server.addr, "metadata reply").await;
 
     let rename_body = r#"{"title":"Renamed Rust session"}"#;
     let (status, _) = request(
@@ -4609,47 +4664,22 @@ esac
     )
     .await;
 
-    assert_eq!(status, 503);
-    let (status, body) = request(
-        server.addr,
-        "GET /api/desktop/state HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
-    )
-    .await;
     assert_eq!(status, 200);
-    let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
-    assert!(json["conversation"]["messages"]
-        .as_array()
-        .expect("conversation messages")
-        .iter()
-        .any(|message| message["kind"] == "error" && message["code"] == "provider_unavailable"));
     let events = read_stream_until(&mut events, "event: operationFailed").await;
     assert!(events.contains("event: operationFailed"));
     assert!(events.contains("provider_unavailable"));
-
-    let restarted_server = start_gateway_server(GatewayConfig {
-        app_name: "CrawClaw Desktop".to_string(),
-        app_version: "test".to_string(),
-        runtime_layout,
-        session_token: "session".to_string(),
-    })
-    .await
-    .expect("restarted gateway should start");
-    let (status, body) = request(
-        restarted_server.addr,
-        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
-    )
-    .await;
-    assert_eq!(status, 200);
-    let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
-    let messages = json["desktopState"]["conversation"]["messages"]
+    let json = wait_for_assistant_error(server.addr, "provider_unavailable").await;
+    let messages = json["conversation"]["messages"]
         .as_array()
         .expect("conversation messages");
     assert!(messages
         .iter()
         .any(|message| message["kind"] == "user" && message["text"] == "hello from desktop"));
-    assert!(messages
-        .iter()
-        .any(|message| message["kind"] == "error" && message["code"] == "provider_unavailable"));
+    assert!(messages.iter().any(|message| {
+        message["kind"] == "assistant"
+            && message["status"] == "failed"
+            && message["errorCode"] == "provider_unavailable"
+    }));
 }
 
 #[cfg(unix)]
@@ -4693,7 +4723,7 @@ esac
     let abort_events = read_stream_until(&mut events, "event: operationFailed").await;
     assert!(abort_events.contains("no_active_message"));
 
-    let body = r#"{"text":"prefer shorter"}"#;
+    let body = r#"{"text":"prefer shorter","mode":"followUp"}"#;
     let (status, _) = request(
         server.addr,
         format!(
@@ -4706,6 +4736,207 @@ esac
     assert_eq!(status, 409);
     let steer_events = read_stream_until(&mut events, "event: operationFailed").await;
     assert!(steer_events.contains("no_active_message"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_abort_active_message_marks_running_assistant_cancelled() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-message-abort-active",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let provider_base_url = spawn_openai_compatible_provider_with_delay(
+        "abort this run",
+        "late reply",
+        Duration::from_secs(3),
+    )
+    .await;
+    write_openai_compatible_provider_config(&runtime_layout, &provider_base_url);
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, body) = post_desktop_json(
+        server.addr,
+        "/api/desktop/messages",
+        r#"{"text":"abort this run"}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("running state json");
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .iter()
+        .any(|message| message["kind"] == "assistant" && message["status"] == "running"));
+
+    let (status, body) = post_desktop_json(server.addr, "/api/desktop/messages/abort", "{}").await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("cancelled state json");
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .iter()
+        .any(|message| message["kind"] == "assistant" && message["status"] == "cancelled"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_steer_restart_cancels_active_run_and_starts_replacement() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-message-steer-restart",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let provider_base_url = spawn_openai_compatible_provider_sequence(vec![
+        ProviderResponseFixture {
+            delay: Duration::from_secs(3),
+            expected_model: None,
+            forbidden_substrings: Vec::new(),
+            required_substrings: vec![r#""content":"draft long answer""#.to_string()],
+            response_text: "late first reply".to_string(),
+        },
+        ProviderResponseFixture {
+            delay: Duration::ZERO,
+            expected_model: None,
+            forbidden_substrings: Vec::new(),
+            required_substrings: vec![
+                r#""content":"draft long answer\n\n修正指令：make it shorter""#.to_string(),
+            ],
+            response_text: "restart reply".to_string(),
+        },
+    ])
+    .await;
+    write_openai_compatible_provider_config(&runtime_layout, &provider_base_url);
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, _) = post_desktop_json(
+        server.addr,
+        "/api/desktop/messages",
+        r#"{"text":"draft long answer"}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let (status, _) = post_desktop_json(
+        server.addr,
+        "/api/desktop/messages/steer",
+        r#"{"text":"make it shorter","mode":"restart"}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+
+    let json = wait_for_assistant_text(server.addr, "restart reply").await;
+    let messages = json["conversation"]["messages"]
+        .as_array()
+        .expect("messages");
+    assert!(messages
+        .iter()
+        .any(|message| message["kind"] == "assistant" && message["status"] == "cancelled"));
+    assert!(messages.iter().any(|message| {
+        message["kind"] == "user"
+            && message["text"]
+                .as_str()
+                .is_some_and(|text| text.contains("修正指令：make it shorter"))
+    }));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_steer_follow_up_queues_next_user_message_after_current_run() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-message-steer-follow-up",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let provider_base_url = spawn_openai_compatible_provider_sequence(vec![
+        ProviderResponseFixture {
+            delay: Duration::from_millis(300),
+            expected_model: None,
+            forbidden_substrings: Vec::new(),
+            required_substrings: vec![r#""content":"first question""#.to_string()],
+            response_text: "first reply".to_string(),
+        },
+        ProviderResponseFixture {
+            delay: Duration::ZERO,
+            expected_model: None,
+            forbidden_substrings: Vec::new(),
+            required_substrings: vec![r#""content":"queued follow up""#.to_string()],
+            response_text: "followup reply".to_string(),
+        },
+    ])
+    .await;
+    write_openai_compatible_provider_config(&runtime_layout, &provider_base_url);
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, _) = post_desktop_json(
+        server.addr,
+        "/api/desktop/messages",
+        r#"{"text":"first question"}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let (status, body) = post_desktop_json(
+        server.addr,
+        "/api/desktop/messages/steer",
+        r#"{"text":"queued follow up","mode":"followUp"}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("queued state json");
+    assert!(json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .iter()
+        .any(|message| message["kind"] == "status" && message["title"] == "追问已排队"));
+
+    let json = wait_for_assistant_text(server.addr, "followup reply").await;
+    let messages = json["conversation"]["messages"]
+        .as_array()
+        .expect("messages");
+    assert!(messages
+        .iter()
+        .any(|message| message["kind"] == "assistant" && message["text"] == "first reply"));
+    assert!(messages
+        .iter()
+        .any(|message| message["kind"] == "user" && message["text"] == "queued follow up"));
+    assert!(messages
+        .iter()
+        .any(|message| message["kind"] == "assistant" && message["text"] == "followup reply"));
 }
 
 #[tokio::test]
@@ -4984,6 +5215,56 @@ async fn post_desktop_json(addr: SocketAddr, path: &str, body: &str) -> (u16, St
     .await
 }
 
+async fn get_desktop_state(addr: SocketAddr) -> serde_json::Value {
+    let (status, body) = request(
+        addr,
+        "GET /api/desktop/state HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    serde_json::from_str(&body).expect("state json")
+}
+
+async fn wait_for_assistant_text(addr: SocketAddr, expected_text: &str) -> serde_json::Value {
+    for _ in 0..80 {
+        let state = get_desktop_state(addr).await;
+        if state["conversation"]["messages"]
+            .as_array()
+            .expect("conversation messages")
+            .iter()
+            .any(|message| {
+                message["kind"] == "assistant"
+                    && message["status"] == "done"
+                    && message["text"] == expected_text
+            })
+        {
+            return state;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    panic!("timed out waiting for assistant text {expected_text}");
+}
+
+async fn wait_for_assistant_error(addr: SocketAddr, expected_code: &str) -> serde_json::Value {
+    for _ in 0..80 {
+        let state = get_desktop_state(addr).await;
+        if state["conversation"]["messages"]
+            .as_array()
+            .expect("conversation messages")
+            .iter()
+            .any(|message| {
+                message["kind"] == "assistant"
+                    && message["status"] == "failed"
+                    && message["errorCode"] == expected_code
+            })
+        {
+            return state;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    panic!("timed out waiting for assistant error {expected_code}");
+}
+
 fn last_notification_path(layout: &RuntimeLayout) -> PathBuf {
     layout
         .runtime_root
@@ -5237,74 +5518,75 @@ async fn spawn_openai_compatible_provider_sequence(
         for response_fixture in responses {
             let (mut stream, _) = listener.accept().await.expect("accept provider request");
             tokio::spawn(async move {
-        let mut bytes = Vec::new();
-        let mut buffer = [0; 4096];
-        loop {
-            let count = stream
-                .read(&mut buffer)
-                .await
-                .expect("read provider request");
-            assert_ne!(count, 0, "provider request closed early");
-            bytes.extend_from_slice(&buffer[..count]);
-            if is_complete_http_request(&bytes) {
-                break;
-            }
-        }
-        let request = String::from_utf8_lossy(&bytes);
-        assert!(request.starts_with("POST /v1/chat/completions "));
-        for required in &response_fixture.required_substrings {
-            assert!(
-                request.contains(required),
-                "provider request did not contain required substring {required}: {request}"
-            );
-        }
-        for forbidden in &response_fixture.forbidden_substrings {
-            assert!(
-                !request.contains(forbidden),
-                "provider request contained forbidden substring {forbidden}: {request}"
-            );
-        }
-        if let Some(expected_model) = response_fixture.expected_model {
-            assert!(request.contains(&format!(r#""model":"{expected_model}""#)));
-        }
-        assert!(request
-            .to_lowercase()
-            .contains("authorization: bearer test-key"));
-        tokio::time::sleep(response_fixture.delay).await;
-
-        let (content_type, body) = if request.contains(r#""stream":true"#) {
-            let chunk = serde_json::to_string(&serde_json::json!({
-                "choices": [
-                    {
-                        "delta": {
-                            "content": response_fixture.response_text
-                        }
+                let mut bytes = Vec::new();
+                let mut buffer = [0; 4096];
+                loop {
+                    let count = stream
+                        .read(&mut buffer)
+                        .await
+                        .expect("read provider request");
+                    assert_ne!(count, 0, "provider request closed early");
+                    bytes.extend_from_slice(&buffer[..count]);
+                    if is_complete_http_request(&bytes) {
+                        break;
                     }
-                ]
-            }))
-            .expect("stream chunk");
-            (
-                "text/event-stream",
-                format!("data: {chunk}\n\ndata: [DONE]\n\n"),
-            )
-        } else {
-            (
-                "application/json",
-                format!(
-                    r#"{{"choices":[{{"message":{{"content":{}}}}}]}}"#,
-                    serde_json::to_string(&response_fixture.response_text).expect("response text json")
-                ),
-            )
-        };
-        let response = format!(
+                }
+                let request = String::from_utf8_lossy(&bytes);
+                assert!(request.starts_with("POST /v1/chat/completions "));
+                for required in &response_fixture.required_substrings {
+                    assert!(
+                        request.contains(required),
+                        "provider request did not contain required substring {required}: {request}"
+                    );
+                }
+                for forbidden in &response_fixture.forbidden_substrings {
+                    assert!(
+                        !request.contains(forbidden),
+                        "provider request contained forbidden substring {forbidden}: {request}"
+                    );
+                }
+                if let Some(expected_model) = response_fixture.expected_model {
+                    assert!(request.contains(&format!(r#""model":"{expected_model}""#)));
+                }
+                assert!(request
+                    .to_lowercase()
+                    .contains("authorization: bearer test-key"));
+                tokio::time::sleep(response_fixture.delay).await;
+
+                let (content_type, body) = if request.contains(r#""stream":true"#) {
+                    let chunk = serde_json::to_string(&serde_json::json!({
+                        "choices": [
+                            {
+                                "delta": {
+                                    "content": response_fixture.response_text
+                                }
+                            }
+                        ]
+                    }))
+                    .expect("stream chunk");
+                    (
+                        "text/event-stream",
+                        format!("data: {chunk}\n\ndata: [DONE]\n\n"),
+                    )
+                } else {
+                    (
+                        "application/json",
+                        format!(
+                            r#"{{"choices":[{{"message":{{"content":{}}}}}]}}"#,
+                            serde_json::to_string(&response_fixture.response_text)
+                                .expect("response text json")
+                        ),
+                    )
+                };
+                let response = format!(
             "HTTP/1.1 200 OK\r\ncontent-type: {content_type}\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}",
             body.len(),
             body
         );
-        stream
-            .write_all(response.as_bytes())
-            .await
-            .expect("write provider response");
+                stream
+                    .write_all(response.as_bytes())
+                    .await
+                    .expect("write provider response");
             });
         }
     });

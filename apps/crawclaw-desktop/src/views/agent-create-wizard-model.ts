@@ -4,6 +4,7 @@ import type {
   AgentChannelBinding,
   AgentChannelConfig,
   AgentEmotionProfile,
+  AgentProfile,
   AgentVoiceConfig,
   DesktopPreferences,
 } from '../desktop-api'
@@ -294,6 +295,25 @@ export function createAgentDraft(preferences: DesktopPreferences): AgentCreateDr
     thinking: preferences.selectedThinking,
     toolIds: [],
     voice: defaultAgentVoiceDraft(),
+  }
+}
+
+export function createAgentDraftFromProfile(agent: AgentProfile): AgentCreateDraft {
+  return {
+    agentMd: [`# ${agent.role}`, agent.description].filter(Boolean).join('\n\n'),
+    avatar: agent.avatar,
+    channels: agent.channels.map(cloneAgentChannel),
+    description: agent.description,
+    emotion: cloneAgentEmotion(agent.emotion),
+    generationNotice: '',
+    model: agent.model,
+    name: agent.name,
+    permissionMode: agent.permissionMode,
+    role: agent.role,
+    skillIds: agent.skills.filter((skill) => skill.enabled).map((skill) => skill.id),
+    thinking: agent.thinking,
+    toolIds: agent.tools.filter((tool) => tool.enabled).map((tool) => tool.id),
+    voice: { ...agent.voice },
   }
 }
 

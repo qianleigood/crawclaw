@@ -6795,6 +6795,138 @@
   }
 }
 
+.generation-control {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(180px, 1fr) auto auto;
+  width: 100%;
+}
+
+.generation-control input,
+.automation-card input {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font: inherit;
+  min-width: 0;
+  padding: 9px 10px;
+}
+
+.generation-control button,
+.asset-actions button,
+.automation-card__actions button {
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: inline-flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.composer-send.is-stopping {
+  color: #b42318;
+}
+
+.asset-actions {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.asset-actions button {
+  height: 26px;
+  padding: 0 7px;
+}
+
+.media-visual.has-asset {
+  overflow: hidden;
+}
+
+.media-visual.has-asset img,
+.media-visual.has-asset video,
+.voice-message audio {
+  display: block;
+  height: 100%;
+  max-width: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.voice-message audio {
+  height: 32px;
+  margin-top: 8px;
+}
+
+.automation-workspace {
+  display: grid;
+  gap: 18px;
+  padding: 28px var(--desktop-content-x);
+}
+
+.automation-workspace__header h1 {
+  font-size: 24px;
+  margin: 0;
+}
+
+.automation-workspace__header p {
+  color: var(--text-secondary);
+  margin: 6px 0 0;
+}
+
+.automation-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.automation-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.automation-card header {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+}
+
+.automation-card h2,
+.automation-card p {
+  margin: 0;
+}
+
+.automation-card p {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.automation-card label {
+  display: grid;
+  gap: 6px;
+}
+
+.automation-card label span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.automation-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.automation-card__actions button {
+  flex: 1;
+  padding: 9px 10px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -6870,6 +7002,11 @@
   }
 
   .agent-create-wizard__model-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .automation-grid,
+  .generation-control {
     grid-template-columns: 1fr;
   }
 }

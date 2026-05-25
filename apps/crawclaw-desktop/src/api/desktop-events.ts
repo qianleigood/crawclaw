@@ -18,6 +18,12 @@ export function subscribeDesktopEvents(onEvent: (event: DesktopEvent) => void): 
   }
 
   source.addEventListener('runtime', handleMessage)
+  source.addEventListener('sessionStarted', handleMessage)
+  source.addEventListener('messageDelta', handleMessage)
+  source.addEventListener('messageFinal', handleMessage)
+  source.addEventListener('toolCall', handleMessage)
+  source.addEventListener('toolResult', handleMessage)
+  source.addEventListener('operationFailed', handleMessage)
   source.addEventListener('stateChanged', handleMessage)
   source.addEventListener('permissionRequested', handleMessage)
   source.addEventListener('permissionChanged', handleMessage)
