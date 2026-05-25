@@ -52,6 +52,7 @@ type MemoryWorkspaceProps = {
   onRequestConfirmation: (input: ConfirmationRequestInput) => Promise<boolean>
   onRunMemoryDream: (agentId: string) => void
   onSelectAgent: (agentId: string) => void
+  onSelectMemory: (memoryId: string) => void
   onSetFilter: (filter: MemoryFilter) => void
   onSetQuery: (query: string) => void
   onUpdateMemory: (memoryId: string, patch: UpdateMemoryItemPatch) => void
@@ -66,6 +67,7 @@ export function MemoryWorkspace({
   onRequestConfirmation,
   onRunMemoryDream,
   onSelectAgent,
+  onSelectMemory,
   onSetFilter,
   onSetQuery,
   onUpdateMemory,
@@ -318,6 +320,32 @@ export function MemoryWorkspace({
       ) : null}
 
       <div className="memory-workspace__body">
+        <Panel className="memory-list" label="记忆列表">
+          {visibleMemories.length > 0 ? (
+            visibleMemories.map((memory) => (
+              <button
+                aria-pressed={selectedMemory?.id === memory.id}
+                className={selectedMemory?.id === memory.id ? 'memory-list__item is-active' : 'memory-list__item'}
+                key={memory.id}
+                onClick={() => {
+                  setIsEditing(false)
+                  setIsFormOpen(false)
+                  onSelectMemory(memory.id)
+                }}
+                type="button"
+              >
+                <strong>{memory.title}</strong>
+                <span>{memory.summary}</span>
+                <small>{memory.category} · {memory.source} · {memory.updatedAt}</small>
+                {memory.tags.length > 0 ? (
+                  <small className="memory-list__tags">{memory.tags.join(' / ')}</small>
+                ) : null}
+              </button>
+            ))
+          ) : (
+            <div className="memory-list__empty">没有匹配记忆</div>
+          )}
+        </Panel>
         {selectedMemory ? (
           <Panel className="memory-detail" label="记忆详情">
             {isEditing ? (

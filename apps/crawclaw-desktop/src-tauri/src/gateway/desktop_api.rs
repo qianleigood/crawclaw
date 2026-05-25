@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::fs;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -211,6 +212,12 @@ async fn build_state(
         &mut desktop_state,
         &memory_store,
         legacy_memory_store.as_ref(),
+    );
+    migrate_legacy_workspace_memory_items(
+        &mut desktop_state,
+        &memory_store,
+        &runtime_layout.runtime_root,
+        &memory_store_root,
     );
     merge_persisted_agents(&mut desktop_state, &agent_store);
     merge_persisted_memory_items(&mut desktop_state, &memory_store);
@@ -1129,9 +1136,8 @@ mod tests {
 
     #[test]
     fn desktop_store_root_moves_packaged_macos_state_out_of_app_bundle() {
-        let runtime_root = PathBuf::from(
-            "/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw",
-        );
+        let runtime_root =
+            PathBuf::from("/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw");
         let store_root =
             desktop_store_root_from_home(&runtime_root, Some(std::path::Path::new("/Users/test")));
 
@@ -1149,12 +1155,74 @@ mod tests {
         let runtime_root = PathBuf::from("/tmp/crawclaw-dev/runtime/crawclaw");
 
         assert_eq!(
-            desktop_store_root_from_home(
-                &runtime_root,
-                Some(std::path::Path::new("/Users/test")),
-            ),
+            desktop_store_root_from_home(&runtime_root, Some(std::path::Path::new("/Users/test")),),
             runtime_root
         );
+    }
+
+    #[test]
+    fn workspace_memory_dirs_include_legacy_home_memory() {
+        let runtime_root =
+            PathBuf::from("/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw");
+        let memory_store_root = PathBuf::from(
+            "/Users/test/Library/Application Support/crawclaw-desktop/runtime/crawclaw",
+        );
+        let home = PathBuf::from("/Users/test");
+
+        let dirs =
+            legacy_workspace_memory_dirs(&runtime_root, &memory_store_root, Some(home.as_path()));
+
+        assert_eq!(
+            dirs,
+            vec![
+                PathBuf::from(
+                    "/Users/test/Library/Application Support/crawclaw-desktop/runtime/crawclaw/workspace/memory"
+                ),
+                PathBuf::from(
+                    "/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw/workspace/memory"
+                ),
+                PathBuf::from("/Users/test/.crawclaw/workspace/memory"),
+            ]
+        );
+    }
+
+    #[test]
+    fn workspace_memory_markdown_import_uses_frontmatter_without_path_source() {
+        let dir = std::env::temp_dir().join(format!(
+            "crawclaw-desktop-workspace-memory-{}",
+            Uuid::new_v4()
+        ));
+        fs::create_dir_all(&dir).expect("memory dir");
+        let path = dir.join("user-preference-chinese.md");
+        fs::write(
+            &path,
+            r#"---
+title: "用户语言偏好：中文优先"
+description: "用户默认希望用中文回复。"
+type: user
+created: 2025-12-05
+---
+
+# 用户语言偏好：中文优先
+
+用户默认偏好中文回复。
+"#,
+        )
+        .expect("memory file");
+
+        let record = workspace_memory_record_from_markdown(&path)
+            .expect("memory record result")
+            .expect("memory record");
+
+        assert_eq!(record.id, "workspace-memory-user-preference-chinese");
+        assert_eq!(record.agent_id, "main");
+        assert_eq!(record.title, "用户语言偏好：中文优先");
+        assert_eq!(record.summary, "用户默认希望用中文回复。");
+        assert_eq!(record.category, "偏好");
+        assert_eq!(record.tags, vec!["workspace-memory", "user"]);
+        assert_eq!(record.source, "workspace-memory");
+        assert_eq!(record.updated_at, "2025-12-05");
+        assert!(record.content.contains("用户默认偏好中文回复。"));
     }
 
     fn test_runtime_layout(name: &str) -> RuntimeLayout {
@@ -1255,6 +1323,246 @@ fn migrate_legacy_desktop_memory_items_inner(
         }
     }
     Ok(migrated)
+}
+
+fn migrate_legacy_workspace_memory_items(
+    desktop_state: &mut DesktopState,
+    memory_store: &DesktopMemoryStore,
+    runtime_root: &Path,
+    memory_store_root: &Path,
+) {
+    let workspace_memory_dirs = legacy_workspace_memory_dirs(
+        runtime_root,
+        memory_store_root,
+        legacy_home_dir().as_deref(),
+    );
+    match migrate_legacy_workspace_memory_items_inner(memory_store, &workspace_memory_dirs) {
+        Ok(_) => {}
+        Err(error) => desktop_state
+            .conversation
+            .runtime_checks
+            .push(RuntimeCheck {
+                label: "Workspace memory migration".to_string(),
+                value: error.to_string(),
+                tone: "error".to_string(),
+            }),
+    }
+}
+
+fn migrate_legacy_workspace_memory_items_inner(
+    memory_store: &DesktopMemoryStore,
+    workspace_memory_dirs: &[PathBuf],
+) -> Result<usize, DesktopMemoryStoreError> {
+    let current_items = memory_store.load_items()?;
+    let mut existing_ids: BTreeSet<String> =
+        current_items.into_iter().map(|item| item.id).collect();
+    let mut migrated = 0;
+
+    for memory_dir in workspace_memory_dirs {
+        let entries = match fs::read_dir(memory_dir) {
+            Ok(entries) => entries,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => {
+                return Err(DesktopMemoryStoreError::Io(format!(
+                    "Failed to read workspace memory directory: {error}"
+                )));
+            }
+        };
+
+        for entry in entries {
+            let entry = entry.map_err(|error| {
+                DesktopMemoryStoreError::Io(format!(
+                    "Failed to read workspace memory directory entry: {error}"
+                ))
+            })?;
+            let path = entry.path();
+            if !is_workspace_memory_markdown(&path) {
+                continue;
+            }
+            let Some(record) = workspace_memory_record_from_markdown(&path)? else {
+                continue;
+            };
+            if existing_ids.insert(record.id.clone()) {
+                memory_store.upsert_item(record)?;
+                migrated += 1;
+            }
+        }
+    }
+
+    Ok(migrated)
+}
+
+fn legacy_workspace_memory_dirs(
+    runtime_root: &Path,
+    memory_store_root: &Path,
+    home: Option<&Path>,
+) -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+    push_unique_path(
+        &mut dirs,
+        memory_store_root.join("workspace").join("memory"),
+    );
+    push_unique_path(&mut dirs, runtime_root.join("workspace").join("memory"));
+    if should_import_home_workspace_memory(runtime_root) {
+        if let Some(home) = home {
+            push_unique_path(
+                &mut dirs,
+                home.join(".crawclaw").join("workspace").join("memory"),
+            );
+        }
+    }
+    dirs
+}
+
+fn should_import_home_workspace_memory(runtime_root: &Path) -> bool {
+    runtime_root
+        .to_string_lossy()
+        .contains(".app/Contents/Resources/")
+}
+
+fn push_unique_path(paths: &mut Vec<PathBuf>, path: PathBuf) {
+    if !paths.iter().any(|existing| existing == &path) {
+        paths.push(path);
+    }
+}
+
+fn legacy_home_dir() -> Option<PathBuf> {
+    std::env::var_os("HOME").map(PathBuf::from)
+}
+
+fn is_workspace_memory_markdown(path: &Path) -> bool {
+    path.extension().and_then(|extension| extension.to_str()) == Some("md")
+        && path.file_name().and_then(|name| name.to_str()) != Some("MEMORY.md")
+}
+
+fn workspace_memory_record_from_markdown(
+    path: &Path,
+) -> Result<Option<DesktopMemoryRecord>, DesktopMemoryStoreError> {
+    let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) else {
+        return Ok(None);
+    };
+    let id_slug = memory_slug(stem);
+    if id_slug.is_empty() {
+        return Ok(None);
+    }
+
+    let raw = fs::read_to_string(path).map_err(|error| {
+        DesktopMemoryStoreError::Io(format!("Failed to read workspace memory file: {error}"))
+    })?;
+    let (frontmatter, body) = split_markdown_frontmatter(&raw);
+    let body = body.trim();
+    let title = frontmatter
+        .get("title")
+        .cloned()
+        .or_else(|| first_markdown_heading(body))
+        .unwrap_or_else(|| stem.replace(['-', '_'], " "));
+    let summary = frontmatter
+        .get("description")
+        .cloned()
+        .or_else(|| first_markdown_summary(body))
+        .unwrap_or_else(|| title.clone());
+    let memory_type = frontmatter
+        .get("type")
+        .map(String::as_str)
+        .unwrap_or("legacy");
+    let mut tags = vec!["workspace-memory".to_string()];
+    if !memory_type.is_empty() {
+        tags.push(memory_type.to_string());
+    }
+
+    Ok(Some(DesktopMemoryRecord {
+        id: format!("workspace-memory-{id_slug}"),
+        agent_id: DEFAULT_MEMORY_AGENT_ID.to_string(),
+        title,
+        summary,
+        content: body.to_string(),
+        category: workspace_memory_category(memory_type).to_string(),
+        tags,
+        source: "workspace-memory".to_string(),
+        updated_at: frontmatter
+            .get("created")
+            .cloned()
+            .unwrap_or_else(|| "已导入".to_string()),
+        archived: false,
+    }))
+}
+
+fn split_markdown_frontmatter(raw: &str) -> (BTreeMap<String, String>, &str) {
+    let mut frontmatter = BTreeMap::new();
+    let Some(rest) = raw
+        .strip_prefix("---\n")
+        .or_else(|| raw.strip_prefix("---\r\n"))
+    else {
+        return (frontmatter, raw);
+    };
+
+    let mut offset = raw.len() - rest.len();
+    for line in rest.split_inclusive('\n') {
+        let trimmed = line.trim();
+        if trimmed == "---" {
+            return (frontmatter, &raw[offset + line.len()..]);
+        }
+        if let Some((key, value)) = trimmed.split_once(':') {
+            frontmatter.insert(key.trim().to_string(), trim_frontmatter_value(value));
+        }
+        offset += line.len();
+    }
+
+    (BTreeMap::new(), raw)
+}
+
+fn trim_frontmatter_value(value: &str) -> String {
+    let trimmed = value.trim();
+    trimmed
+        .strip_prefix('"')
+        .and_then(|value| value.strip_suffix('"'))
+        .or_else(|| {
+            trimmed
+                .strip_prefix('\'')
+                .and_then(|value| value.strip_suffix('\''))
+        })
+        .unwrap_or(trimmed)
+        .to_string()
+}
+
+fn first_markdown_heading(body: &str) -> Option<String> {
+    body.lines()
+        .find_map(|line| line.trim().strip_prefix("# ").map(str::trim))
+        .filter(|line| !line.is_empty())
+        .map(ToString::to_string)
+}
+
+fn first_markdown_summary(body: &str) -> Option<String> {
+    body.lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty() && !line.starts_with('#') && !line.starts_with("---"))
+        .map(ToString::to_string)
+}
+
+fn workspace_memory_category(memory_type: &str) -> &'static str {
+    match memory_type {
+        "user" => "偏好",
+        "project" => "项目",
+        "feedback" => "经验",
+        _ => "其他",
+    }
+}
+
+fn memory_slug(value: &str) -> String {
+    value
+        .chars()
+        .filter_map(|character| {
+            if character.is_ascii_alphanumeric() {
+                Some(character.to_ascii_lowercase())
+            } else if character == '-' || character == '_' {
+                Some('-')
+            } else {
+                None
+            }
+        })
+        .collect::<String>()
+        .trim_matches('-')
+        .to_string()
 }
 
 fn merge_persisted_agents(desktop_state: &mut DesktopState, agent_store: &DesktopAgentStore) {

@@ -5050,6 +5050,83 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
+async fn gateway_bootstrap_imports_legacy_workspace_memory_markdown() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-workspace-memory-import",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let workspace_memory_dir = runtime_layout.runtime_root.join("workspace").join("memory");
+    fs::create_dir_all(&workspace_memory_dir).expect("workspace memory dir");
+    fs::write(
+        workspace_memory_dir.join("user-preference-chinese.md"),
+        r#"---
+title: "用户语言偏好：中文优先"
+description: "用户默认希望用中文回复。"
+type: user
+created: 2025-12-05
+---
+
+# 用户语言偏好：中文优先
+
+用户默认偏好中文回复。
+"#,
+    )
+    .expect("workspace memory note");
+    fs::write(
+        workspace_memory_dir.join("MEMORY.md"),
+        "- user: 用户默认中文回复偏好\n",
+    )
+    .expect("workspace memory index");
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+    let (status, body) = request(
+        server.addr,
+        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
+    let items = json["desktopState"]["memoryWorkspace"]["items"]
+        .as_array()
+        .expect("memory items");
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0]["id"], "workspace-memory-user-preference-chinese");
+    assert_eq!(items[0]["agentId"], "main");
+    assert_eq!(items[0]["category"], "偏好");
+    assert_eq!(items[0]["source"], "workspace-memory");
+    assert_eq!(items[0]["title"], "用户语言偏好：中文优先");
+    assert_eq!(items[0]["summary"], "用户默认希望用中文回复。");
+    assert_eq!(
+        json["desktopState"]["memoryWorkspace"]["selectedItemId"],
+        items[0]["id"]
+    );
+
+    let persisted = fs::read_to_string(
+        runtime_layout
+            .runtime_root
+            .join("memory")
+            .join("desktop-items.json"),
+    )
+    .expect("persisted desktop memory");
+    assert!(persisted.contains("workspace-memory-user-preference-chinese"));
+    assert!(!persisted.contains("MEMORY.md"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn gateway_memory_mutations_persist_through_rust_runtime_store() {
     let runtime_layout = create_runtime_fixture(
         "desktop-memory-store",

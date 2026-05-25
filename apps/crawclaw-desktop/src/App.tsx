@@ -705,6 +705,7 @@ export default function App() {
                 onRequestConfirmation={requestConfirmation}
                 onRunMemoryDream={(agentId) => void applyDesktopState(() => runMemoryDream(agentId))}
                 onSelectAgent={(agentId) => void applyDesktopState(() => selectMemoryAgent(agentId))}
+                onSelectMemory={(memoryId) => void applyDesktopState(() => selectMemoryItem(memoryId))}
                 onSetFilter={(filter) => void applyDesktopState(() => setDesktopMemoryFilter(filter))}
                 onSetQuery={(query) => void applyDesktopState(() => setDesktopMemoryQuery(query))}
                 onUpdateMemory={(memoryId, patch) => void applyDesktopState(() => updateMemoryItem(memoryId, patch))}
