@@ -383,13 +383,13 @@ function createAiAgentAvatar(name: string, agentMd: string): AgentAvatarProfile 
 export function deriveAgentDraftRole(draft: AgentCreateDraft) {
   const name = draft.name.trim() || '新智能体'
   const heading = extractAgentMarkdownHeading(draft.agentMd)
-  return draft.role.trim() || heading || `${name}助手`
+  return heading || draft.role.trim() || `${name}助手`
 }
 
 export function deriveAgentDraftDescription(draft: AgentCreateDraft) {
   const name = draft.name.trim() || '新智能体'
   const summary = extractAgentMarkdownSummary(draft.agentMd)
-  return draft.description.trim() || summary || `根据智能体设定为 ${name} 生成配置草稿。`
+  return summary || draft.description.trim() || `根据智能体设定为 ${name} 生成配置草稿。`
 }
 
 export function generateAgentAvatarDraft(draft: AgentCreateDraft): AgentCreateDraft {
