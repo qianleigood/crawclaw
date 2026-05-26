@@ -1187,6 +1187,33 @@ async fn sends_openai_compatible_request_to_mocked_provider() {
 }
 
 #[tokio::test]
+async fn sends_openai_compatible_local_request_without_api_key() {
+    let (base_url, request_rx) =
+        serve_once(r#"{"choices":[{"message":{"content":"mocked local reply"}}]}"#);
+
+    let reply = send_native_provider_message(
+        &NativeProviderConfig {
+            provider: "openai-compatible".to_string(),
+            base_url: Some(base_url),
+            api_key: None,
+            model: Some("model-a".to_string()),
+            api: None,
+            api_version: None,
+        },
+        "hello local provider",
+    )
+    .await
+    .expect("provider reply");
+
+    assert_eq!(reply, "mocked local reply");
+    let request = request_rx.recv().expect("captured request");
+    assert!(request.starts_with("POST /v1/chat/completions HTTP/1.1"));
+    assert!(!request.contains("authorization:"));
+    assert!(request.contains(r#""model":"model-a""#));
+    assert!(request.contains("hello local provider"));
+}
+
+#[tokio::test]
 async fn streams_openai_compatible_tool_multimodal_request_to_mocked_provider() {
     let (base_url, request_rx) = serve_once(
         "data: {\"choices\":[{\"delta\":{\"content\":\"streamed \"}}]}\n\n\

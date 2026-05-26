@@ -678,11 +678,12 @@ fn chat_completions_request(
         "stream": options.stream,
     });
     apply_chat_completions_options(&mut body, options);
-    let mut headers = vec![auth_pair(
-        auth_header,
-        auth_prefix,
-        required(&config.api_key, "apiKey")?,
-    )];
+    let mut headers = Vec::new();
+    if let Some(api_key) = non_empty(config.api_key.as_deref()) {
+        headers.push(auth_pair(auth_header, auth_prefix, api_key.to_string()));
+    } else if config.provider != "openai-compatible" {
+        required(&config.api_key, "apiKey")?;
+    }
     apply_openai_compatible_provider_policy(config, &mut body, &mut headers, options);
     Ok(NativeProviderRequest {
         url,
