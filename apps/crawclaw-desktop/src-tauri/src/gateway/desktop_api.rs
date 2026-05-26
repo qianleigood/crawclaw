@@ -15,6 +15,7 @@ use serde_json::{json, Map, Value};
 use tokio::net::TcpListener;
 use tokio::sync::{broadcast, oneshot, Mutex, RwLock};
 use tower_http::cors::{Any, CorsLayer};
+use tower_http::services::{ServeDir, ServeFile};
 use uuid::Uuid;
 
 use crawclaw_channels::{is_desktop_or_native_channel_id, native_channel, NativeChannelDefinition};
@@ -127,6 +128,7 @@ pub struct GatewayServer {
 struct GatewayState {
     app: DesktopAppInfo,
     api: DesktopApiInfo,
+    desktop_ui_root: Option<PathBuf>,
     runtime_root: PathBuf,
     runtime_supervisor: RuntimeSupervisor,
     agent_runtime: AgentRuntime,
@@ -199,6 +201,7 @@ async fn build_state(
     runtime_layout: RuntimeLayout,
 ) -> GatewayState {
     let legacy_runtime_root = runtime_layout.runtime_root.clone();
+    let desktop_ui_root = desktop_ui_root_from_packaged_runtime(&runtime_layout);
     let state_runtime_root = desktop_store_root(&legacy_runtime_root);
     let runtime_sync_error = if state_runtime_root != legacy_runtime_root {
         sync_packaged_runtime_assets(&legacy_runtime_root, &state_runtime_root)
@@ -317,6 +320,7 @@ async fn build_state(
             events_url: format!("{base_url}/api/desktop/events"),
             session_token,
         },
+        desktop_ui_root,
         runtime_root: runtime_layout.runtime_root.clone(),
         runtime_supervisor,
         agent_runtime: AgentRuntime::new(runtime_layout.runtime_root.clone()),
@@ -1932,7 +1936,8 @@ fn merge_persisted_agents(desktop_state: &mut DesktopState, agent_store: &Deskto
 }
 
 fn router(state: GatewayState) -> Router {
-    Router::new()
+    let desktop_ui_root = state.desktop_ui_root.clone();
+    let app = Router::new()
         .route("/api/desktop/bootstrap", get(bootstrap))
         .route("/api/desktop/state", get(desktop_state))
         .route("/api/desktop/runtime", get(runtime_status))
@@ -2089,7 +2094,25 @@ fn router(state: GatewayState) -> Router {
                 .allow_methods([Method::DELETE, Method::GET, Method::POST, Method::PATCH])
                 .allow_headers(Any),
         )
-        .with_state(state)
+        .with_state(state);
+
+    if let Some(root) = desktop_ui_root {
+        let index_file = root.join("index.html");
+        app.route_service("/", ServeFile::new(index_file.clone()))
+            .route_service("/index.html", ServeFile::new(index_file))
+            .nest_service("/assets", ServeDir::new(root.join("assets")))
+    } else {
+        app
+    }
+}
+
+fn desktop_ui_root_from_packaged_runtime(runtime_layout: &RuntimeLayout) -> Option<PathBuf> {
+    let resource_dir = runtime_layout.runtime_root.parent()?.parent()?;
+    let desktop_ui_root = resource_dir.join("desktop-ui");
+    desktop_ui_root
+        .join("index.html")
+        .is_file()
+        .then_some(desktop_ui_root)
 }
 
 fn authorize_headers(headers: &HeaderMap, state: &GatewayState) -> Result<(), StatusCode> {

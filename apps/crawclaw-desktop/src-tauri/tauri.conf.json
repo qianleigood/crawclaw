@@ -14,6 +14,8 @@
       {
         "title": "CrawClaw Desktop",
         "label": "main",
+        "create": false,
+        "url": "/index.html",
         "width": 1440,
         "height": 960,
         "minWidth": 1120,
@@ -29,7 +31,11 @@
     "active": true,
     "targets": ["dmg", "app", "nsis", "appimage"],
     "icon": ["icons/icon.png"],
+    "macOS": {
+      "exceptionDomain": "localhost"
+    },
     "resources": {
+      "../dist": "desktop-ui",
       "../.runtime/crawclaw": "runtime/crawclaw"
     }
   }

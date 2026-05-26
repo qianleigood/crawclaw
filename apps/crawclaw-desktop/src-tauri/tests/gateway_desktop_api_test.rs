@@ -56,6 +56,50 @@ async fn gateway_bootstrap_returns_loopback_api_and_empty_desktop_state() {
 }
 
 #[tokio::test]
+async fn gateway_serves_packaged_desktop_ui_when_resource_exists() {
+    let resource_dir = Path::new(env!("CARGO_TARGET_TMPDIR"))
+        .join("gateway-desktop-api")
+        .join(format!("desktop-ui-{}", Uuid::new_v4().simple()));
+    let ui_dir = resource_dir.join("desktop-ui");
+    fs::create_dir_all(ui_dir.join("assets")).expect("desktop ui assets dir");
+    fs::write(
+        ui_dir.join("index.html"),
+        r#"<div id="root"></div><script type="module" src="/assets/app.js"></script>"#,
+    )
+    .expect("desktop ui index");
+    fs::write(
+        ui_dir.join("assets").join("app.js"),
+        "window.__desktopUiLoaded = true;\n",
+    )
+    .expect("desktop ui asset");
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout(resource_dir.join("runtime").join("crawclaw")),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, body) = request(
+        server.addr,
+        "GET / HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    assert!(body.contains(r#"<div id="root"></div>"#));
+
+    let (status, body) = request(
+        server.addr,
+        "GET /assets/app.js HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    assert!(body.contains("window.__desktopUiLoaded"));
+}
+
+#[tokio::test]
 async fn gateway_mutations_require_session_header() {
     let server = start_gateway_server(GatewayConfig {
         app_name: "CrawClaw Desktop".to_string(),

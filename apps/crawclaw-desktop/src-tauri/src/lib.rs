@@ -4,9 +4,10 @@ pub mod models;
 pub mod runtime_engine;
 
 use anyhow::Context;
+use std::path::Path;
 use std::sync::Arc;
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Emitter, Manager, State, Theme};
+use tauri::{AppHandle, Emitter, Manager, State, Theme, WebviewUrl};
 use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_notification::NotificationExt as _;
 
@@ -23,6 +24,7 @@ const TRAY_ID: &str = "crawclaw-main";
 #[derive(Clone)]
 struct DesktopApiState {
     base_url: String,
+    ui_url: Option<String>,
 }
 
 #[derive(Clone)]
@@ -95,6 +97,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![desktop_api_base_url])
         .setup(|app| {
+            app.set_activation_policy(tauri::ActivationPolicy::Regular);
             create_menu_bar_tray(app)?;
             install_desktop_native_settings_bridge(Arc::new(TauriSettingsBridge {
                 app: app.handle().clone(),
@@ -103,7 +106,7 @@ pub fn run() {
                 .path()
                 .resource_dir()
                 .context("failed to resolve Tauri resource directory")?;
-            let runtime_layout = resolve_runtime_layout(resource_dir);
+            let runtime_layout = resolve_runtime_layout(resource_dir.clone());
             let config = GatewayConfig {
                 app_name: "CrawClaw Desktop".to_string(),
                 app_version: app.package_info().version.to_string(),
@@ -111,10 +114,11 @@ pub fn run() {
                 session_token: new_gateway_session_token(),
             };
             let server = tauri::async_runtime::block_on(start_gateway_server(config))?;
+            let ui_url = packaged_desktop_ui_url(&resource_dir, &server.base_url);
             app.manage(DesktopApiState {
                 base_url: server.base_url,
+                ui_url,
             });
-            ensure_main_window(app.handle())?;
             Ok(())
         })
         .build(tauri::generate_context!())
@@ -151,21 +155,58 @@ fn create_menu_bar_tray(app: &mut tauri::App) -> tauri::Result<()> {
 fn ensure_main_window(app: &AppHandle) -> tauri::Result<()> {
     let window = if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
         window
+    } else if let Some(window) = create_main_window_from_config(app)? {
+        window
     } else {
-        let Some(window_config) = app
-            .config()
-            .app
-            .windows
-            .iter()
-            .find(|window| window.label == MAIN_WINDOW_LABEL)
-            .or_else(|| app.config().app.windows.first())
-        else {
-            return Ok(());
-        };
-        tauri::WebviewWindowBuilder::from_config(app, window_config)?.build()?
+        return Ok(());
     };
     window.show()?;
     let _ = window.unminimize();
     window.set_focus()?;
     Ok(())
+}
+
+fn create_main_window_from_config(app: &AppHandle) -> tauri::Result<Option<tauri::WebviewWindow>> {
+    if let Some(ui_url) = app
+        .try_state::<DesktopApiState>()
+        .and_then(|state| state.ui_url.clone())
+    {
+        let parsed_url = ui_url.parse().map_err(tauri::Error::InvalidUrl)?;
+        let window = tauri::WebviewWindowBuilder::new(
+            app,
+            MAIN_WINDOW_LABEL,
+            WebviewUrl::External(parsed_url),
+        )
+        .inner_size(1440.0, 960.0)
+        .min_inner_size(1120.0, 700.0)
+        .resizable(true)
+        .auto_resize()
+        .build()?;
+        window.set_title("CrawClaw Desktop")?;
+        return Ok(Some(window));
+    }
+
+    let Some(window_config) = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|window| window.label == MAIN_WINDOW_LABEL)
+        .or_else(|| app.config().app.windows.first())
+    else {
+        return Ok(None);
+    };
+    let window = tauri::WebviewWindowBuilder::from_config(app, window_config)?
+        .auto_resize()
+        .build()?;
+    Ok(Some(window))
+}
+
+fn packaged_desktop_ui_url(resource_dir: &Path, base_url: &str) -> Option<String> {
+    let localhost_base_url = base_url.replacen("http://127.0.0.1:", "http://localhost:", 1);
+    resource_dir
+        .join("desktop-ui")
+        .join("index.html")
+        .is_file()
+        .then(|| format!("{localhost_base_url}/?desktopApiBaseUrl={base_url}"))
 }
