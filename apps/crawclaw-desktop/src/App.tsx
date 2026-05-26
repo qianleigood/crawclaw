@@ -351,19 +351,6 @@ function languageCode(language: string): 'en' | 'zh-CN' {
   return language === 'English' ? 'en' : 'zh-CN'
 }
 
-function navIdForDefaultPage(defaultPage?: string) {
-  if (defaultPage === '记忆') {
-    return 'memory'
-  }
-  if (defaultPage === '智能体') {
-    return 'agent'
-  }
-  if (defaultPage === '新对话') {
-    return 'new-chat'
-  }
-  return null
-}
-
 export default function App() {
   const {
     applyDesktopState,
@@ -429,18 +416,12 @@ export default function App() {
   ])
 
   const applyPreferenceUpdate = (patch: DesktopPreferencesPatch) => {
-    const defaultPageNavId = navIdForDefaultPage(patch.uiDefaults?.defaultPage)
     setDesktopState((state) => ({
       ...state,
-      activeNavId: defaultPageNavId ?? state.activeNavId,
       preferences: mergeDesktopPreferences(state.preferences, patch),
     }))
     void applyDesktopState(async () => {
-      const nextState = await updatePreferences(patch)
-      if (defaultPageNavId) {
-        return selectNav(defaultPageNavId)
-      }
-      return nextState
+      return updatePreferences(patch)
     })
   }
 
