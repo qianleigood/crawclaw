@@ -35,6 +35,7 @@ export function createDesktopUnavailableState(detail = '正在连接本机 Gatew
       slashCommands: [],
       skillCommands: [],
       draftMessages: [],
+      contextSummary: undefined,
     },
     agentWorkspace: {
       selectedAgentId: '',

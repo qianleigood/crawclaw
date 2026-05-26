@@ -29,13 +29,14 @@ use crawclaw_plugin_host::{
 };
 use crawclaw_runtime::{
     special_agents::find_special_agent, AgentModelSelection, AgentRunRequest, AgentRuntime,
-    AgentRuntimeConfirmationPolicy, AgentRuntimePermissionCategory, AgentRuntimePermissionDecision,
-    AgentRuntimePermissionMode, AgentRuntimePermissionPolicy, AgentRuntimePermissionRequest,
-    AgentRuntimePermissionRequester, AgentRuntimeSendOptions, AgentRuntimeToolSelection,
-    ChannelChatType, ChannelInboundEnvelope, DesktopAgentStore, DesktopAgentStoreError,
-    DesktopMemoryRecord, DesktopMemoryStore, DesktopMemoryStoreError, DesktopModelProfileStore,
-    DesktopPreferencesRecord, DesktopPreferencesStore, DesktopPreferencesStoreError,
-    DesktopSessionRecord, DesktopSessionStore, DesktopSessionStoreError,
+    AgentRuntimeConfirmationPolicy, AgentRuntimeContextSummary, AgentRuntimePermissionCategory,
+    AgentRuntimePermissionDecision, AgentRuntimePermissionMode, AgentRuntimePermissionPolicy,
+    AgentRuntimePermissionRequest, AgentRuntimePermissionRequester, AgentRuntimeSendOptions,
+    AgentRuntimeToolSelection, ChannelChatType, ChannelInboundEnvelope, DesktopAgentStore,
+    DesktopAgentStoreError, DesktopMemoryRecord, DesktopMemoryStore, DesktopMemoryStoreError,
+    DesktopModelProfileStore, DesktopPreferencesRecord, DesktopPreferencesStore,
+    DesktopPreferencesStoreError, DesktopSessionRecord, DesktopSessionStore,
+    DesktopSessionStoreError,
 };
 
 use crate::gateway::desktop_state::initial_desktop_state;
@@ -43,7 +44,8 @@ use crate::gateway::runtime_supervisor::RuntimeSupervisor;
 use crate::models::{
     AdvancedDefaults, AgentAvatarProfile, AgentChannelBinding, AgentChannelConfig,
     AgentChannelConfigField, AgentEmotionProfile, AgentProfile, AgentSkill, AgentTool,
-    AgentVoiceConfig, ConfirmationDefaults, ConversationMediaItem, ConversationMessage,
+    AgentVoiceConfig, ConfirmationDefaults, ConversationContextSkillSummary,
+    ConversationContextSummary, ConversationMediaItem, ConversationMessage,
     ConversationWorkflowStep, DesktopApiInfo, DesktopAppInfo, DesktopEvent, DesktopPreferences,
     DesktopState, InstalledPlugin, MemoryDefaults, MemoryItem, NotificationDefaults,
     PermissionStatus, PluginSkill, PluginTool, PrivacyDefaults, RuntimeCheck, SidebarThread,
@@ -92,10 +94,10 @@ use self::desktop_mutation_routes::{
 };
 use self::desktop_native_operations::{
     active_thread_id, append_and_persist_conversation_message,
-    append_and_persist_conversation_message_with_emit, parse_json_body, plugin_installed,
-    normalize_skill_trigger, plugin_skill, plugin_tool, record_desktop_asset_action, resolve_desktop_asset,
-    run_native_state_mutation, string_field, with_string, DesktopNativeMutation, ThreadMutation,
-    ToggleMutation,
+    append_and_persist_conversation_message_with_emit, normalize_skill_trigger, parse_json_body,
+    plugin_installed, plugin_skill, plugin_tool, record_desktop_asset_action,
+    resolve_desktop_asset, run_native_state_mutation, string_field, with_string,
+    DesktopNativeMutation, ThreadMutation, ToggleMutation,
 };
 use self::desktop_plugin_operations::{
     install_plugin, invoke_plugin_tool_operation, invoke_rust_native_plugin_tool,

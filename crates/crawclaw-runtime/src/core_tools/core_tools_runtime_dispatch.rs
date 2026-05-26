@@ -7,7 +7,9 @@ pub(super) enum CoreRuntimeToolKind {
     Image,
     Pdf,
     Tts,
+    ToolSearch,
     DiscoverSkills,
+    LoadSkill,
     Workflow,
     Workflowize,
 }
@@ -20,7 +22,9 @@ impl CoreRuntimeToolKind {
             Self::Image => "image",
             Self::Pdf => "pdf",
             Self::Tts => "tts",
+            Self::ToolSearch => "tool_search",
             Self::DiscoverSkills => "discover_skills",
+            Self::LoadSkill => "load_skill",
             Self::Workflow => "workflow",
             Self::Workflowize => "workflowize",
         }
@@ -33,7 +37,11 @@ impl CoreRuntimeToolKind {
             Self::Image => "Describe images through the Rust native media-understanding registry.",
             Self::Pdf => "Analyze PDF documents through the Rust runtime.",
             Self::Tts => "Convert text to speech through the Rust native TTS provider.",
+            Self::ToolSearch => {
+                "Search deferred tools and activate matching schemas for the next model request."
+            }
             Self::DiscoverSkills => "Search available skills from the Rust runtime skill roots.",
+            Self::LoadSkill => "Load full instructions for an already surfaced skill.",
             Self::Workflow => "Manage local workflow registry entries through the Rust runtime.",
             Self::Workflowize => "Create a local workflow draft through the Rust runtime.",
         }
@@ -100,6 +108,14 @@ impl CoreRuntimeToolKind {
                 },
                 "required": ["text"]
             }),
+            Self::ToolSearch => json!({
+                "type": "object",
+                "properties": {
+                    "query": { "type": "string" },
+                    "limit": { "type": "number" }
+                },
+                "required": ["query"]
+            }),
             Self::DiscoverSkills => json!({
                 "type": "object",
                 "properties": {
@@ -107,6 +123,13 @@ impl CoreRuntimeToolKind {
                     "limit": { "type": "number" }
                 },
                 "required": ["taskDescription"]
+            }),
+            Self::LoadSkill => json!({
+                "type": "object",
+                "properties": {
+                    "skill": { "type": "string" },
+                    "name": { "type": "string" }
+                }
             }),
             Self::Workflow => json!({
                 "type": "object",
@@ -144,7 +167,12 @@ impl CoreRuntimeToolKind {
     fn is_read_only(self) -> bool {
         matches!(
             self,
-            Self::Canvas | Self::Image | Self::Pdf | Self::DiscoverSkills
+            Self::Canvas
+                | Self::Image
+                | Self::Pdf
+                | Self::ToolSearch
+                | Self::DiscoverSkills
+                | Self::LoadSkill
         )
     }
 }
@@ -202,10 +230,14 @@ impl pi::sdk::Tool for CoreRuntimeTool {
             CoreRuntimeToolKind::Tts => run_tts_tool(&self.runtime_root, input)
                 .await
                 .map_err(|error| tool_error(self.kind.name(), error))?,
+            CoreRuntimeToolKind::ToolSearch => run_tool_search_tool(&self.runtime_root, input)
+                .map_err(|error| tool_error(self.kind.name(), error))?,
             CoreRuntimeToolKind::DiscoverSkills => {
                 run_discover_skills_tool(&self.runtime_root, input)
                     .map_err(|error| tool_error(self.kind.name(), error))?
             }
+            CoreRuntimeToolKind::LoadSkill => run_load_skill_tool(&self.runtime_root, input)
+                .map_err(|error| tool_error(self.kind.name(), error))?,
             CoreRuntimeToolKind::Workflow => run_workflow_tool(&self.runtime_root, input)
                 .map_err(|error| tool_error(self.kind.name(), error))?,
             CoreRuntimeToolKind::Workflowize => run_workflowize_tool(&self.runtime_root, input)

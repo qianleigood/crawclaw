@@ -111,6 +111,22 @@ export interface ConversationState {
   slashCommands: CommandSuggestion[]
   skillCommands: SkillSuggestion[]
   draftMessages: DraftMessage[]
+  contextSummary?: ConversationContextSummary
+}
+
+export interface ConversationContextSummary {
+  includedTools: string[]
+  deferredTools: string[]
+  surfacedSkills: ConversationContextSkillSummary[]
+  loadedSkills: string[]
+  memorySnippets: string[]
+  messageCount: number
+  estimatedTokens: number
+}
+
+export interface ConversationContextSkillSummary {
+  name: string
+  description: string
 }
 
 export interface RuntimeCheck {

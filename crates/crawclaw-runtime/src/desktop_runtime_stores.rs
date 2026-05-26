@@ -829,6 +829,7 @@ impl DesktopSessionStore {
             content: content.to_string(),
             source: source.map(ToOwned::to_owned),
             desktop_message: None,
+            model_message: None,
         };
         self.append_transcript_entry(thread_id, &entry)
     }
@@ -846,6 +847,25 @@ impl DesktopSessionStore {
             content: content.to_string(),
             source: source.map(ToOwned::to_owned),
             desktop_message: Some(desktop_message),
+            model_message: None,
+        };
+        self.append_transcript_entry(thread_id, &entry)
+    }
+
+    pub fn append_model_message(
+        &self,
+        thread_id: &str,
+        role: &str,
+        content: &str,
+        source: Option<&str>,
+        model_message: AgentRuntimeMessage,
+    ) -> Result<(), DesktopSessionStoreError> {
+        let entry = DesktopTranscriptEntry {
+            role: role.to_string(),
+            content: content.to_string(),
+            source: source.map(ToOwned::to_owned),
+            desktop_message: None,
+            model_message: Some(model_message),
         };
         self.append_transcript_entry(thread_id, &entry)
     }
@@ -1137,6 +1157,8 @@ pub(super) struct DesktopTranscriptEntry {
     source: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     desktop_message: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    model_message: Option<AgentRuntimeMessage>,
 }
 
 pub(super) fn parse_transcript_entries(
@@ -1181,10 +1203,10 @@ pub(super) fn parse_agent_runtime_history(
                 "assistant" => AgentRuntimeMessageRole::Assistant,
                 _ => return None,
             };
-            Some(Ok(AgentRuntimeMessage {
-                role,
-                content: entry.content,
-            }))
+            let model_message = entry
+                .model_message
+                .unwrap_or_else(|| AgentRuntimeMessage::text(role, entry.content));
+            Some(Ok(model_message))
         })
         .collect()
 }

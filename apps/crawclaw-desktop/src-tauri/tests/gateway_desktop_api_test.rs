@@ -3362,7 +3362,7 @@ esac
         .expect("active provider config"),
     )
     .expect("active provider json");
-    assert_eq!(active_config["runtime"], "native-provider");
+    assert_eq!(active_config["runtime"], "pi-agent-rust");
     assert_eq!(active_config["provider"], "openai-compatible");
     assert_eq!(active_config["baseUrl"], provider_base_url);
     assert_eq!(active_config["model"], "test-model");
@@ -3515,6 +3515,7 @@ esac
     )
     .expect("active provider json");
     assert_eq!(active_config["provider"], "openai-compatible");
+    assert_eq!(active_config["runtime"], "pi-agent-rust");
     assert_eq!(active_config["baseUrl"], first_base_url);
     assert_eq!(active_config["model"], "model-one");
 }
@@ -3931,6 +3932,7 @@ esac
     .expect("transcript should be persisted");
     assert!(transcript.contains(r#""role":"user""#));
     assert!(transcript.contains(r#""content":"hello from desktop""#));
+    assert!(transcript.contains(r#""modelMessage""#));
     assert!(transcript.contains(r#""role":"assistant""#));
     assert!(transcript.contains(r#""content":"provider says hello""#));
     let memory_messages = crawclaw_runtime::memory::RuntimeStore::new(
@@ -4023,6 +4025,19 @@ esac
     assert!(assistant["runId"]
         .as_str()
         .is_some_and(|run_id| run_id.starts_with("run-")));
+    let context_summary = &json["conversation"]["contextSummary"];
+    let included_tools = context_summary["includedTools"]
+        .as_array()
+        .expect("included tools");
+    assert!(included_tools.iter().any(|tool| tool == "tool_search"));
+    assert!(included_tools.iter().any(|tool| tool == "discover_skills"));
+    assert!(included_tools.iter().any(|tool| tool == "load_skill"));
+    let deferred_tools = context_summary["deferredTools"]
+        .as_array()
+        .expect("deferred tools");
+    assert!(deferred_tools.len() > included_tools.len());
+    assert!(deferred_tools.iter().any(|tool| tool == "image"));
+    assert!(!included_tools.iter().any(|tool| tool == "image"));
 
     let events = read_stream_until(&mut events, "event: messageFinal").await;
     assert!(events.contains("event: messageFinal"));

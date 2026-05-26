@@ -507,7 +507,6 @@ pub(super) fn run_discover_skills_tool(runtime_root: &Path, input: Value) -> Res
             skills.push(json!({
                 "name": name,
                 "description": description,
-                "location": path.to_string_lossy(),
                 "score": score
             }));
         }
@@ -526,6 +525,105 @@ pub(super) fn run_discover_skills_tool(runtime_root: &Path, input: Value) -> Res
             "reason": "rust-runtime-scan",
             "source": "rust-native",
             "reminder": "Use a discovered skill when it directly matches the next task."
+        }),
+        false,
+    ))
+}
+
+pub(super) fn run_tool_search_tool(runtime_root: &Path, input: Value) -> Result<Value, String> {
+    let query =
+        required_param_string("tool_search", &input, &["query", "task", "taskDescription"])?;
+    let limit = input.get("limit").and_then(Value::as_u64).unwrap_or(8) as usize;
+    let terms = query
+        .split(|character: char| !character.is_alphanumeric())
+        .map(str::trim)
+        .filter(|term| !term.is_empty())
+        .map(str::to_lowercase)
+        .collect::<Vec<_>>();
+    let mut matches = pi_agent_rust_tool_descriptors_for_runtime_root(runtime_root)
+        .into_iter()
+        .filter(|descriptor| {
+            !matches!(
+                descriptor.name.as_str(),
+                "tool_search" | "discover_skills" | "load_skill"
+            )
+        })
+        .map(|descriptor| {
+            let haystack = format!(
+                "{} {} {}",
+                descriptor.name, descriptor.label, descriptor.description
+            )
+            .to_lowercase();
+            let score = terms
+                .iter()
+                .filter(|term| haystack.contains(term.as_str()))
+                .count();
+            (score, descriptor)
+        })
+        .filter(|(score, _)| *score > 0)
+        .collect::<Vec<_>>();
+    matches.sort_by(|(score_a, tool_a), (score_b, tool_b)| {
+        score_b
+            .cmp(score_a)
+            .then_with(|| tool_a.name.cmp(&tool_b.name))
+    });
+    matches.truncate(limit.max(1));
+    let activated_tools = matches
+        .iter()
+        .map(|(_, descriptor)| descriptor.name.clone())
+        .collect::<Vec<_>>();
+    let result_matches = matches
+        .into_iter()
+        .map(|(score, descriptor)| {
+            json!({
+                "name": descriptor.name,
+                "description": descriptor.description,
+                "readOnly": descriptor.read_only,
+                "schemaActivated": true,
+                "score": score
+            })
+        })
+        .collect::<Vec<_>>();
+    Ok(tool_envelope(
+        "Deferred tool search complete.",
+        json!({
+            "status": "ok",
+            "matches": result_matches,
+            "activatedTools": activated_tools,
+            "activationScope": "next-provider-request",
+            "source": "rust-native"
+        }),
+        false,
+    ))
+}
+
+pub(super) fn run_load_skill_tool(runtime_root: &Path, input: Value) -> Result<Value, String> {
+    let skill = required_param_string("load_skill", &input, &["skill", "name", "id"])?;
+    let normalized = skill.trim().to_lowercase();
+    let mut candidates = load_skill_candidates(runtime_root, &skill);
+    candidates.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.name.cmp(&b.name)));
+    let candidate = candidates
+        .into_iter()
+        .find(|candidate| {
+            candidate.name.eq_ignore_ascii_case(&normalized)
+                || candidate.name.to_lowercase() == normalized
+        })
+        .or_else(|| {
+            load_skill_candidates(runtime_root, "")
+                .into_iter()
+                .find(|candidate| candidate.name.to_lowercase() == normalized)
+        })
+        .ok_or_else(|| format!("load_skill could not find skill: {skill}"))?;
+    Ok(tool_envelope(
+        format!("Loaded skill {}.", candidate.name),
+        json!({
+            "status": "ok",
+            "skill": {
+                "name": candidate.name,
+                "description": candidate.description,
+                "content": candidate.content
+            },
+            "source": "rust-native"
         }),
         false,
     ))

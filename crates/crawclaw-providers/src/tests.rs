@@ -883,6 +883,7 @@ fn builds_streaming_tool_and_multimodal_requests_for_native_transports() {
                 stream: true,
                 tools: vec![tool.clone()],
                 reasoning_level: None,
+                system_prompt: None,
             },
         )
         .unwrap_or_else(|error| panic!("{provider} request should build: {error}"));
@@ -901,6 +902,34 @@ fn builds_streaming_tool_and_multimodal_requests_for_native_transports() {
             "{provider} should opt into streaming at the transport layer"
         );
     }
+}
+
+#[test]
+fn anthropic_messages_request_uses_provider_level_system_prompt() {
+    let request = build_native_provider_conversation_request_with_options(
+        &NativeProviderConfig {
+            provider: "anthropic".to_string(),
+            base_url: Some("https://api.example.test".to_string()),
+            api_key: Some("secret".to_string()),
+            model: Some("claude-test".to_string()),
+            api: None,
+            api_version: None,
+        },
+        &[NativeProviderMessage::user("hello")],
+        &NativeProviderRequestOptions {
+            system_prompt: Some("You are CrawClaw Desktop.".to_string()),
+            ..NativeProviderRequestOptions::default()
+        },
+    )
+    .expect("anthropic request");
+
+    assert_eq!(request.body["system"], "You are CrawClaw Desktop.");
+    let messages = request.body["messages"].as_array().expect("messages");
+    assert_eq!(messages.len(), 1);
+    assert_eq!(messages[0]["role"], "user");
+    assert!(!serde_json::to_string(&messages[0])
+        .expect("message json")
+        .contains("You are CrawClaw Desktop."));
 }
 
 #[test]
@@ -1249,6 +1278,7 @@ async fn streams_openai_compatible_tool_multimodal_request_to_mocked_provider() 
             stream: true,
             tools: vec![tool],
             reasoning_level: None,
+            system_prompt: None,
         },
     )
     .await

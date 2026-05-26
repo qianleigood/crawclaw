@@ -277,6 +277,7 @@ function clearActiveConversation(state: DesktopState): DesktopState {
       ...state.conversation,
       messages: [],
       resultItems: [],
+      contextSummary: undefined,
     },
     sidebar: {
       ...state.sidebar,

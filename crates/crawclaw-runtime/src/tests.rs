@@ -320,10 +320,8 @@ fn rust_runtime_repo_guardrails_keep_desktop_dialogs_app_owned() {
 #[test]
 fn rust_runtime_repo_guardrails_keep_plugin_workspace_full_chain_ui() {
     let root = repo_root();
-    let plugin_workspace_path =
-        root.join("apps/crawclaw-desktop/src/views/plugins-workspace.tsx");
-    let plugin_source =
-        fs::read_to_string(&plugin_workspace_path).expect("read plugin workspace");
+    let plugin_workspace_path = root.join("apps/crawclaw-desktop/src/views/plugins-workspace.tsx");
+    let plugin_source = fs::read_to_string(&plugin_workspace_path).expect("read plugin workspace");
     for needle in [
         "Tools",
         "Skills",
@@ -777,6 +775,10 @@ fn pi_agent_rust_core_tool_registry_uses_crawclaw_tool_names() {
         "lobster",
         "comfyui_workflow",
         "llm-task",
+        "text_to_image",
+        "generate_video",
+        "image_to_video",
+        "understand_image",
         "grep",
         "find",
         "ls",
@@ -795,7 +797,9 @@ fn pi_agent_rust_core_tool_registry_uses_crawclaw_tool_names() {
         "image",
         "pdf",
         "tts",
+        "tool_search",
         "discover_skills",
+        "load_skill",
         "workflow",
         "workflowize",
         "review_task",
@@ -889,6 +893,10 @@ fn grep_find_ls_are_default_rust_native_discovery_tools() {
             "lobster",
             "comfyui_workflow",
             "llm-task",
+            "text_to_image",
+            "generate_video",
+            "image_to_video",
+            "understand_image",
             "grep",
             "find",
             "ls",
@@ -907,7 +915,9 @@ fn grep_find_ls_are_default_rust_native_discovery_tools() {
             "image",
             "pdf",
             "tts",
+            "tool_search",
             "discover_skills",
+            "load_skill",
             "workflow",
             "workflowize",
             "review_task",
@@ -1209,7 +1219,9 @@ fn rust_core_tool_inventory_tracks_native_tools() {
     assert!(definition("image").read_only);
     assert!(definition("pdf").read_only);
     assert!(!definition("tts").read_only);
+    assert!(definition("tool_search").read_only);
     assert!(definition("discover_skills").read_only);
+    assert!(definition("load_skill").read_only);
     assert!(!definition("workflow").read_only);
     assert!(!definition("workflowize").read_only);
     for tool_name in [
@@ -1329,6 +1341,36 @@ async fn core_tools_canvas_message_and_discover_skills_are_rust_backed() {
         .expect("skills")
         .iter()
         .any(|skill| skill["name"] == "demo"));
+    assert!(skills["details"]["skills"]
+        .as_array()
+        .expect("skills")
+        .iter()
+        .all(|skill| skill.get("location").is_none()));
+
+    let tool_search = execute_rust_core_tool(
+        &runtime_root,
+        "tool_search",
+        json!({ "query": "image understanding", "limit": 5 }),
+    )
+    .await
+    .expect("tool search output");
+    assert_eq!(tool_search["details"]["status"], "ok");
+    assert!(tool_search["details"]["activatedTools"]
+        .as_array()
+        .expect("activated tools")
+        .iter()
+        .any(|tool| tool == "image"));
+
+    let loaded_skill =
+        execute_rust_core_tool(&runtime_root, "load_skill", json!({ "skill": "demo" }))
+            .await
+            .expect("load skill output");
+    assert_eq!(loaded_skill["details"]["status"], "ok");
+    assert_eq!(loaded_skill["details"]["skill"]["name"], "demo");
+    assert!(loaded_skill["details"]["skill"]["content"]
+        .as_str()
+        .expect("skill content")
+        .contains("# Demo"));
 
     let _ = fs::remove_dir_all(runtime_root);
 }
@@ -2343,6 +2385,8 @@ async fn pi_agent_rust_provider_bridge_passes_streaming_tools_and_images() {
             api_version: None,
         },
         reasoning_level: None,
+        system_prompt: None,
+        included_tool_names: BTreeSet::new(),
     };
     let context = pi::sdk::ProviderContext::owned(
         None,
@@ -2587,6 +2631,146 @@ impl AgentRuntimeBackend for FakeAgentRuntimeBackend {
             Ok(self.reply.clone())
         })
     }
+}
+
+#[derive(Clone, Debug)]
+struct CapturedAgentRequest {
+    user_text: String,
+    system_sections: Vec<String>,
+    included_tools: Vec<String>,
+    deferred_tools: Vec<String>,
+    surfaced_skills: Vec<String>,
+}
+
+#[derive(Clone)]
+struct CapturingAgentRuntimeBackend {
+    reply: String,
+    requests: Arc<std::sync::Mutex<Vec<CapturedAgentRequest>>>,
+}
+
+impl AgentRuntimeBackend for CapturingAgentRuntimeBackend {
+    fn send_message<'a>(
+        &'a self,
+        request: AgentRuntimeRequest<'a>,
+    ) -> Pin<Box<dyn Future<Output = Result<String, AgentRuntimeError>> + Send + 'a>> {
+        Box::pin(async move {
+            self.requests
+                .lock()
+                .expect("captured requests")
+                .push(CapturedAgentRequest {
+                    user_text: request.user_text.to_string(),
+                    system_sections: request.runtime_context.system_sections.clone(),
+                    included_tools: request
+                        .runtime_context
+                        .context_summary
+                        .included_tools
+                        .clone(),
+                    deferred_tools: request
+                        .runtime_context
+                        .context_summary
+                        .deferred_tools
+                        .clone(),
+                    surfaced_skills: request
+                        .runtime_context
+                        .context_summary
+                        .surfaced_skills
+                        .iter()
+                        .map(|skill| skill.name.clone())
+                        .collect(),
+                });
+            Ok(self.reply.clone())
+        })
+    }
+}
+
+#[tokio::test]
+async fn agent_runtime_builds_goal_scoped_context_before_provider_call() {
+    let runtime_root = unique_test_runtime_root("agent-runtime-context-assembler");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+    fs::create_dir_all(runtime_root.join("skills/imagegen")).expect("skill dir");
+    fs::write(
+        runtime_root.join("skills/imagegen/SKILL.md"),
+        "---\nname: imagegen\ndescription: Generate bitmap images and visual assets.\n---\n# Image generation\n",
+    )
+    .expect("skill file");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_pi_agent_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "context reply".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    let result = runtime
+        .send_message_with_options(
+            "thread-context".to_string(),
+            "Generate an image of a robot".to_string(),
+            AgentRuntimeSendOptions {
+                model_selection: None,
+                tool_selection: AgentRuntimeToolSelection::Default,
+                permission_policy: None,
+                system_prompt: Some("You are a focused desktop agent.".to_string()),
+            },
+        )
+        .await
+        .expect("runtime result");
+
+    assert_eq!(result.context_summary.included_tools[0], "tool_search");
+    assert!(result
+        .context_summary
+        .included_tools
+        .contains(&"discover_skills".to_string()));
+    assert!(result
+        .context_summary
+        .included_tools
+        .contains(&"load_skill".to_string()));
+    assert!(result
+        .context_summary
+        .deferred_tools
+        .contains(&"image".to_string()));
+    assert!(!result
+        .context_summary
+        .included_tools
+        .contains(&"image".to_string()));
+    assert!(result
+        .context_summary
+        .surfaced_skills
+        .iter()
+        .any(|skill| skill.name == "imagegen"));
+
+    let requests = captured.lock().expect("captured requests");
+    let request = requests.first().expect("provider request");
+    assert_eq!(request.user_text, "Generate an image of a robot");
+    assert!(request
+        .system_sections
+        .iter()
+        .any(|section| section.contains("focused desktop agent")));
+    assert_eq!(
+        request.included_tools,
+        result.context_summary.included_tools
+    );
+    assert_eq!(
+        request.deferred_tools,
+        result.context_summary.deferred_tools
+    );
+    assert!(request
+        .surfaced_skills
+        .iter()
+        .any(|skill| skill == "imagegen"));
+
+    let _ = fs::remove_dir_all(runtime_root);
 }
 
 fn unique_test_runtime_root(name: &str) -> PathBuf {

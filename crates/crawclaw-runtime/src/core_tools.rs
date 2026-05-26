@@ -26,7 +26,8 @@ use crate::special_agents::{
 };
 use crate::DesktopSessionStore;
 use crate::{
-    dispatch_native_channel_outbound, invoke_native_plugin_operation, with_native_runtime_context,
+    dispatch_native_channel_outbound, invoke_native_plugin_operation, load_skill_candidates,
+    pi_agent_rust_tool_descriptors_for_runtime_root, with_native_runtime_context,
     AgentModelSelection, AgentRunRequest, AgentRuntime, ChannelChatType, ChannelInboundEnvelope,
     ChannelOutboundAction, ChannelOutboundRequest, NativeChannelDispatchContext,
     NativePluginRuntime, NativeToolRegistration,
@@ -102,7 +103,15 @@ pub(crate) fn build_pi_agent_rust_tool_registry(runtime_root: &Path) -> pi::sdk:
         Box::new(CoreRuntimeTool::new(runtime_root, CoreRuntimeToolKind::Tts)),
         Box::new(CoreRuntimeTool::new(
             runtime_root,
+            CoreRuntimeToolKind::ToolSearch,
+        )),
+        Box::new(CoreRuntimeTool::new(
+            runtime_root,
             CoreRuntimeToolKind::DiscoverSkills,
+        )),
+        Box::new(CoreRuntimeTool::new(
+            runtime_root,
+            CoreRuntimeToolKind::LoadSkill,
         )),
         Box::new(CoreRuntimeTool::new(
             runtime_root,

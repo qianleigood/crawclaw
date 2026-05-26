@@ -44,6 +44,8 @@ pub(super) fn build_pi_agent_rust_tool_registry_for_selection(
 pub(super) struct CrawClawPiProvider {
     pub(super) config: NativeProviderConfig,
     pub(super) reasoning_level: Option<String>,
+    pub(super) system_prompt: Option<String>,
+    pub(super) included_tool_names: BTreeSet<String>,
 }
 
 #[async_trait::async_trait]
@@ -77,9 +79,14 @@ impl pi::sdk::Provider for CrawClawPiProvider {
         let options = NativeProviderRequestOptions {
             stream: true,
             reasoning_level: self.reasoning_level.clone(),
+            system_prompt: self.system_prompt.clone(),
             tools: context
                 .tools
                 .iter()
+                .filter(|tool| {
+                    self.included_tool_names.is_empty()
+                        || self.included_tool_names.contains(tool.name.as_str())
+                })
                 .map(|tool| NativeProviderTool {
                     name: tool.name.clone(),
                     description: Some(tool.description.clone()),
@@ -184,23 +191,21 @@ pub(super) fn pi_messages_to_native_provider_messages(
         .collect()
 }
 
-pub(super) fn agent_history_with_user(
-    history: &[AgentRuntimeMessage],
-    user_text: &str,
+pub(super) fn agent_messages_to_native_provider_messages(
+    messages: &[AgentRuntimeMessage],
 ) -> Vec<NativeProviderMessage> {
-    let mut messages = history
+    messages
         .iter()
         .filter_map(agent_message_to_native_provider_message)
-        .collect::<Vec<_>>();
-    messages.push(NativeProviderMessage::user(user_text));
-    messages
+        .collect()
 }
 
 pub(super) fn agent_message_to_native_provider_message(
     message: &AgentRuntimeMessage,
 ) -> Option<NativeProviderMessage> {
     let content = message.content.trim();
-    if content.is_empty() {
+    let blocks = runtime_message_blocks_to_native_provider_blocks(message);
+    if content.is_empty() && blocks.is_empty() {
         return None;
     }
     Some(NativeProviderMessage {
@@ -209,8 +214,39 @@ pub(super) fn agent_message_to_native_provider_message(
             AgentRuntimeMessageRole::Assistant => NativeProviderMessageRole::Assistant,
         },
         content: content.to_string(),
-        blocks: Vec::new(),
+        blocks,
     })
+}
+
+fn runtime_message_blocks_to_native_provider_blocks(
+    message: &AgentRuntimeMessage,
+) -> Vec<NativeProviderContentBlock> {
+    message
+        .blocks
+        .iter()
+        .filter_map(|block| match block {
+            AgentRuntimeMessageBlock::Text { text } => {
+                Some(NativeProviderContentBlock::text(text.clone()))
+            }
+            AgentRuntimeMessageBlock::Image { mime_type, data } => Some(
+                NativeProviderContentBlock::image_base64(mime_type.clone(), data.clone()),
+            ),
+            AgentRuntimeMessageBlock::ToolUse { id, name, input } => {
+                Some(NativeProviderContentBlock::text(format!(
+                    "[tool_use id={id} name={name} input={}]",
+                    serde_json::to_string(input).unwrap_or_else(|_| "{}".to_string())
+                )))
+            }
+            AgentRuntimeMessageBlock::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+            } => Some(NativeProviderContentBlock::text(format!(
+                "[tool_result tool_use_id={tool_use_id} is_error={is_error}]\n{content}"
+            ))),
+            AgentRuntimeMessageBlock::Meta { .. } => None,
+        })
+        .collect()
 }
 
 pub(super) fn pi_session_from_history(history: &[AgentRuntimeMessage]) -> pi::sdk::Session {

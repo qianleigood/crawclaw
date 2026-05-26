@@ -165,6 +165,7 @@ pub struct NativeProviderRequestOptions {
     pub stream: bool,
     pub tools: Vec<NativeProviderTool>,
     pub reasoning_level: Option<String>,
+    pub system_prompt: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -473,6 +474,9 @@ fn openai_responses_request(
         "model": required(&config.model, "model")?,
         "input": openai_responses_input(messages),
     });
+    if let Some(system_prompt) = normalized_system_prompt(options) {
+        body["instructions"] = Value::String(system_prompt.to_string());
+    }
     apply_openai_responses_options(&mut body, options);
     apply_openai_responses_provider_policy(config, &mut body);
     Ok(NativeProviderRequest {
@@ -512,6 +516,9 @@ fn azure_openai_request(
         "model": required(&config.model, "model")?,
         "input": openai_responses_input(messages),
     });
+    if let Some(system_prompt) = normalized_system_prompt(options) {
+        body["instructions"] = Value::String(system_prompt.to_string());
+    }
     apply_openai_responses_options(&mut body, options);
     Ok(NativeProviderRequest {
         url: format!(
@@ -542,6 +549,9 @@ fn anthropic_messages_request(
         "max_tokens": 1024,
         "messages": native_messages_for_anthropic(messages),
     });
+    if let Some(system_prompt) = normalized_system_prompt(options) {
+        body["system"] = Value::String(system_prompt.to_string());
+    }
     apply_anthropic_options(&mut body, options);
     Ok(NativeProviderRequest {
         url: join_url_path(&base_url, "v1/messages"),
@@ -574,6 +584,11 @@ fn google_generate_content_request(
     let mut body = json!({
         "contents": native_messages_for_google(messages),
     });
+    if let Some(system_prompt) = normalized_system_prompt(options) {
+        body["systemInstruction"] = json!({
+            "parts": [{ "text": system_prompt }]
+        });
+    }
     apply_google_options(&mut body, options);
     let method = if options.stream {
         "streamGenerateContent"
@@ -608,7 +623,7 @@ fn ollama_chat_request(
     }
     let mut body = json!({
         "model": required(&config.model, "model")?,
-        "messages": native_messages_for_ollama(messages),
+        "messages": native_messages_for_ollama_with_system(messages, options),
         "stream": options.stream,
     });
     apply_ollama_options(&mut body, options);
@@ -634,6 +649,9 @@ fn bedrock_converse_request(
     let mut body = json!({
         "messages": native_messages_for_bedrock(messages),
     });
+    if let Some(system_prompt) = normalized_system_prompt(options) {
+        body["system"] = json!([{ "text": system_prompt }]);
+    }
     apply_bedrock_options(&mut body, options);
     let method = if options.stream {
         "converse-stream"
@@ -674,7 +692,7 @@ fn chat_completions_request(
     };
     let mut body = json!({
         "model": required(&config.model, "model")?,
-        "messages": native_messages_for_chat(messages),
+        "messages": native_messages_for_chat_with_system(messages, options),
         "stream": options.stream,
     });
     apply_chat_completions_options(&mut body, options);
@@ -900,6 +918,21 @@ fn native_messages_for_chat(messages: &[NativeProviderMessage]) -> Vec<Value> {
         .collect()
 }
 
+fn native_messages_for_chat_with_system(
+    messages: &[NativeProviderMessage],
+    options: &NativeProviderRequestOptions,
+) -> Vec<Value> {
+    let mut values = Vec::new();
+    if let Some(system_prompt) = normalized_system_prompt(options) {
+        values.push(json!({
+            "role": "system",
+            "content": system_prompt,
+        }));
+    }
+    values.extend(native_messages_for_chat(messages));
+    values
+}
+
 fn native_messages_for_anthropic(messages: &[NativeProviderMessage]) -> Vec<Value> {
     messages
         .iter()
@@ -959,6 +992,29 @@ fn native_messages_for_ollama(messages: &[NativeProviderMessage]) -> Vec<Value> 
             value
         })
         .collect()
+}
+
+fn native_messages_for_ollama_with_system(
+    messages: &[NativeProviderMessage],
+    options: &NativeProviderRequestOptions,
+) -> Vec<Value> {
+    let mut values = Vec::new();
+    if let Some(system_prompt) = normalized_system_prompt(options) {
+        values.push(json!({
+            "role": "system",
+            "content": system_prompt,
+        }));
+    }
+    values.extend(native_messages_for_ollama(messages));
+    values
+}
+
+fn normalized_system_prompt(options: &NativeProviderRequestOptions) -> Option<&str> {
+    options
+        .system_prompt
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
 }
 
 fn native_message_blocks(message: &NativeProviderMessage) -> Vec<NativeProviderContentBlock> {

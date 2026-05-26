@@ -63,6 +63,46 @@ type ChatThreadShowcaseProps = {
   visibleBatchImageTiles: string[]
 }
 
+function ContextSummaryPanel({ conversation }: { conversation: ConversationState }) {
+  const summary = conversation.contextSummary
+  if (!summary) {
+    return null
+  }
+
+  const surfacedSkills = summary.surfacedSkills.map((skill) => skill.name)
+  return (
+    <details className="context-summary-panel">
+      <summary>
+        <span>
+          <Wrench aria-hidden="true" size={14} strokeWidth={2.1} />
+          上下文
+        </span>
+        <small>
+          {summary.includedTools.length} 可见 / {summary.deferredTools.length} 延后 · 约 {summary.estimatedTokens} tokens
+        </small>
+      </summary>
+      <div className="context-summary-grid">
+        <section>
+          <h2>可见工具</h2>
+          <p>{summary.includedTools.join(', ') || '无'}</p>
+        </section>
+        <section>
+          <h2>延后工具</h2>
+          <p>{summary.deferredTools.slice(0, 16).join(', ') || '无'}</p>
+        </section>
+        <section>
+          <h2>Skills</h2>
+          <p>{surfacedSkills.join(', ') || '无'}</p>
+        </section>
+        <section>
+          <h2>Memory</h2>
+          <p>{summary.memorySnippets.join(' · ') || '无'}</p>
+        </section>
+      </div>
+    </details>
+  )
+}
+
 export function ChatThread({
   conversation,
   onDecidePermission,
@@ -73,6 +113,7 @@ export function ChatThread({
 }: ChatThreadProps) {
   return (
     <section className="desktop-content" aria-label="对话工作区">
+      <ContextSummaryPanel conversation={conversation} />
       <ConversationMessageList
         messages={conversation.messages}
         onDecidePermission={onDecidePermission}

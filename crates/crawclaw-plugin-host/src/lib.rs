@@ -116,9 +116,8 @@ fn first_batch_rust_native_tools() -> Vec<PluginHostTool> {
             id: "comfyui_workflow".to_string(),
             plugin_id: "comfyui".to_string(),
             name: "ComfyUI Workflow".to_string(),
-            description:
-                "检查、验证并运行本机 ComfyUI 工作流，用于 AI 生图和自动化出图任务。"
-                    .to_string(),
+            description: "检查、验证并运行本机 ComfyUI 工作流，用于 AI 生图和自动化出图任务。"
+                .to_string(),
             status: "available".to_string(),
             permission: "requiresApproval".to_string(),
             icon: "image".to_string(),
@@ -145,9 +144,8 @@ fn first_batch_rust_native_tools() -> Vec<PluginHostTool> {
             id: "spider_fetch".to_string(),
             plugin_id: "spider-fetch".to_string(),
             name: "Spider Fetch".to_string(),
-            description:
-                "抓取静态或浏览器渲染后的网页内容，用于读取页面正文和结构化资料。"
-                    .to_string(),
+            description: "抓取静态或浏览器渲染后的网页内容，用于读取页面正文和结构化资料。"
+                .to_string(),
             status: "available".to_string(),
             permission: "network".to_string(),
             icon: "search".to_string(),
@@ -160,9 +158,8 @@ fn first_batch_rust_native_tools() -> Vec<PluginHostTool> {
             id: "qwen3_tts_build_payload".to_string(),
             plugin_id: "qwen3-tts".to_string(),
             name: "Qwen3-TTS Payload".to_string(),
-            description:
-                "整理 Qwen3-TTS 本地语音合成请求，把文本和声音参数转换成可执行载荷。"
-                    .to_string(),
+            description: "整理 Qwen3-TTS 本地语音合成请求，把文本和声音参数转换成可执行载荷。"
+                .to_string(),
             status: "available".to_string(),
             permission: "local".to_string(),
             icon: "wrench".to_string(),
@@ -175,8 +172,7 @@ fn first_batch_rust_native_tools() -> Vec<PluginHostTool> {
             id: "qwen3_tts_synthesize".to_string(),
             plugin_id: "qwen3-tts".to_string(),
             name: "Qwen3-TTS Synthesize".to_string(),
-            description: "调用本机 Qwen3-TTS 运行时合成语音，适合本地配音和语音预览。"
-                .to_string(),
+            description: "调用本机 Qwen3-TTS 运行时合成语音，适合本地配音和语音预览。".to_string(),
             status: "available".to_string(),
             permission: "local".to_string(),
             icon: "wrench".to_string(),
@@ -211,7 +207,8 @@ fn runtime_native_plugin_tools(runtime_root: &Path) -> Vec<PluginHostTool> {
     crawclaw_runtime::native_plugin_tool_descriptors_for_runtime_root(runtime_root)
         .into_iter()
         .map(|(plugin_id, tool)| {
-            let permission = native_plugin_tool_permission(&plugin_id, tool.read_only, tool.approval.is_some());
+            let permission =
+                native_plugin_tool_permission(&plugin_id, tool.read_only, tool.approval.is_some());
             PluginHostTool {
                 id: tool.name,
                 plugin_id: plugin_id.clone(),
@@ -722,8 +719,14 @@ fn frontmatter_field(raw: &str, key: &str) -> Option<String> {
         }
         let trimmed = line.trim();
         if let Some(value) = trimmed.strip_prefix(&prefix) {
-            return Some(value.trim().trim_matches('"').trim_matches('\'').to_string())
-                .filter(|value| !value.is_empty());
+            return Some(
+                value
+                    .trim()
+                    .trim_matches('"')
+                    .trim_matches('\'')
+                    .to_string(),
+            )
+            .filter(|value| !value.is_empty());
         }
     }
     None

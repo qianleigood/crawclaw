@@ -1,5 +1,5 @@
-use std::path::Path;
 use std::net::IpAddr;
+use std::path::Path;
 use std::time::Duration;
 
 use base64::Engine;

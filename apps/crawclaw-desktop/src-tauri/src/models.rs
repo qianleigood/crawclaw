@@ -46,7 +46,11 @@ pub struct RuntimeEvent {
 }
 
 #[derive(Clone, Debug, Serialize)]
-#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum DesktopEvent {
     Runtime {
         status: RuntimeStatusValue,
@@ -304,6 +308,27 @@ pub struct ConversationState {
     pub slash_commands: Vec<CommandSuggestion>,
     pub skill_commands: Vec<SkillSuggestion>,
     pub draft_messages: Vec<DraftMessage>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context_summary: Option<ConversationContextSummary>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ConversationContextSummary {
+    pub included_tools: Vec<String>,
+    pub deferred_tools: Vec<String>,
+    pub surfaced_skills: Vec<ConversationContextSkillSummary>,
+    pub loaded_skills: Vec<String>,
+    pub memory_snippets: Vec<String>,
+    pub message_count: usize,
+    pub estimated_tokens: usize,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ConversationContextSkillSummary {
+    pub name: String,
+    pub description: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

@@ -52,6 +52,25 @@ struct DesktopSendContext {
     options: AgentRuntimeSendOptions,
 }
 
+fn conversation_context_summary(summary: AgentRuntimeContextSummary) -> ConversationContextSummary {
+    ConversationContextSummary {
+        included_tools: summary.included_tools,
+        deferred_tools: summary.deferred_tools,
+        surfaced_skills: summary
+            .surfaced_skills
+            .into_iter()
+            .map(|skill| ConversationContextSkillSummary {
+                name: skill.name,
+                description: skill.description,
+            })
+            .collect(),
+        loaded_skills: summary.loaded_skills,
+        memory_snippets: summary.memory_snippets,
+        message_count: summary.message_count,
+        estimated_tokens: summary.estimated_tokens,
+    }
+}
+
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct AddAttachmentMessageInput {
@@ -847,6 +866,18 @@ async fn start_desktop_message_generation_task(
     let task_text = text.clone();
     let task_run_id = run_id.clone();
     let task_assistant_message_id = assistant_message_id.clone();
+    let context_summary = state
+        .agent_runtime
+        .preview_message_context(&send_context.thread_id, &text, &send_context.options)
+        .map(conversation_context_summary)
+        .map_err(|error| {
+            emit_operation_failed(
+                &state,
+                error.code(),
+                format!("Failed to build model context: {}", error.message()),
+            );
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
     let handle = tokio::spawn(async move {
         let _ = start_receiver.await;
         finish_desktop_message_generation(
@@ -886,6 +917,7 @@ async fn start_desktop_message_generation_task(
         &assistant_message_id,
         &run_id,
         &text,
+        Some(context_summary),
     )
     .await
     {
@@ -912,6 +944,7 @@ async fn prepare_running_generation_state(
     assistant_message_id: &str,
     run_id: &str,
     text: &str,
+    context_summary: Option<ConversationContextSummary>,
 ) -> Result<(), StatusCode> {
     let created_thread = {
         let desktop_state = state.desktop_state.read().await;
@@ -965,6 +998,7 @@ async fn prepare_running_generation_state(
             assistant_message_id.to_string(),
             run_id.to_string(),
         ));
+    desktop_state.conversation.context_summary = context_summary;
     Ok(())
 }
 
@@ -1000,6 +1034,9 @@ async fn finish_desktop_message_generation(
                     .conversation
                     .result_items
                     .push(send_result.assistant_text.clone());
+                desktop_state.conversation.context_summary = Some(conversation_context_summary(
+                    send_result.context_summary.clone(),
+                ));
             }
             {
                 let mut active_generation = state.active_generation.lock().await;
@@ -1112,6 +1149,11 @@ async fn run_queued_follow_up_generations(
             &assistant_message_id,
             &run_id,
             &follow_up,
+            state
+                .agent_runtime
+                .preview_message_context(&thread_id, &follow_up, &options)
+                .ok()
+                .map(conversation_context_summary),
         )
         .await
         {
@@ -1154,6 +1196,9 @@ async fn run_queued_follow_up_generations(
                         .conversation
                         .result_items
                         .push(send_result.assistant_text.clone());
+                    desktop_state.conversation.context_summary = Some(
+                        conversation_context_summary(send_result.context_summary.clone()),
+                    );
                 }
                 {
                     let mut active_generation = state.active_generation.lock().await;

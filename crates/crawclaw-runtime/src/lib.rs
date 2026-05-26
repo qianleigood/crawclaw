@@ -16,12 +16,14 @@ mod message_policy;
 mod native_plugin_registry;
 pub mod special_agents;
 
+mod agent_context;
 mod agent_provider_bridge;
 mod agent_runtime_backend;
 mod agent_runtime_permissions;
 mod agent_runtime_types;
 mod desktop_runtime_stores;
 mod runtime_tool_catalog;
+use self::agent_context::*;
 use self::agent_provider_bridge::*;
 pub use self::agent_runtime_backend::*;
 pub use self::agent_runtime_permissions::*;

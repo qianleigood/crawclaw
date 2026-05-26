@@ -21,6 +21,7 @@ pub struct AgentSendResult {
     pub thread_id: String,
     pub user_text: String,
     pub assistant_text: String,
+    pub context_summary: AgentRuntimeContextSummary,
     pub memory_result: Option<Result<Value, String>>,
 }
 
@@ -120,20 +121,6 @@ pub(super) fn tool_selection_from_enabled_tools(
     } else {
         AgentRuntimeToolSelection::AllowList(enabled_tools)
     }
-}
-
-pub(super) fn user_text_with_system_prompt(
-    system_prompt: &Option<String>,
-    user_text: &str,
-) -> String {
-    let Some(system_prompt) = system_prompt
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-    else {
-        return user_text.to_string();
-    };
-    format!("{system_prompt}\n\n用户消息:\n{}", user_text.trim())
 }
 
 impl AgentRuntime {
@@ -345,6 +332,19 @@ impl AgentRuntime {
             .await
     }
 
+    pub fn preview_message_context(
+        &self,
+        thread_id: &str,
+        user_text: &str,
+        options: &AgentRuntimeSendOptions,
+    ) -> Result<AgentRuntimeContextSummary, AgentRuntimeError> {
+        let history = self.load_thread_history(thread_id)?;
+        Ok(
+            build_runtime_model_context(&self.runtime_root, user_text, &history, options)
+                .context_summary,
+        )
+    }
+
     async fn send_message_with_options_inner(
         &self,
         thread_id: String,
@@ -360,7 +360,8 @@ impl AgentRuntime {
         );
         let config = self.read_provider_config()?;
         let history = self.load_thread_history(&thread_id)?;
-        let provider_user_text = user_text_with_system_prompt(&options.system_prompt, &user_text);
+        let runtime_context =
+            build_runtime_model_context(&self.runtime_root, &user_text, &history, &options);
         let model_selection = options.model_selection.as_ref();
         let assistant_text = match config.runtime_mode() {
             DesktopAgentRuntimeMode::PiAgentRust => {
@@ -371,8 +372,9 @@ impl AgentRuntime {
                     .send_message(AgentRuntimeRequest {
                         runtime_root: &self.runtime_root,
                         thread_id: &thread_id,
-                        user_text: &provider_user_text,
+                        user_text: &user_text,
                         history: history.clone(),
+                        runtime_context: runtime_context.clone(),
                         provider_config,
                         reasoning_level: model_selection
                             .and_then(|model| model.reasoning_level.clone()),
@@ -390,8 +392,9 @@ impl AgentRuntime {
                     .send_message(AgentRuntimeRequest {
                         runtime_root: &self.runtime_root,
                         thread_id: &thread_id,
-                        user_text: &provider_user_text,
+                        user_text: &user_text,
                         history: history.clone(),
+                        runtime_context: runtime_context.clone(),
                         provider_config,
                         reasoning_level: model_selection
                             .and_then(|model| model.reasoning_level.clone()),
@@ -428,6 +431,7 @@ impl AgentRuntime {
             thread_id,
             user_text,
             assistant_text,
+            context_summary: runtime_context.context_summary,
             memory_result,
         })
     }
@@ -440,7 +444,8 @@ impl AgentRuntime {
     ) -> Result<AgentSendResult, AgentRuntimeError> {
         let config = self.read_provider_config()?;
         let history = self.load_thread_history(&thread_id)?;
-        let provider_user_text = user_text_with_system_prompt(&options.system_prompt, &user_text);
+        let runtime_context =
+            build_runtime_model_context(&self.runtime_root, &user_text, &history, &options);
         let model_selection = options.model_selection.as_ref();
         let assistant_text = match config.runtime_mode() {
             DesktopAgentRuntimeMode::PiAgentRust => {
@@ -451,8 +456,9 @@ impl AgentRuntime {
                     .send_message(AgentRuntimeRequest {
                         runtime_root: &self.runtime_root,
                         thread_id: &thread_id,
-                        user_text: &provider_user_text,
+                        user_text: &user_text,
                         history: history.clone(),
+                        runtime_context: runtime_context.clone(),
                         provider_config,
                         reasoning_level: model_selection
                             .and_then(|model| model.reasoning_level.clone()),
@@ -470,8 +476,9 @@ impl AgentRuntime {
                     .send_message(AgentRuntimeRequest {
                         runtime_root: &self.runtime_root,
                         thread_id: &thread_id,
-                        user_text: &provider_user_text,
+                        user_text: &user_text,
                         history,
+                        runtime_context: runtime_context.clone(),
                         provider_config,
                         reasoning_level: model_selection
                             .and_then(|model| model.reasoning_level.clone()),
@@ -487,6 +494,7 @@ impl AgentRuntime {
             thread_id,
             user_text,
             assistant_text,
+            context_summary: runtime_context.context_summary,
             memory_result: None,
         })
     }
@@ -542,10 +550,22 @@ impl AgentRuntime {
     ) -> Result<(), AgentRuntimeError> {
         let store = DesktopSessionStore::new(self.runtime_root.clone());
         store
-            .append_message(thread_id, "user", user_text, Some("agent"))
+            .append_model_message(
+                thread_id,
+                "user",
+                user_text,
+                Some("agent"),
+                AgentRuntimeMessage::text(AgentRuntimeMessageRole::User, user_text),
+            )
             .map_err(|error| AgentRuntimeError::TranscriptFailed(error.to_string()))?;
         store
-            .append_message(thread_id, "assistant", assistant_text, Some("agent"))
+            .append_model_message(
+                thread_id,
+                "assistant",
+                assistant_text,
+                Some("agent"),
+                AgentRuntimeMessage::text(AgentRuntimeMessageRole::Assistant, assistant_text),
+            )
             .map_err(|error| AgentRuntimeError::TranscriptFailed(error.to_string()))?;
         Ok(())
     }
@@ -659,12 +679,14 @@ impl AgentRuntimeBackend for NativeProviderRuntimeBackend {
         request: AgentRuntimeRequest<'a>,
     ) -> Pin<Box<dyn Future<Output = Result<String, AgentRuntimeError>> + Send + 'a>> {
         Box::pin(async move {
-            let messages = agent_history_with_user(&request.history, request.user_text);
+            let messages =
+                agent_messages_to_native_provider_messages(&request.runtime_context.messages);
             send_native_provider_conversation_with_options(
                 &request.provider_config,
                 &messages,
                 &NativeProviderRequestOptions {
                     reasoning_level: request.reasoning_level.clone(),
+                    system_prompt: request.runtime_context.system_prompt(),
                     ..NativeProviderRequestOptions::default()
                 },
             )
@@ -683,6 +705,14 @@ impl AgentRuntimeBackend for PiAgentRuntimeBackend {
             let provider = Arc::new(CrawClawPiProvider {
                 config: request.provider_config.clone(),
                 reasoning_level: request.reasoning_level.clone(),
+                system_prompt: request.runtime_context.system_prompt(),
+                included_tool_names: request
+                    .runtime_context
+                    .context_summary
+                    .included_tools
+                    .iter()
+                    .cloned()
+                    .collect(),
             });
             let tools = build_pi_agent_rust_tool_registry_for_selection(
                 request.runtime_root,
