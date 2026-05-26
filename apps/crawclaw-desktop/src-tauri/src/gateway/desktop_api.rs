@@ -47,7 +47,7 @@ use crate::models::{
     ConversationWorkflowStep, DesktopApiInfo, DesktopAppInfo, DesktopEvent, DesktopPreferences,
     DesktopState, InstalledPlugin, MemoryDefaults, MemoryItem, NotificationDefaults,
     PermissionStatus, PluginSkill, PluginTool, PrivacyDefaults, RuntimeCheck, SidebarThread,
-    TaskDefaults, UiDefaults,
+    SkillSuggestion, TaskDefaults, UiDefaults,
 };
 use crate::runtime_engine::RuntimeLayout;
 
@@ -93,7 +93,7 @@ use self::desktop_mutation_routes::{
 use self::desktop_native_operations::{
     active_thread_id, append_and_persist_conversation_message,
     append_and_persist_conversation_message_with_emit, parse_json_body, plugin_installed,
-    plugin_skill, plugin_tool, record_desktop_asset_action, resolve_desktop_asset,
+    normalize_skill_trigger, plugin_skill, plugin_tool, record_desktop_asset_action, resolve_desktop_asset,
     run_native_state_mutation, string_field, with_string, DesktopNativeMutation, ThreadMutation,
     ToggleMutation,
 };
@@ -453,6 +453,7 @@ fn merge_plugin_manifest(desktop_state: &mut DesktopState, runtime_layout: &Runt
                 .into_iter()
                 .map(plugin_installed)
                 .collect();
+            sync_conversation_skill_commands(desktop_state);
         }
         Err(error) => desktop_state
             .conversation
@@ -481,8 +482,29 @@ async fn refresh_plugins_workspace(state: &GatewayState) -> Result<(), StatusCod
         .into_iter()
         .map(plugin_installed)
         .collect();
+    sync_conversation_skill_commands(&mut desktop_state);
     desktop_state.active_nav_id = "plugins".to_string();
     Ok(())
+}
+
+fn sync_conversation_skill_commands(desktop_state: &mut DesktopState) {
+    desktop_state.conversation.skill_commands = desktop_state
+        .plugins_workspace
+        .skills
+        .iter()
+        .filter(|skill| skill.enabled)
+        .map(skill_suggestion_from_plugin_skill)
+        .collect();
+}
+
+fn skill_suggestion_from_plugin_skill(skill: &PluginSkill) -> SkillSuggestion {
+    SkillSuggestion {
+        id: skill.id.clone(),
+        label: skill.name.clone(),
+        mention: normalize_skill_trigger(skill.trigger.clone()),
+        detail: skill.description.clone(),
+        icon: skill.icon.clone(),
+    }
 }
 
 fn resolve_core_skills_root() -> Option<PathBuf> {

@@ -1,9 +1,9 @@
 use crate::models::{
-    AdvancedDefaults, AgentWorkspaceState, ConfirmationDefaults, ConversationState,
-    DesktopPreferences, DesktopState, MemoryDefaults, MemoryDreamState, MemoryWorkspaceState,
-    NavItem, NotificationDefaults, PermissionRequest, PermissionStatus, PluginsWorkspaceState,
-    PrivacyDefaults, RuntimeCheck, RuntimeStatus, RuntimeStatusValue, SidebarState, TaskDefaults,
-    UiDefaults,
+    AdvancedDefaults, AgentWorkspaceState, CommandSuggestion, ConfirmationDefaults,
+    ConversationState, DesktopPreferences, DesktopState, MemoryDefaults, MemoryDreamState,
+    MemoryWorkspaceState, NavItem, NotificationDefaults, PermissionRequest, PermissionStatus,
+    PluginsWorkspaceState, PrivacyDefaults, RuntimeCheck, RuntimeStatus, RuntimeStatusValue,
+    SidebarState, TaskDefaults, UiDefaults,
 };
 
 pub fn initial_desktop_state(runtime: &RuntimeStatus) -> DesktopState {
@@ -42,7 +42,7 @@ pub fn initial_desktop_state(runtime: &RuntimeStatus) -> DesktopState {
                     tone: runtime_status_tone(&runtime.status).to_string(),
                 },
             ],
-            slash_commands: Vec::new(),
+            slash_commands: default_slash_commands(),
             skill_commands: Vec::new(),
             draft_messages: Vec::new(),
         },
@@ -179,6 +179,33 @@ fn nav_item(id: &str, label: &str, icon: &str) -> NavItem {
     NavItem {
         id: id.to_string(),
         label: label.to_string(),
+        icon: icon.to_string(),
+    }
+}
+
+fn default_slash_commands() -> Vec<CommandSuggestion> {
+    vec![
+        command_suggestion("help", "帮助", "/help", "查看可用命令和当前会话状态。", "messageCircle"),
+        command_suggestion("skills", "技能", "/skills", "列出当前可调用的技能命令。", "sparkles"),
+        command_suggestion("verbose", "详细模式", "/verbose", "查看或切换工具输出可见性。", "wrench"),
+        command_suggestion("think", "思考等级", "/think", "为当前会话调整推理强度。", "brain"),
+        command_suggestion("model", "模型", "/model", "查看或切换当前会话模型。", "bot"),
+        command_suggestion("queue", "队列", "/queue", "查看或管理排队任务。", "clock3"),
+    ]
+}
+
+fn command_suggestion(
+    id: &str,
+    label: &str,
+    command: &str,
+    detail: &str,
+    icon: &str,
+) -> CommandSuggestion {
+    CommandSuggestion {
+        id: id.to_string(),
+        label: label.to_string(),
+        command: command.to_string(),
+        detail: detail.to_string(),
         icon: icon.to_string(),
     }
 }

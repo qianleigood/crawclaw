@@ -414,6 +414,18 @@ esac
         json["desktopState"]["pluginsWorkspace"]["skills"][0]["trigger"],
         "@review"
     );
+    assert!(json["desktopState"]["conversation"]["slashCommands"]
+        .as_array()
+        .expect("slash commands")
+        .iter()
+        .any(|command| command["command"] == "/verbose"));
+    assert!(json["desktopState"]["conversation"]["skillCommands"]
+        .as_array()
+        .expect("skill commands")
+        .iter()
+        .any(|skill| skill["id"] == "plugin-skill-review"
+            && skill["mention"] == "@review"
+            && skill["label"] == "Review"));
 }
 
 #[cfg(unix)]
