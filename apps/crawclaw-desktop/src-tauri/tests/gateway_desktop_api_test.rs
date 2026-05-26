@@ -4028,6 +4028,10 @@ esac
     let context_summary = &json["conversation"]["contextSummary"];
     assert_eq!(context_summary["profileKind"], "normal");
     assert_eq!(context_summary["parentContextPolicy"], "current_session");
+    assert_eq!(context_summary["agentDefinition"], "main");
+    assert_eq!(context_summary["projectedMessageCount"], 1);
+    assert_eq!(context_summary["budgetState"], "within-budget");
+    assert_eq!(context_summary["overflowRetryEnabled"], false);
     assert_eq!(context_summary["compactionActive"], false);
     assert_eq!(context_summary["retainedMessageCount"], 0);
     assert!(context_summary.get("compactedThrough").is_none());

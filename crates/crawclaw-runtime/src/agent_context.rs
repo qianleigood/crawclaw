@@ -68,8 +68,11 @@ pub(crate) fn build_runtime_model_context(
         Vec::new()
     };
     let compaction = compaction_summary(runtime_root, thread_id, history, profile);
-    let projected_history = project_compacted_history(runtime_root, thread_id, history, &compaction);
+    let projected_history =
+        project_compacted_history(runtime_root, thread_id, history, &compaction);
     let parent_messages = parent_context_messages(runtime_root, profile);
+    let parent_message_count = parent_messages.len();
+    let projected_history_message_count = projected_history.len();
     let mut messages = parent_messages;
     messages.extend(projected_history);
     messages.push(AgentRuntimeMessage::text(
@@ -85,13 +88,11 @@ pub(crate) fn build_runtime_model_context(
     {
         system_sections.push(system_prompt.to_string());
     }
-    if let Some(system_prompt) = profile
-        .system_prompt
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-    {
-        system_sections.push(system_prompt.to_string());
+    if let Some(system_prompt) = agent_prompts::render_agent_prompt(profile) {
+        let system_prompt = system_prompt.trim();
+        if !system_prompt.is_empty() {
+            system_sections.push(system_prompt.to_string());
+        }
     }
     if let Some(section) = compaction_system_section(runtime_root, thread_id) {
         system_sections.push(section);
@@ -115,9 +116,33 @@ pub(crate) fn build_runtime_model_context(
         &surfaced_skills,
         &memory_snippets,
     );
+    let projection = ContextProjection {
+        profile_kind: profile.kind.as_summary_str().to_string(),
+        parent_context_policy: profile.parent_context_policy.as_summary_str().to_string(),
+        history_message_count: history.len(),
+        parent_message_count,
+        projected_history_message_count,
+        projected_message_count: messages.len(),
+        retained_tail_message_count: compaction.retained_message_count,
+        compaction_active: compaction.active,
+        collapse_state: if compaction.active {
+            "summary-plus-tail".to_string()
+        } else {
+            "none".to_string()
+        },
+    };
+    let budget = ContextBudgetReport {
+        estimated_tokens,
+        max_prompt_tokens: 0,
+        state: "within-budget".to_string(),
+        overflow_retry_enabled: false,
+    };
     let context_summary = AgentRuntimeContextSummary {
         profile_kind: profile.kind.as_summary_str().to_string(),
         parent_context_policy: profile.parent_context_policy.as_summary_str().to_string(),
+        agent_definition: Some(agent_definition_id(profile)),
+        projection,
+        budget,
         included_tools: included_tool_schemas
             .iter()
             .map(|descriptor| descriptor.name.clone())
@@ -142,6 +167,10 @@ pub(crate) fn build_runtime_model_context(
         loaded_skill_contents,
         context_summary,
     }
+}
+
+fn agent_definition_id(profile: &AgentRunProfile) -> String {
+    agent_prompts::default_agent_definition(profile).id
 }
 
 fn tool_descriptors_for_context(
@@ -439,6 +468,8 @@ fn compaction_summary(
     AgentRuntimeCompactionSummary {
         active,
         compacted_through: state.compacted_through_message_id,
+        first_kept_message_id: state.first_kept_message_id,
+        tail_start_message_id: state.tail_start_message_id,
         retained_message_count,
     }
 }
@@ -479,6 +510,8 @@ fn project_compacted_history(
 #[derive(Default)]
 struct CompactionState {
     compacted_through_message_id: Option<String>,
+    first_kept_message_id: Option<String>,
+    tail_start_message_id: Option<String>,
     tail_start_message_index: Option<usize>,
 }
 
@@ -496,6 +529,14 @@ fn read_compaction_state(runtime_root: &Path, thread_id: &str) -> CompactionStat
     CompactionState {
         compacted_through_message_id: value
             .get("compactedThroughMessageId")
+            .and_then(Value::as_str)
+            .map(ToOwned::to_owned),
+        first_kept_message_id: value
+            .get("firstKeptMessageId")
+            .and_then(Value::as_str)
+            .map(ToOwned::to_owned),
+        tail_start_message_id: value
+            .get("tailStartMessageId")
             .and_then(Value::as_str)
             .map(ToOwned::to_owned),
         tail_start_message_index: value
@@ -552,9 +593,7 @@ fn tool_result_ids(messages: &[AgentRuntimeMessage]) -> BTreeSet<String> {
         .iter()
         .flat_map(|message| message.blocks.iter())
         .filter_map(|block| match block {
-            AgentRuntimeMessageBlock::ToolResult { tool_use_id, .. } => {
-                Some(tool_use_id.clone())
-            }
+            AgentRuntimeMessageBlock::ToolResult { tool_use_id, .. } => Some(tool_use_id.clone()),
             _ => None,
         })
         .collect()

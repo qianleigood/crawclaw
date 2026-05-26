@@ -1281,9 +1281,11 @@ fn rust_tool_catalog_artifact_uses_runtime_inventory() {
     let sections = payload["sections"].as_array().expect("sections");
     let core_tools = payload["coreTools"].as_array().expect("core tools");
     let native_tools = payload["nativeTools"].as_array().expect("native tools");
+    let mcp_tools = payload["mcpTools"].as_array().expect("mcp tools");
 
     assert!(sections.iter().any(|section| section["id"] == "runtime"));
     assert!(core_tools.iter().any(|tool| tool["id"] == "bash"));
+    assert!(mcp_tools.is_empty());
     assert!(native_tools.iter().any(|tool| {
         tool["id"] == "browser"
             && tool["source"] == "native-plugin"
@@ -1387,6 +1389,37 @@ async fn direct_runtime_worker_rejects_special_agent_only_tools() {
     .expect_err("direct worker should reject special-only tool");
 
     assert!(error.contains("special-agent-only"));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn profiled_tool_runtime_allows_special_agent_only_tools() {
+    let runtime_root = unique_test_runtime_root("profiled-special-tool-runtime");
+    fs::create_dir_all(runtime_root.join("memory/session-summary")).expect("summary dir");
+    fs::write(
+        runtime_root.join("memory/session-summary/main.md"),
+        "# Summary\n\nProfiled read.\n",
+    )
+    .expect("summary file");
+
+    let output = execute_rust_core_tool_for_profile(
+        &runtime_root,
+        "session_summary_file_read",
+        json!({ "scope": "main" }),
+        AgentRunProfileKind::Compaction,
+        Some("session-summary"),
+    )
+    .await
+    .expect("profiled special tool output");
+
+    assert_eq!(output["details"]["profileKind"], "compaction");
+    assert_eq!(output["details"]["specialAgent"], "session-summary");
+    assert_eq!(output["details"]["toolExecution"]["status"], "completed");
+    assert!(output["text"]
+        .as_str()
+        .expect("output text")
+        .contains("Profiled read"));
 
     let _ = fs::remove_dir_all(runtime_root);
 }
@@ -1575,7 +1608,9 @@ async fn rust_native_session_tools_manage_subagent_sessions() {
     let runtime_root = unique_test_runtime_root("pi-agent-rust-session-tools");
     fs::create_dir_all(&runtime_root).expect("runtime root");
     let registry = build_pi_agent_rust_tool_registry(&runtime_root);
-    let spawn = registry.get("subagents_spawn").expect("subagents_spawn tool");
+    let spawn = registry
+        .get("subagents_spawn")
+        .expect("subagents_spawn tool");
     let list = registry.get("sessions_list").expect("sessions_list tool");
     let history = registry
         .get("sessions_history")
@@ -1937,50 +1972,27 @@ async fn agent_runtime_run_turn_emits_rust_event_contract() {
     assert_eq!(result.run_id, "run-1");
     assert_eq!(result.session_key, "thread-events");
     assert_eq!(result.assistant_text, "hello from run_turn");
-    assert_eq!(
-        serde_json::to_value(&result.events).expect("events json"),
-        json!([
-            {
-                "type": "runStarted",
-                "runId": "run-1",
-                "agentId": "main",
-                "sessionKey": "thread-events"
-            },
-            {
-                "type": "replyPayload",
-                "runId": "run-1",
-                "payload": {
-                    "text": "hello from run_turn"
-                }
-            },
-            {
-                "type": "transcriptAppended",
-                "runId": "run-1",
-                "sessionKey": "thread-events",
-                "role": "assistant",
-                "messageId": "run-1:assistant"
-            },
-            {
-                "type": "toolResult",
-                "runId": "run-1",
-                "callId": "run-1:memory-after-turn",
-                "toolName": "memory.afterTurn",
-                "result": {
-                    "status": "ok",
-                    "ingest": {
-                        "ingestedCount": 2
-                    },
-                    "durableExtraction": true,
-                    "experienceExtraction": true,
-                    "sessionSummary": true
-                }
-            },
-            {
-                "type": "runCompleted",
-                "runId": "run-1"
-            }
-        ])
-    );
+    assert_eq!(result.context_summary.profile_kind, "normal");
+    let events = serde_json::to_value(&result.events).expect("events json");
+    let events = events.as_array().expect("events array");
+    assert!(events.iter().any(|event| event["type"] == "runStarted"));
+    assert!(events
+        .iter()
+        .any(|event| event["type"] == "contextProjected"
+            && event["projection"]["profileKind"] == "normal"));
+    assert!(events.iter().any(|event| event["type"] == "providerBlock"
+        && event["blockType"] == "text"
+        && event["text"] == "hello from run_turn"));
+    assert!(events.iter().any(|event| event["type"] == "replyPayload"
+        && event["payload"]["text"] == "hello from run_turn"));
+    assert!(events
+        .iter()
+        .any(|event| event["type"] == "transcriptAppended"
+            && event["messageId"] == "run-1:assistant"));
+    assert!(events
+        .iter()
+        .any(|event| event["type"] == "toolResult" && event["toolName"] == "memory.afterTurn"));
+    assert!(events.iter().any(|event| event["type"] == "runCompleted"));
 
     let transcript = fs::read_to_string(runtime_root.join("sessions").join("thread-events.jsonl"))
         .expect("transcript");
@@ -2328,33 +2340,21 @@ async fn agent_runtime_btw_turn_is_ephemeral_and_marks_reply_metadata() {
         .expect("btw run turn");
 
     assert_eq!(result.assistant_text, "side answer");
-    assert_eq!(
-        serde_json::to_value(&result.events).expect("events json"),
-        json!([
-            {
-                "type": "runStarted",
-                "runId": "run-btw",
-                "agentId": "main",
-                "sessionKey": "thread-btw"
-            },
-            {
-                "type": "replyPayload",
-                "runId": "run-btw",
-                "payload": {
-                    "text": "side answer",
-                    "metadata": {
-                        "btw": {
-                            "question": "what changed?"
-                        }
-                    }
-                }
-            },
-            {
-                "type": "runCompleted",
-                "runId": "run-btw"
-            }
-        ])
-    );
+    assert_eq!(result.context_summary.profile_kind, "btw");
+    let events = serde_json::to_value(&result.events).expect("events json");
+    let events = events.as_array().expect("events array");
+    assert!(events.iter().any(|event| event["type"] == "runStarted"));
+    assert!(events
+        .iter()
+        .any(|event| event["type"] == "contextProjected"
+            && event["projection"]["profileKind"] == "btw"));
+    assert!(events
+        .iter()
+        .any(|event| event["type"] == "providerBlock" && event["text"] == "side answer"));
+    assert!(events.iter().any(|event| event["type"] == "replyPayload"
+        && event["payload"]["text"] == "side answer"
+        && event["payload"]["metadata"]["btw"]["question"] == "what changed?"));
+    assert!(events.iter().any(|event| event["type"] == "runCompleted"));
     assert!(!runtime_root
         .join("sessions")
         .join("thread-btw.jsonl")
@@ -2665,13 +2665,14 @@ impl AgentRuntimeBackend for FakeAgentRuntimeBackend {
     fn send_message<'a>(
         &'a self,
         request: AgentRuntimeRequest<'a>,
-    ) -> Pin<Box<dyn Future<Output = Result<String, AgentRuntimeError>> + Send + 'a>> {
+    ) -> Pin<Box<dyn Future<Output = Result<AgentBackendResult, AgentRuntimeError>> + Send + 'a>>
+    {
         Box::pin(async move {
             assert_eq!(request.provider_config.provider, "test-provider");
             assert_eq!(request.provider_config.model.as_deref(), Some("test-model"));
             assert_eq!(request.provider_config.api_key.as_deref(), Some("test-key"));
             assert!(request.history.is_empty());
-            Ok(self.reply.clone())
+            Ok(AgentBackendResult::text(self.reply.clone()))
         })
     }
 }
@@ -2702,7 +2703,8 @@ impl AgentRuntimeBackend for CapturingAgentRuntimeBackend {
     fn send_message<'a>(
         &'a self,
         request: AgentRuntimeRequest<'a>,
-    ) -> Pin<Box<dyn Future<Output = Result<String, AgentRuntimeError>> + Send + 'a>> {
+    ) -> Pin<Box<dyn Future<Output = Result<AgentBackendResult, AgentRuntimeError>> + Send + 'a>>
+    {
         Box::pin(async move {
             self.requests
                 .lock()
@@ -2756,7 +2758,28 @@ impl AgentRuntimeBackend for CapturingAgentRuntimeBackend {
                         .activated_tools
                         .clone(),
                 });
-            Ok(self.reply.clone())
+            Ok(AgentBackendResult::text(self.reply.clone()))
+        })
+    }
+}
+
+#[derive(Clone)]
+struct LoopEventAgentRuntimeBackend {
+    reply: String,
+    loop_events: Vec<AgentLoopEvent>,
+}
+
+impl AgentRuntimeBackend for LoopEventAgentRuntimeBackend {
+    fn send_message<'a>(
+        &'a self,
+        _request: AgentRuntimeRequest<'a>,
+    ) -> Pin<Box<dyn Future<Output = Result<AgentBackendResult, AgentRuntimeError>> + Send + 'a>>
+    {
+        Box::pin(async move {
+            Ok(AgentBackendResult {
+                assistant_text: self.reply.clone(),
+                loop_events: self.loop_events.clone(),
+            })
         })
     }
 }
@@ -2835,6 +2858,10 @@ async fn agent_runtime_builds_goal_scoped_context_before_provider_call() {
         .system_sections
         .iter()
         .any(|section| section.contains("focused desktop agent")));
+    assert!(request
+        .system_sections
+        .iter()
+        .any(|section| section.contains("CrawClaw Rust agent kernel")));
     assert_eq!(
         request.included_tools,
         result.context_summary.included_tools
@@ -2905,7 +2932,10 @@ async fn tool_search_activation_is_runtime_state_for_next_context() {
     )
     .await
     .expect("tool search");
-    assert_eq!(output["details"]["activationScope"], "next-provider-request");
+    assert_eq!(
+        output["details"]["activationScope"],
+        "next-provider-request"
+    );
     assert!(output["details"]["activatedTools"]
         .as_array()
         .expect("activated tools")
@@ -2971,7 +3001,10 @@ async fn loaded_skill_state_enters_next_provider_context() {
         .await
         .expect("send with loaded skill");
 
-    assert_eq!(result.context_summary.loaded_skills, vec!["demo".to_string()]);
+    assert_eq!(
+        result.context_summary.loaded_skills,
+        vec!["demo".to_string()]
+    );
     let requests = captured.lock().expect("captured requests");
     let request = requests.first().expect("provider request");
     assert_eq!(request.loaded_skills, vec!["demo".to_string()]);
@@ -3065,6 +3098,207 @@ async fn agent_runtime_special_profile_applies_definition_prompt_and_tool_policy
         .included_tools
         .contains(&"session_summary_file_read".to_string()));
     assert!(!request.included_tools.contains(&"image".to_string()));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn agent_runtime_run_turn_exposes_loop_projection_contract() {
+    let runtime_root = unique_test_runtime_root("agent-loop-projection-contract");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_pi_agent_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "loop reply".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    let result = runtime
+        .run_turn(AgentRunRequest {
+            run_id: "run-loop-contract".to_string(),
+            agent_id: "main".to_string(),
+            session_key: "thread-loop-contract".to_string(),
+            inbound: ChannelInboundEnvelope {
+                channel: "gateway".to_string(),
+                account_id: Some("local".to_string()),
+                from: "user".to_string(),
+                to: "agent:main".to_string(),
+                chat_type: ChannelChatType::Direct,
+                body: "hello loop".to_string(),
+                raw_body: Some("hello loop".to_string()),
+                message_id: Some("in-loop".to_string()),
+                thread_id: Some("thread-loop-contract".to_string()),
+                media_urls: Vec::new(),
+                metadata: BTreeMap::new(),
+            },
+            model: AgentModelSelection {
+                provider: "test-provider".to_string(),
+                model: "test-model".to_string(),
+                reasoning_level: None,
+            },
+            enabled_tools: Vec::new(),
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Normal,
+                special_agent: None,
+                memory_after_turn: Some(false),
+            }),
+            options: BTreeMap::new(),
+        })
+        .await
+        .expect("loop run");
+
+    assert_eq!(result.context_summary.profile_kind, "normal");
+    assert_eq!(
+        result.context_summary.projection.projected_message_count,
+        result.context_summary.message_count
+    );
+    assert_eq!(
+        result.context_summary.budget.estimated_tokens,
+        result.context_summary.estimated_tokens
+    );
+    assert_eq!(
+        result.context_summary.agent_definition.as_deref(),
+        Some("main")
+    );
+
+    let events = serde_json::to_value(&result.events).expect("events json");
+    let events = events.as_array().expect("events array");
+    assert!(events.iter().any(|event| {
+        event["type"] == "contextProjected"
+            && event["projection"]["profileKind"] == "normal"
+            && event["projection"]["projectedMessageCount"]
+                == json!(result.context_summary.message_count)
+    }));
+    assert!(events.iter().any(|event| {
+        event["type"] == "providerBlock"
+            && event["blockType"] == "text"
+            && event["text"] == "loop reply"
+    }));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn agent_runtime_run_turn_surfaces_backend_tool_loop_events() {
+    let runtime_root = unique_test_runtime_root("agent-loop-backend-events");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+
+    let runtime = AgentRuntime::with_pi_agent_backend(
+        runtime_root.clone(),
+        Arc::new(LoopEventAgentRuntimeBackend {
+            reply: "loop done".to_string(),
+            loop_events: vec![
+                AgentLoopEvent::ProviderBlock {
+                    block_type: "text_delta".to_string(),
+                    text: Some("loop ".to_string()),
+                    metadata: json!({ "source": "test-backend" }),
+                },
+                AgentLoopEvent::ToolExecution {
+                    event: ToolExecutionEvent::Started {
+                        call_id: "tool-call-1".to_string(),
+                        tool_name: "read".to_string(),
+                        arguments: json!({ "path": "Cargo.toml" }),
+                    },
+                },
+                AgentLoopEvent::ToolExecution {
+                    event: ToolExecutionEvent::Progress {
+                        call_id: "tool-call-1".to_string(),
+                        tool_name: "read".to_string(),
+                        status: "running".to_string(),
+                        message: Some("reading".to_string()),
+                    },
+                },
+                AgentLoopEvent::ToolExecution {
+                    event: ToolExecutionEvent::Completed {
+                        call_id: "tool-call-1".to_string(),
+                        tool_name: "read".to_string(),
+                        is_error: false,
+                    },
+                },
+            ],
+        }),
+    );
+    let result = runtime
+        .run_turn(AgentRunRequest {
+            run_id: "run-loop-backend-events".to_string(),
+            agent_id: "main".to_string(),
+            session_key: "thread-loop-backend-events".to_string(),
+            inbound: ChannelInboundEnvelope {
+                channel: "gateway".to_string(),
+                account_id: Some("local".to_string()),
+                from: "user".to_string(),
+                to: "agent:main".to_string(),
+                chat_type: ChannelChatType::Direct,
+                body: "use a tool".to_string(),
+                raw_body: Some("use a tool".to_string()),
+                message_id: Some("in-loop-tool".to_string()),
+                thread_id: Some("thread-loop-backend-events".to_string()),
+                media_urls: Vec::new(),
+                metadata: BTreeMap::new(),
+            },
+            model: AgentModelSelection {
+                provider: "test-provider".to_string(),
+                model: "test-model".to_string(),
+                reasoning_level: None,
+            },
+            enabled_tools: Vec::new(),
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Normal,
+                special_agent: None,
+                memory_after_turn: Some(false),
+            }),
+            options: BTreeMap::new(),
+        })
+        .await
+        .expect("loop backend event run");
+
+    let events = serde_json::to_value(&result.events).expect("events json");
+    let events = events.as_array().expect("events array");
+    assert!(events.iter().any(|event| {
+        event["type"] == "providerBlock"
+            && event["blockType"] == "text_delta"
+            && event["text"] == "loop "
+    }));
+    assert!(events.iter().any(|event| {
+        event["type"] == "toolCall"
+            && event["callId"] == "tool-call-1"
+            && event["toolName"] == "read"
+            && event["arguments"]["path"] == "Cargo.toml"
+    }));
+    assert!(events.iter().any(|event| {
+        event["type"] == "toolProgress"
+            && event["callId"] == "tool-call-1"
+            && event["status"] == "running"
+    }));
+    assert!(events.iter().any(|event| {
+        event["type"] == "toolProgress"
+            && event["callId"] == "tool-call-1"
+            && event["status"] == "completed"
+    }));
 
     let _ = fs::remove_dir_all(runtime_root);
 }
@@ -3333,8 +3567,28 @@ async fn agent_runtime_compaction_tail_keeps_tool_pairs() {
         .expect("send compacted safe tail");
 
     assert_eq!(
-        result.context_summary.compaction.compacted_through.as_deref(),
+        result
+            .context_summary
+            .compaction
+            .compacted_through
+            .as_deref(),
         Some("msg-old-assistant")
+    );
+    assert_eq!(
+        result
+            .context_summary
+            .compaction
+            .first_kept_message_id
+            .as_deref(),
+        Some("msg-tool-result")
+    );
+    assert_eq!(
+        result
+            .context_summary
+            .compaction
+            .tail_start_message_id
+            .as_deref(),
+        Some("msg-tool-result")
     );
     assert_eq!(result.context_summary.compaction.retained_message_count, 3);
     let requests = captured.lock().expect("captured requests");
@@ -3437,7 +3691,10 @@ async fn subagent_profile_injects_parent_context_messages() {
                 message_id: Some("run-subagent-parent:input".to_string()),
                 thread_id: Some("child-thread".to_string()),
                 media_urls: Vec::new(),
-                metadata: BTreeMap::new(),
+                metadata: BTreeMap::from([(
+                    "parentContextPolicy".to_string(),
+                    json!("fork_messages_only"),
+                )]),
             },
             model: AgentModelSelection {
                 provider: "test-provider".to_string(),
@@ -3457,6 +3714,10 @@ async fn subagent_profile_injects_parent_context_messages() {
 
     let requests = captured.lock().expect("captured requests");
     let request = requests.first().expect("provider request");
+    assert!(request
+        .system_sections
+        .iter()
+        .any(|section| section.contains("delegated sidechain agent")));
     assert_eq!(
         request.messages,
         vec![
@@ -3465,6 +3726,85 @@ async fn subagent_profile_injects_parent_context_messages() {
             "child task".to_string()
         ]
     );
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn subagent_profile_defaults_to_fresh_parent_context() {
+    let runtime_root = unique_test_runtime_root("subagent-fresh-parent-context");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+    let store = DesktopSessionStore::new(runtime_root.clone());
+    store
+        .append_model_message(
+            "parent-thread",
+            "user",
+            "parent context that fresh subagent must not inherit",
+            Some("agent"),
+            AgentRuntimeMessage::text(
+                AgentRuntimeMessageRole::User,
+                "parent context that fresh subagent must not inherit",
+            ),
+        )
+        .expect("parent user");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_pi_agent_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "child reply".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    runtime
+        .run_turn(AgentRunRequest {
+            run_id: "run-subagent-fresh".to_string(),
+            agent_id: "subagent".to_string(),
+            session_key: "child-thread".to_string(),
+            inbound: ChannelInboundEnvelope {
+                channel: "subagent".to_string(),
+                account_id: Some("rust-runtime".to_string()),
+                from: "parent-thread".to_string(),
+                to: "agent:subagent".to_string(),
+                chat_type: ChannelChatType::Direct,
+                body: "fresh child task".to_string(),
+                raw_body: None,
+                message_id: Some("run-subagent-fresh:input".to_string()),
+                thread_id: Some("child-thread".to_string()),
+                media_urls: Vec::new(),
+                metadata: BTreeMap::new(),
+            },
+            model: AgentModelSelection {
+                provider: "test-provider".to_string(),
+                model: "test-model".to_string(),
+                reasoning_level: None,
+            },
+            enabled_tools: Vec::new(),
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Subagent,
+                special_agent: None,
+                memory_after_turn: Some(true),
+            }),
+            options: BTreeMap::new(),
+        })
+        .await
+        .expect("fresh subagent run");
+
+    let requests = captured.lock().expect("captured requests");
+    let request = requests.first().expect("provider request");
+    assert_eq!(request.parent_context_policy, "none");
+    assert_eq!(request.messages, vec!["fresh child task".to_string()]);
 
     let _ = fs::remove_dir_all(runtime_root);
 }

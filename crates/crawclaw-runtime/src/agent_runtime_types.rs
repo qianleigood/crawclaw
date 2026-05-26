@@ -22,6 +22,129 @@ pub struct AgentRuntimeRequest<'a> {
     pub system_prompt: Option<String>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentDefinition {
+    pub id: String,
+    pub label: String,
+    pub prompt_kind: String,
+    pub execution_mode: String,
+    pub transcript_policy: String,
+    pub parent_context_policy: String,
+    pub tool_allowlist: Vec<String>,
+    pub mcp_servers: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum AgentLoopEvent {
+    ContextProjected {
+        projection: ContextProjection,
+    },
+    ProviderBlock {
+        block_type: String,
+        text: Option<String>,
+        metadata: Value,
+    },
+    ToolExecution {
+        event: ToolExecutionEvent,
+    },
+    Hook {
+        event: HookEvent,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub enum ToolExecutionEvent {
+    Started {
+        call_id: String,
+        tool_name: String,
+        arguments: Value,
+    },
+    PermissionRequested {
+        request_id: String,
+        tool_name: String,
+        reason: String,
+    },
+    Progress {
+        call_id: String,
+        tool_name: String,
+        status: String,
+        message: Option<String>,
+    },
+    Completed {
+        call_id: String,
+        tool_name: String,
+        is_error: bool,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HookEvent {
+    pub hook: String,
+    pub decision: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContextProjection {
+    pub profile_kind: String,
+    pub parent_context_policy: String,
+    pub history_message_count: usize,
+    pub parent_message_count: usize,
+    pub projected_history_message_count: usize,
+    pub projected_message_count: usize,
+    pub retained_tail_message_count: usize,
+    pub compaction_active: bool,
+    pub collapse_state: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContextBudgetReport {
+    pub estimated_tokens: usize,
+    pub max_prompt_tokens: usize,
+    pub state: String,
+    pub overflow_retry_enabled: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SidechainTranscript {
+    pub parent_session_key: String,
+    pub child_session_key: String,
+    pub lifecycle: String,
+    pub message_count: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpToolDescriptor {
+    pub server: String,
+    pub name: String,
+    pub description: String,
+    pub read_only: bool,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolActivationState {
+    pub activated_tools: Vec<String>,
+    pub scope: String,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct AgentRunProfile {
     pub(crate) kind: AgentRunKind,
@@ -223,6 +346,10 @@ pub enum AgentRuntimeMessageRole {
 pub struct AgentRuntimeContextSummary {
     pub profile_kind: String,
     pub parent_context_policy: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_definition: Option<String>,
+    pub projection: ContextProjection,
+    pub budget: ContextBudgetReport,
     pub included_tools: Vec<String>,
     pub deferred_tools: Vec<String>,
     pub activated_tools: Vec<String>,
@@ -241,6 +368,10 @@ pub struct AgentRuntimeCompactionSummary {
     pub active: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compacted_through: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_kept_message_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tail_start_message_id: Option<String>,
     pub retained_message_count: usize,
 }
 

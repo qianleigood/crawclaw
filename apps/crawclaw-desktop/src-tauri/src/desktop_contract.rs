@@ -154,6 +154,10 @@ export interface ConversationState {
 export interface ConversationContextSummary {
   profileKind: string
   parentContextPolicy: string
+  agentDefinition?: string
+  projectedMessageCount: number
+  budgetState: string
+  overflowRetryEnabled: boolean
   includedTools: string[]
   deferredTools: string[]
   activatedTools: string[]
@@ -162,6 +166,8 @@ export interface ConversationContextSummary {
   memorySnippets: string[]
   compactionActive: boolean
   compactedThrough?: string
+  firstKeptMessageId?: string
+  tailStartMessageId?: string
   retainedMessageCount: number
   warnings: string[]
   messageCount: number

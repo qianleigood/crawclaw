@@ -811,6 +811,7 @@ async fn rust_gateway_special_agent_run_uses_native_agent_runtime() {
         runtime_root: Some(runtime_root.clone()),
         ..GatewayRunConfig::default()
     });
+    let mut events = state.events.subscribe();
     let run = handle_gateway_method(
         &state,
         "special_agents.run",
@@ -831,6 +832,23 @@ async fn rust_gateway_special_agent_run_uses_native_agent_runtime() {
     );
     assert_eq!(
         run["result"]["payloads"][0]["text"],
+        "reviewed by rust special agent"
+    );
+    let mut event = Value::Null;
+    for _ in 0..8 {
+        let candidate = tokio::time::timeout(Duration::from_secs(2), events.recv())
+            .await
+            .expect("special agent event")
+            .expect("special agent event payload");
+        if candidate["type"] == "special_agents.result" {
+            event = candidate;
+            break;
+        }
+    }
+    assert_eq!(event["type"], "special_agents.result");
+    assert_eq!(event["payload"]["kind"], "review-spec");
+    assert_eq!(
+        event["payload"]["result"]["assistantText"],
         "reviewed by rust special agent"
     );
 
@@ -2500,15 +2518,20 @@ async fn rust_gateway_chat_send_uses_native_provider_runtime() {
 
     assert_eq!(result["status"], "completed");
     assert_eq!(result["message"]["content"], "hello from rust provider");
-    assert_eq!(result["events"][0]["type"], "runStarted");
-    assert_eq!(result["events"][1]["type"], "replyPayload");
-    assert_eq!(
-        result["events"][1]["payload"]["text"],
-        "hello from rust provider"
-    );
-    assert_eq!(result["events"][3]["type"], "toolResult");
-    assert_eq!(result["events"][3]["toolName"], "memory.afterTurn");
-    assert_eq!(result["events"][4]["type"], "runCompleted");
+    let events = result["events"].as_array().expect("events");
+    assert!(events.iter().any(|event| event["type"] == "runStarted"));
+    assert!(events
+        .iter()
+        .any(|event| event["type"] == "contextProjected"));
+    assert!(events.iter().any(
+        |event| event["type"] == "providerBlock" && event["text"] == "hello from rust provider"
+    ));
+    assert!(events.iter().any(|event| event["type"] == "replyPayload"
+        && event["payload"]["text"] == "hello from rust provider"));
+    assert!(events
+        .iter()
+        .any(|event| event["type"] == "toolResult" && event["toolName"] == "memory.afterTurn"));
+    assert!(events.iter().any(|event| event["type"] == "runCompleted"));
     let request = request_rx
         .recv_timeout(Duration::from_secs(2))
         .expect("captured native provider request");
@@ -2579,15 +2602,23 @@ async fn rust_gateway_agent_run_turn_returns_native_event_contract() {
     assert_eq!(result["runId"], "agent-run-turn-1");
     assert_eq!(result["sessionKey"], "agent:main:turn");
     assert_eq!(result["assistantText"], "hello from agent run turn");
-    assert_eq!(result["events"][0]["type"], "runStarted");
-    assert_eq!(result["events"][1]["type"], "replyPayload");
-    assert_eq!(
-        result["events"][1]["payload"]["text"],
-        "hello from agent run turn"
-    );
-    assert_eq!(result["events"][3]["type"], "toolResult");
-    assert_eq!(result["events"][3]["toolName"], "memory.afterTurn");
-    assert_eq!(result["events"][4]["type"], "runCompleted");
+    assert_eq!(result["contextSummary"]["profileKind"], "normal");
+    let events = result["events"].as_array().expect("events");
+    assert!(events.iter().any(|event| event["type"] == "runStarted"));
+    assert!(events
+        .iter()
+        .any(|event| event["type"] == "contextProjected"
+            && event["projection"]["profileKind"] == "normal"));
+    assert!(events
+        .iter()
+        .any(|event| event["type"] == "providerBlock"
+            && event["text"] == "hello from agent run turn"));
+    assert!(events.iter().any(|event| event["type"] == "replyPayload"
+        && event["payload"]["text"] == "hello from agent run turn"));
+    assert!(events
+        .iter()
+        .any(|event| event["type"] == "toolResult" && event["toolName"] == "memory.afterTurn"));
+    assert!(events.iter().any(|event| event["type"] == "runCompleted"));
 
     let streamed = handle_gateway_method(
         &state,
@@ -2628,9 +2659,8 @@ async fn rust_gateway_agent_run_turn_returns_native_event_contract() {
 #[tokio::test]
 async fn rust_gateway_subagents_spawn_runs_child_when_run_is_true() {
     let runtime_root = unique_test_runtime_root("gateway-subagents-spawn-run");
-    let (provider_base_url, request_rx) = serve_openai_compatible_once(
-        r#"{"choices":[{"message":{"content":"child completed"}}]}"#,
-    );
+    let (provider_base_url, request_rx) =
+        serve_openai_compatible_once(r#"{"choices":[{"message":{"content":"child completed"}}]}"#);
     let config_dir = runtime_root.join("config");
     std::fs::create_dir_all(&config_dir).expect("config dir");
     std::fs::write(
@@ -2777,11 +2807,17 @@ async fn rust_gateway_channel_inbound_handle_runs_native_agent_turn() {
     assert_eq!(result["runId"], "inbound-run-1");
     assert_eq!(result["sessionKey"], "agent:main:feishu:123");
     assert_eq!(result["assistantText"], "hello from inbound handler");
-    assert_eq!(result["events"][0]["type"], "runStarted");
-    assert_eq!(result["events"][1]["type"], "replyPayload");
-    assert_eq!(result["events"][3]["type"], "toolResult");
-    assert_eq!(result["events"][3]["toolName"], "memory.afterTurn");
-    assert_eq!(result["events"][4]["type"], "runCompleted");
+    let events = result["events"].as_array().expect("events");
+    assert!(events.iter().any(|event| event["type"] == "runStarted"));
+    assert!(events
+        .iter()
+        .any(|event| event["type"] == "contextProjected"));
+    assert!(events.iter().any(|event| event["type"] == "replyPayload"
+        && event["payload"]["text"] == "hello from inbound handler"));
+    assert!(events
+        .iter()
+        .any(|event| event["type"] == "toolResult" && event["toolName"] == "memory.afterTurn"));
+    assert!(events.iter().any(|event| event["type"] == "runCompleted"));
 
     let streamed = handle_gateway_method(
         &state,

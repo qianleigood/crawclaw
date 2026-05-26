@@ -519,7 +519,8 @@ pub fn rust_tool_catalog_json_payload() -> Value {
     json!({
         "sections": rust_core_tool_sections(),
         "coreTools": rust_core_tool_definitions(),
-        "nativeTools": native_tools
+        "nativeTools": native_tools,
+        "mcpTools": []
     })
 }
 
@@ -641,11 +642,9 @@ pub fn pi_agent_rust_tool_descriptors_for_runtime_root(
 }
 
 pub(crate) fn is_special_agent_only_tool(tool_name: &str) -> bool {
-    RUST_CORE_TOOL_DEFINITIONS
-        .iter()
-        .any(|definition| {
-            definition.id == tool_name && definition.lifecycle == "special_agent_only"
-        })
+    RUST_CORE_TOOL_DEFINITIONS.iter().any(|definition| {
+        definition.id == tool_name && definition.lifecycle == "special_agent_only"
+    })
 }
 
 #[doc(hidden)]
@@ -669,7 +668,68 @@ pub async fn execute_rust_core_tool(
     tool_name: &str,
     input: Value,
 ) -> Result<Value, String> {
-    if is_special_agent_only_tool(tool_name) {
+    execute_rust_core_tool_with_profile_guard(runtime_root, tool_name, input, None).await
+}
+
+#[derive(Clone, Debug)]
+pub struct ToolExecutionRuntime {
+    runtime_root: PathBuf,
+    active_profile: Option<(AgentRunProfileKind, Option<String>)>,
+}
+
+impl ToolExecutionRuntime {
+    pub fn new(runtime_root: impl Into<PathBuf>) -> Self {
+        Self {
+            runtime_root: runtime_root.into(),
+            active_profile: None,
+        }
+    }
+
+    pub fn with_profile(
+        runtime_root: impl Into<PathBuf>,
+        profile_kind: AgentRunProfileKind,
+        special_agent: Option<String>,
+    ) -> Self {
+        Self {
+            runtime_root: runtime_root.into(),
+            active_profile: Some((profile_kind, special_agent)),
+        }
+    }
+
+    pub async fn execute(&self, tool_name: &str, input: Value) -> Result<Value, String> {
+        execute_rust_core_tool_with_profile_guard(
+            &self.runtime_root,
+            tool_name,
+            input,
+            self.active_profile.clone(),
+        )
+        .await
+    }
+}
+
+pub async fn execute_rust_core_tool_for_profile(
+    runtime_root: &Path,
+    tool_name: &str,
+    input: Value,
+    profile_kind: AgentRunProfileKind,
+    special_agent: Option<&str>,
+) -> Result<Value, String> {
+    execute_rust_core_tool_with_profile_guard(
+        runtime_root,
+        tool_name,
+        input,
+        Some((profile_kind, special_agent.map(ToOwned::to_owned))),
+    )
+    .await
+}
+
+async fn execute_rust_core_tool_with_profile_guard(
+    runtime_root: &Path,
+    tool_name: &str,
+    input: Value,
+    active_profile: Option<(AgentRunProfileKind, Option<String>)>,
+) -> Result<Value, String> {
+    if is_special_agent_only_tool(tool_name) && active_profile.is_none() {
         return Err(format!(
             "Rust runtime tool {tool_name} is special-agent-only and requires an active special-agent profile"
         ));
@@ -682,7 +742,51 @@ pub async fn execute_rust_core_tool(
         .execute("runtime-worker", input, None)
         .await
         .map_err(|error| error.to_string())?;
-    Ok(tool_output_to_value(&output))
+    let mut value = tool_output_to_value(&output);
+    if let Some((profile_kind, special_agent)) = active_profile {
+        enrich_profiled_tool_output(&mut value, profile_kind, special_agent.as_deref());
+    }
+    Ok(value)
+}
+
+fn enrich_profiled_tool_output(
+    output: &mut Value,
+    profile_kind: AgentRunProfileKind,
+    special_agent: Option<&str>,
+) {
+    let details = output
+        .as_object_mut()
+        .and_then(|object| object.get_mut("details"))
+        .and_then(Value::as_object_mut);
+    let Some(details) = details else {
+        return;
+    };
+    details.insert(
+        "profileKind".to_string(),
+        json!(profile_kind_summary(profile_kind)),
+    );
+    if let Some(special_agent) = special_agent {
+        details.insert("specialAgent".to_string(), json!(special_agent));
+    }
+    details.insert(
+        "toolExecution".to_string(),
+        json!({
+            "status": "completed",
+            "runtime": "rust-native",
+            "profileGuard": "active"
+        }),
+    );
+}
+
+fn profile_kind_summary(kind: AgentRunProfileKind) -> &'static str {
+    match kind {
+        AgentRunProfileKind::Normal => "normal",
+        AgentRunProfileKind::Btw => "btw",
+        AgentRunProfileKind::Subagent => "subagent",
+        AgentRunProfileKind::SpecialAgent => "special_agent",
+        AgentRunProfileKind::Compaction => "compaction",
+        AgentRunProfileKind::MemoryMaintenance => "memory_maintenance",
+    }
 }
 
 #[derive(Deserialize)]

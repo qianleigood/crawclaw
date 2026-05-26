@@ -95,6 +95,18 @@ pub(super) fn build_agent_run_request(
         inbound
     } else {
         let message = required_param(params, &["message", "text"])?;
+        let mut metadata = BTreeMap::new();
+        if let Some(parent) = string_param(params, &["parentSessionKey", "parent", "spawnedBy"]) {
+            metadata.insert("parentSessionKey".to_string(), json!(parent));
+        }
+        if params.get("fork").and_then(Value::as_bool) == Some(true) {
+            metadata.insert(
+                "parentContextPolicy".to_string(),
+                json!("fork_messages_only"),
+            );
+        } else if let Some(policy) = string_param(params, &["parentContextPolicy"]) {
+            metadata.insert("parentContextPolicy".to_string(), json!(policy));
+        }
         ChannelInboundEnvelope {
             channel: string_param(params, &["channel"]).unwrap_or_else(|| "gateway".to_string()),
             account_id: string_param(params, &["accountId"]),
@@ -106,7 +118,7 @@ pub(super) fn build_agent_run_request(
             message_id: string_param(params, &["messageId"]),
             thread_id: Some(session_key.clone()),
             media_urls: Vec::new(),
-            metadata: BTreeMap::new(),
+            metadata,
         }
     };
 
@@ -209,7 +221,50 @@ pub(super) fn record_agent_run_events(
         .lock()
         .map_err(|_| "agent run event store lock poisoned".to_string())?;
     runs.insert(result.run_id.clone(), events);
+    drop(runs);
+    for event in result
+        .events
+        .iter()
+        .filter_map(agent_run_event_gateway_topic)
+    {
+        emit(
+            state,
+            event.0,
+            json!({
+                "runId": result.run_id,
+                "event": event.1
+            }),
+        );
+    }
     Ok(())
+}
+
+fn agent_run_event_gateway_topic(event: &AgentRunEvent) -> Option<(&'static str, Value)> {
+    match event {
+        AgentRunEvent::ContextProjected { .. } => {
+            Some(("agent.contextProjected", serde_json::to_value(event).ok()?))
+        }
+        AgentRunEvent::ProviderBlock { .. } => {
+            Some(("agent.providerBlock", serde_json::to_value(event).ok()?))
+        }
+        AgentRunEvent::ToolProgress { .. } => {
+            Some(("agent.toolProgress", serde_json::to_value(event).ok()?))
+        }
+        AgentRunEvent::PermissionRequested { .. } => Some((
+            "agent.permissionRequested",
+            serde_json::to_value(event).ok()?,
+        )),
+        AgentRunEvent::HookDecision { .. } => {
+            Some(("agent.hookDecision", serde_json::to_value(event).ok()?))
+        }
+        AgentRunEvent::SubagentLifecycle { .. } => {
+            Some(("agent.subagentLifecycle", serde_json::to_value(event).ok()?))
+        }
+        AgentRunEvent::McpElicitation { .. } => {
+            Some(("agent.mcpElicitation", serde_json::to_value(event).ok()?))
+        }
+        _ => None,
+    }
 }
 
 pub(super) async fn agent_run_turn(state: &GatewayState, params: Value) -> Result<Value, String> {
@@ -278,6 +333,7 @@ pub(super) fn agent_run_response(result: AgentRunResult, kind: &str) -> Result<V
         "runId": result.run_id,
         "sessionKey": result.session_key,
         "assistantText": result.assistant_text,
+        "contextSummary": result.context_summary,
         "events": events
     }))
 }
@@ -370,13 +426,14 @@ pub(super) async fn special_agent_run_with_agent_runtime(
                 }
             ],
             "events": events,
+            "contextSummary": result.context_summary,
             "memory": memory,
             "implementation": "rust-native"
         }
     });
     emit(
         state,
-        "specialAgent.result",
+        "special_agents.result",
         json!({ "kind": kind, "result": response["result"].clone() }),
     );
     Ok(response)
@@ -520,6 +577,7 @@ pub(super) async fn channel_inbound_handle(
         "runId": result.run_id,
         "sessionKey": result.session_key,
         "assistantText": result.assistant_text,
+        "contextSummary": result.context_summary,
         "events": events
     }))
 }
@@ -595,7 +653,7 @@ pub(super) async fn chat_send(state: &GatewayState, params: Value) -> Result<Val
             _ => None,
         })
         .unwrap_or_else(|| result.assistant_text.clone());
-    let thread_id = result.session_key;
+    let thread_id = result.session_key.clone();
     let events = agent_run_events_value(&result.events)?;
     let payload = json!({
         "runId": run_id.clone(),
@@ -621,6 +679,7 @@ pub(super) async fn chat_send(state: &GatewayState, params: Value) -> Result<Val
         "runId": run_id,
         "sessionKey": thread_id,
         "message": payload.get("message").cloned().unwrap_or(Value::Null),
+        "contextSummary": result.context_summary,
         "events": events
     }))
 }

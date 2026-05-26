@@ -92,13 +92,25 @@ function ContextSummaryPanel({ conversation }: { conversation: ConversationState
       <div className="context-summary-grid">
         <section>
           <h2>Profile</h2>
-          <p>{contextMode || 'normal'}</p>
+          <p>
+            {contextMode || 'normal'}
+            {summary.agentDefinition ? ` · ${summary.agentDefinition}` : ''}
+          </p>
+        </section>
+        <section>
+          <h2>Projection</h2>
+          <p>
+            {summary.projectedMessageCount} messages · {summary.budgetState}
+            {summary.overflowRetryEnabled ? ' · retry' : ''}
+          </p>
         </section>
         <section>
           <h2>Compaction</h2>
           <p>
             {summary.compactionActive
-              ? `${summary.compactedThrough ?? 'active'} / ${summary.retainedMessageCount} retained`
+              ? `${summary.compactedThrough ?? 'active'} → ${
+                  summary.tailStartMessageId ?? summary.firstKeptMessageId ?? 'tail'
+                } / ${summary.retainedMessageCount} retained`
               : `${summary.retainedMessageCount} retained`}
           </p>
         </section>

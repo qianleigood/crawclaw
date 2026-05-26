@@ -182,10 +182,7 @@ pub(super) fn sessions_messages_subscription(
     Ok(json!({ "subscribed": subscribed, "key": normalized }))
 }
 
-pub(super) async fn subagents_spawn(
-    state: &GatewayState,
-    params: Value,
-) -> Result<Value, String> {
+pub(super) async fn subagents_spawn(state: &GatewayState, params: Value) -> Result<Value, String> {
     let task = required_param(&params, &["task", "message"])?;
     let parent = string_param(&params, &["parentSessionKey", "parent", "spawnedBy"])
         .unwrap_or_else(|| "main".to_string());

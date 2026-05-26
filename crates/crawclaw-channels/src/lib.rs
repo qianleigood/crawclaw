@@ -181,6 +181,18 @@ pub enum AgentRunEvent {
         agent_id: String,
         session_key: String,
     },
+    ContextProjected {
+        run_id: String,
+        projection: Value,
+    },
+    ProviderBlock {
+        run_id: String,
+        block_type: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        text: Option<String>,
+        #[serde(default)]
+        metadata: Value,
+    },
     ModelChunk {
         run_id: String,
         text: String,
@@ -198,6 +210,40 @@ pub enum AgentRunEvent {
         result: Value,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         is_error: Option<bool>,
+    },
+    ToolProgress {
+        run_id: String,
+        call_id: String,
+        tool_name: String,
+        status: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        message: Option<String>,
+    },
+    PermissionRequested {
+        run_id: String,
+        request_id: String,
+        tool_name: String,
+        reason: String,
+    },
+    HookDecision {
+        run_id: String,
+        hook: String,
+        decision: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        message: Option<String>,
+    },
+    SubagentLifecycle {
+        run_id: String,
+        session_key: String,
+        status: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        label: Option<String>,
+    },
+    McpElicitation {
+        run_id: String,
+        request_id: String,
+        server: String,
+        prompt: String,
     },
     ReplyPayload {
         run_id: String,

@@ -24,6 +24,13 @@ pub const GATEWAY_PROTOCOL_EVENTS: &[&str] = &[
     "voicewake.changed",
     "main-session-wake",
     "cron",
+    "agent.contextProjected",
+    "agent.providerBlock",
+    "agent.toolProgress",
+    "agent.permissionRequested",
+    "agent.hookDecision",
+    "agent.subagentLifecycle",
+    "agent.mcpElicitation",
 ];
 
 pub const GATEWAY_PROTOCOL_METHODS: &[&str] = &[
@@ -316,6 +323,9 @@ mod tests {
             .any(|method| method.starts_with("wizard.")));
         assert!(GATEWAY_PROTOCOL_EVENTS.contains(&"session.message"));
         assert!(GATEWAY_PROTOCOL_EVENTS.contains(&"cron"));
+        assert!(GATEWAY_PROTOCOL_EVENTS.contains(&"agent.contextProjected"));
+        assert!(GATEWAY_PROTOCOL_EVENTS.contains(&"agent.providerBlock"));
+        assert!(GATEWAY_PROTOCOL_EVENTS.contains(&"agent.permissionRequested"));
 
         let methods = GATEWAY_PROTOCOL_METHODS
             .iter()

@@ -17,6 +17,7 @@ mod native_plugin_registry;
 pub mod special_agents;
 
 mod agent_context;
+mod agent_prompts;
 mod agent_provider_bridge;
 mod agent_runtime_backend;
 mod agent_runtime_permissions;
@@ -45,12 +46,12 @@ pub use crawclaw_channels::{
     list_native_channel_descriptors, lookup_native_channel_directory,
     resolve_native_channel_lifecycle_update, AgentModelSelection, AgentRunEvent,
     AgentRunProfileKind, AgentRunProfileRequest, AgentRunRequest, ChannelCapabilityDescriptor,
-    ChannelDeliveryResult, ChannelDirectoryLookupRequest,
-    ChannelDirectoryLookupResult, ChannelInboundCapability, ChannelInboundEnvelope,
-    ChannelLifecycleCapability, ChannelOutboundAction, ChannelOutboundCapability,
-    ChannelOutboundRequest, ChatType as ChannelChatType, MessagingTarget, MessagingTargetKind,
-    NativeChannelDeliveryRecord, NativeChannelDispatchContext, NativeChannelLifecycleInput,
-    NativeChannelLifecycleUpdate, ReplyPayload, TranscriptRole,
+    ChannelDeliveryResult, ChannelDirectoryLookupRequest, ChannelDirectoryLookupResult,
+    ChannelInboundCapability, ChannelInboundEnvelope, ChannelLifecycleCapability,
+    ChannelOutboundAction, ChannelOutboundCapability, ChannelOutboundRequest,
+    ChatType as ChannelChatType, MessagingTarget, MessagingTargetKind, NativeChannelDeliveryRecord,
+    NativeChannelDispatchContext, NativeChannelLifecycleInput, NativeChannelLifecycleUpdate,
+    ReplyPayload, TranscriptRole,
 };
 use crawclaw_core::{RuntimeCompatStatus, RuntimeStatusValue};
 use crawclaw_plugin_sdk::{NativeInvocationTarget, NativePluginDescriptor};

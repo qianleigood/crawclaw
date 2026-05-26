@@ -28,8 +28,8 @@ use crawclaw_plugin_host::{
     PluginHostError, PluginHostInstalledPlugin, PluginHostSkill, PluginHostTool,
 };
 use crawclaw_runtime::{
-    special_agents::find_special_agent, AgentModelSelection, AgentRunRequest, AgentRuntime,
-    AgentRunProfileKind, AgentRunProfileRequest, AgentRuntimeConfirmationPolicy,
+    special_agents::find_special_agent, AgentModelSelection, AgentRunProfileKind,
+    AgentRunProfileRequest, AgentRunRequest, AgentRuntime, AgentRuntimeConfirmationPolicy,
     AgentRuntimeContextSummary, AgentRuntimePermissionCategory, AgentRuntimePermissionDecision,
     AgentRuntimePermissionMode, AgentRuntimePermissionPolicy, AgentRuntimePermissionRequest,
     AgentRuntimePermissionRequester, AgentRuntimeSendOptions, AgentRuntimeToolSelection,

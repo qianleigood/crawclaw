@@ -317,6 +317,11 @@ pub struct ConversationState {
 pub struct ConversationContextSummary {
     pub profile_kind: String,
     pub parent_context_policy: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent_definition: Option<String>,
+    pub projected_message_count: usize,
+    pub budget_state: String,
+    pub overflow_retry_enabled: bool,
     pub included_tools: Vec<String>,
     pub deferred_tools: Vec<String>,
     pub activated_tools: Vec<String>,
@@ -326,6 +331,10 @@ pub struct ConversationContextSummary {
     pub compaction_active: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compacted_through: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_kept_message_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tail_start_message_id: Option<String>,
     pub retained_message_count: usize,
     pub warnings: Vec<String>,
     pub message_count: usize,

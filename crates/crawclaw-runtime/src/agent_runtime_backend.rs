@@ -4,7 +4,7 @@ pub trait AgentRuntimeBackend: Send + Sync {
     fn send_message<'a>(
         &'a self,
         request: AgentRuntimeRequest<'a>,
-    ) -> Pin<Box<dyn Future<Output = Result<String, AgentRuntimeError>> + Send + 'a>>;
+    ) -> Pin<Box<dyn Future<Output = Result<AgentBackendResult, AgentRuntimeError>> + Send + 'a>>;
 }
 
 #[derive(Clone, Default)]
@@ -21,8 +21,24 @@ pub struct AgentSendResult {
     pub thread_id: String,
     pub user_text: String,
     pub assistant_text: String,
+    pub loop_events: Vec<AgentLoopEvent>,
     pub context_summary: AgentRuntimeContextSummary,
     pub memory_result: Option<Result<Value, String>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AgentBackendResult {
+    pub assistant_text: String,
+    pub loop_events: Vec<AgentLoopEvent>,
+}
+
+impl AgentBackendResult {
+    pub fn text(assistant_text: impl Into<String>) -> Self {
+        Self {
+            assistant_text: assistant_text.into(),
+            loop_events: Vec::new(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -31,6 +47,7 @@ pub struct AgentRunResult {
     pub run_id: String,
     pub session_key: String,
     pub assistant_text: String,
+    pub context_summary: AgentRuntimeContextSummary,
     pub events: Vec<AgentRunEvent>,
 }
 
@@ -118,6 +135,85 @@ fn tool_selection_from_profile(
     }
 }
 
+fn agent_loop_events_to_run_events(
+    run_id: &str,
+    loop_events: Vec<AgentLoopEvent>,
+) -> Vec<AgentRunEvent> {
+    loop_events
+        .into_iter()
+        .filter_map(|event| match event {
+            AgentLoopEvent::ContextProjected { .. } => None,
+            AgentLoopEvent::ProviderBlock {
+                block_type,
+                text,
+                metadata,
+            } => Some(AgentRunEvent::ProviderBlock {
+                run_id: run_id.to_string(),
+                block_type,
+                text,
+                metadata,
+            }),
+            AgentLoopEvent::ToolExecution { event } => {
+                Some(tool_execution_event_to_run_event(run_id, event))
+            }
+            AgentLoopEvent::Hook { event } => Some(AgentRunEvent::HookDecision {
+                run_id: run_id.to_string(),
+                hook: event.hook,
+                decision: event.decision,
+                message: event.message,
+            }),
+        })
+        .collect()
+}
+
+fn tool_execution_event_to_run_event(run_id: &str, event: ToolExecutionEvent) -> AgentRunEvent {
+    match event {
+        ToolExecutionEvent::Started {
+            call_id,
+            tool_name,
+            arguments,
+        } => AgentRunEvent::ToolCall {
+            run_id: run_id.to_string(),
+            call_id,
+            tool_name,
+            arguments,
+        },
+        ToolExecutionEvent::PermissionRequested {
+            request_id,
+            tool_name,
+            reason,
+        } => AgentRunEvent::PermissionRequested {
+            run_id: run_id.to_string(),
+            request_id,
+            tool_name,
+            reason,
+        },
+        ToolExecutionEvent::Progress {
+            call_id,
+            tool_name,
+            status,
+            message,
+        } => AgentRunEvent::ToolProgress {
+            run_id: run_id.to_string(),
+            call_id,
+            tool_name,
+            status,
+            message,
+        },
+        ToolExecutionEvent::Completed {
+            call_id,
+            tool_name,
+            is_error,
+        } => AgentRunEvent::ToolProgress {
+            run_id: run_id.to_string(),
+            call_id,
+            tool_name,
+            status: if is_error { "failed" } else { "completed" }.to_string(),
+            message: None,
+        },
+    }
+}
+
 fn special_execution_mode(mode: special_agents::SpecialAgentExecutionMode) -> AgentExecutionMode {
     match mode {
         special_agents::SpecialAgentExecutionMode::SpawnedSession => {
@@ -158,8 +254,9 @@ fn special_profile(
     let definition = special_agents::find_special_agent(selector).ok_or_else(|| {
         AgentRuntimeError::ProviderFailed(format!("unknown special agent profile: {selector}"))
     })?;
-    let memory_after_turn = memory_after_turn
-        .unwrap_or(definition.guard != Some(special_agents::SpecialAgentToolGuard::MemoryMaintenance));
+    let memory_after_turn = memory_after_turn.unwrap_or(
+        definition.guard != Some(special_agents::SpecialAgentToolGuard::MemoryMaintenance),
+    );
     let memory_maintenance =
         definition.guard == Some(special_agents::SpecialAgentToolGuard::MemoryMaintenance);
     let result_policy = match kind {
@@ -243,7 +340,7 @@ fn resolve_agent_run_profile(
             kind: AgentRunKind::Subagent,
             execution_mode: AgentExecutionMode::SpawnedSession,
             transcript_policy: TranscriptPolicy::Isolated,
-            parent_context_policy: ParentContextPolicy::ForkMessagesOnly,
+            parent_context_policy: subagent_parent_context_policy(request),
             parent_session_key: None,
             tool_policy: ToolPolicy::Default,
             skill_policy: SkillPolicy::Default,
@@ -264,17 +361,26 @@ fn resolve_agent_run_profile(
         },
         AgentRunProfileKind::SpecialAgent => special_profile(
             AgentRunKind::SpecialAgent,
-            profile.special_agent.as_deref().unwrap_or(&request.agent_id),
+            profile
+                .special_agent
+                .as_deref()
+                .unwrap_or(&request.agent_id),
             profile.memory_after_turn,
         )?,
         AgentRunProfileKind::Compaction => special_profile(
             AgentRunKind::Compaction,
-            profile.special_agent.as_deref().unwrap_or("session-summary"),
+            profile
+                .special_agent
+                .as_deref()
+                .unwrap_or("session-summary"),
             profile.memory_after_turn,
         )?,
         AgentRunProfileKind::MemoryMaintenance => special_profile(
             AgentRunKind::MemoryMaintenance,
-            profile.special_agent.as_deref().unwrap_or(&request.agent_id),
+            profile
+                .special_agent
+                .as_deref()
+                .unwrap_or(&request.agent_id),
             profile.memory_after_turn,
         )?,
     };
@@ -290,19 +396,33 @@ fn resolve_agent_run_profile(
             .and_then(Value::as_str)
             .map(str::trim)
             .filter(|value| !value.is_empty());
-        let inbound_parent = request
-            .inbound
-            .from
-            .trim()
-            .to_string();
-        resolved.parent_session_key = metadata_parent
-            .map(ToOwned::to_owned)
-            .or_else(|| {
-                (!inbound_parent.is_empty() && inbound_parent != request.session_key)
-                    .then_some(inbound_parent)
-            });
+        let inbound_parent = request.inbound.from.trim().to_string();
+        resolved.parent_session_key = metadata_parent.map(ToOwned::to_owned).or_else(|| {
+            (!inbound_parent.is_empty() && inbound_parent != request.session_key)
+                .then_some(inbound_parent)
+        });
     }
     Ok(resolved)
+}
+
+fn subagent_parent_context_policy(request: &AgentRunRequest) -> ParentContextPolicy {
+    let selector = request
+        .inbound
+        .metadata
+        .get("parentContextPolicy")
+        .or_else(|| request.options.get("parentContextPolicy"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .map(str::to_lowercase);
+    match selector.as_deref() {
+        Some("fork") | Some("fork_messages_only") | Some("fork-messages-only") => {
+            ParentContextPolicy::ForkMessagesOnly
+        }
+        Some("full") | Some("full_envelope") | Some("full-envelope") => {
+            ParentContextPolicy::FullEnvelope
+        }
+        _ => ParentContextPolicy::None,
+    }
 }
 
 impl AgentRuntime {
@@ -377,6 +497,23 @@ impl AgentRuntime {
                 agent_id,
                 session_key: session_key.clone(),
             },
+            AgentRunEvent::ContextProjected {
+                run_id: run_id.clone(),
+                projection: serde_json::to_value(&result.context_summary.projection)
+                    .map_err(|error| AgentRuntimeError::ProviderFailed(error.to_string()))?,
+            },
+            AgentRunEvent::ProviderBlock {
+                run_id: run_id.clone(),
+                block_type: "text".to_string(),
+                text: Some(assistant_text.clone()),
+                metadata: json!({
+                    "profileKind": result.context_summary.profile_kind,
+                    "budgetState": result.context_summary.budget.state
+                }),
+            },
+        ];
+        events.extend(agent_loop_events_to_run_events(&run_id, result.loop_events));
+        events.extend([
             AgentRunEvent::ReplyPayload {
                 run_id: run_id.clone(),
                 payload: ReplyPayload {
@@ -391,7 +528,7 @@ impl AgentRuntime {
                 role: TranscriptRole::Assistant,
                 message_id: format!("{run_id}:assistant"),
             },
-        ];
+        ]);
         match result.memory_result {
             Some(Ok(memory_result)) => events.push(AgentRunEvent::ToolResult {
                 run_id: run_id.clone(),
@@ -416,6 +553,7 @@ impl AgentRuntime {
             run_id,
             session_key: result.thread_id,
             assistant_text,
+            context_summary: result.context_summary,
             events,
         })
     }
@@ -443,12 +581,29 @@ impl AgentRuntime {
         let assistant_text = result.assistant_text;
         let mut metadata = BTreeMap::new();
         metadata.insert("btw".to_string(), json!({ "question": question }));
-        let events = vec![
+        let mut events = vec![
             AgentRunEvent::RunStarted {
                 run_id: run_id.clone(),
                 agent_id,
                 session_key: session_key.clone(),
             },
+            AgentRunEvent::ContextProjected {
+                run_id: run_id.clone(),
+                projection: serde_json::to_value(&result.context_summary.projection)
+                    .map_err(|error| AgentRuntimeError::ProviderFailed(error.to_string()))?,
+            },
+            AgentRunEvent::ProviderBlock {
+                run_id: run_id.clone(),
+                block_type: "text".to_string(),
+                text: Some(assistant_text.clone()),
+                metadata: json!({
+                    "profileKind": result.context_summary.profile_kind,
+                    "budgetState": result.context_summary.budget.state
+                }),
+            },
+        ];
+        events.extend(agent_loop_events_to_run_events(&run_id, result.loop_events));
+        events.extend([
             AgentRunEvent::ReplyPayload {
                 run_id: run_id.clone(),
                 payload: ReplyPayload {
@@ -460,11 +615,12 @@ impl AgentRuntime {
             AgentRunEvent::RunCompleted {
                 run_id: run_id.clone(),
             },
-        ];
+        ]);
         Ok(AgentRunResult {
             run_id,
             session_key,
             assistant_text,
+            context_summary: result.context_summary,
             events,
         })
     }
@@ -519,7 +675,7 @@ impl AgentRuntime {
             true,
             AgentRunProfile::default(),
         )
-            .await
+        .await
     }
 
     pub fn preview_message_context(
@@ -573,7 +729,7 @@ impl AgentRuntime {
         );
         let model_selection = options.model_selection.as_ref();
         let provider_send = async {
-            let assistant_text = match config.runtime_mode() {
+            let backend_result = match config.runtime_mode() {
                 DesktopAgentRuntimeMode::PiAgentRust => {
                     let mut provider_config =
                         ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
@@ -619,9 +775,9 @@ impl AgentRuntime {
                         .await?
                 }
             };
-            Ok::<String, AgentRuntimeError>(assistant_text)
+            Ok::<AgentBackendResult, AgentRuntimeError>(backend_result)
         };
-        let assistant_text = if timeout_seconds == 0 {
+        let backend_result = if timeout_seconds == 0 {
             provider_send.await
         } else {
             match tokio::time::timeout(
@@ -636,9 +792,12 @@ impl AgentRuntime {
                 ))),
             }
         }?;
+        let assistant_text = backend_result.assistant_text;
         clear_tool_activation_state(&self.runtime_root);
 
-        self.append_transcript(&thread_id, &user_text, &assistant_text)?;
+        if profile.transcript_policy != TranscriptPolicy::None {
+            self.append_transcript(&thread_id, &user_text, &assistant_text)?;
+        }
         let memory_result = memory_after_turn.then(|| {
             tracing::debug!(
                 runtime_root = %self.runtime_root.display(),
@@ -663,6 +822,7 @@ impl AgentRuntime {
             thread_id,
             user_text,
             assistant_text,
+            loop_events: backend_result.loop_events,
             context_summary: runtime_context.context_summary,
             memory_result,
         })
@@ -710,7 +870,7 @@ impl AgentRuntime {
             &profile,
         );
         let model_selection = options.model_selection.as_ref();
-        let assistant_text = match config.runtime_mode() {
+        let backend_result = match config.runtime_mode() {
             DesktopAgentRuntimeMode::PiAgentRust => {
                 let mut provider_config =
                     ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
@@ -760,7 +920,8 @@ impl AgentRuntime {
         Ok(AgentSendResult {
             thread_id,
             user_text,
-            assistant_text,
+            assistant_text: backend_result.assistant_text,
+            loop_events: backend_result.loop_events,
             context_summary: runtime_context.context_summary,
             memory_result: None,
         })
@@ -944,11 +1105,12 @@ impl AgentRuntimeBackend for NativeProviderRuntimeBackend {
     fn send_message<'a>(
         &'a self,
         request: AgentRuntimeRequest<'a>,
-    ) -> Pin<Box<dyn Future<Output = Result<String, AgentRuntimeError>> + Send + 'a>> {
+    ) -> Pin<Box<dyn Future<Output = Result<AgentBackendResult, AgentRuntimeError>> + Send + 'a>>
+    {
         Box::pin(async move {
             let messages =
                 agent_messages_to_native_provider_messages(&request.runtime_context.messages);
-            send_native_provider_conversation_with_options(
+            let assistant_text = send_native_provider_conversation_with_options(
                 &request.provider_config,
                 &messages,
                 &NativeProviderRequestOptions {
@@ -968,16 +1130,99 @@ impl AgentRuntimeBackend for NativeProviderRuntimeBackend {
                 },
             )
             .await
-            .map_err(map_provider_error)
+            .map_err(map_provider_error)?;
+            Ok(AgentBackendResult::text(assistant_text))
         })
     }
+}
+
+fn pi_agent_event_to_loop_event(event: pi::sdk::AgentEvent) -> Option<AgentLoopEvent> {
+    match event {
+        pi::sdk::AgentEvent::ToolExecutionStart {
+            tool_call_id,
+            tool_name,
+            args,
+        } => Some(AgentLoopEvent::ToolExecution {
+            event: ToolExecutionEvent::Started {
+                call_id: tool_call_id,
+                tool_name,
+                arguments: args,
+            },
+        }),
+        pi::sdk::AgentEvent::ToolExecutionUpdate {
+            tool_call_id,
+            tool_name,
+            partial_result,
+            ..
+        } => Some(AgentLoopEvent::ToolExecution {
+            event: ToolExecutionEvent::Progress {
+                call_id: tool_call_id,
+                tool_name,
+                status: "running".to_string(),
+                message: pi_tool_output_summary(&partial_result),
+            },
+        }),
+        pi::sdk::AgentEvent::ToolExecutionEnd {
+            tool_call_id,
+            tool_name,
+            is_error,
+            ..
+        } => Some(AgentLoopEvent::ToolExecution {
+            event: ToolExecutionEvent::Completed {
+                call_id: tool_call_id,
+                tool_name,
+                is_error,
+            },
+        }),
+        pi::sdk::AgentEvent::MessageUpdate {
+            assistant_message_event,
+            ..
+        } => provider_block_from_pi_message_event(&assistant_message_event),
+        _ => None,
+    }
+}
+
+fn provider_block_from_pi_message_event(event: &impl Serialize) -> Option<AgentLoopEvent> {
+    let value = serde_json::to_value(event).ok()?;
+    let event_type = value.get("type").and_then(Value::as_str)?;
+    let text = value
+        .get("delta")
+        .or_else(|| value.get("content"))
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    match event_type {
+        "text_delta" | "text_end" => Some(AgentLoopEvent::ProviderBlock {
+            block_type: event_type.to_string(),
+            text,
+            metadata: json!({ "source": "pi-agent" }),
+        }),
+        "thinking_delta" | "thinking_end" => Some(AgentLoopEvent::ProviderBlock {
+            block_type: event_type.to_string(),
+            text,
+            metadata: json!({ "source": "pi-agent" }),
+        }),
+        "toolcall_delta" | "toolcall_end" => Some(AgentLoopEvent::ProviderBlock {
+            block_type: event_type.to_string(),
+            text,
+            metadata: json!({
+                "source": "pi-agent",
+                "event": value
+            }),
+        }),
+        _ => None,
+    }
+}
+
+fn pi_tool_output_summary(output: &pi::sdk::ToolOutput) -> Option<String> {
+    serde_json::to_string(output).ok()
 }
 
 impl AgentRuntimeBackend for PiAgentRuntimeBackend {
     fn send_message<'a>(
         &'a self,
         request: AgentRuntimeRequest<'a>,
-    ) -> Pin<Box<dyn Future<Output = Result<String, AgentRuntimeError>> + Send + 'a>> {
+    ) -> Pin<Box<dyn Future<Output = Result<AgentBackendResult, AgentRuntimeError>> + Send + 'a>>
+    {
         Box::pin(async move {
             let provider = Arc::new(CrawClawPiProvider {
                 config: request.provider_config.clone(),
@@ -1025,15 +1270,31 @@ impl AgentRuntimeBackend for PiAgentRuntimeBackend {
                 false,
                 pi::compaction::ResolvedCompactionSettings::default(),
             );
+            let loop_events = Arc::new(std::sync::Mutex::new(Vec::<AgentLoopEvent>::new()));
+            let event_sink = Arc::clone(&loop_events);
             let mut handle = pi::sdk::AgentSessionHandle::from_session_with_listeners(
                 agent_session,
                 pi::sdk::EventListeners::default(),
             );
             let assistant = handle
-                .prompt(request.user_text.to_string(), |_| {})
+                .prompt(request.user_text.to_string(), move |event| {
+                    if let Some(loop_event) = pi_agent_event_to_loop_event(event) {
+                        let mut events = event_sink
+                            .lock()
+                            .unwrap_or_else(std::sync::PoisonError::into_inner);
+                        events.push(loop_event);
+                    }
+                })
                 .await
                 .map_err(map_pi_agent_error)?;
-            pi_agent_assistant_text(&assistant)
+            let collected_loop_events = loop_events
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .clone();
+            Ok(AgentBackendResult {
+                assistant_text: pi_agent_assistant_text(&assistant)?,
+                loop_events: collected_loop_events,
+            })
         })
     }
 }

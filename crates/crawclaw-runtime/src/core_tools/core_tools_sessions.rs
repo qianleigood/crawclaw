@@ -177,9 +177,8 @@ impl pi::sdk::Tool for SessionTool {
             SessionToolKind::Spawn => {
                 let task = required_param(self.kind, &input, &["task", "message"])?;
                 let label = string_param(&input, &["label"]);
-                let parent =
-                    string_param(&input, &["parentSessionKey", "parent", "spawnedBy"])
-                        .unwrap_or_else(|| "main".to_string());
+                let parent = string_param(&input, &["parentSessionKey", "parent", "spawnedBy"])
+                    .unwrap_or_else(|| "main".to_string());
                 let session = store
                     .spawn_session(Some(&parent), label.as_deref(), &task)
                     .map_err(|error| session_tool_error(self.kind, error))?;
@@ -188,6 +187,16 @@ impl pi::sdk::Tool for SessionTool {
                         .patch_session(&session.key, None, None, None, Some("running"))
                         .map_err(|error| session_tool_error(self.kind, error))?;
                     let run_id = format!("subagent-run-{}", session_tool_now_millis());
+                    let mut metadata = BTreeMap::new();
+                    metadata.insert("parentSessionKey".to_string(), json!(parent.clone()));
+                    if input.get("fork").and_then(Value::as_bool) == Some(true) {
+                        metadata.insert(
+                            "parentContextPolicy".to_string(),
+                            json!("fork_messages_only"),
+                        );
+                    } else if let Some(policy) = string_param(&input, &["parentContextPolicy"]) {
+                        metadata.insert("parentContextPolicy".to_string(), json!(policy));
+                    }
                     let result = match AgentRuntime::new(self.runtime_root.clone())
                         .run_turn(AgentRunRequest {
                             run_id: run_id.clone(),
@@ -204,7 +213,7 @@ impl pi::sdk::Tool for SessionTool {
                                 message_id: Some(format!("{run_id}:input")),
                                 thread_id: Some(session.key.clone()),
                                 media_urls: Vec::new(),
-                                metadata: BTreeMap::new(),
+                                metadata,
                             },
                             model: AgentModelSelection {
                                 provider: "configured".to_string(),
@@ -246,10 +255,10 @@ impl pi::sdk::Tool for SessionTool {
                         "assistantText": result.assistant_text
                     })
                 } else {
-                json!({
-                    "status": "spawned",
-                    "session": session
-                })
+                    json!({
+                        "status": "spawned",
+                        "session": session
+                    })
                 }
             }
             SessionToolKind::Yield => {

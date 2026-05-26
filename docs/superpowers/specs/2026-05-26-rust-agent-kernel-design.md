@@ -432,6 +432,26 @@ Expand runtime summaries and desktop rendering. Add gateway logs/events for prof
 
 Success check: a developer can explain a run from the context summary and run events without inspecting raw provider payloads.
 
+## Claude Code Capability-Parity Update
+
+The kernel now treats Claude Code as a capability target, not as a source or prompt
+clone. The shipped contract focuses on equivalent runtime behavior:
+
+- `AgentRunResult` includes the actual `contextSummary` used by the provider call.
+- Runtime events include `contextProjected` and `providerBlock` so gateway and desktop clients can follow the agent loop without raw provider payload inspection.
+- Pi agent backend loop events are converted into the same runtime event stream for provider blocks, tool calls, tool progress, and completed tool execution.
+- `AgentRuntimeContextSummary` includes an agent definition id, projection counts, budget state, loaded skills, memory snippets, activated tools, warnings, and stable compaction cursors.
+- Normal, BTW, and sub-agent turns receive Rust-owned prompt catalog entries. Special agents continue to use their typed definitions.
+- `ToolExecutionRuntime` and `execute_rust_core_tool_for_profile` enforce the same special-only tool guard while allowing matching special-agent profiles to execute memory/session-summary tools.
+- Fresh sub-agents default to no parent transcript. Forked sub-agents must opt in through `fork=true` or `parentContextPolicy=fork_messages_only`.
+- Gateway protocol metadata exposes agent loop topics for context projection, provider blocks, tool progress, permission requests, hook decisions, sub-agent lifecycle, and MCP elicitation.
+- Desktop context summaries show profile, parent policy, agent definition, projection count, budget state, compaction boundary, activated tools, loaded skills, memory, and warnings.
+
+The remaining deeper parity work is additive on this contract: real-time gateway
+delivery while provider/tool blocks are still in flight, hook mutation/blocking,
+MCP transport orchestration, and automatic context-collapse retry should emit the
+same typed event and summary shapes instead of adding a second execution path.
+
 ## Testing Strategy
 
 Use focused Rust tests first, then repo gates when code changes touch broader surfaces.
