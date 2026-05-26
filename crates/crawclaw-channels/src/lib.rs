@@ -133,8 +133,31 @@ pub struct AgentRunRequest {
     pub model: AgentModelSelection,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub enabled_tools: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<AgentRunProfileRequest>,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub options: BTreeMap<String, Value>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentRunProfileRequest {
+    pub kind: AgentRunProfileKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub special_agent: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub memory_after_turn: Option<bool>,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AgentRunProfileKind {
+    Normal,
+    Btw,
+    Subagent,
+    SpecialAgent,
+    Compaction,
+    MemoryMaintenance,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

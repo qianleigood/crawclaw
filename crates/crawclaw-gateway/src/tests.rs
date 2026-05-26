@@ -1,6 +1,6 @@
 use super::*;
 use std::collections::BTreeSet;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{mpsc, Mutex, OnceLock};
 use std::thread;
@@ -367,11 +367,12 @@ async fn rust_gateway_rpc_manages_sessions_and_subagents() {
 
     let spawned = handle_gateway_method(
         &state,
-        "sessions.spawn",
+        "subagents_spawn",
         json!({
             "task": "inspect gateway",
             "label": "gateway worker",
-            "parentSessionKey": "main"
+            "parentSessionKey": "main",
+            "run": false
         }),
     )
     .await
@@ -450,7 +451,7 @@ async fn rust_gateway_rpc_manages_sessions_and_subagents() {
 
     let native_spawned = handle_gateway_method(
         &state,
-        "subagents.spawnRun",
+        "subagents_spawn",
         json!({
             "task": "native subagent",
             "label": "native worker",
@@ -1616,6 +1617,11 @@ fn runtime_status_advertises_rust_core_gateway_methods() {
         .as_array()
         .expect("gateway methods")
         .iter()
+        .any(|method| method == "subagents_spawn"));
+    assert!(!status["gatewayMethods"]
+        .as_array()
+        .expect("gateway methods")
+        .iter()
         .any(|method| method == "sessions.spawn"));
     assert!(status["gatewayMethods"]
         .as_array()
@@ -1633,6 +1639,11 @@ fn runtime_status_advertises_rust_core_gateway_methods() {
         .iter()
         .any(|method| method == "plugins.uninstall"));
     assert!(status["coreTools"]
+        .as_array()
+        .expect("core tools")
+        .iter()
+        .any(|tool| tool == "subagents_spawn"));
+    assert!(!status["coreTools"]
         .as_array()
         .expect("core tools")
         .iter()
@@ -2370,11 +2381,12 @@ async fn rust_gateway_agent_runtime_reports_session_store_state() {
     .expect("mark main running");
     let spawned = handle_gateway_method(
         &state,
-        "sessions.spawn",
+        "subagents_spawn",
         json!({
             "parentSessionKey": "agent:main:main",
             "label": "Review worker",
-            "task": "review the gateway state"
+            "task": "review the gateway state",
+            "run": false
         }),
     )
     .await
@@ -2609,6 +2621,107 @@ async fn rust_gateway_agent_run_turn_returns_native_event_contract() {
             .expect("updated transcript");
     assert!(transcript.contains("hello run turn"));
     assert!(transcript.contains("hello from agent run turn"));
+
+    let _ = std::fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn rust_gateway_subagents_spawn_runs_child_when_run_is_true() {
+    let runtime_root = unique_test_runtime_root("gateway-subagents-spawn-run");
+    let (provider_base_url, request_rx) = serve_openai_compatible_once(
+        r#"{"choices":[{"message":{"content":"child completed"}}]}"#,
+    );
+    let config_dir = runtime_root.join("config");
+    std::fs::create_dir_all(&config_dir).expect("config dir");
+    std::fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
+            "provider": "openai-compatible",
+            "baseUrl": provider_base_url,
+            "apiKey": "test-key",
+            "model": "test-model"
+        }))
+        .expect("provider config json"),
+    )
+    .expect("write provider config");
+
+    let state = GatewayState::new(GatewayRunConfig {
+        runtime_root: Some(runtime_root.clone()),
+        ..GatewayRunConfig::default()
+    });
+    let result = handle_gateway_method(
+        &state,
+        "subagents_spawn",
+        json!({
+            "task": "run the child task",
+            "label": "Child worker",
+            "parentSessionKey": "main",
+            "run": true
+        }),
+    )
+    .await
+    .expect("subagent spawn run");
+
+    assert_eq!(result["ok"], true);
+    assert_eq!(result["status"], "completed");
+    assert_eq!(result["session"]["status"], "completed");
+    assert_eq!(result["assistantText"], "child completed");
+    assert!(result["sessionKey"]
+        .as_str()
+        .expect("session key")
+        .contains("subagent-"));
+    let request = request_rx.recv().expect("captured provider request");
+    assert!(request.contains("run the child task"));
+    assert_eq!(request.matches("run the child task").count(), 1);
+
+    let _ = std::fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn rust_gateway_subagents_spawn_run_false_can_be_cancelled() {
+    let runtime_root = unique_test_runtime_root("gateway-subagents-spawn-cancel");
+    let state = GatewayState::new(GatewayRunConfig {
+        runtime_root: Some(runtime_root.clone()),
+        ..GatewayRunConfig::default()
+    });
+    let spawned = handle_gateway_method(
+        &state,
+        "subagents_spawn",
+        json!({
+            "task": "wait for explicit start",
+            "label": "Waiting worker",
+            "parentSessionKey": "main",
+            "run": false
+        }),
+    )
+    .await
+    .expect("spawn without run");
+
+    assert_eq!(spawned["ok"], true);
+    assert_eq!(spawned["status"], "spawned");
+    assert_eq!(spawned["session"]["messageCount"], 0);
+    let session_key = spawned["sessionKey"].as_str().expect("session key");
+
+    let cancelled = handle_gateway_method(
+        &state,
+        "agentRuntime.cancel",
+        json!({ "sessionKey": session_key }),
+    )
+    .await
+    .expect("cancel spawned child");
+    assert_eq!(cancelled["ok"], true);
+    assert_eq!(cancelled["cancelled"], true);
+    assert_eq!(cancelled["status"], "cancelled");
+
+    let status = handle_gateway_method(
+        &state,
+        "session_status",
+        json!({ "sessionKey": session_key }),
+    )
+    .await
+    .expect("session status");
+    assert_eq!(status["session"]["status"], "cancelled");
 
     let _ = std::fs::remove_dir_all(runtime_root);
 }
@@ -4738,10 +4851,9 @@ fn serve_qwen3_tts_sidecar(request_count: usize) -> (String, mpsc::Receiver<Stri
     thread::spawn(move || {
         for _ in 0..request_count {
             let (mut stream, _) = listener.accept().expect("accept tts request");
-            let mut buffer = [0; 8192];
-            let count = stream.read(&mut buffer).expect("read tts request");
+            let request = read_http_request(&mut stream);
             request_tx
-                .send(String::from_utf8_lossy(&buffer[..count]).to_string())
+                .send(String::from_utf8_lossy(&request).to_string())
                 .expect("send captured tts request");
             let response_body = r#"{"audioBase64":"aGVsbG8=","outputFormat":"wav"}"#;
             let response = format!(
@@ -4755,4 +4867,42 @@ fn serve_qwen3_tts_sidecar(request_count: usize) -> (String, mpsc::Receiver<Stri
         }
     });
     (format!("http://{addr}"), request_rx)
+}
+
+fn read_http_request(stream: &mut std::net::TcpStream) -> Vec<u8> {
+    stream
+        .set_read_timeout(Some(Duration::from_secs(2)))
+        .expect("set mock request read timeout");
+    let mut request = Vec::new();
+    let mut buffer = [0; 8192];
+    loop {
+        let count = stream.read(&mut buffer).expect("read mock request");
+        if count == 0 {
+            break;
+        }
+        request.extend_from_slice(&buffer[..count]);
+        if http_request_body_complete(&request) {
+            break;
+        }
+    }
+    request
+}
+
+fn http_request_body_complete(request: &[u8]) -> bool {
+    let Some(header_end) = request.windows(4).position(|window| window == b"\r\n\r\n") else {
+        return false;
+    };
+    let headers = String::from_utf8_lossy(&request[..header_end]);
+    let content_length = headers.lines().find_map(|line| {
+        let (name, value) = line.split_once(':')?;
+        if name.eq_ignore_ascii_case("content-length") {
+            value.trim().parse::<usize>().ok()
+        } else {
+            None
+        }
+    });
+    match content_length {
+        Some(length) => request.len() >= header_end + 4 + length,
+        None => true,
+    }
 }

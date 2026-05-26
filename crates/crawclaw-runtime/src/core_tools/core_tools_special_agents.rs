@@ -265,19 +265,6 @@ pub(super) async fn run_review_task_with_agent_runtime(
     let session_key = parent_session_key
         .clone()
         .unwrap_or_else(|| format!("special:{kind}:{run_id}"));
-    let mut options = BTreeMap::new();
-    options.insert(
-        "specialAgent".to_string(),
-        json!({
-            "kind": definition.id,
-            "spawnSource": definition.spawn_source,
-            "executionMode": definition.execution_mode,
-            "transcriptPolicy": definition.transcript_policy,
-            "parentContextPolicy": definition.parent_context_policy,
-            "timeoutSeconds": definition.timeout_seconds,
-            "maxTurns": definition.max_turns
-        }),
-    );
     let result = AgentRuntime::new(runtime_root.to_path_buf())
         .run_turn(AgentRunRequest {
             run_id: run_id.clone(),
@@ -306,7 +293,14 @@ pub(super) async fn run_review_task_with_agent_runtime(
                 .iter()
                 .map(|tool| (*tool).to_string())
                 .collect(),
-            options,
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::SpecialAgent,
+                special_agent: Some(definition.id.to_string()),
+                memory_after_turn: Some(
+                    definition.guard != Some(SpecialAgentToolGuard::MemoryMaintenance),
+                ),
+            }),
+            options: BTreeMap::new(),
         })
         .await
         .map_err(|error| format!("{}: {}", error.code(), error.message()))?;

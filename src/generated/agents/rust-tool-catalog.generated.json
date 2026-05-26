@@ -248,16 +248,16 @@
       "status": "rust-native"
     },
     {
-      "backingRuntimeId": "sessions_spawn",
+      "backingRuntimeId": "subagents_spawn",
       "defaultEnabled": true,
       "defaultProfiles": [
         "coding",
         "full"
       ],
       "description": "Spawn sub-agent",
-      "id": "sessions_spawn",
+      "id": "subagents_spawn",
       "includeInCrawClawGroup": true,
-      "label": "sessions_spawn",
+      "label": "subagents_spawn",
       "lifecycle": "profile_default",
       "readOnly": false,
       "sectionId": "sessions",
@@ -385,6 +385,23 @@
       "status": "rust-native"
     },
     {
+      "backingRuntimeId": "tool_search",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "minimal",
+        "coding",
+        "full"
+      ],
+      "description": "Search deferred tools",
+      "id": "tool_search",
+      "includeInCrawClawGroup": true,
+      "label": "tool_search",
+      "lifecycle": "profile_default",
+      "readOnly": true,
+      "sectionId": "runtime",
+      "status": "rust-native"
+    },
+    {
       "backingRuntimeId": "discover_skills",
       "defaultEnabled": true,
       "defaultProfiles": [
@@ -395,6 +412,22 @@
       "id": "discover_skills",
       "includeInCrawClawGroup": true,
       "label": "discover_skills",
+      "lifecycle": "profile_default",
+      "readOnly": true,
+      "sectionId": "skills",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "load_skill",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Load full skill instructions",
+      "id": "load_skill",
+      "includeInCrawClawGroup": true,
+      "label": "load_skill",
       "lifecycle": "profile_default",
       "readOnly": true,
       "sectionId": "skills",
@@ -617,6 +650,74 @@
       "label": "LLM Task",
       "lifecycle": "runtime_conditional",
       "pluginId": "llm-task",
+      "readOnly": false,
+      "sectionId": "runtime",
+      "source": "native-plugin",
+      "status": "rust-native"
+    },
+    {
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Generate images through the official MiniMax MCP server.",
+      "id": "text_to_image",
+      "includeInCrawClawGroup": true,
+      "label": "MiniMax text to image",
+      "lifecycle": "runtime_conditional",
+      "pluginId": "minimax-mcp",
+      "readOnly": false,
+      "sectionId": "runtime",
+      "source": "native-plugin",
+      "status": "rust-native"
+    },
+    {
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Generate videos through the official MiniMax MCP server.",
+      "id": "generate_video",
+      "includeInCrawClawGroup": true,
+      "label": "MiniMax text to video",
+      "lifecycle": "runtime_conditional",
+      "pluginId": "minimax-mcp",
+      "readOnly": false,
+      "sectionId": "runtime",
+      "source": "native-plugin",
+      "status": "rust-native"
+    },
+    {
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Generate videos from a first frame image through the official MiniMax MCP server.",
+      "id": "image_to_video",
+      "includeInCrawClawGroup": true,
+      "label": "MiniMax image to video",
+      "lifecycle": "runtime_conditional",
+      "pluginId": "minimax-mcp",
+      "readOnly": false,
+      "sectionId": "runtime",
+      "source": "native-plugin",
+      "status": "rust-native"
+    },
+    {
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Analyze an image through the official MiniMax Token Plan MCP server.",
+      "id": "understand_image",
+      "includeInCrawClawGroup": true,
+      "label": "MiniMax image understanding",
+      "lifecycle": "runtime_conditional",
+      "pluginId": "minimax-mcp",
       "readOnly": false,
       "sectionId": "runtime",
       "source": "native-plugin",

@@ -788,7 +788,7 @@ fn pi_agent_rust_core_tool_registry_uses_crawclaw_tool_names() {
         "sessions_list",
         "sessions_history",
         "sessions_send",
-        "sessions_spawn",
+        "subagents_spawn",
         "sessions_yield",
         "subagents",
         "canvas",
@@ -906,7 +906,7 @@ fn grep_find_ls_are_default_rust_native_discovery_tools() {
             "sessions_list",
             "sessions_history",
             "sessions_send",
-            "sessions_spawn",
+            "subagents_spawn",
             "sessions_yield",
             "subagents",
             "canvas",
@@ -1206,8 +1206,8 @@ fn rust_core_tool_inventory_tracks_native_tools() {
     assert!(definition("web_fetch").read_only);
     assert!(definition("sessions_send").default_enabled);
     assert!(!definition("sessions_send").read_only);
-    assert!(definition("sessions_spawn").default_enabled);
-    assert!(!definition("sessions_spawn").read_only);
+    assert!(definition("subagents_spawn").default_enabled);
+    assert!(!definition("subagents_spawn").read_only);
     assert!(definition("sessions_yield").default_enabled);
     assert!(!definition("sessions_yield").read_only);
     assert!(definition("cron").default_enabled);
@@ -1255,7 +1255,7 @@ fn rust_core_tool_inventory_tracks_native_tools() {
     for expected in [
         "apply_patch",
         "process",
-        "sessions_spawn",
+        "subagents_spawn",
         "message",
         "cron",
         "tts",
@@ -1371,6 +1371,22 @@ async fn core_tools_canvas_message_and_discover_skills_are_rust_backed() {
         .as_str()
         .expect("skill content")
         .contains("# Demo"));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn direct_runtime_worker_rejects_special_agent_only_tools() {
+    let runtime_root = unique_test_runtime_root("special-tool-direct-worker-guard");
+    let error = execute_rust_core_tool(
+        &runtime_root,
+        "session_summary_file_read",
+        json!({ "scope": "default" }),
+    )
+    .await
+    .expect_err("direct worker should reject special-only tool");
+
+    assert!(error.contains("special-agent-only"));
 
     let _ = fs::remove_dir_all(runtime_root);
 }
@@ -1559,7 +1575,7 @@ async fn rust_native_session_tools_manage_subagent_sessions() {
     let runtime_root = unique_test_runtime_root("pi-agent-rust-session-tools");
     fs::create_dir_all(&runtime_root).expect("runtime root");
     let registry = build_pi_agent_rust_tool_registry(&runtime_root);
-    let spawn = registry.get("sessions_spawn").expect("sessions_spawn tool");
+    let spawn = registry.get("subagents_spawn").expect("subagents_spawn tool");
     let list = registry.get("sessions_list").expect("sessions_list tool");
     let history = registry
         .get("sessions_history")
@@ -1574,7 +1590,8 @@ async fn rust_native_session_tools_manage_subagent_sessions() {
             json!({
                 "task": "check the Rust gateway",
                 "label": "gateway worker",
-                "parentSessionKey": "main"
+                "parentSessionKey": "main",
+                "run": false
             }),
             None,
         )
@@ -1907,6 +1924,11 @@ async fn agent_runtime_run_turn_emits_rust_event_contract() {
                 reasoning_level: None,
             },
             enabled_tools: Vec::new(),
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Normal,
+                special_agent: None,
+                memory_after_turn: Some(true),
+            }),
             options: BTreeMap::new(),
         })
         .await
@@ -2017,7 +2039,12 @@ async fn agent_runtime_run_turn_can_disable_memory_after_turn() {
                 reasoning_level: None,
             },
             enabled_tools: Vec::new(),
-            options: BTreeMap::from([("memoryAfterTurn".to_string(), json!(false))]),
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Normal,
+                special_agent: None,
+                memory_after_turn: Some(false),
+            }),
+            options: BTreeMap::new(),
         })
         .await
         .expect("run turn");
@@ -2115,6 +2142,7 @@ async fn memory_runtime_compact_operation_uses_native_agent_runtime() {
     assert_eq!(compact["ok"], true);
     assert_eq!(compact["compacted"], true);
     assert_eq!(compact["result"]["summary"], "compact from runtime agent");
+    assert_eq!(compact["result"]["compactedThroughMessageId"], "m2");
     assert_eq!(
         compact["result"]["implementation"],
         "rust-native-agent-runtime"
@@ -2128,6 +2156,12 @@ async fn memory_runtime_compact_operation_uses_native_agent_runtime() {
         fs::read_to_string(runtime_root.join("memory/session-summary/runtime-compact-session.md"))
             .expect("summary file");
     assert!(summary.contains("compact from runtime agent"));
+    let cursor = fs::read_to_string(
+        runtime_root.join("memory/session-summary/runtime-compact-session.state.json"),
+    )
+    .expect("compaction cursor");
+    assert!(cursor.contains("\"compactedThroughMessageId\": \"m2\""));
+    assert!(cursor.contains("\"tailStartMessageIndex\": 2"));
 
     let _ = fs::remove_dir_all(runtime_root);
 }
@@ -2221,6 +2255,11 @@ async fn agent_runtime_run_turn_applies_request_model_selection() {
                 reasoning_level: None,
             },
             enabled_tools: Vec::new(),
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Normal,
+                special_agent: None,
+                memory_after_turn: Some(true),
+            }),
             options: BTreeMap::new(),
         })
         .await
@@ -2275,8 +2314,12 @@ async fn agent_runtime_btw_turn_is_ephemeral_and_marks_reply_metadata() {
                 reasoning_level: Some("off".to_string()),
             },
             enabled_tools: Vec::new(),
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Btw,
+                special_agent: None,
+                memory_after_turn: Some(false),
+            }),
             options: BTreeMap::from([
-                ("mode".to_string(), json!("btw")),
                 ("btwQuestion".to_string(), json!("what changed?")),
                 ("ephemeral".to_string(), json!(true)),
             ]),
@@ -2637,9 +2680,16 @@ impl AgentRuntimeBackend for FakeAgentRuntimeBackend {
 struct CapturedAgentRequest {
     user_text: String,
     system_sections: Vec<String>,
+    messages: Vec<String>,
     included_tools: Vec<String>,
     deferred_tools: Vec<String>,
     surfaced_skills: Vec<String>,
+    loaded_skills: Vec<String>,
+    loaded_skill_contents: Vec<String>,
+    memory_snippets: Vec<String>,
+    profile_kind: String,
+    parent_context_policy: String,
+    activated_tools: Vec<String>,
 }
 
 #[derive(Clone)]
@@ -2660,6 +2710,12 @@ impl AgentRuntimeBackend for CapturingAgentRuntimeBackend {
                 .push(CapturedAgentRequest {
                     user_text: request.user_text.to_string(),
                     system_sections: request.runtime_context.system_sections.clone(),
+                    messages: request
+                        .runtime_context
+                        .messages
+                        .iter()
+                        .map(|message| message.content.clone())
+                        .collect(),
                     included_tools: request
                         .runtime_context
                         .context_summary
@@ -2677,6 +2733,28 @@ impl AgentRuntimeBackend for CapturingAgentRuntimeBackend {
                         .iter()
                         .map(|skill| skill.name.clone())
                         .collect(),
+                    loaded_skills: request
+                        .runtime_context
+                        .context_summary
+                        .loaded_skills
+                        .clone(),
+                    loaded_skill_contents: request.runtime_context.loaded_skill_contents.clone(),
+                    memory_snippets: request
+                        .runtime_context
+                        .context_summary
+                        .memory_snippets
+                        .clone(),
+                    profile_kind: request.runtime_context.context_summary.profile_kind.clone(),
+                    parent_context_policy: request
+                        .runtime_context
+                        .context_summary
+                        .parent_context_policy
+                        .clone(),
+                    activated_tools: request
+                        .runtime_context
+                        .context_summary
+                        .activated_tools
+                        .clone(),
                 });
             Ok(self.reply.clone())
         })
@@ -2761,6 +2839,7 @@ async fn agent_runtime_builds_goal_scoped_context_before_provider_call() {
         request.included_tools,
         result.context_summary.included_tools
     );
+    assert!(request.activated_tools.is_empty());
     assert_eq!(
         request.deferred_tools,
         result.context_summary.deferred_tools
@@ -2769,6 +2848,623 @@ async fn agent_runtime_builds_goal_scoped_context_before_provider_call() {
         .surfaced_skills
         .iter()
         .any(|skill| skill == "imagegen"));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn agent_runtime_context_ignores_transcript_tool_activation_json() {
+    let runtime_root = unique_test_runtime_root("agent-context-no-transcript-tool-activation");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+    fs::create_dir_all(runtime_root.join("sessions")).expect("sessions dir");
+    fs::write(
+        runtime_root.join("sessions/thread-activation.jsonl"),
+        r#"{"role":"assistant","content":"{\"activatedTools\":[\"image\"],\"matches\":[{\"name\":\"pdf\"}]}"}"#,
+    )
+    .expect("seed transcript");
+
+    let runtime = AgentRuntime::new(runtime_root.clone());
+    let summary = runtime
+        .preview_message_context(
+            "thread-activation",
+            "continue",
+            &AgentRuntimeSendOptions::default(),
+        )
+        .expect("context preview");
+
+    assert_eq!(summary.activated_tools, Vec::<String>::new());
+    assert!(!summary.included_tools.contains(&"image".to_string()));
+    assert!(!summary.included_tools.contains(&"pdf".to_string()));
+    assert!(summary.deferred_tools.contains(&"image".to_string()));
+    assert!(summary.deferred_tools.contains(&"pdf".to_string()));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn tool_search_activation_is_runtime_state_for_next_context() {
+    let runtime_root = unique_test_runtime_root("agent-context-tool-search-activation");
+    let output = execute_rust_core_tool(
+        &runtime_root,
+        "tool_search",
+        json!({
+            "query": "image understanding",
+            "limit": 1
+        }),
+    )
+    .await
+    .expect("tool search");
+    assert_eq!(output["details"]["activationScope"], "next-provider-request");
+    assert!(output["details"]["activatedTools"]
+        .as_array()
+        .expect("activated tools")
+        .iter()
+        .any(|tool| tool == "image"));
+
+    let runtime = AgentRuntime::new(runtime_root.clone());
+    let summary = runtime
+        .preview_message_context(
+            "thread-tool-state",
+            "describe the image",
+            &AgentRuntimeSendOptions::default(),
+        )
+        .expect("context preview");
+
+    assert!(summary.activated_tools.contains(&"image".to_string()));
+    assert!(summary.included_tools.contains(&"image".to_string()));
+    assert!(!summary.deferred_tools.contains(&"image".to_string()));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn loaded_skill_state_enters_next_provider_context() {
+    let runtime_root = unique_test_runtime_root("agent-context-loaded-skill");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+    fs::create_dir_all(runtime_root.join("skills/demo")).expect("skill dir");
+    fs::write(
+        runtime_root.join("skills/demo/SKILL.md"),
+        "---\nname: demo\ndescription: Demo helper instructions.\n---\n# Demo\n\nUse the demo workflow.\n",
+    )
+    .expect("skill file");
+
+    execute_rust_core_tool(&runtime_root, "load_skill", json!({ "skill": "demo" }))
+        .await
+        .expect("load skill");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_pi_agent_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "skill reply".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    let result = runtime
+        .send_message_with_options(
+            "thread-loaded-skill".to_string(),
+            "Use the demo helper".to_string(),
+            AgentRuntimeSendOptions::default(),
+        )
+        .await
+        .expect("send with loaded skill");
+
+    assert_eq!(result.context_summary.loaded_skills, vec!["demo".to_string()]);
+    let requests = captured.lock().expect("captured requests");
+    let request = requests.first().expect("provider request");
+    assert_eq!(request.loaded_skills, vec!["demo".to_string()]);
+    assert!(request
+        .loaded_skill_contents
+        .iter()
+        .any(|content| content.contains("# Demo")));
+    assert!(request
+        .system_sections
+        .iter()
+        .any(|section| section.contains("Loaded skill instructions")
+            && section.contains("Use the demo workflow")));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn agent_runtime_special_profile_applies_definition_prompt_and_tool_policy() {
+    let runtime_root = unique_test_runtime_root("agent-special-profile");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_pi_agent_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "summary reply".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    let result = runtime
+        .run_turn(AgentRunRequest {
+            run_id: "run-special-summary".to_string(),
+            agent_id: "session-summary".to_string(),
+            session_key: "thread-special-summary".to_string(),
+            inbound: ChannelInboundEnvelope {
+                channel: "memory".to_string(),
+                account_id: Some("rust-runtime".to_string()),
+                from: "memory.compact".to_string(),
+                to: "agent:session-summary".to_string(),
+                chat_type: ChannelChatType::Direct,
+                body: "summarize this transcript".to_string(),
+                raw_body: Some("summarize this transcript".to_string()),
+                message_id: Some("run-special-summary:input".to_string()),
+                thread_id: Some("thread-special-summary".to_string()),
+                media_urls: Vec::new(),
+                metadata: BTreeMap::new(),
+            },
+            model: AgentModelSelection {
+                provider: "test-provider".to_string(),
+                model: "test-model".to_string(),
+                reasoning_level: None,
+            },
+            enabled_tools: Vec::new(),
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Compaction,
+                special_agent: Some("session-summary".to_string()),
+                memory_after_turn: Some(false),
+            }),
+            options: BTreeMap::new(),
+        })
+        .await
+        .expect("special profile turn");
+
+    assert_eq!(result.assistant_text, "summary reply");
+    assert!(!serde_json::to_value(&result.events)
+        .expect("events json")
+        .as_array()
+        .expect("events array")
+        .iter()
+        .any(|event| event["toolName"] == "memory.afterTurn"));
+    let requests = captured.lock().expect("captured requests");
+    let request = requests.first().expect("provider request");
+    assert_eq!(request.profile_kind, "compaction");
+    assert_eq!(request.parent_context_policy, "full_envelope");
+    assert!(request
+        .system_sections
+        .iter()
+        .any(|section| section.contains("Session summary special agent")));
+    assert!(request
+        .included_tools
+        .contains(&"session_summary_file_read".to_string()));
+    assert!(!request.included_tools.contains(&"image".to_string()));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn agent_runtime_context_includes_compacted_summary_for_thread() {
+    let runtime_root = unique_test_runtime_root("agent-context-compaction-summary");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+    fs::create_dir_all(runtime_root.join("memory/session-summary")).expect("summary dir");
+    fs::write(
+        runtime_root.join("memory/session-summary/thread-compacted.md"),
+        "# Session summary\n\nOlder context was compacted here.\n",
+    )
+    .expect("summary file");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_pi_agent_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "summary context reply".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    let result = runtime
+        .send_message_with_options(
+            "thread-compacted".to_string(),
+            "continue after compaction".to_string(),
+            AgentRuntimeSendOptions::default(),
+        )
+        .await
+        .expect("send with compacted summary");
+
+    assert!(result.context_summary.compaction.active);
+    let requests = captured.lock().expect("captured requests");
+    let request = requests.first().expect("provider request");
+    assert!(request
+        .system_sections
+        .iter()
+        .any(|section| section.contains("Older context was compacted here")));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn agent_runtime_btw_profile_disables_memory_recall() {
+    let runtime_root = unique_test_runtime_root("agent-context-btw-memory-disabled");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+    fs::create_dir_all(runtime_root.join("memory")).expect("memory dir");
+    fs::write(
+        runtime_root.join("memory/desktop-items.json"),
+        serde_json::to_vec_pretty(&json!([
+            {
+                "id": "memory-one",
+                "agentId": "main",
+                "title": "Zebra preference",
+                "summary": "The user prefers zebra colored dashboards.",
+                "content": "Remember zebra preference for future UI work.",
+                "category": "preference",
+                "tags": ["zebra"],
+                "source": "test",
+                "updatedAt": "now",
+                "archived": false
+            }
+        ]))
+        .expect("memory json"),
+    )
+    .expect("write memory");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_pi_agent_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "btw reply".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    runtime
+        .run_turn(AgentRunRequest {
+            run_id: "run-btw-memory".to_string(),
+            agent_id: "main".to_string(),
+            session_key: "thread-btw-memory".to_string(),
+            inbound: ChannelInboundEnvelope {
+                channel: "chat".to_string(),
+                account_id: Some("desktop".to_string()),
+                from: "user".to_string(),
+                to: "agent:main".to_string(),
+                chat_type: ChannelChatType::Direct,
+                body: "what about zebra preference?".to_string(),
+                raw_body: None,
+                message_id: Some("run-btw-memory:input".to_string()),
+                thread_id: Some("thread-btw-memory".to_string()),
+                media_urls: Vec::new(),
+                metadata: BTreeMap::new(),
+            },
+            model: AgentModelSelection {
+                provider: "test-provider".to_string(),
+                model: "test-model".to_string(),
+                reasoning_level: None,
+            },
+            enabled_tools: Vec::new(),
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Btw,
+                special_agent: None,
+                memory_after_turn: Some(false),
+            }),
+            options: BTreeMap::new(),
+        })
+        .await
+        .expect("btw run");
+
+    let requests = captured.lock().expect("captured requests");
+    let request = requests.first().expect("provider request");
+    assert_eq!(request.profile_kind, "btw");
+    assert!(request.memory_snippets.is_empty());
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn agent_runtime_compaction_summary_replaces_old_history() {
+    let runtime_root = unique_test_runtime_root("agent-context-compaction-replaces-history");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+    fs::create_dir_all(runtime_root.join("sessions")).expect("sessions dir");
+    fs::write(
+        runtime_root.join("sessions/thread-compacted-replaced.jsonl"),
+        [
+            r#"{"role":"user","content":"old transcript detail that must be summarized away"}"#,
+            r#"{"role":"assistant","content":"old assistant detail that must be summarized away"}"#,
+        ]
+        .join("\n"),
+    )
+    .expect("seed transcript");
+    fs::create_dir_all(runtime_root.join("memory/session-summary")).expect("summary dir");
+    fs::write(
+        runtime_root.join("memory/session-summary/thread-compacted-replaced.md"),
+        "# Session summary\n\nOld transcript was summarized.\n",
+    )
+    .expect("summary file");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_pi_agent_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "compacted reply".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    runtime
+        .send_message_with_options(
+            "thread-compacted-replaced".to_string(),
+            "continue now".to_string(),
+            AgentRuntimeSendOptions::default(),
+        )
+        .await
+        .expect("send compacted");
+
+    let requests = captured.lock().expect("captured requests");
+    let request = requests.first().expect("provider request");
+    assert_eq!(request.messages, vec!["continue now".to_string()]);
+    assert!(request
+        .system_sections
+        .iter()
+        .any(|section| section.contains("Old transcript was summarized")));
+    assert!(!request
+        .messages
+        .iter()
+        .any(|message| message.contains("summarized away")));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn agent_runtime_compaction_tail_keeps_tool_pairs() {
+    let runtime_root = unique_test_runtime_root("agent-context-compaction-safe-tail");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+    fs::create_dir_all(runtime_root.join("sessions")).expect("sessions dir");
+    fs::write(
+        runtime_root.join("sessions/thread-compacted-safe-tail.jsonl"),
+        [
+            r#"{"role":"user","content":"old user context"}"#,
+            r#"{"role":"assistant","content":"old assistant context"}"#,
+            r#"{"role":"assistant","content":"tool call content","modelMessage":{"role":"assistant","content":"tool call content","blocks":[{"type":"toolUse","id":"tool-1","name":"read","input":{"path":"demo.txt"}}]}}"#,
+            r#"{"role":"user","content":"tool result content","modelMessage":{"role":"user","content":"tool result content","blocks":[{"type":"toolResult","tool_use_id":"tool-1","content":"demo result","is_error":false}]}}"#,
+            r#"{"role":"assistant","content":"recent tail content"}"#,
+        ]
+        .join("\n"),
+    )
+    .expect("seed transcript");
+    fs::create_dir_all(runtime_root.join("memory/session-summary")).expect("summary dir");
+    fs::write(
+        runtime_root.join("memory/session-summary/thread-compacted-safe-tail.md"),
+        "# Session summary\n\nEarlier messages were summarized.\n",
+    )
+    .expect("summary file");
+    fs::write(
+        runtime_root.join("memory/session-summary/thread-compacted-safe-tail.state.json"),
+        serde_json::to_vec_pretty(&json!({
+            "compactedThroughMessageId": "msg-old-assistant",
+            "firstKeptMessageId": "msg-tool-result",
+            "tailStartMessageId": "msg-tool-result",
+            "tailStartMessageIndex": 3
+        }))
+        .expect("state json"),
+    )
+    .expect("state file");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_pi_agent_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "safe tail reply".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    let result = runtime
+        .send_message_with_options(
+            "thread-compacted-safe-tail".to_string(),
+            "continue safe tail".to_string(),
+            AgentRuntimeSendOptions::default(),
+        )
+        .await
+        .expect("send compacted safe tail");
+
+    assert_eq!(
+        result.context_summary.compaction.compacted_through.as_deref(),
+        Some("msg-old-assistant")
+    );
+    assert_eq!(result.context_summary.compaction.retained_message_count, 3);
+    let requests = captured.lock().expect("captured requests");
+    let request = requests.first().expect("provider request");
+    assert_eq!(
+        request.messages,
+        vec![
+            "tool call content".to_string(),
+            "tool result content".to_string(),
+            "recent tail content".to_string(),
+            "continue safe tail".to_string()
+        ]
+    );
+    assert!(!request
+        .messages
+        .iter()
+        .any(|message| message.contains("old user context")));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[test]
+fn desktop_session_spawn_creates_child_without_visible_task_history() {
+    let runtime_root = unique_test_runtime_root("desktop-session-spawn-empty-history");
+    let store = DesktopSessionStore::new(runtime_root.clone());
+    let session = store
+        .spawn_session(Some("parent-thread"), Some("worker"), "do child work")
+        .expect("spawn child");
+
+    assert_eq!(session.status, "spawned");
+    assert_eq!(session.spawned_by.as_deref(), Some("parent-thread"));
+    assert_eq!(session.message_count, 0);
+    assert!(store
+        .session_history(&session.key)
+        .expect("child history")
+        .is_empty());
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn subagent_profile_injects_parent_context_messages() {
+    let runtime_root = unique_test_runtime_root("subagent-parent-context");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+    let store = DesktopSessionStore::new(runtime_root.clone());
+    store
+        .append_model_message(
+            "parent-thread",
+            "user",
+            "parent context detail",
+            Some("agent"),
+            AgentRuntimeMessage::text(AgentRuntimeMessageRole::User, "parent context detail"),
+        )
+        .expect("parent user");
+    store
+        .append_model_message(
+            "parent-thread",
+            "assistant",
+            "parent assistant detail",
+            Some("agent"),
+            AgentRuntimeMessage::text(
+                AgentRuntimeMessageRole::Assistant,
+                "parent assistant detail",
+            ),
+        )
+        .expect("parent assistant");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_pi_agent_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "child reply".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    runtime
+        .run_turn(AgentRunRequest {
+            run_id: "run-subagent-parent".to_string(),
+            agent_id: "subagent".to_string(),
+            session_key: "child-thread".to_string(),
+            inbound: ChannelInboundEnvelope {
+                channel: "subagent".to_string(),
+                account_id: Some("rust-runtime".to_string()),
+                from: "parent-thread".to_string(),
+                to: "agent:subagent".to_string(),
+                chat_type: ChannelChatType::Direct,
+                body: "child task".to_string(),
+                raw_body: None,
+                message_id: Some("run-subagent-parent:input".to_string()),
+                thread_id: Some("child-thread".to_string()),
+                media_urls: Vec::new(),
+                metadata: BTreeMap::new(),
+            },
+            model: AgentModelSelection {
+                provider: "test-provider".to_string(),
+                model: "test-model".to_string(),
+                reasoning_level: None,
+            },
+            enabled_tools: Vec::new(),
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Subagent,
+                special_agent: None,
+                memory_after_turn: Some(true),
+            }),
+            options: BTreeMap::new(),
+        })
+        .await
+        .expect("subagent run");
+
+    let requests = captured.lock().expect("captured requests");
+    let request = requests.first().expect("provider request");
+    assert_eq!(
+        request.messages,
+        vec![
+            "parent context detail".to_string(),
+            "parent assistant detail".to_string(),
+            "child task".to_string()
+        ]
+    );
 
     let _ = fs::remove_dir_all(runtime_root);
 }

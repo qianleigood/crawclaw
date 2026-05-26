@@ -2,11 +2,11 @@ use crawclaw_channels::{
     canonical_agent_run_event_types, channel_contract_version, dispatch_native_channel_outbound,
     find_native_channel_descriptor, list_native_channel_descriptors,
     lookup_native_channel_directory, resolve_native_channel_lifecycle_update, AgentModelSelection,
-    AgentRunEvent, AgentRunRequest, ChannelCapabilityDescriptor, ChannelDirectoryLookupRequest,
-    ChannelInboundCapability, ChannelInboundEnvelope, ChannelLifecycleCapability,
-    ChannelOutboundAction, ChannelOutboundCapability, ChannelOutboundRequest, ChatType,
-    MessagingTargetKind, NativeChannelDispatchContext, NativeChannelLifecycleInput, ReplyPayload,
-    TranscriptRole,
+    AgentRunEvent, AgentRunProfileKind, AgentRunProfileRequest, AgentRunRequest,
+    ChannelCapabilityDescriptor, ChannelDirectoryLookupRequest, ChannelInboundCapability,
+    ChannelInboundEnvelope, ChannelLifecycleCapability, ChannelOutboundAction,
+    ChannelOutboundCapability, ChannelOutboundRequest, ChatType, MessagingTargetKind,
+    NativeChannelDispatchContext, NativeChannelLifecycleInput, ReplyPayload, TranscriptRole,
 };
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
@@ -40,6 +40,11 @@ fn agent_run_request_uses_camel_case_wire_shape() {
             reasoning_level: Some("medium".to_string()),
         },
         enabled_tools: vec!["message".to_string()],
+        profile: Some(AgentRunProfileRequest {
+            kind: AgentRunProfileKind::Normal,
+            special_agent: None,
+            memory_after_turn: Some(true),
+        }),
         options: BTreeMap::new(),
     };
 
@@ -51,6 +56,8 @@ fn agent_run_request_uses_camel_case_wire_shape() {
     assert_eq!(value["inbound"]["accountId"], "default");
     assert_eq!(value["inbound"]["chatType"], "direct");
     assert_eq!(value["model"]["reasoningLevel"], "medium");
+    assert_eq!(value["profile"]["kind"], "normal");
+    assert_eq!(value["profile"]["memoryAfterTurn"], true);
     assert!(value.get("run_id").is_none());
 }
 

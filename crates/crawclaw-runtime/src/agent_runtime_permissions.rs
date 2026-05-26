@@ -282,7 +282,7 @@ fn is_native_plugin_tool(tool_name: &str) -> bool {
             | "sessions_list"
             | "sessions_history"
             | "sessions_send"
-            | "sessions_spawn"
+            | "subagents_spawn"
             | "sessions_yield"
             | "subagents"
             | "canvas"

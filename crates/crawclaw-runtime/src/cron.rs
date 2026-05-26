@@ -16,8 +16,8 @@ use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    AgentModelSelection, AgentRunRequest, AgentRuntime, ChannelChatType, ChannelInboundEnvelope,
-    DesktopSessionStore,
+    AgentModelSelection, AgentRunProfileKind, AgentRunProfileRequest, AgentRunRequest,
+    AgentRuntime, ChannelChatType, ChannelInboundEnvelope, DesktopSessionStore,
 };
 
 const STORE_VERSION: u8 = 1;
@@ -931,6 +931,11 @@ impl CronService {
                             reasoning_level: thinking.clone(),
                         },
                         enabled_tools: tools_allow.clone().unwrap_or_default(),
+                        profile: Some(AgentRunProfileRequest {
+                            kind: AgentRunProfileKind::Normal,
+                            special_agent: None,
+                            memory_after_turn: Some(true),
+                        }),
                         options: BTreeMap::new(),
                     })
                     .await

@@ -34,6 +34,25 @@ pub enum SpecialAgentToolGuard {
 }
 
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum SpecialAgentOutputContract {
+    Findings,
+    SessionSummary,
+    MemoryReport,
+    ExperienceNote,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum SpecialAgentPersistenceHandler {
+    ChildTranscript,
+    SessionSummary,
+    MemoryNotes,
+    DreamNotes,
+    ExperienceNotes,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SpecialAgentDefinition {
     pub id: &'static str,
@@ -47,6 +66,9 @@ pub struct SpecialAgentDefinition {
     pub guard: Option<SpecialAgentToolGuard>,
     pub timeout_seconds: u64,
     pub max_turns: u32,
+    pub prompt_id: &'static str,
+    pub output_contract: SpecialAgentOutputContract,
+    pub persistence_handler: SpecialAgentPersistenceHandler,
 }
 
 pub const REVIEW_AGENT_TOOL_ALLOWLIST: &[&str] = &[
@@ -100,6 +122,9 @@ const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
         guard: None,
         timeout_seconds: 300,
         max_turns: 8,
+        prompt_id: "review-spec",
+        output_contract: SpecialAgentOutputContract::Findings,
+        persistence_handler: SpecialAgentPersistenceHandler::ChildTranscript,
     },
     SpecialAgentDefinition {
         id: "review-quality",
@@ -112,6 +137,9 @@ const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
         guard: None,
         timeout_seconds: 300,
         max_turns: 8,
+        prompt_id: "review-quality",
+        output_contract: SpecialAgentOutputContract::Findings,
+        persistence_handler: SpecialAgentPersistenceHandler::ChildTranscript,
     },
     SpecialAgentDefinition {
         id: "durable-memory",
@@ -124,6 +152,9 @@ const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
         guard: Some(SpecialAgentToolGuard::MemoryMaintenance),
         timeout_seconds: 90,
         max_turns: 5,
+        prompt_id: "durable-memory",
+        output_contract: SpecialAgentOutputContract::MemoryReport,
+        persistence_handler: SpecialAgentPersistenceHandler::MemoryNotes,
     },
     SpecialAgentDefinition {
         id: "dream",
@@ -136,6 +167,9 @@ const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
         guard: Some(SpecialAgentToolGuard::MemoryMaintenance),
         timeout_seconds: 120,
         max_turns: 5,
+        prompt_id: "dream",
+        output_contract: SpecialAgentOutputContract::MemoryReport,
+        persistence_handler: SpecialAgentPersistenceHandler::DreamNotes,
     },
     SpecialAgentDefinition {
         id: "session-summary",
@@ -148,6 +182,9 @@ const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
         guard: Some(SpecialAgentToolGuard::MemoryMaintenance),
         timeout_seconds: 90,
         max_turns: 5,
+        prompt_id: "session-summary",
+        output_contract: SpecialAgentOutputContract::SessionSummary,
+        persistence_handler: SpecialAgentPersistenceHandler::SessionSummary,
     },
     SpecialAgentDefinition {
         id: "experience",
@@ -160,6 +197,9 @@ const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
         guard: Some(SpecialAgentToolGuard::MemoryMaintenance),
         timeout_seconds: 90,
         max_turns: 5,
+        prompt_id: "experience",
+        output_contract: SpecialAgentOutputContract::ExperienceNote,
+        persistence_handler: SpecialAgentPersistenceHandler::ExperienceNotes,
     },
 ];
 
@@ -172,6 +212,18 @@ pub fn find_special_agent(id_or_spawn_source: &str) -> Option<&'static SpecialAg
     SPECIAL_AGENT_DEFINITIONS
         .iter()
         .find(|definition| definition.id == normalized || definition.spawn_source == normalized)
+}
+
+pub fn render_special_agent_prompt(definition: &SpecialAgentDefinition) -> String {
+    match definition.prompt_id {
+        "session-summary" => "Session summary special agent. Summarize older transcript context into a concise durable summary, preserve unresolved user intent, current task state, decisions, and next actions. Use only the allowed session-summary tools when persistence is needed.".to_string(),
+        "durable-memory" => "Durable memory special agent. Extract durable project facts and user preferences from the provided context. Use only memory maintenance tools and report what changed.".to_string(),
+        "dream" => "Dream special agent. Consolidate durable memory and session summaries into useful long-lived notes without requiring parent context.".to_string(),
+        "experience" => "Experience special agent. Extract reusable engineering lessons and write a concise experience note when one is justified.".to_string(),
+        "review-spec" => "Review spec special agent. Review the supplied design or plan against the requested requirements. Return findings first, ordered by severity, and avoid implementation changes.".to_string(),
+        "review-quality" => "Review quality special agent. Review the supplied implementation for correctness, regressions, missing tests, and scope creep. Return findings first, ordered by severity.".to_string(),
+        _ => format!("{} special agent. Follow the configured special-agent policy and allowed tools.", definition.label),
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]

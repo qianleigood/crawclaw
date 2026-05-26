@@ -204,7 +204,7 @@ const toolPresentations: Record<string, PluginPresentation> = {
     name: '发送到会话',
     tone: 'automation',
   },
-  'crawclaw-runtime/sessions_spawn': {
+  'crawclaw-runtime/subagents_spawn': {
     description: '启动子智能体会话处理独立任务。',
     name: '启动子智能体',
     tone: 'automation',

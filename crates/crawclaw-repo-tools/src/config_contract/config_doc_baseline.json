@@ -18622,7 +18622,7 @@
       "hasChildren": true
     },
     {
-      "path": "tools.sessions_spawn",
+      "path": "tools.subagents_spawn",
       "kind": "core",
       "type": "object",
       "required": false,
@@ -18632,7 +18632,7 @@
       "hasChildren": true
     },
     {
-      "path": "tools.sessions_spawn.attachments",
+      "path": "tools.subagents_spawn.attachments",
       "kind": "core",
       "type": "object",
       "required": false,
@@ -18642,7 +18642,7 @@
       "hasChildren": true
     },
     {
-      "path": "tools.sessions_spawn.attachments.enabled",
+      "path": "tools.subagents_spawn.attachments.enabled",
       "kind": "core",
       "type": "boolean",
       "required": false,
@@ -18652,7 +18652,7 @@
       "hasChildren": false
     },
     {
-      "path": "tools.sessions_spawn.attachments.maxFileBytes",
+      "path": "tools.subagents_spawn.attachments.maxFileBytes",
       "kind": "core",
       "type": "number",
       "required": false,
@@ -18662,7 +18662,7 @@
       "hasChildren": false
     },
     {
-      "path": "tools.sessions_spawn.attachments.maxFiles",
+      "path": "tools.subagents_spawn.attachments.maxFiles",
       "kind": "core",
       "type": "number",
       "required": false,
@@ -18672,7 +18672,7 @@
       "hasChildren": false
     },
     {
-      "path": "tools.sessions_spawn.attachments.maxTotalBytes",
+      "path": "tools.subagents_spawn.attachments.maxTotalBytes",
       "kind": "core",
       "type": "number",
       "required": false,
@@ -18682,7 +18682,7 @@
       "hasChildren": false
     },
     {
-      "path": "tools.sessions_spawn.attachments.retainOnSessionKeep",
+      "path": "tools.subagents_spawn.attachments.retainOnSessionKeep",
       "kind": "core",
       "type": "boolean",
       "required": false,

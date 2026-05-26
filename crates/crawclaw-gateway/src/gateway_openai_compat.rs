@@ -274,6 +274,11 @@ pub(super) async fn run_openai_compat_agent(
             reasoning_level: None,
         },
         enabled_tools: Vec::new(),
+        profile: Some(AgentRunProfileRequest {
+            kind: AgentRunProfileKind::Normal,
+            special_agent: None,
+            memory_after_turn: Some(true),
+        }),
         options: BTreeMap::new(),
     };
     let result = state

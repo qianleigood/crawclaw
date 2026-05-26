@@ -80,10 +80,11 @@ use crawclaw_runtime::{
         find_special_agent, special_agent_definitions, SpecialAgentDefinition,
         SpecialAgentRunRequest, SpecialAgentToolGuard,
     },
-    AgentModelSelection, AgentRunEvent, AgentRunRequest, AgentRunResult, AgentRuntime,
-    ChannelCapabilityDescriptor, ChannelChatType, ChannelDirectoryLookupRequest,
-    ChannelInboundEnvelope, ChannelOutboundAction, ChannelOutboundRequest, DesktopSessionStore,
-    NativeChannelDispatchContext, NativeChannelLifecycleInput,
+    AgentModelSelection, AgentRunEvent, AgentRunProfileKind, AgentRunProfileRequest,
+    AgentRunRequest, AgentRunResult, AgentRuntime, ChannelCapabilityDescriptor, ChannelChatType,
+    ChannelDirectoryLookupRequest, ChannelInboundEnvelope, ChannelOutboundAction,
+    ChannelOutboundRequest, DesktopSessionStore, NativeChannelDispatchContext,
+    NativeChannelLifecycleInput,
 };
 use futures_util::{Sink, SinkExt, StreamExt};
 use ring::signature::KeyPair;

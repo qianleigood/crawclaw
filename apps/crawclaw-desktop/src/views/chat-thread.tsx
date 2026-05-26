@@ -70,6 +70,13 @@ function ContextSummaryPanel({ conversation }: { conversation: ConversationState
   }
 
   const surfacedSkills = summary.surfacedSkills.map((skill) => skill.name)
+  const contextMode = [
+    summary.profileKind,
+    summary.parentContextPolicy,
+    summary.compactionActive ? 'compacted' : undefined,
+  ]
+    .filter(Boolean)
+    .join(' / ')
   return (
     <details className="context-summary-panel">
       <summary>
@@ -78,13 +85,30 @@ function ContextSummaryPanel({ conversation }: { conversation: ConversationState
           上下文
         </span>
         <small>
-          {summary.includedTools.length} 可见 / {summary.deferredTools.length} 延后 · 约 {summary.estimatedTokens} tokens
+          {contextMode} · {summary.includedTools.length} 可见 / {summary.deferredTools.length} 延后 · 约{' '}
+          {summary.estimatedTokens} tokens
         </small>
       </summary>
       <div className="context-summary-grid">
         <section>
+          <h2>Profile</h2>
+          <p>{contextMode || 'normal'}</p>
+        </section>
+        <section>
+          <h2>Compaction</h2>
+          <p>
+            {summary.compactionActive
+              ? `${summary.compactedThrough ?? 'active'} / ${summary.retainedMessageCount} retained`
+              : `${summary.retainedMessageCount} retained`}
+          </p>
+        </section>
+        <section>
           <h2>可见工具</h2>
           <p>{summary.includedTools.join(', ') || '无'}</p>
+        </section>
+        <section>
+          <h2>Activated</h2>
+          <p>{summary.activatedTools.join(', ') || '无'}</p>
         </section>
         <section>
           <h2>延后工具</h2>

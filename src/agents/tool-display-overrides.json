@@ -41,7 +41,7 @@
       "title": "Session History",
       "detailKeys": ["sessionKey", "limit", "includeTools"]
     },
-    "sessions_spawn": {
+    "subagents_spawn": {
       "emoji": "🧑‍🔧",
       "title": "Sub-agent",
       "detailKeys": [

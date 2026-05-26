@@ -73,22 +73,6 @@ pub(super) fn agent_run_option_string(
         .map(str::to_string)
 }
 
-pub(super) fn agent_run_option_is(
-    options: &BTreeMap<String, Value>,
-    key: &str,
-    expected: &str,
-) -> bool {
-    options
-        .get(key)
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .is_some_and(|value| value.eq_ignore_ascii_case(expected))
-}
-
-pub(super) fn agent_run_option_bool(options: &BTreeMap<String, Value>, key: &str) -> Option<bool> {
-    options.get(key).and_then(Value::as_bool)
-}
-
 fn runtime_now_millis() -> u128 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -123,6 +107,204 @@ pub(super) fn tool_selection_from_enabled_tools(
     }
 }
 
+fn tool_selection_from_profile(
+    profile: &AgentRunProfile,
+    enabled_tools: Vec<String>,
+) -> AgentRuntimeToolSelection {
+    match &profile.tool_policy {
+        ToolPolicy::Default => tool_selection_from_enabled_tools(enabled_tools),
+        ToolPolicy::Disabled => AgentRuntimeToolSelection::Disabled,
+        ToolPolicy::AllowList(tools) => AgentRuntimeToolSelection::AllowList(tools.clone()),
+    }
+}
+
+fn special_execution_mode(mode: special_agents::SpecialAgentExecutionMode) -> AgentExecutionMode {
+    match mode {
+        special_agents::SpecialAgentExecutionMode::SpawnedSession => {
+            AgentExecutionMode::SpawnedSession
+        }
+        special_agents::SpecialAgentExecutionMode::EmbeddedFork => AgentExecutionMode::EmbeddedFork,
+    }
+}
+
+fn special_transcript_policy(
+    policy: special_agents::SpecialAgentTranscriptPolicy,
+) -> TranscriptPolicy {
+    match policy {
+        special_agents::SpecialAgentTranscriptPolicy::Isolated => TranscriptPolicy::Isolated,
+        special_agents::SpecialAgentTranscriptPolicy::ThreadBound => TranscriptPolicy::ThreadBound,
+    }
+}
+
+fn special_parent_context_policy(
+    policy: special_agents::SpecialAgentParentContextPolicy,
+) -> ParentContextPolicy {
+    match policy {
+        special_agents::SpecialAgentParentContextPolicy::None => ParentContextPolicy::None,
+        special_agents::SpecialAgentParentContextPolicy::ForkMessagesOnly => {
+            ParentContextPolicy::ForkMessagesOnly
+        }
+        special_agents::SpecialAgentParentContextPolicy::FullEnvelope => {
+            ParentContextPolicy::FullEnvelope
+        }
+    }
+}
+
+fn special_profile(
+    kind: AgentRunKind,
+    selector: &str,
+    memory_after_turn: Option<bool>,
+) -> Result<AgentRunProfile, AgentRuntimeError> {
+    let definition = special_agents::find_special_agent(selector).ok_or_else(|| {
+        AgentRuntimeError::ProviderFailed(format!("unknown special agent profile: {selector}"))
+    })?;
+    let memory_after_turn = memory_after_turn
+        .unwrap_or(definition.guard != Some(special_agents::SpecialAgentToolGuard::MemoryMaintenance));
+    let memory_maintenance =
+        definition.guard == Some(special_agents::SpecialAgentToolGuard::MemoryMaintenance);
+    let result_policy = match kind {
+        AgentRunKind::Compaction => AgentResultPolicy::PersistCompaction,
+        AgentRunKind::MemoryMaintenance => AgentResultPolicy::PersistSpecialAgent,
+        _ => AgentResultPolicy::PersistSpecialAgent,
+    };
+    Ok(AgentRunProfile {
+        kind,
+        execution_mode: special_execution_mode(definition.execution_mode),
+        transcript_policy: special_transcript_policy(definition.transcript_policy),
+        parent_context_policy: special_parent_context_policy(definition.parent_context_policy),
+        parent_session_key: None,
+        tool_policy: ToolPolicy::AllowList(
+            definition
+                .tool_allowlist
+                .iter()
+                .map(|tool| (*tool).to_string())
+                .collect(),
+        ),
+        skill_policy: SkillPolicy::Disabled,
+        memory_policy: MemoryPolicy {
+            recall: !memory_maintenance && kind != AgentRunKind::Compaction,
+            after_turn: memory_after_turn,
+            maintenance_write: memory_maintenance,
+        },
+        compaction_policy: if kind == AgentRunKind::Compaction {
+            CompactionPolicy::SummaryPlusTail
+        } else {
+            CompactionPolicy::Disabled
+        },
+        limits: AgentRunLimits {
+            timeout_seconds: definition.timeout_seconds,
+            max_turns: definition.max_turns,
+        },
+        result_policy,
+        special_agent_id: Some(definition.id.to_string()),
+        system_prompt: Some(special_agents::render_special_agent_prompt(definition)),
+        warnings: Vec::new(),
+    })
+}
+
+fn resolve_agent_run_profile(
+    request: &AgentRunRequest,
+) -> Result<AgentRunProfile, AgentRuntimeError> {
+    let Some(profile) = request.profile.as_ref() else {
+        return Ok(AgentRunProfile::default());
+    };
+    let mut resolved = match profile.kind {
+        AgentRunProfileKind::Normal => {
+            let mut resolved = AgentRunProfile::default();
+            if let Some(memory_after_turn) = profile.memory_after_turn {
+                resolved.memory_policy.after_turn = memory_after_turn;
+            }
+            resolved
+        }
+        AgentRunProfileKind::Btw => AgentRunProfile {
+            kind: AgentRunKind::Btw,
+            execution_mode: AgentExecutionMode::Ephemeral,
+            transcript_policy: TranscriptPolicy::None,
+            parent_context_policy: ParentContextPolicy::CurrentSession,
+            parent_session_key: None,
+            tool_policy: ToolPolicy::Disabled,
+            skill_policy: SkillPolicy::Disabled,
+            memory_policy: MemoryPolicy {
+                recall: false,
+                after_turn: false,
+                maintenance_write: false,
+            },
+            compaction_policy: CompactionPolicy::Disabled,
+            limits: AgentRunLimits {
+                timeout_seconds: 0,
+                max_turns: 1,
+            },
+            result_policy: AgentResultPolicy::Reply,
+            special_agent_id: None,
+            system_prompt: None,
+            warnings: Vec::new(),
+        },
+        AgentRunProfileKind::Subagent => AgentRunProfile {
+            kind: AgentRunKind::Subagent,
+            execution_mode: AgentExecutionMode::SpawnedSession,
+            transcript_policy: TranscriptPolicy::Isolated,
+            parent_context_policy: ParentContextPolicy::ForkMessagesOnly,
+            parent_session_key: None,
+            tool_policy: ToolPolicy::Default,
+            skill_policy: SkillPolicy::Default,
+            memory_policy: MemoryPolicy {
+                recall: true,
+                after_turn: true,
+                maintenance_write: false,
+            },
+            compaction_policy: CompactionPolicy::Disabled,
+            limits: AgentRunLimits {
+                timeout_seconds: 300,
+                max_turns: 8,
+            },
+            result_policy: AgentResultPolicy::Reply,
+            special_agent_id: None,
+            system_prompt: None,
+            warnings: Vec::new(),
+        },
+        AgentRunProfileKind::SpecialAgent => special_profile(
+            AgentRunKind::SpecialAgent,
+            profile.special_agent.as_deref().unwrap_or(&request.agent_id),
+            profile.memory_after_turn,
+        )?,
+        AgentRunProfileKind::Compaction => special_profile(
+            AgentRunKind::Compaction,
+            profile.special_agent.as_deref().unwrap_or("session-summary"),
+            profile.memory_after_turn,
+        )?,
+        AgentRunProfileKind::MemoryMaintenance => special_profile(
+            AgentRunKind::MemoryMaintenance,
+            profile.special_agent.as_deref().unwrap_or(&request.agent_id),
+            profile.memory_after_turn,
+        )?,
+    };
+    if matches!(
+        resolved.parent_context_policy,
+        ParentContextPolicy::ForkMessagesOnly | ParentContextPolicy::FullEnvelope
+    ) {
+        let metadata_parent = request
+            .inbound
+            .metadata
+            .get("parentSessionKey")
+            .or_else(|| request.inbound.metadata.get("parent"))
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
+        let inbound_parent = request
+            .inbound
+            .from
+            .trim()
+            .to_string();
+        resolved.parent_session_key = metadata_parent
+            .map(ToOwned::to_owned)
+            .or_else(|| {
+                (!inbound_parent.is_empty() && inbound_parent != request.session_key)
+                    .then_some(inbound_parent)
+            });
+    }
+    Ok(resolved)
+}
+
 impl AgentRuntime {
     pub fn new(runtime_root: PathBuf) -> Self {
         Self {
@@ -147,6 +329,7 @@ impl AgentRuntime {
         &self,
         request: AgentRunRequest,
     ) -> Result<AgentRunResult, AgentRuntimeError> {
+        let profile = resolve_agent_run_profile(&request)?;
         let run_id = request.run_id;
         let agent_id = request.agent_id;
         let session_key = request.session_key;
@@ -154,7 +337,7 @@ impl AgentRuntime {
         let inbound_metadata = request.inbound.metadata;
         let model = request.model;
         let options = request.options;
-        if agent_run_option_is(&options, "mode", "btw") {
+        if profile.kind == AgentRunKind::Btw {
             let question = agent_run_option_string(&options, &["btwQuestion"]).or_else(|| {
                 inbound_metadata
                     .get("btw")
@@ -172,18 +355,19 @@ impl AgentRuntime {
                 .run_btw_turn(run_id, agent_id, session_key, question, model)
                 .await;
         }
-        let memory_after_turn = agent_run_option_bool(&options, "memoryAfterTurn").unwrap_or(true);
+        let memory_after_turn = profile.memory_policy.after_turn;
         let result = self
             .send_message_with_options_inner(
                 session_key.clone(),
                 user_text.clone(),
                 AgentRuntimeSendOptions {
                     model_selection: Some(model.clone()),
-                    tool_selection: tool_selection_from_enabled_tools(request.enabled_tools),
+                    tool_selection: tool_selection_from_profile(&profile, request.enabled_tools),
                     permission_policy: None,
                     system_prompt: None,
                 },
                 memory_after_turn,
+                profile,
             )
             .await?;
         let assistant_text = result.assistant_text;
@@ -328,7 +512,13 @@ impl AgentRuntime {
         user_text: String,
         options: AgentRuntimeSendOptions,
     ) -> Result<AgentSendResult, AgentRuntimeError> {
-        self.send_message_with_options_inner(thread_id, user_text, options, true)
+        self.send_message_with_options_inner(
+            thread_id,
+            user_text,
+            options,
+            true,
+            AgentRunProfile::default(),
+        )
             .await
     }
 
@@ -339,10 +529,16 @@ impl AgentRuntime {
         options: &AgentRuntimeSendOptions,
     ) -> Result<AgentRuntimeContextSummary, AgentRuntimeError> {
         let history = self.load_thread_history(thread_id)?;
-        Ok(
-            build_runtime_model_context(&self.runtime_root, user_text, &history, options)
-                .context_summary,
+        let profile = AgentRunProfile::default();
+        Ok(build_runtime_model_context(
+            &self.runtime_root,
+            thread_id,
+            user_text,
+            &history,
+            options,
+            &profile,
         )
+        .context_summary)
     }
 
     async fn send_message_with_options_inner(
@@ -351,6 +547,7 @@ impl AgentRuntime {
         user_text: String,
         options: AgentRuntimeSendOptions,
         memory_after_turn: bool,
+        profile: AgentRunProfile,
     ) -> Result<AgentSendResult, AgentRuntimeError> {
         tracing::info!(
             runtime_root = %self.runtime_root.display(),
@@ -360,51 +557,86 @@ impl AgentRuntime {
         );
         let config = self.read_provider_config()?;
         let history = self.load_thread_history(&thread_id)?;
-        let runtime_context =
-            build_runtime_model_context(&self.runtime_root, &user_text, &history, &options);
-        let model_selection = options.model_selection.as_ref();
-        let assistant_text = match config.runtime_mode() {
-            DesktopAgentRuntimeMode::PiAgentRust => {
-                let mut provider_config =
-                    ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
-                apply_agent_model_selection(&mut provider_config, model_selection)?;
-                self.pi_agent_backend
-                    .send_message(AgentRuntimeRequest {
-                        runtime_root: &self.runtime_root,
-                        thread_id: &thread_id,
-                        user_text: &user_text,
-                        history: history.clone(),
-                        runtime_context: runtime_context.clone(),
-                        provider_config,
-                        reasoning_level: model_selection
-                            .and_then(|model| model.reasoning_level.clone()),
-                        tool_selection: options.tool_selection.clone(),
-                        permission_policy: options.permission_policy.clone(),
-                        system_prompt: options.system_prompt.clone(),
-                    })
-                    .await?
-            }
-            DesktopAgentRuntimeMode::NativeProvider => {
-                let mut provider_config =
-                    ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
-                apply_agent_model_selection(&mut provider_config, model_selection)?;
-                self.native_provider_backend
-                    .send_message(AgentRuntimeRequest {
-                        runtime_root: &self.runtime_root,
-                        thread_id: &thread_id,
-                        user_text: &user_text,
-                        history: history.clone(),
-                        runtime_context: runtime_context.clone(),
-                        provider_config,
-                        reasoning_level: model_selection
-                            .and_then(|model| model.reasoning_level.clone()),
-                        tool_selection: options.tool_selection.clone(),
-                        permission_policy: options.permission_policy.clone(),
-                        system_prompt: options.system_prompt.clone(),
-                    })
-                    .await?
-            }
+        let timeout_seconds = profile.limits.timeout_seconds;
+        let max_tool_iterations = if profile.limits.max_turns == 0 {
+            8
+        } else {
+            profile.limits.max_turns as usize
         };
+        let runtime_context = build_runtime_model_context(
+            &self.runtime_root,
+            &thread_id,
+            &user_text,
+            &history,
+            &options,
+            &profile,
+        );
+        let model_selection = options.model_selection.as_ref();
+        let provider_send = async {
+            let assistant_text = match config.runtime_mode() {
+                DesktopAgentRuntimeMode::PiAgentRust => {
+                    let mut provider_config =
+                        ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
+                    apply_agent_model_selection(&mut provider_config, model_selection)?;
+                    self.pi_agent_backend
+                        .send_message(AgentRuntimeRequest {
+                            runtime_root: &self.runtime_root,
+                            thread_id: &thread_id,
+                            user_text: &user_text,
+                            history: history.clone(),
+                            runtime_context: runtime_context.clone(),
+                            provider_config,
+                            reasoning_level: model_selection
+                                .and_then(|model| model.reasoning_level.clone()),
+                            timeout_seconds,
+                            max_tool_iterations,
+                            tool_selection: options.tool_selection.clone(),
+                            permission_policy: options.permission_policy.clone(),
+                            system_prompt: options.system_prompt.clone(),
+                        })
+                        .await?
+                }
+                DesktopAgentRuntimeMode::NativeProvider => {
+                    let mut provider_config =
+                        ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
+                    apply_agent_model_selection(&mut provider_config, model_selection)?;
+                    self.native_provider_backend
+                        .send_message(AgentRuntimeRequest {
+                            runtime_root: &self.runtime_root,
+                            thread_id: &thread_id,
+                            user_text: &user_text,
+                            history: history.clone(),
+                            runtime_context: runtime_context.clone(),
+                            provider_config,
+                            reasoning_level: model_selection
+                                .and_then(|model| model.reasoning_level.clone()),
+                            timeout_seconds,
+                            max_tool_iterations,
+                            tool_selection: options.tool_selection.clone(),
+                            permission_policy: options.permission_policy.clone(),
+                            system_prompt: options.system_prompt.clone(),
+                        })
+                        .await?
+                }
+            };
+            Ok::<String, AgentRuntimeError>(assistant_text)
+        };
+        let assistant_text = if timeout_seconds == 0 {
+            provider_send.await
+        } else {
+            match tokio::time::timeout(
+                std::time::Duration::from_secs(timeout_seconds),
+                provider_send,
+            )
+            .await
+            {
+                Ok(result) => result,
+                Err(_) => Err(AgentRuntimeError::ProviderFailed(format!(
+                    "agent runtime profile timed out after {timeout_seconds}s"
+                ))),
+            }
+        }?;
+        clear_tool_activation_state(&self.runtime_root);
 
         self.append_transcript(&thread_id, &user_text, &assistant_text)?;
         let memory_result = memory_after_turn.then(|| {
@@ -444,8 +676,39 @@ impl AgentRuntime {
     ) -> Result<AgentSendResult, AgentRuntimeError> {
         let config = self.read_provider_config()?;
         let history = self.load_thread_history(&thread_id)?;
-        let runtime_context =
-            build_runtime_model_context(&self.runtime_root, &user_text, &history, &options);
+        let profile = AgentRunProfile {
+            kind: AgentRunKind::Btw,
+            execution_mode: AgentExecutionMode::Ephemeral,
+            transcript_policy: TranscriptPolicy::None,
+            parent_context_policy: ParentContextPolicy::CurrentSession,
+            parent_session_key: None,
+            tool_policy: ToolPolicy::Disabled,
+            skill_policy: SkillPolicy::Disabled,
+            memory_policy: MemoryPolicy {
+                recall: false,
+                after_turn: false,
+                maintenance_write: false,
+            },
+            compaction_policy: CompactionPolicy::Disabled,
+            limits: AgentRunLimits {
+                timeout_seconds: 0,
+                max_turns: 1,
+            },
+            result_policy: AgentResultPolicy::Reply,
+            special_agent_id: None,
+            system_prompt: None,
+            warnings: Vec::new(),
+        };
+        let timeout_seconds = profile.limits.timeout_seconds;
+        let max_tool_iterations = profile.limits.max_turns.max(1) as usize;
+        let runtime_context = build_runtime_model_context(
+            &self.runtime_root,
+            &thread_id,
+            &user_text,
+            &history,
+            &options,
+            &profile,
+        );
         let model_selection = options.model_selection.as_ref();
         let assistant_text = match config.runtime_mode() {
             DesktopAgentRuntimeMode::PiAgentRust => {
@@ -462,6 +725,8 @@ impl AgentRuntime {
                         provider_config,
                         reasoning_level: model_selection
                             .and_then(|model| model.reasoning_level.clone()),
+                        timeout_seconds,
+                        max_tool_iterations,
                         tool_selection: options.tool_selection.clone(),
                         permission_policy: options.permission_policy.clone(),
                         system_prompt: options.system_prompt.clone(),
@@ -482,6 +747,8 @@ impl AgentRuntime {
                         provider_config,
                         reasoning_level: model_selection
                             .and_then(|model| model.reasoning_level.clone()),
+                        timeout_seconds,
+                        max_tool_iterations,
                         tool_selection: options.tool_selection.clone(),
                         permission_policy: options.permission_policy.clone(),
                         system_prompt: options.system_prompt.clone(),
@@ -687,6 +954,16 @@ impl AgentRuntimeBackend for NativeProviderRuntimeBackend {
                 &NativeProviderRequestOptions {
                     reasoning_level: request.reasoning_level.clone(),
                     system_prompt: request.runtime_context.system_prompt(),
+                    tools: request
+                        .runtime_context
+                        .included_tool_schemas
+                        .iter()
+                        .map(|tool| NativeProviderTool {
+                            name: tool.name.clone(),
+                            description: Some(tool.description.clone()),
+                            input_schema: tool.parameters.clone(),
+                        })
+                        .collect(),
                     ..NativeProviderRequestOptions::default()
                 },
             )
@@ -726,13 +1003,20 @@ impl AgentRuntimeBackend for PiAgentRuntimeBackend {
             );
             let agent_config = pi::sdk::AgentConfig {
                 system_prompt: None,
-                max_tool_iterations: 8,
+                max_tool_iterations: request.max_tool_iterations.max(1),
                 stream_options: pi::sdk::StreamOptions::default(),
                 block_images: false,
                 fail_closed_hooks: false,
             };
+            let mut projected_history = request.runtime_context.messages.clone();
+            if projected_history.last().is_some_and(|message| {
+                message.role == AgentRuntimeMessageRole::User
+                    && message.content.trim() == request.user_text.trim()
+            }) {
+                projected_history.pop();
+            }
             let session = Arc::new(asupersync::sync::Mutex::new(pi_session_from_history(
-                &request.history,
+                &projected_history,
             )));
             let agent = pi::sdk::Agent::new(provider, tools, agent_config);
             let agent_session = pi::sdk::AgentSession::new(

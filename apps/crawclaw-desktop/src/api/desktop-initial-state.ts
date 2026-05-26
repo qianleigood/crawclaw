@@ -209,7 +209,7 @@ function fallbackRuntimeCoreTools(): PluginTool[] {
     ['sessions_list', 'sessions_list', 'List sessions', 'sessions', true],
     ['sessions_history', 'sessions_history', 'Session history', 'sessions', true],
     ['sessions_send', 'sessions_send', 'Send to session', 'sessions', false],
-    ['sessions_spawn', 'sessions_spawn', 'Spawn sub-agent', 'sessions', false],
+    ['subagents_spawn', 'subagents_spawn', 'Spawn sub-agent', 'sessions', false],
     ['sessions_yield', 'sessions_yield', 'End turn to receive sub-agent results', 'sessions', false],
     ['subagents', 'subagents', 'Manage sub-agents', 'sessions', true],
     ['canvas', 'canvas', 'Control canvases', 'ui', true],

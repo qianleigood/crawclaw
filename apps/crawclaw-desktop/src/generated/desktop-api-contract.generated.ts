@@ -115,11 +115,18 @@ export interface ConversationState {
 }
 
 export interface ConversationContextSummary {
+  profileKind: string
+  parentContextPolicy: string
   includedTools: string[]
   deferredTools: string[]
+  activatedTools: string[]
   surfacedSkills: ConversationContextSkillSummary[]
   loadedSkills: string[]
   memorySnippets: string[]
+  compactionActive: boolean
+  compactedThrough?: string
+  retainedMessageCount: number
+  warnings: string[]
   messageCount: number
   estimatedTokens: number
 }

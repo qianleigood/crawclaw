@@ -13,7 +13,8 @@ use serde_json::{json, Value};
 
 use crate::special_agents::find_special_agent;
 use crate::{
-    AgentModelSelection, AgentRunRequest, AgentRuntime, ChannelChatType, ChannelInboundEnvelope,
+    AgentModelSelection, AgentRunProfileKind, AgentRunProfileRequest, AgentRunRequest,
+    AgentRuntime, ChannelChatType, ChannelInboundEnvelope,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -353,20 +354,6 @@ impl RustMemoryRuntime {
             now_millis()
         );
         let session_key = format!("memory:compact:{session_id}");
-        let mut options = BTreeMap::new();
-        options.insert(
-            "specialAgent".to_string(),
-            json!({
-                "kind": definition.id,
-                "spawnSource": definition.spawn_source,
-                "executionMode": definition.execution_mode,
-                "transcriptPolicy": definition.transcript_policy,
-                "parentContextPolicy": definition.parent_context_policy,
-                "timeoutSeconds": definition.timeout_seconds,
-                "maxTurns": definition.max_turns
-            }),
-        );
-        options.insert("memoryAfterTurn".to_string(), json!(false));
         let result = AgentRuntime::new(self.runtime_root.clone())
             .run_turn(AgentRunRequest {
                 run_id: run_id.clone(),
@@ -397,13 +384,37 @@ impl RustMemoryRuntime {
                     .iter()
                     .map(|tool| (*tool).to_string())
                     .collect(),
-                options,
+                profile: Some(AgentRunProfileRequest {
+                    kind: AgentRunProfileKind::Compaction,
+                    special_agent: Some(definition.id.to_string()),
+                    memory_after_turn: Some(false),
+                }),
+                options: BTreeMap::new(),
             })
             .await
             .map_err(|error| format!("{}: {}", error.code(), error.message()))?;
         let summary = result.assistant_text;
         self.session_summary_store().refresh(session_id, &summary)?;
-        store.upsert_session_compaction_state(session_id, messages.len() as i64)?;
+        let tail_start_index = if messages.len() > 8 {
+            messages.len() - 8
+        } else {
+            messages.len()
+        };
+        let compacted_through = tail_start_index
+            .checked_sub(1)
+            .and_then(|index| message_id(messages.get(index)));
+        let first_kept_message_id = messages
+            .get(tail_start_index)
+            .and_then(|message| message_id(Some(message)));
+        let tail_start_message_id = first_kept_message_id.clone();
+        self.session_summary_store().write_compaction_cursor(
+            session_id,
+            compacted_through.as_deref(),
+            first_kept_message_id.as_deref(),
+            tail_start_message_id.as_deref(),
+            tail_start_index,
+        )?;
+        store.upsert_session_compaction_state(session_id, tail_start_index as i64)?;
         let tokens_before = estimate_json_tokens(&json!(&messages));
         let tokens_after = estimate_text_tokens(&summary);
         Ok(json!({
@@ -411,7 +422,10 @@ impl RustMemoryRuntime {
             "compacted": true,
             "result": {
                 "summary": summary,
-                "firstKeptEntryId": messages.last().and_then(|message| message.get("id")).and_then(Value::as_str).unwrap_or(session_id),
+                "compactedThroughMessageId": compacted_through,
+                "firstKeptMessageId": first_kept_message_id,
+                "tailStartMessageId": tail_start_message_id,
+                "tailStartMessageIndex": tail_start_index,
                 "tokensBefore": tokens_before,
                 "tokensAfter": tokens_after,
                 "runId": result.run_id,
@@ -887,6 +901,13 @@ impl RustMemoryRuntime {
             )),
         }
     }
+}
+
+fn message_id(message: Option<&Value>) -> Option<String> {
+    message
+        .and_then(|message| message.get("id"))
+        .and_then(Value::as_str)
+        .map(ToOwned::to_owned)
 }
 
 pub async fn execute_memory_runtime_operation(
@@ -1573,12 +1594,51 @@ impl SessionSummaryStore {
         }))
     }
 
+    pub fn write_compaction_cursor(
+        &self,
+        scope: &str,
+        compacted_through_message_id: Option<&str>,
+        first_kept_message_id: Option<&str>,
+        tail_start_message_id: Option<&str>,
+        tail_start_message_index: usize,
+    ) -> Result<Value, String> {
+        let path = self.compaction_state_file(scope)?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|error| format!("failed to create session summary state dir: {error}"))?;
+        }
+        let body = serde_json::to_vec_pretty(&json!({
+            "scope": normalize_scope(scope)?,
+            "compactedThroughMessageId": compacted_through_message_id,
+            "firstKeptMessageId": first_kept_message_id,
+            "tailStartMessageId": tail_start_message_id,
+            "tailStartMessageIndex": tail_start_message_index,
+            "updatedAt": now_millis()
+        }))
+        .map_err(|error| format!("failed to encode compaction cursor: {error}"))?;
+        fs::write(&path, &body)
+            .map_err(|error| format!("failed to write compaction cursor: {error}"))?;
+        Ok(json!({
+            "status": "ok",
+            "scope": normalize_scope(scope)?,
+            "bytesWritten": body.len()
+        }))
+    }
+
     fn summary_file(&self, scope: &str) -> Result<PathBuf, String> {
         Ok(self
             .runtime_root
             .join("memory")
             .join("session-summary")
             .join(format!("{}.md", normalize_scope(scope)?)))
+    }
+
+    fn compaction_state_file(&self, scope: &str) -> Result<PathBuf, String> {
+        Ok(self
+            .runtime_root
+            .join("memory")
+            .join("session-summary")
+            .join(format!("{}.state.json", normalize_scope(scope)?)))
     }
 }
 

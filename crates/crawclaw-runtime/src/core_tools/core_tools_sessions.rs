@@ -18,7 +18,7 @@ impl SessionToolKind {
             Self::List => "sessions_list",
             Self::History => "sessions_history",
             Self::Send => "sessions_send",
-            Self::Spawn => "sessions_spawn",
+            Self::Spawn => "subagents_spawn",
             Self::Yield => "sessions_yield",
             Self::Subagents => "subagents",
         }
@@ -30,7 +30,7 @@ impl SessionToolKind {
             Self::List => "List Rust-native desktop sessions.",
             Self::History => "Read Rust-native desktop session history.",
             Self::Send => "Append a message into another Rust-native desktop session.",
-            Self::Spawn => "Create a Rust-native child subagent session.",
+            Self::Spawn => "Create and optionally run a Rust-native child subagent session.",
             Self::Yield => "Mark the current Rust-native session as yielded.",
             Self::Subagents => "List Rust-native child subagent sessions.",
         }
@@ -84,12 +84,23 @@ impl SessionToolKind {
                     "parentSessionKey": {
                         "type": "string",
                         "description": "Optional parent session key."
+                    },
+                    "run": {
+                        "type": "boolean",
+                        "description": "When true or omitted, immediately run the child subagent."
                     }
                 },
                 "required": ["task"]
             }),
         }
     }
+}
+
+fn session_tool_now_millis() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .unwrap_or(0)
 }
 
 #[derive(Clone)]
@@ -166,14 +177,80 @@ impl pi::sdk::Tool for SessionTool {
             SessionToolKind::Spawn => {
                 let task = required_param(self.kind, &input, &["task", "message"])?;
                 let label = string_param(&input, &["label"]);
-                let parent = string_param(&input, &["parentSessionKey", "parent", "spawnedBy"]);
+                let parent =
+                    string_param(&input, &["parentSessionKey", "parent", "spawnedBy"])
+                        .unwrap_or_else(|| "main".to_string());
                 let session = store
-                    .spawn_session(parent.as_deref(), label.as_deref(), &task)
+                    .spawn_session(Some(&parent), label.as_deref(), &task)
                     .map_err(|error| session_tool_error(self.kind, error))?;
+                if input.get("run").and_then(Value::as_bool) != Some(false) {
+                    let running_session = store
+                        .patch_session(&session.key, None, None, None, Some("running"))
+                        .map_err(|error| session_tool_error(self.kind, error))?;
+                    let run_id = format!("subagent-run-{}", session_tool_now_millis());
+                    let result = match AgentRuntime::new(self.runtime_root.clone())
+                        .run_turn(AgentRunRequest {
+                            run_id: run_id.clone(),
+                            agent_id: "subagent".to_string(),
+                            session_key: running_session.key.clone(),
+                            inbound: ChannelInboundEnvelope {
+                                channel: "subagent".to_string(),
+                                account_id: Some("rust-runtime".to_string()),
+                                from: parent,
+                                to: "agent:subagent".to_string(),
+                                chat_type: ChannelChatType::Direct,
+                                body: task,
+                                raw_body: None,
+                                message_id: Some(format!("{run_id}:input")),
+                                thread_id: Some(session.key.clone()),
+                                media_urls: Vec::new(),
+                                metadata: BTreeMap::new(),
+                            },
+                            model: AgentModelSelection {
+                                provider: "configured".to_string(),
+                                model: "configured".to_string(),
+                                reasoning_level: None,
+                            },
+                            enabled_tools: Vec::new(),
+                            profile: Some(AgentRunProfileRequest {
+                                kind: AgentRunProfileKind::Subagent,
+                                special_agent: None,
+                                memory_after_turn: Some(true),
+                            }),
+                            options: BTreeMap::new(),
+                        })
+                        .await
+                    {
+                        Ok(result) => result,
+                        Err(error) => {
+                            let _ = store.patch_session(
+                                &running_session.key,
+                                None,
+                                None,
+                                None,
+                                Some("failed"),
+                            );
+                            return Err(session_tool_error(
+                                self.kind,
+                                format!("subagent runtime failed: {}", error.message()),
+                            ));
+                        }
+                    };
+                    let completed_session = store
+                        .patch_session(&running_session.key, None, None, None, Some("completed"))
+                        .map_err(|error| session_tool_error(self.kind, error))?;
+                    json!({
+                        "status": "completed",
+                        "session": completed_session,
+                        "runId": result.run_id,
+                        "assistantText": result.assistant_text
+                    })
+                } else {
                 json!({
                     "status": "spawned",
                     "session": session
                 })
+                }
             }
             SessionToolKind::Yield => {
                 let session_key = session_key_param(&input).unwrap_or_else(|| "main".to_string());

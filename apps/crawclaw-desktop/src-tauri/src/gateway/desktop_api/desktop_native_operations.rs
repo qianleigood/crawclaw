@@ -54,8 +54,11 @@ struct DesktopSendContext {
 
 fn conversation_context_summary(summary: AgentRuntimeContextSummary) -> ConversationContextSummary {
     ConversationContextSummary {
+        profile_kind: summary.profile_kind,
+        parent_context_policy: summary.parent_context_policy,
         included_tools: summary.included_tools,
         deferred_tools: summary.deferred_tools,
+        activated_tools: summary.activated_tools,
         surfaced_skills: summary
             .surfaced_skills
             .into_iter()
@@ -66,6 +69,10 @@ fn conversation_context_summary(summary: AgentRuntimeContextSummary) -> Conversa
             .collect(),
         loaded_skills: summary.loaded_skills,
         memory_snippets: summary.memory_snippets,
+        compaction_active: summary.compaction.active,
+        compacted_through: summary.compaction.compacted_through,
+        retained_message_count: summary.compaction.retained_message_count,
+        warnings: summary.warnings,
         message_count: summary.message_count,
         estimated_tokens: summary.estimated_tokens,
     }
@@ -739,20 +746,6 @@ pub(super) async fn apply_native_operation(
                 find_special_agent("dream").ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
             let run_id = format!("desktop-dream-{}", Uuid::new_v4());
             let session_key = format!("special:dream:{run_id}");
-            let mut options = BTreeMap::new();
-            options.insert(
-                "specialAgent".to_string(),
-                json!({
-                    "kind": definition.id,
-                    "spawnSource": definition.spawn_source,
-                    "executionMode": definition.execution_mode,
-                    "transcriptPolicy": definition.transcript_policy,
-                    "parentContextPolicy": definition.parent_context_policy,
-                    "timeoutSeconds": definition.timeout_seconds,
-                    "maxTurns": definition.max_turns
-                }),
-            );
-            options.insert("memoryAfterTurn".to_string(), json!(false));
             {
                 let mut desktop_state = state.desktop_state.write().await;
                 desktop_state.active_nav_id = "memory".to_string();
@@ -793,7 +786,12 @@ pub(super) async fn apply_native_operation(
                         .iter()
                         .map(|tool| (*tool).to_string())
                         .collect(),
-                    options,
+                    profile: Some(AgentRunProfileRequest {
+                        kind: AgentRunProfileKind::MemoryMaintenance,
+                        special_agent: Some(definition.id.to_string()),
+                        memory_after_turn: Some(false),
+                    }),
+                    options: BTreeMap::new(),
                 })
                 .await
             {

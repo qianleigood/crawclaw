@@ -284,8 +284,8 @@ pub(super) const RUST_CORE_TOOL_DEFINITIONS: &[RustCoreToolDefinition] = &[
         true,
     ),
     core_tool(
-        "sessions_spawn",
-        "sessions_spawn",
+        "subagents_spawn",
+        "subagents_spawn",
         "Spawn sub-agent",
         "sessions",
         PROFILE_CODING_FULL,
@@ -640,6 +640,14 @@ pub fn pi_agent_rust_tool_descriptors_for_runtime_root(
         .collect()
 }
 
+pub(crate) fn is_special_agent_only_tool(tool_name: &str) -> bool {
+    RUST_CORE_TOOL_DEFINITIONS
+        .iter()
+        .any(|definition| {
+            definition.id == tool_name && definition.lifecycle == "special_agent_only"
+        })
+}
+
 #[doc(hidden)]
 pub fn build_pi_agent_rust_tool_registry_for_test(runtime_root: &Path) -> pi::sdk::ToolRegistry {
     build_pi_agent_rust_tool_registry(runtime_root)
@@ -661,6 +669,11 @@ pub async fn execute_rust_core_tool(
     tool_name: &str,
     input: Value,
 ) -> Result<Value, String> {
+    if is_special_agent_only_tool(tool_name) {
+        return Err(format!(
+            "Rust runtime tool {tool_name} is special-agent-only and requires an active special-agent profile"
+        ));
+    }
     let registry = build_pi_agent_rust_tool_registry(runtime_root);
     let tool = registry
         .get(tool_name)

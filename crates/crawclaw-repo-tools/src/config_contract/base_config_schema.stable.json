@@ -4425,7 +4425,7 @@
             },
             "additionalProperties": false
           },
-          "sessions_spawn": {
+          "subagents_spawn": {
             "type": "object",
             "properties": {
               "attachments": {

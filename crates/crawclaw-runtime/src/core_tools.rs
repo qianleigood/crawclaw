@@ -23,14 +23,17 @@ use serde_json::{json, Value};
 use crate::cron::CronTool;
 use crate::special_agents::{
     find_special_agent, ExperienceStore, SessionSummaryStore, SpecialAgentMemoryTools,
+    SpecialAgentToolGuard,
 };
 use crate::DesktopSessionStore;
 use crate::{
-    dispatch_native_channel_outbound, invoke_native_plugin_operation, load_skill_candidates,
-    pi_agent_rust_tool_descriptors_for_runtime_root, with_native_runtime_context,
-    AgentModelSelection, AgentRunRequest, AgentRuntime, ChannelChatType, ChannelInboundEnvelope,
-    ChannelOutboundAction, ChannelOutboundRequest, NativeChannelDispatchContext,
-    NativePluginRuntime, NativeToolRegistration,
+    dispatch_native_channel_outbound, invoke_native_plugin_operation, is_special_agent_only_tool,
+    load_skill_candidates, pi_agent_rust_tool_descriptors_for_runtime_root,
+    record_loaded_skill_state, record_tool_activation_state, with_native_runtime_context,
+    AgentModelSelection, AgentRunProfileKind, AgentRunProfileRequest, AgentRunRequest,
+    AgentRuntime, ChannelChatType,
+    ChannelInboundEnvelope, ChannelOutboundAction, ChannelOutboundRequest,
+    NativeChannelDispatchContext, NativePluginRuntime, NativeToolRegistration,
 };
 
 mod core_tools_media;

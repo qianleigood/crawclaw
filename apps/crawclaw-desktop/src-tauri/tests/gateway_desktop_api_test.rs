@@ -4026,6 +4026,19 @@ esac
         .as_str()
         .is_some_and(|run_id| run_id.starts_with("run-")));
     let context_summary = &json["conversation"]["contextSummary"];
+    assert_eq!(context_summary["profileKind"], "normal");
+    assert_eq!(context_summary["parentContextPolicy"], "current_session");
+    assert_eq!(context_summary["compactionActive"], false);
+    assert_eq!(context_summary["retainedMessageCount"], 0);
+    assert!(context_summary.get("compactedThrough").is_none());
+    assert!(context_summary["warnings"]
+        .as_array()
+        .expect("context warnings")
+        .is_empty());
+    assert!(context_summary["activatedTools"]
+        .as_array()
+        .expect("activated tools")
+        .is_empty());
     let included_tools = context_summary["includedTools"]
         .as_array()
         .expect("included tools");

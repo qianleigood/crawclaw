@@ -486,18 +486,6 @@ async fn handle_gateway_method_inner(
             emit(state, "sessions.changed", json!({ "session": session }));
             Ok(json!({ "status": "sent", "session": session }))
         }
-        "sessions.spawn" | "sessions_spawn" => {
-            let task = required_param(&params, &["task", "message"])?;
-            let parent = string_param(&params, &["parentSessionKey", "parent", "spawnedBy"]);
-            let label = string_param(&params, &["label"]);
-            let session = state
-                .session_store
-                .spawn_session(parent.as_deref(), label.as_deref(), &task)
-                .map_err(|error| error.to_string())?;
-            emit(state, "sessionStarted", json!({ "session": session }));
-            emit(state, "sessions.changed", json!({ "session": session }));
-            Ok(json!({ "status": "spawned", "session": session }))
-        }
         "sessions.yield" | "sessions_yield" => {
             let session_key =
                 string_param(&params, &["sessionKey", "key"]).unwrap_or_else(|| "main".to_string());
@@ -518,9 +506,7 @@ async fn handle_gateway_method_inner(
                 "subagents": state.session_store.list_subagents(parent.as_deref()).map_err(|error| error.to_string())?
             }))
         }
-        "subagents.spawnRun" | "subagents.spawn_run" | "subagents_spawn_run" => {
-            subagents_spawn_run(state, params).await
-        }
+        "subagents_spawn" => subagents_spawn(state, params).await,
         "subagents.control" | "subagents_control" => subagents_control(state, params).await,
         "subagents.announce" | "subagents_announce" => subagents_announce(state, params).await,
         "acp.session.list" | "acp_session_list" => acp_session_list(state, params),

@@ -488,35 +488,19 @@ pub(super) async fn run_pdf_tool(_runtime_root: &Path, input: Value) -> Result<V
 pub(super) fn run_discover_skills_tool(runtime_root: &Path, input: Value) -> Result<Value, String> {
     let limit = input.get("limit").and_then(Value::as_u64).unwrap_or(5) as usize;
     let task = required_param_string("discover_skills", &input, &["taskDescription", "task"])?;
-    let skills_root = runtime_root.join("skills");
-    let mut skills = Vec::new();
-    if let Ok(entries) = fs::read_dir(&skills_root) {
-        for entry in entries.flatten().filter(|entry| entry.path().is_dir()) {
-            let path = entry.path().join("SKILL.md");
-            let Ok(raw) = fs::read_to_string(&path) else {
-                continue;
-            };
-            let name = frontmatter_field(&raw, "name")
-                .unwrap_or_else(|| entry.file_name().to_string_lossy().to_string());
-            let description = frontmatter_field(&raw, "description").unwrap_or_default();
-            let haystack = format!("{name} {description}").to_lowercase();
-            let score = task
-                .split_whitespace()
-                .filter(|term| haystack.contains(&term.to_lowercase()))
-                .count();
-            skills.push(json!({
-                "name": name,
-                "description": description,
-                "score": score
-            }));
-        }
-    }
-    skills.sort_by(|a, b| {
-        b.get("score")
-            .and_then(Value::as_u64)
-            .cmp(&a.get("score").and_then(Value::as_u64))
-    });
-    skills.truncate(limit.max(1));
+    let mut candidates = load_skill_candidates(runtime_root, &task);
+    candidates.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.name.cmp(&b.name)));
+    let skills = candidates
+        .into_iter()
+        .take(limit.max(1))
+        .map(|skill| {
+            json!({
+                "name": skill.name,
+                "description": skill.description,
+                "score": skill.score
+            })
+        })
+        .collect::<Vec<_>>();
     Ok(tool_envelope(
         "Skill discovery complete.",
         json!({
@@ -546,7 +530,7 @@ pub(super) fn run_tool_search_tool(runtime_root: &Path, input: Value) -> Result<
             !matches!(
                 descriptor.name.as_str(),
                 "tool_search" | "discover_skills" | "load_skill"
-            )
+            ) && !is_special_agent_only_tool(descriptor.name.as_str())
         })
         .map(|descriptor| {
             let haystack = format!(
@@ -584,6 +568,7 @@ pub(super) fn run_tool_search_tool(runtime_root: &Path, input: Value) -> Result<
             })
         })
         .collect::<Vec<_>>();
+    record_tool_activation_state(runtime_root, &activated_tools)?;
     Ok(tool_envelope(
         "Deferred tool search complete.",
         json!({
@@ -614,6 +599,7 @@ pub(super) fn run_load_skill_tool(runtime_root: &Path, input: Value) -> Result<V
                 .find(|candidate| candidate.name.to_lowercase() == normalized)
         })
         .ok_or_else(|| format!("load_skill could not find skill: {skill}"))?;
+    record_loaded_skill_state(runtime_root, std::slice::from_ref(&candidate.name))?;
     Ok(tool_envelope(
         format!("Loaded skill {}.", candidate.name),
         json!({
@@ -627,21 +613,4 @@ pub(super) fn run_load_skill_tool(runtime_root: &Path, input: Value) -> Result<V
         }),
         false,
     ))
-}
-
-pub(super) fn frontmatter_field(raw: &str, key: &str) -> Option<String> {
-    let mut lines = raw.lines();
-    if lines.next()? != "---" {
-        return None;
-    }
-    for line in lines {
-        if line == "---" {
-            break;
-        }
-        let (field, value) = line.split_once(':')?;
-        if field.trim() == key {
-            return Some(value.trim().trim_matches('"').to_string());
-        }
-    }
-    None
 }

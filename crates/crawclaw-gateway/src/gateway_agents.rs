@@ -89,11 +89,41 @@ pub(super) fn agent_runtime_list(state: &GatewayState, params: Value) -> Result<
     }))
 }
 
-pub(super) fn agent_runtime_cancel(_state: &GatewayState, params: Value) -> Result<Value, String> {
+pub(super) fn agent_runtime_cancel(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let task_id = required_param(&params, &["taskId", "runId", "sessionKey", "key"])?;
+    let Some(session) = resolve_agent_runtime_session(state, &task_id)? else {
+        return Ok(json!({
+            "ok": true,
+            "cancelled": false,
+            "taskId": task_id,
+            "reason": "not_found"
+        }));
+    };
+    if !agent_runtime_can_cancel(&session.status) {
+        return Ok(json!({
+            "ok": true,
+            "cancelled": false,
+            "taskId": task_id,
+            "sessionKey": session.key,
+            "status": session.status,
+            "reason": "not_running"
+        }));
+    }
+    let cancelled = state
+        .session_store
+        .patch_session(&session.key, None, None, None, Some("cancelled"))
+        .map_err(|error| error.to_string())?;
+    emit(
+        state,
+        "sessions.changed",
+        json!({ "session": cancelled.clone() }),
+    );
     Ok(json!({
         "ok": true,
-        "cancelled": false,
-        "taskId": string_param(&params, &["taskId", "runId", "sessionKey", "key"])
+        "cancelled": true,
+        "taskId": task_id,
+        "sessionKey": cancelled.key,
+        "status": cancelled.status
     }))
 }
 
@@ -346,7 +376,7 @@ pub(super) fn agent_runtime_run_value(
         "runId": Value::Null,
         "parentTaskId": Value::Null,
         "sourceId": session.spawned_by,
-        "spawnSource": if session.spawned_by.is_some() { Value::String("sessions.spawn".to_string()) } else { Value::Null },
+        "spawnSource": if session.spawned_by.is_some() { Value::String("subagents_spawn".to_string()) } else { Value::Null },
         "progressSummary": Value::Null,
         "terminalSummary": Value::Null,
         "error": Value::Null,

@@ -25,13 +25,23 @@ pub(super) fn build_filtered_pi_agent_rust_tool_registry(
     )
 }
 
+fn build_default_profile_tool_registry(runtime_root: &Path) -> pi::sdk::ToolRegistry {
+    pi::sdk::ToolRegistry::from_tools(
+        build_pi_agent_rust_tool_registry(runtime_root)
+            .into_tools()
+            .into_iter()
+            .filter(|tool| !is_special_agent_only_tool(tool.name()))
+            .collect(),
+    )
+}
+
 pub(super) fn build_pi_agent_rust_tool_registry_for_selection(
     runtime_root: &Path,
     selection: &AgentRuntimeToolSelection,
     permission_policy: Option<AgentRuntimePermissionPolicy>,
 ) -> pi::sdk::ToolRegistry {
     let registry = match selection {
-        AgentRuntimeToolSelection::Default => build_pi_agent_rust_tool_registry(runtime_root),
+        AgentRuntimeToolSelection::Default => build_default_profile_tool_registry(runtime_root),
         AgentRuntimeToolSelection::Disabled => pi::sdk::ToolRegistry::from_tools(Vec::new()),
         AgentRuntimeToolSelection::AllowList(enabled_tools) => {
             build_filtered_pi_agent_rust_tool_registry(runtime_root, enabled_tools)

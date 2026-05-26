@@ -315,11 +315,19 @@ pub struct ConversationState {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ConversationContextSummary {
+    pub profile_kind: String,
+    pub parent_context_policy: String,
     pub included_tools: Vec<String>,
     pub deferred_tools: Vec<String>,
+    pub activated_tools: Vec<String>,
     pub surfaced_skills: Vec<ConversationContextSkillSummary>,
     pub loaded_skills: Vec<String>,
     pub memory_snippets: Vec<String>,
+    pub compaction_active: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compacted_through: Option<String>,
+    pub retained_message_count: usize,
+    pub warnings: Vec<String>,
     pub message_count: usize,
     pub estimated_tokens: usize,
 }

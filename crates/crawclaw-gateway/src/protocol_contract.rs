@@ -182,10 +182,9 @@ pub const GATEWAY_PROTOCOL_METHODS: &[&str] = &[
     "sessions.status",
     "sessions.get",
     "sessions.send",
-    "sessions.spawn",
     "sessions.yield",
     "subagents",
-    "subagents.spawnRun",
+    "subagents_spawn",
     "subagents.control",
     "subagents.announce",
     "acp.session.list",
@@ -309,7 +308,8 @@ mod tests {
     fn protocol_metadata_has_stable_version_methods_events() {
         assert_eq!(GATEWAY_PROTOCOL_VERSION, 3);
         assert!(GATEWAY_PROTOCOL_METHODS.contains(&"config.apply"));
-        assert!(GATEWAY_PROTOCOL_METHODS.contains(&"sessions.spawn"));
+        assert!(GATEWAY_PROTOCOL_METHODS.contains(&"subagents_spawn"));
+        assert!(!GATEWAY_PROTOCOL_METHODS.contains(&"sessions.spawn"));
         assert!(GATEWAY_PROTOCOL_METHODS.contains(&"memory.afterTurn"));
         assert!(!GATEWAY_PROTOCOL_METHODS
             .iter()

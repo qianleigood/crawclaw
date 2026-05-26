@@ -110,6 +110,27 @@ pub(super) fn build_agent_run_request(
         }
     };
 
+    let profile = params
+        .get("profile")
+        .cloned()
+        .map(serde_json::from_value::<AgentRunProfileRequest>)
+        .transpose()
+        .map_err(|error| format!("invalid agent run profile: {error}"))?
+        .or_else(|| {
+            string_param(params, &["btwQuestion"]).map(|_| AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Btw,
+                special_agent: None,
+                memory_after_turn: Some(false),
+            })
+        })
+        .or_else(|| {
+            Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Normal,
+                special_agent: None,
+                memory_after_turn: Some(true),
+            })
+        });
+
     Ok(AgentRunRequest {
         run_id,
         agent_id,
@@ -122,6 +143,7 @@ pub(super) fn build_agent_run_request(
             reasoning_level: string_param(params, &["reasoningLevel"]),
         },
         enabled_tools: Vec::new(),
+        profile,
         options: agent_run_options(params),
     })
 }
@@ -289,22 +311,6 @@ pub(super) async fn special_agent_run_with_agent_runtime(
         .unwrap_or_else(|| format!("special:{kind}:{run_id}"));
     let scope = request.scope.clone().unwrap_or_else(|| "main".to_string());
     let task = request.task.unwrap_or_default();
-    let mut options = BTreeMap::new();
-    options.insert(
-        "specialAgent".to_string(),
-        json!({
-            "kind": kind,
-            "spawnSource": definition.spawn_source,
-            "executionMode": definition.execution_mode,
-            "transcriptPolicy": definition.transcript_policy,
-            "parentContextPolicy": definition.parent_context_policy,
-            "timeoutSeconds": definition.timeout_seconds,
-            "maxTurns": definition.max_turns
-        }),
-    );
-    if definition.guard == Some(SpecialAgentToolGuard::MemoryMaintenance) {
-        options.insert("memoryAfterTurn".to_string(), json!(false));
-    }
     let agent_request = AgentRunRequest {
         run_id: run_id.clone(),
         agent_id: kind.to_string(),
@@ -332,7 +338,14 @@ pub(super) async fn special_agent_run_with_agent_runtime(
             .iter()
             .map(|tool| (*tool).to_string())
             .collect(),
-        options,
+        profile: Some(AgentRunProfileRequest {
+            kind: AgentRunProfileKind::SpecialAgent,
+            special_agent: Some(definition.id.to_string()),
+            memory_after_turn: Some(
+                definition.guard != Some(SpecialAgentToolGuard::MemoryMaintenance),
+            ),
+        }),
+        options: BTreeMap::new(),
     };
     let result = state
         .agent_runtime
@@ -487,6 +500,11 @@ pub(super) async fn channel_inbound_handle(
             reasoning_level: string_param(&params, &["reasoningLevel"]),
         },
         enabled_tools: Vec::new(),
+        profile: Some(AgentRunProfileRequest {
+            kind: AgentRunProfileKind::Normal,
+            special_agent: None,
+            memory_after_turn: Some(true),
+        }),
         options: BTreeMap::new(),
     };
     let result = state

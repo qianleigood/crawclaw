@@ -182,7 +182,7 @@ pub(super) fn sessions_messages_subscription(
     Ok(json!({ "subscribed": subscribed, "key": normalized }))
 }
 
-pub(super) async fn subagents_spawn_run(
+pub(super) async fn subagents_spawn(
     state: &GatewayState,
     params: Value,
 ) -> Result<Value, String> {
@@ -214,12 +214,28 @@ pub(super) async fn subagents_spawn_run(
             "session": session
         }));
     }
+    let running_session = state
+        .session_store
+        .patch_session(&session.key, None, None, None, Some("running"))
+        .map_err(|error| error.to_string())?;
+    emit(
+        state,
+        "sessions.changed",
+        json!({ "session": running_session.clone() }),
+    );
 
     let mut run_params = params.clone();
     let run_object = ensure_json_object(&mut run_params);
     run_object.insert("sessionKey".to_string(), Value::String(session.key.clone()));
     run_object.insert("message".to_string(), Value::String(task));
     run_object.insert("channel".to_string(), Value::String("subagent".to_string()));
+    run_object.insert(
+        "profile".to_string(),
+        json!({
+            "kind": "subagent",
+            "memoryAfterTurn": true
+        }),
+    );
     run_object.insert(
         "idempotencyKey".to_string(),
         Value::String(
@@ -228,14 +244,37 @@ pub(super) async fn subagents_spawn_run(
         ),
     );
 
-    let result = execute_agent_run_turn(state, &run_params, "rust-subagent").await?;
+    let result = match execute_agent_run_turn(state, &run_params, "rust-subagent").await {
+        Ok(result) => result,
+        Err(error) => {
+            let failed_session = state
+                .session_store
+                .patch_session(&session.key, None, None, None, Some("failed"))
+                .map_err(|patch_error| patch_error.to_string())?;
+            emit(
+                state,
+                "sessions.changed",
+                json!({ "session": failed_session }),
+            );
+            return Err(error);
+        }
+    };
+    let completed_session = state
+        .session_store
+        .patch_session(&session.key, None, None, None, Some("completed"))
+        .map_err(|error| error.to_string())?;
+    emit(
+        state,
+        "sessions.changed",
+        json!({ "session": completed_session.clone() }),
+    );
     let events = agent_run_events_value(&result.events)?;
     Ok(json!({
         "ok": true,
-        "status": "running",
+        "status": "completed",
         "implementation": "rust-native",
         "sessionKey": result.session_key,
-        "session": session,
+        "session": completed_session,
         "runId": result.run_id,
         "assistantText": result.assistant_text,
         "events": events

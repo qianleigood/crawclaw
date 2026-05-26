@@ -934,7 +934,23 @@ impl DesktopSessionStore {
             .filter(|value| !value.is_empty())
             .map(ToOwned::to_owned)
             .unwrap_or_else(|| title_from_transcript_text(task));
-        self.append_message(&child_thread_id, "user", task, Some("sessions_spawn"))?;
+        let transcript_path = self.transcript_path(&child_thread_id)?;
+        if let Some(parent) = transcript_path.parent() {
+            fs::create_dir_all(parent).map_err(|error| {
+                DesktopSessionStoreError::Io(format!(
+                    "Failed to create desktop session directory: {error}"
+                ))
+            })?;
+        }
+        fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&transcript_path)
+            .map_err(|error| {
+                DesktopSessionStoreError::Io(format!(
+                    "Failed to create subagent session transcript: {error}"
+                ))
+            })?;
         self.update_thread_metadata(&child_thread_id, |metadata| {
             metadata.title = Some(title);
             metadata.status = Some("spawned".to_string());

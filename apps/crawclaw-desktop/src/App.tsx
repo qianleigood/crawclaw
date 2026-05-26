@@ -450,7 +450,7 @@ export default function App() {
     resolver?.(confirmed)
   }
 
-  const updatePluginToolEnabled = (toolId: string, enabled: boolean) => {
+  const togglePluginTool = (toolId: string, enabled: boolean) => {
     if (!getCurrentDesktopApiContext()) {
       setDesktopState((state) => setPluginToolEnabledLocally(state, toolId, enabled))
       return
@@ -666,7 +666,7 @@ export default function App() {
                 onRemovePluginSkill={removePluginSkillFromUi}
                 onSetInstalledPluginEnabled={updateInstalledPluginEnabled}
                 onSetPluginSkillEnabled={updatePluginSkillEnabled}
-                onSetPluginToolEnabled={updatePluginToolEnabled}
+                onSetPluginToolEnabled={togglePluginTool}
                 onUninstallPlugin={uninstallPluginFromUi}
                 onUseSkill={(skill) => void applyDesktopState(() => addSkillCallMessage({
                   detail: skill.description,
