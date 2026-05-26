@@ -15,6 +15,7 @@ use crate::error::invalid_input;
 use crate::llm_task::{complete_llm_task, prepare_llm_task, LlmTaskPrepareInput};
 use crate::lobster::execute_lobster;
 use crate::media_understanding::describe_openai_media;
+use crate::minimax_mcp::handle_minimax_mcp;
 use crate::open_prose::describe_open_prose;
 use crate::openshell::handle_openshell;
 use crate::qwen3_tts::{
@@ -378,6 +379,94 @@ fn openai_descriptor() -> NativePluginDescriptor {
     entry
 }
 
+fn minimax_mcp_descriptor() -> NativePluginDescriptor {
+    let mut entry = descriptor(
+        "minimax-mcp",
+        "MiniMax MCP",
+        "Official MiniMax MCP tools for image generation, video generation, and image understanding.",
+    );
+    for (name, label, description, properties, required) in [
+        (
+            "text_to_image",
+            "MiniMax text to image",
+            "Generate images through the official MiniMax MCP server.",
+            json!({
+                "prompt": { "type": "string" },
+                "model": { "type": "string" },
+                "aspectRatio": { "type": "string" },
+                "n": { "type": "number" },
+                "promptOptimizer": { "type": "boolean" },
+                "outputDirectory": { "type": "string" },
+                "outputFile": { "type": "string" },
+                "timeoutSeconds": { "type": "number" }
+            }),
+            vec!["prompt"],
+        ),
+        (
+            "generate_video",
+            "MiniMax text to video",
+            "Generate videos through the official MiniMax MCP server.",
+            json!({
+                "prompt": { "type": "string" },
+                "model": { "type": "string" },
+                "firstFrameImage": { "type": "string" },
+                "duration": { "type": "number" },
+                "resolution": { "type": "string" },
+                "outputDirectory": { "type": "string" },
+                "outputFile": { "type": "string" },
+                "async_mode": { "type": "boolean" },
+                "timeoutSeconds": { "type": "number" }
+            }),
+            vec!["prompt"],
+        ),
+        (
+            "image_to_video",
+            "MiniMax image to video",
+            "Generate videos from a first frame image through the official MiniMax MCP server.",
+            json!({
+                "prompt": { "type": "string" },
+                "firstFrameImage": { "type": "string" },
+                "model": { "type": "string" },
+                "outputDirectory": { "type": "string" },
+                "outputFile": { "type": "string" },
+                "async_mode": { "type": "boolean" },
+                "timeoutSeconds": { "type": "number" }
+            }),
+            vec!["prompt", "firstFrameImage"],
+        ),
+        (
+            "understand_image",
+            "MiniMax image understanding",
+            "Analyze an image through the official MiniMax Token Plan MCP server.",
+            json!({
+                "prompt": { "type": "string" },
+                "image_source": { "type": "string" },
+                "timeoutSeconds": { "type": "number" }
+            }),
+            vec!["prompt", "image_source"],
+        ),
+    ] {
+        entry.tools.push(NativeToolDescriptor {
+            name: name.to_string(),
+            label: label.to_string(),
+            description: description.to_string(),
+            parameters: tool_params(properties, &required),
+            invocation: target("minimax-mcp", name),
+            read_only: false,
+            default_enabled: true,
+            default_profiles: vec!["coding".to_string(), "full".to_string()],
+            approval: Some(NativeApprovalPolicy {
+                title: "Run MiniMax MCP tool".to_string(),
+                description: "Call MiniMax MCP. This can send prompts or local image paths to MiniMax and may incur provider costs.".to_string(),
+                severity: NativeApprovalSeverity::Warning,
+                timeout_behavior: NativeApprovalTimeoutBehavior::Deny,
+                condition: None,
+            }),
+        });
+    }
+    entry
+}
+
 fn openshell_descriptor() -> NativePluginDescriptor {
     descriptor(
         "openshell",
@@ -396,6 +485,7 @@ pub fn builtin_native_plugin_descriptors() -> Vec<NativePluginDescriptor> {
         llm_task_descriptor(),
         qwen3_tts_descriptor(),
         openai_descriptor(),
+        minimax_mcp_descriptor(),
         open_prose_descriptor(),
         openshell_descriptor(),
     ]
@@ -449,6 +539,7 @@ pub async fn dispatch_builtin_native_plugin_operation(
         ("searxng", "service-stop") => Ok(stop_searxng_service()),
         ("spider-fetch", "fetch") => run_spider_fetch(input).await,
         ("openai", "media-understanding") => describe_openai_media(input).await,
+        ("minimax-mcp", operation) => handle_minimax_mcp(operation, input).await,
         (plugin, operation) => Err(invalid_input(format!(
             "Unsupported native plugin operation: {plugin} {operation}"
         ))),

@@ -42,6 +42,7 @@ fn native_plugin_descriptors_cover_target_plugins() {
         "llm-task",
         "qwen3-tts",
         "openai",
+        "minimax-mcp",
     ] {
         assert!(ids.contains(&expected), "missing descriptor for {expected}");
     }
@@ -68,6 +69,19 @@ fn native_plugin_descriptors_cover_target_plugins() {
 
     let llm_task = find_builtin_native_plugin_descriptor("llm-task").expect("llm-task descriptor");
     assert!(!llm_task.host_callbacks.is_empty());
+
+    let minimax = find_builtin_native_plugin_descriptor("minimax-mcp").expect("minimax descriptor");
+    for expected in [
+        "text_to_image",
+        "generate_video",
+        "image_to_video",
+        "understand_image",
+    ] {
+        assert!(
+            minimax.tools.iter().any(|tool| tool.name == expected),
+            "missing MiniMax MCP tool {expected}"
+        );
+    }
 }
 
 #[test]

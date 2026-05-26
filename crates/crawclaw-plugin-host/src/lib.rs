@@ -280,7 +280,7 @@ fn native_plugin_tool_permission(
 fn native_plugin_tool_icon(plugin_id: &str) -> &'static str {
     match plugin_id {
         "browser" => "search",
-        "comfyui" => "image",
+        "comfyui" | "minimax-mcp" => "image",
         "lobster" | "llm-task" => "blocks",
         _ => "wrench",
     }
