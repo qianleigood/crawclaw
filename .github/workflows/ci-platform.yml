@@ -1,0 +1,187 @@
+name: CI Platform
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('{0}-{1}', github.workflow, github.event.pull_request.number) || format('{0}-{1}', github.workflow, github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  scope:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      run_platform: ${{ steps.scope.outputs.run_platform }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+
+      - name: Ensure base commit
+        if: github.event_name != 'workflow_dispatch'
+        uses: ./.github/actions/ensure-base-commit
+        with:
+          base-sha: ${{ github.event_name == 'push' && github.event.before || github.event.pull_request.base.sha }}
+          fetch-ref: ${{ github.event_name == 'push' && github.ref_name || github.event.pull_request.base.ref }}
+
+      - name: Detect platform scope
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event_name == 'push' && github.event.before || github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          run_platform=true
+          if [[ "${GITHUB_EVENT_NAME:-}" != "workflow_dispatch" && -n "${BASE_SHA:-}" && "${BASE_SHA}" != "0000000000000000000000000000000000000000" ]]; then
+            run_platform=false
+            if changed_paths="$(git diff --name-only "$BASE_SHA" HEAD)"; then
+              while IFS= read -r changed_path; do
+                [[ -z "$changed_path" ]] && continue
+                case "$changed_path" in
+                  docs/*|docs.acp.md|README.md|*.md|*.mdx)
+                    continue
+                    ;;
+                  apps/*|apps/**|crates/*|crates/**|src/*|src/**|extensions/*|extensions/**|packages/*|packages/**|scripts/*|scripts/**|.github/actions/setup-linux-desktop-deps/action.yml|.github/actions/setup-node-env/action.yml|.github/actions/setup-pnpm-store-cache/action.yml|.github/workflows/ci-platform.yml|.github/workflows/ci-main.yml|crawclaw.mjs|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|tsconfig*.json)
+                    run_platform=true
+                    break
+                    ;;
+                  *)
+                    run_platform=true
+                    break
+                    ;;
+                esac
+              done <<<"$changed_paths"
+            else
+              run_platform=true
+            fi
+          fi
+
+          echo "run_platform=$run_platform" >>"$GITHUB_OUTPUT"
+
+  linux-package:
+    needs: [scope]
+    if: ${{ needs.scope.outputs.run_platform == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Setup Linux desktop dependencies
+        uses: ./.github/actions/setup-linux-desktop-deps
+
+      - name: Setup Node environment
+        uses: ./.github/actions/setup-node-env
+        with:
+          install-bun: "false"
+          use-sticky-disk: "false"
+
+      - name: Build Linux package artifacts
+        run: cargo run --quiet --release -p crawclaw-repo-tools -- build --profile package
+
+  windows-rust-core:
+    needs: [scope]
+    if: ${{ needs.scope.outputs.run_platform == 'true' }}
+    runs-on: windows-2025
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Check Windows Rust core
+        run: cargo run -q -p crawclaw-repo-tools -- check --profile rust-core
+
+  windows-package:
+    needs: [scope]
+    if: ${{ needs.scope.outputs.run_platform == 'true' }}
+    runs-on: windows-2025
+    timeout-minutes: 90
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Try to exclude workspace from Windows Defender
+        shell: pwsh
+        run: |
+          $cmd = Get-Command Add-MpPreference -ErrorAction SilentlyContinue
+          if (-not $cmd) {
+            Write-Host "Add-MpPreference not available, skipping Defender exclusions."
+            exit 0
+          }
+
+          try {
+            Add-MpPreference -ExclusionPath "$env:GITHUB_WORKSPACE" -ErrorAction Stop
+            Add-MpPreference -ExclusionProcess "node.exe" -ErrorAction Stop
+            Write-Host "Defender exclusions applied."
+          } catch {
+            Write-Warning "Failed to apply Defender exclusions, continuing. $($_.Exception.Message)"
+          }
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
+          check-latest: false
+
+      - name: Setup pnpm + cache store
+        uses: ./.github/actions/setup-pnpm-store-cache
+        with:
+          pnpm-version: "10.23.0"
+          cache-key-suffix: "node24"
+          use-sticky-disk: "false"
+          use-restore-keys: "false"
+          use-actions-cache: "true"
+
+      - name: Runtime versions
+        run: |
+          node -v
+          npm -v
+          pnpm -v
+
+      - name: Capture node path
+        run: echo "NODE_BIN=$(dirname "$(node -p "process.execPath")")" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        env:
+          CI: true
+        run: |
+          set -euo pipefail
+          export PATH="$NODE_BIN:$PATH"
+          pnpm install --frozen-lockfile --prefer-offline --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true --config.side-effects-cache=true || pnpm install --frozen-lockfile --prefer-offline --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true --config.side-effects-cache=true
+
+      - name: Build Windows package artifacts
+        run: cargo run --quiet --release -p crawclaw-repo-tools -- build --profile package

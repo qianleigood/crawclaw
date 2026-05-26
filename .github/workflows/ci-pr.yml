@@ -1,0 +1,227 @@
+name: CI PR
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ format('{0}-{1}', github.workflow, github.event.pull_request.number) }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  scope:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      docs_changed: ${{ steps.scope.outputs.docs_changed }}
+      docs_only: ${{ steps.scope.outputs.docs_only }}
+      run_desktop: ${{ steps.scope.outputs.run_desktop }}
+      run_product: ${{ steps.scope.outputs.run_product }}
+      run_skills_python: ${{ steps.scope.outputs.run_skills_python }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+
+      - name: Ensure PR base commit
+        uses: ./.github/actions/ensure-base-commit
+        with:
+          base-sha: ${{ github.event.pull_request.base.sha }}
+          fetch-ref: ${{ github.event.pull_request.base.ref }}
+
+      - name: Detect changed scopes
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docs_changed=false
+          docs_only=true
+          run_desktop=false
+          run_product=false
+          run_skills_python=false
+          has_non_docs=false
+
+          if ! changed_paths="$(git diff --name-only "$BASE_SHA" HEAD)"; then
+            docs_changed=true
+            docs_only=false
+            run_desktop=true
+            run_product=true
+            run_skills_python=true
+          elif [[ -z "$changed_paths" ]]; then
+            docs_changed=true
+            docs_only=false
+            run_desktop=true
+            run_product=true
+            run_skills_python=true
+          else
+            while IFS= read -r changed_path; do
+              [[ -z "$changed_path" ]] && continue
+
+              case "$changed_path" in
+                docs/*|docs.acp.md|README.md|*.md|*.mdx)
+                  docs_changed=true
+                  continue
+                  ;;
+              esac
+
+              docs_only=false
+              has_non_docs=true
+
+              case "$changed_path" in
+                apps/crawclaw-desktop/*|apps/crawclaw-desktop/**|.github/actions/setup-linux-desktop-deps/action.yml|.github/workflows/ci-pr.yml|.github/workflows/ci-main.yml|.github/workflows/ci-platform.yml)
+                  run_desktop=true
+                  ;;
+              esac
+
+              case "$changed_path" in
+                apps/*|apps/**|crates/*|crates/**|src/*|src/**|extensions/*|extensions/**|packages/*|packages/**|scripts/*|scripts/**|.github/actions/*|.github/actions/**|.github/workflows/ci-pr.yml|.github/workflows/ci-main.yml|.github/workflows/ci-platform.yml|crawclaw.mjs|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|tsconfig*.json|.oxlintrc.json|.oxfmtrc.jsonc)
+                  run_product=true
+                  ;;
+              esac
+
+              case "$changed_path" in
+                skills/*|skills/**|pyproject.toml|.github/workflows/ci-pr.yml)
+                  run_skills_python=true
+                  ;;
+              esac
+            done <<<"$changed_paths"
+
+            if [[ "$run_product" != true && "$has_non_docs" == true ]]; then
+              run_product=true
+            fi
+          fi
+
+          {
+            echo "docs_changed=$docs_changed"
+            echo "docs_only=$docs_only"
+            echo "run_desktop=$run_desktop"
+            echo "run_product=$run_product"
+            echo "run_skills_python=$run_skills_python"
+          } >>"$GITHUB_OUTPUT"
+
+  check:
+    needs: [scope]
+    if: ${{ needs.scope.outputs.run_product == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Setup Linux desktop dependencies
+        uses: ./.github/actions/setup-linux-desktop-deps
+
+      - name: Setup Node environment
+        uses: ./.github/actions/setup-node-env
+        with:
+          install-bun: "false"
+          use-sticky-disk: "false"
+
+      - name: Check types, lint, contracts, and boundaries
+        env:
+          CRAWCLAW_LOCAL_CHECK: "0"
+        run: cargo run -q -p crawclaw-repo-tools -- check --profile local
+
+  rust-core:
+    needs: [scope]
+    if: ${{ needs.scope.outputs.run_product == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Check Rust core
+        run: cargo run -q -p crawclaw-repo-tools -- check --profile rust-core
+
+  desktop-contract:
+    needs: [scope]
+    if: ${{ needs.scope.outputs.run_desktop == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Setup Linux desktop dependencies
+        uses: ./.github/actions/setup-linux-desktop-deps
+
+      - name: Setup Node environment
+        uses: ./.github/actions/setup-node-env
+        with:
+          install-bun: "false"
+          use-sticky-disk: "false"
+
+      - name: Check desktop API contract
+        run: pnpm desktop:contract:check
+
+  docs:
+    needs: [scope]
+    if: ${{ needs.scope.outputs.docs_changed == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Check docs
+        run: cargo run -q -p crawclaw-repo-tools -- check --profile docs-core
+
+  skills-python:
+    needs: [scope]
+    if: ${{ needs.scope.outputs.run_skills_python == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Python tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest ruff pyyaml
+
+      - name: Lint Python skill scripts
+        run: python -m ruff check skills
+
+      - name: Test Python skill scripts
+        run: |
+          if find skills -type f \( -name 'test_*.py' -o -name '*_test.py' \) | grep -q .; then
+            python -m pytest -q skills
+          else
+            echo "No Python skill tests found; skipping pytest."
+          fi

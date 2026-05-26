@@ -1,64 +1,109 @@
 ---
 title: CI Pipeline
-summary: "CI job graph, scope gates, and local command equivalents"
+summary: "GitHub Actions lanes, scope gates, and local command equivalents"
 read_when:
-  - You need to understand why a CI job did or did not run
+  - You need to understand which GitHub Actions workflow owns a gate
   - You are debugging failing GitHub Actions checks
 ---
 
 # CI Pipeline
 
-The CI runs on every push to `main` and every pull request. It uses smart scoping to skip expensive jobs when only unrelated areas changed.
+The GitHub Actions setup is split by responsibility. Each workflow owns one
+class of signal so failures are easier to classify from the Actions overview.
 
-## Job Overview
+## Workflow Overview
 
-| Job               | Purpose                                                                   | When it runs                                     |
-| ----------------- | ------------------------------------------------------------------------- | ------------------------------------------------ |
-| `preflight`       | Docs scope, change scope, key scan, workflow audit, prod dependency audit | Always; Node-based audit only on non-doc changes |
-| `docs-scope`      | Detect docs-only changes                                                  | Always                                           |
-| `changed-scope`   | Detect which areas changed (node/macos/android/windows)                   | Non-doc changes                                  |
-| `check`           | Repo-tools local profile: desktop contract, TypeScript, lint, boundaries  | Non-docs, Node changes                           |
-| `check-docs`      | Repo-tools docs-core profile: glossary, links, generated docs baselines   | Docs changed                                     |
-| `secrets`         | Detect leaked secrets                                                     | Always                                           |
-| `build-artifacts` | Build dist once, share with `release-check`                               | Pushes to `main`, node changes                   |
-| `release-check`   | Validate npm pack contents                                                | Pushes to `main` after build                     |
-| `checks`          | Rust core profile on PRs; package build profile on push                   | Non-docs, Node/package changes                   |
-| `checks-windows`  | Windows Rust core and package build profiles                              | Non-docs, windows-relevant changes               |
-| `macos`           | Swift lint/build/test                                                     | PRs with macos changes                           |
-| `android`         | Gradle build + tests                                                      | Non-docs, android changes                        |
+| Workflow          | Purpose                                                                | When it runs                                      |
+| ----------------- | ---------------------------------------------------------------------- | ------------------------------------------------- |
+| `Workflow Sanity` | Validate workflow files, composite action safety, and conflict markers | Pull requests, pushes to `main`, manual dispatch  |
+| `CI PR`           | Fast pull request product checks with path-based scope detection       | Non-draft pull requests                           |
+| `CI Main`         | Full landing gate for `main`: check, Rust core, build, and smoke       | Pushes to `main`, manual dispatch                 |
+| `CI Platform`     | Platform-specific package and Windows smoke checks                     | Pull requests, pushes to `main`, manual dispatch  |
+| `Security`        | Secret scan, workflow hardening audit, and production dependency audit | Pull requests, pushes to `main`, schedule, manual |
 
-## Fail-Fast Order
+Release and triage automation remains separate:
 
-Jobs are ordered so cheap checks fail before expensive ones run:
+- `CrawClaw NPM Release` publishes the root package through the gated release flow.
+- `Plugin NPM Release` previews and publishes bundled plugin packages.
+- `Labeler`, `Auto response`, and `Stale` manage repository triage.
+- `CodeQL` remains manually dispatched.
 
-1. `docs-scope` + `changed-scope` + `check` + `secrets` (parallel, cheap gates first)
-2. PRs: `checks` (Rust workspace test), `checks-windows`, `macos`, `android`
-3. Pushes to `main`: `build-artifacts` + `release-check` + package build compatibility
+## Product Gates
 
-Scope logic lives in the `preflight` job in `.github/workflows/ci.yml`; keep it
-validated through the workflow audit plus affected CI lanes when changing scope
-behavior.
+`CI PR` is the fast feedback path. Its `scope` job compares the pull request
+against the base commit and skips unrelated lanes:
 
-Node setup is scoped to lanes that need the Node/npm adapter, such as desktop
-renderer checks, package/release validation, and hosted docs tooling. Rust core
-and docs-core lanes use `crawclaw-repo-tools` directly.
+- `check` runs the local repo profile for product changes.
+- `rust-core` runs the Rust core profile for product changes.
+- `desktop-contract` runs only for desktop or CI setup changes.
+- `docs` runs only when docs changed.
+- `skills-python` runs only when Python skill files or related config changed.
 
-## Runners
+`CI Main` is the landing gate for `main`. It intentionally runs the full product
+bar even when a narrower PR gate already passed:
 
-| Runner                           | Jobs                                       |
-| -------------------------------- | ------------------------------------------ |
-| `blacksmith-16vcpu-ubuntu-2404`  | Most Linux jobs, including scope detection |
-| `blacksmith-32vcpu-windows-2025` | `checks-windows`                           |
-| `macos-latest`                   | `macos`, `ios`                             |
+- `check` runs the local profile.
+- `rust-core` runs the Rust core profile.
+- `build` creates package artifacts and uploads `dist/`.
+- `build-smoke` verifies the expected native runtime binaries in `dist/`.
+- `docs` runs when docs changed.
+- `skills-python` runs on every `main` push.
+
+Linux product checks install the desktop system packages needed by Tauri/GTK
+crates before running desktop contract or package-build work.
+
+## Platform Gates
+
+`CI Platform` isolates platform-specific failures from the core product gate:
+
+- `linux-package` verifies the package build on Ubuntu.
+- `windows-rust-core` verifies the Rust core profile on Windows.
+- `windows-package` verifies package build behavior on Windows.
+
+Pull requests use scope detection so docs-only changes do not run platform
+smoke. Pushes to `main` and manual dispatches can run the complete platform bar.
+
+## Security Gates
+
+`Security` keeps security signals separate from compiler, lint, and package
+signals:
+
+- `secret-scan` runs the trusted pre-commit `detect-private-key` hook.
+- `workflow-audit` runs `zizmor` for changed workflow files, or all workflow
+  files on manual and scheduled runs.
+- `dependency-audit` runs `pnpm audit --prod --audit-level=high`.
+
+On pull requests, pre-commit based security jobs use the base branch
+`.pre-commit-config.yaml` so untrusted pull request changes cannot weaken the
+security hooks being run.
+
+## Workflow Sanity
+
+`Workflow Sanity` validates GitHub automation itself:
+
+- tabs are rejected in workflow files;
+- `actionlint` validates workflow syntax;
+- composite actions cannot interpolate raw inputs directly in shell blocks;
+- tracked merge conflict markers are rejected.
+
+Keep this workflow small. Product, platform, and dependency checks belong in the
+purpose-specific workflows above.
 
 ## Local Equivalents
+
+```bash
+pnpm check
+pnpm test
+pnpm build
+pnpm check:docs
+pnpm desktop:contract:check
+```
+
+For direct repo-tools profiles:
 
 ```bash
 cargo run -q -p crawclaw-repo-tools -- check --profile local
 cargo run -q -p crawclaw-repo-tools -- check --profile rust-core
 cargo run -q -p crawclaw-repo-tools -- check --profile docs-core
-cargo run --quiet -p crawclaw-repo-tools -- release-check
+cargo run --quiet --release -p crawclaw-repo-tools -- build --profile package
 ```
-
-The matching pnpm aliases remain available: `pnpm check`, `pnpm test`,
-`pnpm check:docs`, and `pnpm release:check`.

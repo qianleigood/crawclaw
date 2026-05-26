@@ -62,9 +62,9 @@ CrawClaw has three public release lanes:
   also checks the same temp-prefix upgrade path from `YYYY.M.D` to `YYYY.M.D-N`
   so release corrections cannot silently leave older global installs on the
   base stable payload
-- If the release work touched CI planning, review the `preflight` manifest logic
-  in `.github/workflows/ci.yml` before approval so release notes do not describe
-  a stale CI layout
+- If the release work touched CI planning, review the relevant split workflow
+  (`CI PR`, `CI Main`, `CI Platform`, `Security`, or `Workflow Sanity`) before
+  approval so release notes do not describe a stale CI layout
 - Stable macOS release readiness also includes the updater surfaces:
   - the GitHub release must end up with the packaged `.zip`, `.dmg`, and `.dSYM.zip`
   - `appcast.xml` on `main` must point at the new stable zip after publish

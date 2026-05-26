@@ -1,0 +1,195 @@
+name: CI Main
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ format('{0}-{1}', github.workflow, github.run_id) }}
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  scope:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      docs_changed: ${{ steps.scope.outputs.docs_changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+
+      - name: Ensure push base commit
+        if: github.event_name == 'push'
+        uses: ./.github/actions/ensure-base-commit
+        with:
+          base-sha: ${{ github.event.before }}
+          fetch-ref: ${{ github.ref_name }}
+
+      - name: Detect docs changes
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event_name == 'push' && github.event.before || '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docs_changed=true
+          if [[ "${GITHUB_EVENT_NAME:-}" == "push" && -n "${BASE_SHA:-}" && "${BASE_SHA}" != "0000000000000000000000000000000000000000" ]]; then
+            docs_changed=false
+            if changed_paths="$(git diff --name-only "$BASE_SHA" HEAD)"; then
+              while IFS= read -r changed_path; do
+                case "$changed_path" in
+                  docs/*|docs.acp.md|README.md|*.md|*.mdx)
+                    docs_changed=true
+                    break
+                    ;;
+                esac
+              done <<<"$changed_paths"
+            else
+              docs_changed=true
+            fi
+          fi
+
+          echo "docs_changed=$docs_changed" >>"$GITHUB_OUTPUT"
+
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Setup Linux desktop dependencies
+        uses: ./.github/actions/setup-linux-desktop-deps
+
+      - name: Setup Node environment
+        uses: ./.github/actions/setup-node-env
+        with:
+          install-bun: "false"
+          use-sticky-disk: "false"
+
+      - name: Check types, lint, contracts, and boundaries
+        env:
+          CRAWCLAW_LOCAL_CHECK: "0"
+        run: cargo run -q -p crawclaw-repo-tools -- check --profile local
+
+  rust-core:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Check Rust core
+        run: cargo run -q -p crawclaw-repo-tools -- check --profile rust-core
+
+  build:
+    needs: [check, rust-core]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Setup Linux desktop dependencies
+        uses: ./.github/actions/setup-linux-desktop-deps
+
+      - name: Setup Node environment
+        uses: ./.github/actions/setup-node-env
+        with:
+          install-bun: "false"
+          use-sticky-disk: "false"
+
+      - name: Build package artifacts
+        run: cargo run --quiet --release -p crawclaw-repo-tools -- build --profile package
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist-build
+          path: dist/
+          retention-days: 1
+
+  build-smoke:
+    needs: [build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Download dist artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: dist-build
+          path: dist/
+
+      - name: Verify native runtime artifacts
+        run: |
+          test -x dist/native/crawclaw-runtime
+          test -x dist/native/crawclaw-gateway
+          test -x dist/native/crawclaw-native-plugins
+
+  docs:
+    needs: [scope]
+    if: ${{ needs.scope.outputs.docs_changed == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Check docs
+        run: cargo run -q -p crawclaw-repo-tools -- check --profile docs-core
+
+  skills-python:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Python tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest ruff pyyaml
+
+      - name: Lint Python skill scripts
+        run: python -m ruff check skills
+
+      - name: Test Python skill scripts
+        run: |
+          if find skills -type f \( -name 'test_*.py' -o -name '*_test.py' \) | grep -q .; then
+            python -m pytest -q skills
+          else
+            echo "No Python skill tests found; skipping pytest."
+          fi
