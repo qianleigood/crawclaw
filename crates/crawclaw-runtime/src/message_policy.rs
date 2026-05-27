@@ -769,8 +769,7 @@ fn resolve_conversation_id(from: Option<&str>) -> Option<String> {
     }
     let candidate = trimmed
         .split(':')
-        .filter(|part| !part.is_empty())
-        .next_back()
+        .rfind(|part| !part.is_empty())
         .unwrap_or(trimmed);
     if candidate.is_empty() {
         None

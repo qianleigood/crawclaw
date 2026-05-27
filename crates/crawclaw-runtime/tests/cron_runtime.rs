@@ -1,10 +1,11 @@
-use std::sync::{Mutex, OnceLock};
+use std::sync::OnceLock;
 
 use crawclaw_runtime::cron::{CronService, CronServiceOptions};
 use crawclaw_runtime::DesktopSessionStore;
 use serde_json::json;
 use serde_json::Value;
 use tempfile::tempdir;
+use tokio::sync::Mutex;
 
 fn env_lock() -> &'static Mutex<()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -215,7 +216,7 @@ async fn cron_gateway_methods_keep_legacy_shapes_and_store_schema() {
 
 #[tokio::test]
 async fn cron_service_uses_configured_store_path() {
-    let _guard = env_lock().lock().expect("env lock");
+    let _guard = env_lock().lock().await;
     let previous_state_dir = std::env::var_os("CRAWCLAW_STATE_DIR");
     let temp = tempdir().expect("tempdir");
     let state_dir = temp.path().join("state");
@@ -311,7 +312,7 @@ async fn cron_service_adds_lists_and_runs_main_jobs() {
 
 #[tokio::test]
 async fn cron_tool_is_registered_and_uses_state_dir_store() {
-    let _guard = env_lock().lock().expect("env lock");
+    let _guard = env_lock().lock().await;
     let previous_state_dir = std::env::var_os("CRAWCLAW_STATE_DIR");
     let temp = tempdir().expect("tempdir");
     std::env::set_var("CRAWCLAW_STATE_DIR", temp.path());

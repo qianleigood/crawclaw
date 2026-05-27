@@ -32,7 +32,7 @@ struct MinimaxMcpRequest {
 pub async fn handle_minimax_mcp(operation: &str, input: Value) -> NativeResult<Value> {
     let request = minimax_mcp_request(operation, &input)?;
     let response = call_mcp_tool(request).await?;
-    Ok(minimax_tool_envelope(operation, response)?)
+    minimax_tool_envelope(operation, response)
 }
 
 fn minimax_mcp_request(operation: &str, input: &Value) -> NativeResult<MinimaxMcpRequest> {

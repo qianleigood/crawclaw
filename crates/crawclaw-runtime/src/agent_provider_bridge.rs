@@ -349,17 +349,12 @@ pub(super) struct DesktopAgentProviderConfig {
     pub(super) api_version: Option<String>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub(super) enum DesktopAgentRuntimeMode {
+    #[default]
     PiAgentRust,
     NativeProvider,
-}
-
-impl Default for DesktopAgentRuntimeMode {
-    fn default() -> Self {
-        Self::PiAgentRust
-    }
 }
 
 impl DesktopAgentProviderConfig {

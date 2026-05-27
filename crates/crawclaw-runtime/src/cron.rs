@@ -692,9 +692,9 @@ impl CronService {
         filter_run_log_entries(&mut entries, &input);
         let sort_desc = string_from_map(&input, "sortDir").as_deref() != Some("asc");
         if sort_desc {
-            entries.sort_by(|left, right| right.ts.cmp(&left.ts));
+            entries.sort_by_key(|entry| std::cmp::Reverse(entry.ts));
         } else {
-            entries.sort_by(|left, right| left.ts.cmp(&right.ts));
+            entries.sort_by_key(|entry| entry.ts);
         }
         let total = entries.len();
         let offset = input
@@ -815,7 +815,7 @@ impl CronService {
         }
         store
             .jobs
-            .retain(|job| !(job.delete_after_run && !job.enabled));
+            .retain(|job| !job.delete_after_run || job.enabled);
         self.save_store(&store, true)?;
 
         let status = if result.is_ok() { "ok" } else { "error" };
@@ -1645,7 +1645,7 @@ pub fn compute_next_run_at_ms(schedule: &CronSchedule, now: u64, job_id: &str) -
                 return Some(anchor);
             }
             let elapsed = now.saturating_sub(anchor);
-            let steps = ((elapsed + every - 1) / every).max(1);
+            let steps = elapsed.div_ceil(every).max(1);
             Some(anchor + steps * every)
         }
         CronSchedule::Cron {
