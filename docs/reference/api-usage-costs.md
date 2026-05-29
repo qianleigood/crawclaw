@@ -64,7 +64,7 @@ See [Media in and out](/start/crawclaw#media-in-and-out).
 
 The built-in memory runtime can call the configured LLM roles for durable
 extraction, experience extraction, dream consolidation, and session summaries.
-NotebookLM integration can also invoke your configured local NotebookLM command
+Hindsight integration can also invoke your configured Hindsight HTTP endpoint
 when enabled.
 
 See [Memory](/concepts/memory).

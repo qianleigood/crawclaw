@@ -11,12 +11,15 @@ mod gateway_approvals;
 mod gateway_channels;
 mod gateway_chat;
 mod gateway_config;
+mod gateway_control;
 mod gateway_esp32;
 mod gateway_openai_compat;
 mod gateway_plugin_install;
 mod gateway_plugins;
+mod gateway_rewind;
 mod gateway_rpc;
 mod gateway_runtime_memory;
+mod gateway_sdk_mcp;
 mod gateway_sessions;
 mod gateway_summary_routes;
 mod gateway_tools;
@@ -32,12 +35,15 @@ use self::gateway_approvals::*;
 use self::gateway_channels::*;
 use self::gateway_chat::*;
 use self::gateway_config::*;
+use self::gateway_control::*;
 use self::gateway_esp32::*;
 use self::gateway_openai_compat::*;
 use self::gateway_plugin_install::*;
 use self::gateway_plugins::*;
+use self::gateway_rewind::*;
 use self::gateway_rpc::*;
 use self::gateway_runtime_memory::*;
+use self::gateway_sdk_mcp::*;
 use self::gateway_sessions::*;
 use self::gateway_tools::*;
 use self::gateway_update::*;
@@ -53,12 +59,14 @@ pub mod desktop {
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
+use std::future::Future;
 use std::io::Write;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::{Path, PathBuf};
+use std::pin::Pin;
 use std::process::Command;
 use std::sync::Arc;
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Path as AxumPath, State};
@@ -81,10 +89,12 @@ use crawclaw_runtime::{
         SpecialAgentRunRequest, SpecialAgentToolGuard,
     },
     AgentModelSelection, AgentRunEvent, AgentRunProfileKind, AgentRunProfileRequest,
-    AgentRunRequest, AgentRunResult, AgentRuntime, ChannelCapabilityDescriptor, ChannelChatType,
-    ChannelDirectoryLookupRequest, ChannelInboundEnvelope, ChannelOutboundAction,
-    ChannelOutboundRequest, DesktopSessionStore, NativeChannelDispatchContext,
-    NativeChannelLifecycleInput,
+    AgentRunRequest, AgentRunResult, AgentRuntime, AgentRuntimePostToolUseDecision,
+    AgentRuntimePostToolUseHook, AgentRuntimePostToolUseRequest, AgentRuntimePreToolUseDecision,
+    AgentRuntimePreToolUseHook, AgentRuntimePreToolUseRequest, AgentRuntimeToolHookPolicy,
+    ChannelCapabilityDescriptor, ChannelChatType, ChannelDirectoryLookupRequest,
+    ChannelInboundEnvelope, ChannelOutboundAction, ChannelOutboundRequest, DesktopSessionStore,
+    NativeChannelDispatchContext, NativeChannelLifecycleInput,
 };
 use futures_util::{Sink, SinkExt, StreamExt};
 use ring::signature::KeyPair;
@@ -92,7 +102,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 use tokio::net::TcpListener;
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, mpsc, oneshot, Notify};
 
 use self::gateway_summary_routes::{events, gateway_bootstrap, gateway_state, runtime_status};
 
@@ -159,6 +169,21 @@ struct GatewayState {
     approvals: Arc<std::sync::Mutex<BTreeMap<String, ApprovalRecord>>>,
     last_main_session_wake: Arc<std::sync::Mutex<Option<Value>>>,
     agent_run_events: Arc<std::sync::Mutex<BTreeMap<String, Vec<Value>>>>,
+    agent_task_abort_handles: Arc<std::sync::Mutex<BTreeMap<String, tokio::task::AbortHandle>>>,
+    sdk_agent_definitions: Arc<std::sync::Mutex<BTreeMap<String, Value>>>,
+    sdk_hook_matchers: Arc<std::sync::Mutex<BTreeMap<String, Vec<SdkHookCallbackMatcher>>>>,
+    sdk_mcp_servers: Arc<std::sync::Mutex<BTreeMap<String, Value>>>,
+    sdk_mcp_transports: Arc<std::sync::Mutex<BTreeMap<String, SdkMcpTransport>>>,
+    sdk_control_transport: Arc<std::sync::Mutex<Option<SdkControlTransport>>>,
+    sdk_json_schema: Arc<std::sync::Mutex<Option<Value>>>,
+    sdk_read_state_seeds: Arc<std::sync::Mutex<BTreeMap<String, Value>>>,
+    sdk_elicitations: Arc<std::sync::Mutex<BTreeMap<String, SdkElicitationRecord>>>,
+    sdk_elicitation_notify: Arc<Notify>,
+    sdk_hook_callbacks: Arc<std::sync::Mutex<BTreeMap<String, SdkHookCallbackRecord>>>,
+    sdk_hook_callback_notify: Arc<Notify>,
+    sdk_rewind_checkpoints: Arc<std::sync::Mutex<BTreeMap<String, SdkRewindCheckpoint>>>,
+    sdk_system_prompt: Arc<std::sync::Mutex<Option<String>>>,
+    sdk_append_system_prompt: Arc<std::sync::Mutex<Option<String>>>,
 }
 
 #[derive(Clone, Debug)]
@@ -171,6 +196,76 @@ struct ApprovalRecord {
     decision: Option<String>,
     resolved_by: Option<String>,
     resolved_at_ms: Option<u64>,
+}
+
+#[derive(Clone, Debug)]
+struct SdkElicitationRecord {
+    id: String,
+    request: Value,
+    created_at_ms: u64,
+    expires_at_ms: u64,
+    response: Option<Value>,
+    resolved_by: Option<String>,
+    resolved_at_ms: Option<u64>,
+}
+
+#[derive(Clone, Debug)]
+struct SdkHookCallbackRecord {
+    id: String,
+    callback_id: String,
+    request: Value,
+    created_at_ms: u64,
+    expires_at_ms: u64,
+    response: Option<Value>,
+    resolved_by: Option<String>,
+    resolved_at_ms: Option<u64>,
+}
+
+#[derive(Clone, Debug)]
+struct SdkHookCallbackMatcher {
+    matcher: Option<String>,
+    callback_ids: Vec<String>,
+    timeout_ms: Option<u64>,
+}
+
+#[derive(Clone)]
+struct SdkMcpTransport {
+    connection_id: String,
+    sender: mpsc::UnboundedSender<SdkMcpOutboundRequest>,
+}
+
+#[derive(Clone)]
+struct SdkControlTransport {
+    connection_id: String,
+    sender: mpsc::UnboundedSender<SdkControlOutboundRequest>,
+}
+
+struct SdkMcpOutboundRequest {
+    request_id: String,
+    server_name: String,
+    message: Value,
+    response: oneshot::Sender<Result<Value, String>>,
+}
+
+struct SdkControlOutboundRequest {
+    request_id: String,
+    request: Value,
+    response: oneshot::Sender<Result<Value, String>>,
+}
+
+#[derive(Clone, Debug)]
+struct SdkRewindCheckpoint {
+    id: String,
+    root: PathBuf,
+    created_at_ms: u64,
+    files: BTreeMap<String, SdkRewindFileSnapshot>,
+}
+
+#[derive(Clone, Debug)]
+enum SdkRewindFileSnapshot {
+    Regular(Vec<u8>),
+    Missing,
+    Unsupported,
 }
 
 #[derive(Deserialize)]
@@ -311,6 +406,21 @@ impl GatewayState {
             approvals: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
             last_main_session_wake: Arc::new(std::sync::Mutex::new(None)),
             agent_run_events: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
+            agent_task_abort_handles: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
+            sdk_agent_definitions: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
+            sdk_hook_matchers: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
+            sdk_mcp_servers: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
+            sdk_mcp_transports: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
+            sdk_control_transport: Arc::new(std::sync::Mutex::new(None)),
+            sdk_json_schema: Arc::new(std::sync::Mutex::new(None)),
+            sdk_read_state_seeds: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
+            sdk_elicitations: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
+            sdk_elicitation_notify: Arc::new(Notify::new()),
+            sdk_hook_callbacks: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
+            sdk_hook_callback_notify: Arc::new(Notify::new()),
+            sdk_rewind_checkpoints: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
+            sdk_system_prompt: Arc::new(std::sync::Mutex::new(None)),
+            sdk_append_system_prompt: Arc::new(std::sync::Mutex::new(None)),
         }
     }
 }

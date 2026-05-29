@@ -1027,6 +1027,12 @@ async fn finish_desktop_message_generation(
             let mut active_abort_handle = None;
             {
                 let mut desktop_state = state.desktop_state.write().await;
+                let loop_messages = conversation_messages_for_loop_events(&send_result.loop_events);
+                insert_conversation_messages_before(
+                    &mut desktop_state.conversation.messages,
+                    &assistant_message_id,
+                    loop_messages,
+                );
                 update_assistant_generation_message(
                     &mut desktop_state,
                     &assistant_message_id,
@@ -1042,6 +1048,7 @@ async fn finish_desktop_message_generation(
                     send_result.context_summary.clone(),
                 ));
             }
+            emit_desktop_loop_events(&state, &send_result.thread_id, &send_result.loop_events);
             {
                 let mut active_generation = state.active_generation.lock().await;
                 if matches!(
@@ -1189,6 +1196,13 @@ async fn run_queued_follow_up_generations(
                 let mut newly_queued = Vec::new();
                 {
                     let mut desktop_state = state.desktop_state.write().await;
+                    let loop_messages =
+                        conversation_messages_for_loop_events(&send_result.loop_events);
+                    insert_conversation_messages_before(
+                        &mut desktop_state.conversation.messages,
+                        &assistant_message_id,
+                        loop_messages,
+                    );
                     update_assistant_generation_message(
                         &mut desktop_state,
                         &assistant_message_id,
@@ -1204,6 +1218,7 @@ async fn run_queued_follow_up_generations(
                         conversation_context_summary(send_result.context_summary.clone()),
                     );
                 }
+                emit_desktop_loop_events(&state, &send_result.thread_id, &send_result.loop_events);
                 {
                     let mut active_generation = state.active_generation.lock().await;
                     if matches!(
@@ -1398,6 +1413,111 @@ fn update_assistant_generation_message(
         *text = next_text;
         *status = Some(next_status.to_string());
         *error_code = next_error_code;
+    }
+}
+
+fn conversation_messages_for_loop_events(
+    loop_events: &[AgentLoopEvent],
+) -> Vec<ConversationMessage> {
+    let mut messages = Vec::new();
+    let mut progress_by_call_id = HashMap::new();
+
+    for loop_event in loop_events {
+        let AgentLoopEvent::ToolExecution { event } = loop_event else {
+            continue;
+        };
+        match event {
+            ToolExecutionEvent::Started {
+                call_id,
+                tool_name,
+                arguments,
+            } => {
+                let detail = serde_json::to_string(arguments).ok();
+                messages.push(conversation_tool_call_message(
+                    call_id.clone(),
+                    tool_name.clone(),
+                    detail,
+                ));
+            }
+            ToolExecutionEvent::Progress {
+                call_id, message, ..
+            } => {
+                if let Some(message) = message.as_ref().filter(|value| !value.trim().is_empty()) {
+                    progress_by_call_id.insert(call_id.clone(), message.clone());
+                }
+            }
+            ToolExecutionEvent::Completed {
+                call_id,
+                tool_name,
+                output,
+                is_error,
+            } => {
+                let text = output
+                    .clone()
+                    .or_else(|| progress_by_call_id.get(call_id).cloned())
+                    .filter(|value| !value.trim().is_empty())
+                    .unwrap_or_else(|| {
+                        if *is_error {
+                            "Tool failed without output.".to_string()
+                        } else {
+                            "Tool completed without output.".to_string()
+                        }
+                    });
+                messages.push(conversation_tool_result_message(
+                    call_id.clone(),
+                    tool_name.clone(),
+                    !*is_error,
+                    text,
+                ));
+            }
+            ToolExecutionEvent::PermissionRequested { .. } => {}
+        }
+    }
+
+    messages
+}
+
+fn insert_conversation_messages_before(
+    messages: &mut Vec<ConversationMessage>,
+    before_assistant_message_id: &str,
+    new_messages: Vec<ConversationMessage>,
+) {
+    if new_messages.is_empty() {
+        return;
+    }
+    let insertion_index = messages
+        .iter()
+        .position(|message| {
+            matches!(message, ConversationMessage::Assistant { id, .. } if id == before_assistant_message_id)
+        })
+        .unwrap_or(messages.len());
+    messages.splice(insertion_index..insertion_index, new_messages);
+}
+
+fn emit_desktop_loop_events(state: &GatewayState, thread_id: &str, loop_events: &[AgentLoopEvent]) {
+    for loop_event in loop_events {
+        let AgentLoopEvent::ToolExecution { event } = loop_event else {
+            continue;
+        };
+        match event {
+            ToolExecutionEvent::Started { call_id, .. } => {
+                let _ = state.events.send(DesktopEvent::ToolCall {
+                    thread_id: thread_id.to_string(),
+                    tool_id: call_id.clone(),
+                });
+            }
+            ToolExecutionEvent::Completed {
+                call_id, is_error, ..
+            } => {
+                let _ = state.events.send(DesktopEvent::ToolResult {
+                    thread_id: thread_id.to_string(),
+                    tool_id: call_id.clone(),
+                    ok: !*is_error,
+                });
+            }
+            ToolExecutionEvent::Progress { .. }
+            | ToolExecutionEvent::PermissionRequested { .. } => {}
+        }
     }
 }
 
@@ -2201,6 +2321,7 @@ async fn desktop_send_context(
                     &desktop_state.preferences.task_defaults.permission_mode,
                     &desktop_state.preferences.confirmation_defaults,
                 )),
+                tool_hook_policy: None,
                 system_prompt: None,
             },
         });
@@ -2222,6 +2343,7 @@ async fn desktop_send_context(
                 &agent.permission_mode,
                 &desktop_state.preferences.confirmation_defaults,
             )),
+            tool_hook_policy: None,
             system_prompt: Some(system_prompt_from_agent(agent)),
         },
     })

@@ -803,12 +803,12 @@ fn pi_agent_rust_core_tool_registry_uses_crawclaw_tool_names() {
         "workflow",
         "workflowize",
         "review_task",
-        "write_experience_note",
-        "memory_manifest_read",
-        "memory_note_read",
-        "memory_note_write",
-        "memory_note_edit",
-        "memory_note_delete",
+        "knowledge_ingest",
+        "knowledge_model_list",
+        "knowledge_recall",
+        "knowledge_ingest",
+        "knowledge_model_create",
+        "knowledge_model_list",
         "session_summary_file_read",
         "session_summary_file_edit",
     ];
@@ -921,12 +921,12 @@ fn grep_find_ls_are_default_rust_native_discovery_tools() {
             "workflow",
             "workflowize",
             "review_task",
-            "write_experience_note",
-            "memory_manifest_read",
-            "memory_note_read",
-            "memory_note_write",
-            "memory_note_edit",
-            "memory_note_delete",
+            "knowledge_ingest",
+            "knowledge_model_list",
+            "knowledge_recall",
+            "knowledge_ingest",
+            "knowledge_model_create",
+            "knowledge_model_list",
             "session_summary_file_read",
             "session_summary_file_edit",
         ]
@@ -943,7 +943,7 @@ fn pi_agent_rust_tool_registry_honors_runtime_allowlist() {
     let registry = build_filtered_pi_agent_rust_tool_registry(
         &runtime_root,
         &[
-            "memory_note_read".to_string(),
+            "knowledge_recall".to_string(),
             "sessions_history".to_string(),
         ],
     );
@@ -953,8 +953,8 @@ fn pi_agent_rust_tool_registry_honors_runtime_allowlist() {
         .map(|tool| tool.name())
         .collect::<Vec<_>>();
 
-    assert_eq!(tool_names, vec!["sessions_history", "memory_note_read"]);
-    assert!(registry.get("memory_note_write").is_none());
+    assert_eq!(tool_names, vec!["sessions_history", "knowledge_recall"]);
+    assert!(registry.get("knowledge_ingest").is_none());
     assert!(registry.get("bash").is_none());
 }
 
@@ -1230,18 +1230,18 @@ fn rust_core_tool_inventory_tracks_native_tools() {
         "sessions_history",
         "subagents",
         "review_task",
-        "memory_manifest_read",
-        "memory_note_read",
+        "knowledge_model_list",
+        "knowledge_recall",
         "session_summary_file_read",
     ] {
         assert!(definition(tool_name).default_enabled);
         assert!(definition(tool_name).read_only);
     }
     for tool_name in [
-        "memory_note_write",
-        "memory_note_edit",
-        "memory_note_delete",
-        "write_experience_note",
+        "knowledge_ingest",
+        "knowledge_model_create",
+        "knowledge_model_list",
+        "knowledge_ingest",
         "session_summary_file_edit",
     ] {
         assert!(definition(tool_name).default_enabled);
@@ -1262,8 +1262,8 @@ fn rust_core_tool_inventory_tracks_native_tools() {
         "workflow",
         "workflowize",
         "review_task",
-        "memory_note_write",
-        "write_experience_note",
+        "knowledge_ingest",
+        "knowledge_ingest",
         "web_search",
         "web_fetch",
         "browser",
@@ -1569,38 +1569,6 @@ fn special_agent_registry_tracks_all_native_agents() {
     assert!(definitions
         .iter()
         .all(|definition| !definition.tool_allowlist.is_empty()));
-}
-
-#[test]
-fn special_agent_memory_tools_manage_scoped_notes() {
-    let runtime_root = unique_test_runtime_root("special-memory-tools");
-    let tools = crate::special_agents::SpecialAgentMemoryTools::new(runtime_root.clone());
-
-    let write = tools
-        .write_note("main", "reference/test.md", "# Test\nold text")
-        .expect("write note");
-    assert_eq!(write.status, "ok");
-
-    let read = tools
-        .read_note("main", "reference/test.md")
-        .expect("read note");
-    assert_eq!(read.content, "# Test\nold text");
-
-    let edit = tools
-        .edit_note("main", "reference/test.md", "old text", "new text")
-        .expect("edit note");
-    assert_eq!(edit.replacements, 1);
-
-    let manifest = tools.read_manifest("main").expect("manifest");
-    assert_eq!(manifest.entries.len(), 1);
-    assert_eq!(manifest.entries[0].note_path, "reference/test.md");
-
-    let deleted = tools
-        .delete_note("main", "reference/test.md")
-        .expect("delete note");
-    assert_eq!(deleted.status, "deleted");
-
-    let _ = fs::remove_dir_all(runtime_root);
 }
 
 #[tokio::test]
@@ -2095,7 +2063,7 @@ async fn memory_runtime_loads_desktop_policy_overlay() {
     )
     .expect("write policy");
 
-    let status = crate::memory::RustMemoryRuntime::new(runtime_root)
+    let status = crate::memory::MemoryRuntime::new(runtime_root)
         .status()
         .expect("memory status");
 
@@ -3236,6 +3204,7 @@ async fn agent_runtime_run_turn_surfaces_backend_tool_loop_events() {
                     event: ToolExecutionEvent::Completed {
                         call_id: "tool-call-1".to_string(),
                         tool_name: "read".to_string(),
+                        output: Some("read complete".to_string()),
                         is_error: false,
                     },
                 },

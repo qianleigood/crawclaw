@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Component, Path, PathBuf};
@@ -18,44 +18,118 @@ use crawclaw_providers::{
     send_native_provider_conversation, NativeProviderConfig, NativeProviderMessage,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 
-use crate::cron::CronTool;
+use crate::cron::{ClaudeCronTool, ClaudeCronToolKind, CronTool, RemoteTriggerTool};
 use crate::special_agents::{
-    find_special_agent, ExperienceStore, SessionSummaryStore, SpecialAgentMemoryTools,
-    SpecialAgentToolGuard,
+    find_special_agent, SpecialAgentToolGuard,
 };
 use crate::DesktopSessionStore;
 use crate::{
     dispatch_native_channel_outbound, invoke_native_plugin_operation, is_special_agent_only_tool,
     load_skill_candidates, pi_agent_rust_tool_descriptors_for_runtime_root,
     record_loaded_skill_state, record_tool_activation_state, with_native_runtime_context,
-    AgentModelSelection, AgentRunProfileKind, AgentRunProfileRequest, AgentRunRequest,
+    AgentModelSelection, AgentRunEvent, AgentRunProfileKind, AgentRunProfileRequest, AgentRunRequest, AgentRunResult,
     AgentRuntime, ChannelChatType, ChannelInboundEnvelope, ChannelOutboundAction,
     ChannelOutboundRequest, NativeChannelDispatchContext, NativePluginRuntime,
-    NativeToolRegistration,
+    NativeToolRegistration, DesktopSessionStatus,
 };
 
+mod core_tools_lsp;
+mod core_tools_mcp;
 mod core_tools_media;
 mod core_tools_native_plugins;
 mod core_tools_patch;
+mod core_tools_plan;
 mod core_tools_process;
 mod core_tools_process_control;
 mod core_tools_runtime_dispatch;
 mod core_tools_sessions;
 mod core_tools_special_agents;
+mod core_tools_todo;
 mod core_tools_web;
+mod core_tools_worktree;
 mod core_tools_workflow;
+use self::core_tools_lsp::*;
+use self::core_tools_mcp::*;
 use self::core_tools_media::*;
 use self::core_tools_native_plugins::*;
 use self::core_tools_patch::*;
+use self::core_tools_plan::*;
 use self::core_tools_process::*;
 use self::core_tools_process_control::*;
 use self::core_tools_runtime_dispatch::*;
 use self::core_tools_sessions::*;
 use self::core_tools_special_agents::*;
+use self::core_tools_todo::*;
 use self::core_tools_web::*;
+use self::core_tools_worktree::*;
 use self::core_tools_workflow::*;
+
+
+/// Check if a tool name matches a rule (supports wildcard suffix like "plugin:*")
+pub(crate) fn tool_name_matches_rule(tool_name: &str, rule: &str) -> bool {
+    if rule == "*" {
+        return true;
+    }
+    if let Some(prefix) = rule.strip_suffix('*') {
+        return tool_name.starts_with(prefix);
+    }
+    if let Some(suffix) = rule.strip_prefix('*') {
+        return tool_name.ends_with(suffix);
+    }
+    tool_name == rule
+}
+
+/// StructuredOutputTool - accepts any JSON object and returns it as structured output.
+/// In Claude Code this is dynamically created per-session with a JSON schema.
+/// Here we provide a basic passthrough implementation.
+struct StructuredOutputTool;
+
+#[async_trait]
+impl pi::sdk::Tool for StructuredOutputTool {
+    fn name(&self) -> &str {
+        "StructuredOutput"
+    }
+
+    fn label(&self) -> &str {
+        "StructuredOutput"
+    }
+
+    fn description(&self) -> &str {
+        "Return structured output in the requested format"
+    }
+
+    fn parameters(&self) -> Value {
+        json!({
+            "type": "object",
+            "description": "Structured output data matching the requested schema."
+        })
+    }
+
+    async fn execute(
+        &self,
+        _tool_call_id: &str,
+        input: Value,
+        _on_update: Option<Box<dyn Fn(pi::sdk::ToolUpdate) + Send + Sync>>,
+    ) -> pi::sdk::Result<pi::sdk::ToolOutput> {
+        Ok(pi::sdk::ToolOutput {
+            content: vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
+                "Structured output provided successfully",
+            ))],
+            details: Some(json!({
+                "structuredOutput": input,
+                "structured_output": input,
+                "source": "rust-native"
+            })),
+            is_error: false,
+        })
+    }
+
+    fn is_read_only(&self) -> bool {
+        true
+    }
+}
 
 pub(crate) fn build_pi_agent_rust_tool_registry(runtime_root: &Path) -> pi::sdk::ToolRegistry {
     let process_registry = process_registry_for_root(runtime_root);
@@ -65,7 +139,8 @@ pub(crate) fn build_pi_agent_rust_tool_registry(runtime_root: &Path) -> pi::sdk:
         pi::sdk::create_edit_tool(runtime_root),
         Box::new(ApplyPatchTool::new(runtime_root)),
         Box::new(BashTool::new(runtime_root, Arc::clone(&process_registry))),
-        Box::new(ProcessTool::new(process_registry)),
+        Box::new(ProcessTool::new(process_registry.clone())),
+        Box::new(PowerShellTool::new(runtime_root, Arc::clone(&process_registry))),
     ];
     tools.extend(
         crate::native_plugin_registry(runtime_root)
@@ -89,6 +164,46 @@ pub(crate) fn build_pi_agent_rust_tool_registry(runtime_root: &Path) -> pi::sdk:
         Box::new(SessionTool::new(runtime_root, SessionToolKind::Spawn)),
         Box::new(SessionTool::new(runtime_root, SessionToolKind::Yield)),
         Box::new(SessionTool::new(runtime_root, SessionToolKind::Subagents)),
+        // --- Plan tools (AskUserQuestion, EnterPlanMode, ExitPlanMode) ---
+        Box::new(PlanTool::new(runtime_root, PlanToolKind::AskUserQuestion)),
+        Box::new(PlanTool::new(runtime_root, PlanToolKind::EnterPlanMode)),
+        Box::new(PlanTool::new(runtime_root, PlanToolKind::ExitPlanMode)),
+        // --- Worktree tools ---
+        Box::new(WorktreeTool::new(runtime_root, WorktreeToolKind::Enter)),
+        Box::new(WorktreeTool::new(runtime_root, WorktreeToolKind::Exit)),
+        // --- Session tools: SendMessage, Agent, Task, TeamCreate, TeamDelete ---
+        Box::new(SessionTool::new(runtime_root, SessionToolKind::SendMessage)),
+        Box::new(SessionTool::new(runtime_root, SessionToolKind::Agent)),
+        Box::new(SessionTool::new(runtime_root, SessionToolKind::Task)),
+        Box::new(SessionTool::new(runtime_root, SessionToolKind::TeamCreate)),
+        Box::new(SessionTool::new(runtime_root, SessionToolKind::TeamDelete)),
+        // --- Task tools (TodoWrite, TaskCreate, TaskGet, TaskUpdate, TaskList) ---
+        Box::new(TodoWriteTool::new(runtime_root)),
+        Box::new(RuntimeTaskTool::new(runtime_root, RuntimeTaskToolKind::Create)),
+        Box::new(RuntimeTaskTool::new(runtime_root, RuntimeTaskToolKind::Get)),
+        Box::new(RuntimeTaskTool::new(runtime_root, RuntimeTaskToolKind::Update)),
+        Box::new(RuntimeTaskTool::new(runtime_root, RuntimeTaskToolKind::List)),
+        // --- Process control tools ---
+        Box::new(TaskOutputTool::new(runtime_root, Arc::clone(&process_registry))),
+        Box::new(TaskStopTool::new(runtime_root, Arc::clone(&process_registry))),
+        // --- LSP tool ---
+        Box::new(LspTool::new(runtime_root)),
+        // --- MCP resource tools ---
+        Box::new(McpResourceTool::new(runtime_root, McpResourceToolKind::List)),
+        Box::new(McpResourceTool::new(runtime_root, McpResourceToolKind::Read)),
+        // --- Sleep tool ---
+        Box::new(CoreRuntimeTool::new(
+            runtime_root,
+            CoreRuntimeToolKind::Sleep,
+        )),
+        // --- Cron tools (ClaudeCronTool: Create/Delete/List) ---
+        Box::new(ClaudeCronTool::new(runtime_root, ClaudeCronToolKind::Create)),
+        Box::new(ClaudeCronTool::new(runtime_root, ClaudeCronToolKind::Delete)),
+        Box::new(ClaudeCronTool::new(runtime_root, ClaudeCronToolKind::List)),
+        // --- RemoteTrigger tool ---
+        Box::new(RemoteTriggerTool::new(runtime_root)),
+        // --- StructuredOutput tool ---
+        Box::new(StructuredOutputTool),
         Box::new(CoreRuntimeTool::new(
             runtime_root,
             CoreRuntimeToolKind::Canvas,
@@ -124,40 +239,28 @@ pub(crate) fn build_pi_agent_rust_tool_registry(runtime_root: &Path) -> pi::sdk:
             runtime_root,
             CoreRuntimeToolKind::Workflowize,
         )),
-        Box::new(SpecialAgentTool::new(
-            runtime_root,
+        Box::new(SpecialAgentTool::new(runtime_root.to_path_buf(),
             SpecialAgentToolKind::ReviewTask,
         )),
-        Box::new(SpecialAgentTool::new(
-            runtime_root,
-            SpecialAgentToolKind::WriteExperienceNote,
+        Box::new(SpecialAgentTool::new(runtime_root.to_path_buf(),
+            SpecialAgentToolKind::KnowledgeRecall,
         )),
-        Box::new(SpecialAgentTool::new(
-            runtime_root,
-            SpecialAgentToolKind::MemoryManifestRead,
+        Box::new(SpecialAgentTool::new(runtime_root.to_path_buf(),
+            SpecialAgentToolKind::KnowledgeReflect,
         )),
-        Box::new(SpecialAgentTool::new(
-            runtime_root,
-            SpecialAgentToolKind::MemoryNoteRead,
+        Box::new(SpecialAgentTool::new(runtime_root.to_path_buf(),
+            SpecialAgentToolKind::KnowledgeIngest,
         )),
-        Box::new(SpecialAgentTool::new(
-            runtime_root,
-            SpecialAgentToolKind::MemoryNoteWrite,
+        Box::new(SpecialAgentTool::new(runtime_root.to_path_buf(),
+            SpecialAgentToolKind::KnowledgeModelList,
         )),
-        Box::new(SpecialAgentTool::new(
-            runtime_root,
-            SpecialAgentToolKind::MemoryNoteEdit,
+        Box::new(SpecialAgentTool::new(runtime_root.to_path_buf(),
+            SpecialAgentToolKind::KnowledgeModelCreate,
         )),
-        Box::new(SpecialAgentTool::new(
-            runtime_root,
-            SpecialAgentToolKind::MemoryNoteDelete,
-        )),
-        Box::new(SpecialAgentTool::new(
-            runtime_root,
+        Box::new(SpecialAgentTool::new(runtime_root.to_path_buf(),
             SpecialAgentToolKind::SessionSummaryFileRead,
         )),
-        Box::new(SpecialAgentTool::new(
-            runtime_root,
+        Box::new(SpecialAgentTool::new(runtime_root.to_path_buf(),
             SpecialAgentToolKind::SessionSummaryFileEdit,
         )),
     ]);

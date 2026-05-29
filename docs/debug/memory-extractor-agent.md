@@ -282,7 +282,7 @@ then the durable_memory skips that turn and still advances the cursor.
 
 Reason:
 
-- NotebookLM experience and durable collaboration memory are different layers
+- Hindsight experience and durable collaboration memory are different layers
 - a turn can validly write experience and still deserve durable feedback/project extraction
 
 ### `feedback` stays durable-only

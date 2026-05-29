@@ -323,6 +323,11 @@ fn resolve_agent_run_profile(
                 .then_some(inbound_parent)
         });
     }
+    if let Some(system_prompt) =
+        agent_run_option_string(&request.options, &["systemPrompt", "system_prompt"])
+    {
+        resolved.system_prompt = Some(system_prompt);
+    }
     Ok(resolved)
 }
 
@@ -370,6 +375,14 @@ impl AgentRuntime {
         &self,
         request: AgentRunRequest,
     ) -> Result<AgentRunResult, AgentRuntimeError> {
+        self.run_turn_with_tool_hook_policy(request, None).await
+    }
+
+    pub async fn run_turn_with_tool_hook_policy(
+        &self,
+        request: AgentRunRequest,
+        tool_hook_policy: Option<AgentRuntimeToolHookPolicy>,
+    ) -> Result<AgentRunResult, AgentRuntimeError> {
         let profile = resolve_agent_run_profile(&request)?;
         let run_id = request.run_id;
         let agent_id = request.agent_id;
@@ -405,6 +418,7 @@ impl AgentRuntime {
                     model_selection: Some(model.clone()),
                     tool_selection: tool_selection_from_profile(&profile, request.enabled_tools),
                     permission_policy: None,
+                    tool_hook_policy,
                     system_prompt: None,
                 },
                 memory_after_turn,
@@ -495,6 +509,7 @@ impl AgentRuntime {
                     model_selection: Some(model),
                     tool_selection: AgentRuntimeToolSelection::Disabled,
                     permission_policy: None,
+                    tool_hook_policy: None,
                     system_prompt: None,
                 },
             )
@@ -558,6 +573,7 @@ impl AgentRuntime {
                 model_selection: None,
                 tool_selection: AgentRuntimeToolSelection::Default,
                 permission_policy: None,
+                tool_hook_policy: None,
                 system_prompt: None,
             },
         )
@@ -577,6 +593,7 @@ impl AgentRuntime {
                 model_selection: Some(model_selection),
                 tool_selection: AgentRuntimeToolSelection::Default,
                 permission_policy: None,
+                tool_hook_policy: None,
                 system_prompt: None,
             },
         )
@@ -650,7 +667,14 @@ impl AgentRuntime {
         );
         let model_selection = options.model_selection.as_ref();
         let provider_send = async {
-            let backend_result = match config.runtime_mode() {
+            let runtime_mode = if config.runtime_mode() == DesktopAgentRuntimeMode::NativeProvider
+                && !runtime_context.included_tool_schemas.is_empty()
+            {
+                DesktopAgentRuntimeMode::PiAgentRust
+            } else {
+                config.runtime_mode()
+            };
+            let backend_result = match runtime_mode {
                 DesktopAgentRuntimeMode::PiAgentRust => {
                     let mut provider_config =
                         ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
@@ -669,6 +693,7 @@ impl AgentRuntime {
                             max_tool_iterations,
                             tool_selection: options.tool_selection.clone(),
                             permission_policy: options.permission_policy.clone(),
+                            tool_hook_policy: options.tool_hook_policy.clone(),
                             system_prompt: options.system_prompt.clone(),
                         })
                         .await?
@@ -691,6 +716,7 @@ impl AgentRuntime {
                             max_tool_iterations,
                             tool_selection: options.tool_selection.clone(),
                             permission_policy: options.permission_policy.clone(),
+                            tool_hook_policy: options.tool_hook_policy.clone(),
                             system_prompt: options.system_prompt.clone(),
                         })
                         .await?
@@ -714,10 +740,11 @@ impl AgentRuntime {
             }
         }?;
         let assistant_text = backend_result.assistant_text;
+        let loop_events = backend_result.loop_events;
         clear_tool_activation_state(&self.runtime_root);
 
         if profile.transcript_policy != TranscriptPolicy::None {
-            self.append_transcript(&thread_id, &user_text, &assistant_text)?;
+            self.append_transcript(&thread_id, &user_text, &assistant_text, &loop_events)?;
         }
         let memory_result = memory_after_turn.then(|| {
             tracing::debug!(
@@ -743,7 +770,7 @@ impl AgentRuntime {
             thread_id,
             user_text,
             assistant_text,
-            loop_events: backend_result.loop_events,
+            loop_events,
             context_summary: runtime_context.context_summary,
             memory_result,
         })
@@ -810,6 +837,7 @@ impl AgentRuntime {
                         max_tool_iterations,
                         tool_selection: options.tool_selection.clone(),
                         permission_policy: options.permission_policy.clone(),
+                        tool_hook_policy: options.tool_hook_policy.clone(),
                         system_prompt: options.system_prompt.clone(),
                     })
                     .await?
@@ -832,6 +860,7 @@ impl AgentRuntime {
                         max_tool_iterations,
                         tool_selection: options.tool_selection.clone(),
                         permission_policy: options.permission_policy.clone(),
+                        tool_hook_policy: options.tool_hook_policy.clone(),
                         system_prompt: options.system_prompt.clone(),
                     })
                     .await?
@@ -896,26 +925,19 @@ impl AgentRuntime {
         thread_id: &str,
         user_text: &str,
         assistant_text: &str,
+        loop_events: &[AgentLoopEvent],
     ) -> Result<(), AgentRuntimeError> {
         let store = DesktopSessionStore::new(self.runtime_root.clone());
-        store
-            .append_model_message(
-                thread_id,
-                "user",
-                user_text,
-                Some("agent"),
-                AgentRuntimeMessage::text(AgentRuntimeMessageRole::User, user_text),
-            )
-            .map_err(|error| AgentRuntimeError::TranscriptFailed(error.to_string()))?;
-        store
-            .append_model_message(
-                thread_id,
-                "assistant",
-                assistant_text,
-                Some("agent"),
-                AgentRuntimeMessage::text(AgentRuntimeMessageRole::Assistant, assistant_text),
-            )
-            .map_err(|error| AgentRuntimeError::TranscriptFailed(error.to_string()))?;
+        for message in model_visible_turn_messages(user_text, assistant_text, loop_events) {
+            let role = match message.role {
+                AgentRuntimeMessageRole::User => "user",
+                AgentRuntimeMessageRole::Assistant => "assistant",
+            };
+            let content = message.content.clone();
+            store
+                .append_model_message(thread_id, role, &content, Some("agent"), message)
+                .map_err(|error| AgentRuntimeError::TranscriptFailed(error.to_string()))?;
+        }
         Ok(())
     }
 
@@ -927,22 +949,15 @@ impl AgentRuntime {
         user_text: &str,
         assistant_text: &str,
     ) -> Result<Value, String> {
-        let db_path = self
+        let mut memory_config = crate::memory::MemoryRuntimeConfig::load(&self.runtime_root);
+        memory_config.runtime_store.db_path = self
             .runtime_root
             .join("memory")
             .join("runtime.db")
             .to_string_lossy()
             .to_string();
-        let memory_config = crate::memory::MemoryRuntimeConfig::from_value_with_desktop_policy(
-            &json!({
-                "runtimeStore": {
-                    "dbPath": db_path
-                }
-            }),
-            &self.runtime_root,
-        );
         let runtime =
-            crate::memory::RustMemoryRuntime::with_config(self.runtime_root.clone(), memory_config);
+            crate::memory::MemoryRuntime::with_config(self.runtime_root.clone(), memory_config);
         let messages = vec![
             json!({
                 "id": format!("{run_id}:user"),
@@ -967,6 +982,114 @@ impl AgentRuntime {
         );
         result
     }
+}
+
+fn model_visible_turn_messages(
+    user_text: &str,
+    assistant_text: &str,
+    loop_events: &[AgentLoopEvent],
+) -> Vec<AgentRuntimeMessage> {
+    let mut messages = vec![AgentRuntimeMessage::text(
+        AgentRuntimeMessageRole::User,
+        user_text,
+    )];
+    let mut tool_use_blocks = Vec::new();
+    let mut tool_names_by_call_id = BTreeMap::new();
+    let mut last_progress_by_call_id = BTreeMap::new();
+    let mut completed_tools = Vec::new();
+
+    for loop_event in loop_events {
+        let AgentLoopEvent::ToolExecution { event } = loop_event else {
+            continue;
+        };
+        match event {
+            ToolExecutionEvent::Started {
+                call_id,
+                tool_name,
+                arguments,
+            } => {
+                tool_names_by_call_id.insert(call_id.clone(), tool_name.clone());
+                tool_use_blocks.push(AgentRuntimeMessageBlock::ToolUse {
+                    id: call_id.clone(),
+                    name: tool_name.clone(),
+                    input: arguments.clone(),
+                });
+            }
+            ToolExecutionEvent::Progress {
+                call_id, message, ..
+            } => {
+                if let Some(message) = message.as_ref().filter(|value| !value.trim().is_empty()) {
+                    last_progress_by_call_id.insert(call_id.clone(), message.clone());
+                }
+            }
+            ToolExecutionEvent::Completed {
+                call_id,
+                tool_name,
+                output,
+                is_error,
+            } => {
+                let output = output
+                    .clone()
+                    .or_else(|| last_progress_by_call_id.get(call_id).cloned())
+                    .filter(|value| !value.trim().is_empty())
+                    .unwrap_or_else(|| {
+                        if *is_error {
+                            "Tool failed without output.".to_string()
+                        } else {
+                            "Tool completed without output.".to_string()
+                        }
+                    });
+                completed_tools.push((call_id.clone(), tool_name.clone(), output, *is_error));
+            }
+            ToolExecutionEvent::PermissionRequested { .. } => {}
+        }
+    }
+
+    if !tool_use_blocks.is_empty() {
+        let names = tool_use_blocks
+            .iter()
+            .filter_map(|block| match block {
+                AgentRuntimeMessageBlock::ToolUse { name, .. } => Some(name.as_str()),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        messages.push(AgentRuntimeMessage {
+            role: AgentRuntimeMessageRole::Assistant,
+            content: format!("Tool calls: {names}"),
+            blocks: tool_use_blocks,
+        });
+    }
+
+    if !completed_tools.is_empty() {
+        let mut content = Vec::new();
+        let blocks = completed_tools
+            .into_iter()
+            .map(|(tool_use_id, tool_name, output, is_error)| {
+                let display_name = tool_names_by_call_id
+                    .get(&tool_use_id)
+                    .map(String::as_str)
+                    .unwrap_or(tool_name.as_str());
+                content.push(format!("{display_name}: {output}"));
+                AgentRuntimeMessageBlock::ToolResult {
+                    tool_use_id,
+                    content: output,
+                    is_error,
+                }
+            })
+            .collect();
+        messages.push(AgentRuntimeMessage {
+            role: AgentRuntimeMessageRole::User,
+            content: content.join("\n\n"),
+            blocks,
+        });
+    }
+
+    messages.push(AgentRuntimeMessage::text(
+        AgentRuntimeMessageRole::Assistant,
+        assistant_text,
+    ));
+    messages
 }
 
 pub(super) fn is_configured_model_marker(value: &str) -> bool {
@@ -1029,9 +1152,15 @@ impl AgentRuntimeBackend for NativeProviderRuntimeBackend {
     ) -> Pin<Box<dyn Future<Output = Result<AgentBackendResult, AgentRuntimeError>> + Send + 'a>>
     {
         Box::pin(async move {
+            if !request.runtime_context.included_tool_schemas.is_empty() {
+                return Err(AgentRuntimeError::UnsupportedProvider(
+                    "NativeProvider runtime cannot execute tool calls; use PiAgentRust for tool-capable turns."
+                        .to_string(),
+                ));
+            }
             let messages =
                 agent_messages_to_native_provider_messages(&request.runtime_context.messages);
-            let assistant_text = send_native_provider_conversation_with_options(
+            let assistant_text = send_native_provider_conversation_with_retry(
                 &request.provider_config,
                 &messages,
                 &NativeProviderRequestOptions {
@@ -1080,6 +1209,7 @@ impl AgentRuntimeBackend for PiAgentRuntimeBackend {
                 request.runtime_root,
                 &request.tool_selection,
                 request.permission_policy.clone(),
+                request.tool_hook_policy.clone(),
             );
             tracing::debug!(
                 runtime_root = %request.runtime_root.display(),

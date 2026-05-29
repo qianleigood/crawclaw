@@ -56,7 +56,17 @@ impl WebToolKind {
                     "language": { "type": "string" },
                     "safeSearch": { "type": "string", "enum": ["off", "moderate", "strict", "0", "1", "2"] },
                     "timeRange": { "type": "string", "enum": ["day", "month", "year"] },
-                    "timeoutSeconds": { "type": "number" }
+                    "timeoutSeconds": { "type": "number" },
+                    "allowed_domains": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Only include search results from these domains."
+                    },
+                    "blocked_domains": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Never include search results from these domains."
+                    }
                 },
                 "required": ["query"]
             }),

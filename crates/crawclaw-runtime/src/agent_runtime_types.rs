@@ -19,6 +19,7 @@ pub struct AgentRuntimeRequest<'a> {
     pub max_tool_iterations: usize,
     pub tool_selection: AgentRuntimeToolSelection,
     pub permission_policy: Option<AgentRuntimePermissionPolicy>,
+    pub tool_hook_policy: Option<AgentRuntimeToolHookPolicy>,
     pub system_prompt: Option<String>,
 }
 
@@ -84,6 +85,7 @@ pub enum ToolExecutionEvent {
     Completed {
         call_id: String,
         tool_name: String,
+        output: Option<String>,
         is_error: bool,
     },
 }
@@ -411,6 +413,7 @@ pub struct AgentRuntimeSendOptions {
     pub model_selection: Option<AgentModelSelection>,
     pub tool_selection: AgentRuntimeToolSelection,
     pub permission_policy: Option<AgentRuntimePermissionPolicy>,
+    pub tool_hook_policy: Option<AgentRuntimeToolHookPolicy>,
     pub system_prompt: Option<String>,
 }
 

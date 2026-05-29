@@ -1,9 +1,9 @@
 ---
 title: "Memory configuration reference"
-summary: "Configuration keys for the built-in memory runtime, NotebookLM, session summaries, and Context Archive"
+summary: "Configuration keys for the built-in memory runtime, Hindsight, session summaries, and Context Archive"
 read_when:
   - You want to configure CrawClaw memory
-  - You want to enable NotebookLM-backed experience recall
+  - You want to enable Hindsight-backed experience recall
   - You want to tune session summaries, dream, or Context Archive
 ---
 
@@ -35,41 +35,38 @@ For the conceptual model, start with:
 }
 ```
 
-## NotebookLM
+## Hindsight
 
-NotebookLM is the prompt-facing provider for experience recall and
+Hindsight is the prompt-facing provider for experience recall and
 experience-note writeback. CrawClaw keeps a local pending outbox so experience
-writes are not lost while NotebookLM auth is unavailable. Successful writes do
-not keep a duplicate local payload; pending local payloads are removed after
-they sync to NotebookLM.
-NotebookLM/Gemini is responsible for semantic relevance and ordering during
-experience recall; CrawClaw preserves provider order and only applies local
-guardrails such as source filtering, duplicate removal, empty-content checks,
-and prompt-budget limits.
+writes are not lost while Hindsight is unavailable. Successful writes do not
+keep a duplicate local payload; pending local payloads are removed after they
+sync to Hindsight. Hindsight is responsible for semantic relevance and ordering
+during experience recall; CrawClaw preserves provider order and only applies
+local guardrails such as source filtering, duplicate removal, empty-content
+checks, and prompt-budget limits.
 
-The built-in CLI defaults target the unified
-[`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli) package.
-CrawClaw installs it as a managed runtime during postinstall and
-CrawClaw Desktop or the local Gateway API. Leave `memory.notebooklm.cli.command` empty to use
-that managed `nlm` first, then PATH `nlm` as a fallback. Run CrawClaw Desktop or the local Gateway API or `nlm login`, then set a notebook id for the read and write paths you
-want CrawClaw to use.
+Hindsight runs as a sidecar or remote service. CrawClaw only stores the endpoint,
+bank names, timeout, and recall policy; Python, Postgres, embedding models, and
+rerankers belong to the Hindsight deployment. For Chinese-heavy recall, use a
+multilingual Hindsight setup such as `BAAI/bge-m3` embeddings plus
+`BAAI/bge-reranker-v2-m3` reranking, and configure the Hindsight text-search
+extension that best supports Chinese keyword segmentation.
 
-| Key                                           | Type      | Description                     |
-| --------------------------------------------- | --------- | ------------------------------- |
-| `memory.notebooklm.enabled`                   | `boolean` | Enable NotebookLM integration   |
-| `memory.notebooklm.auth.profile`              | `string`  | Local NotebookLM profile name   |
-| `memory.notebooklm.auth.cookieFile`           | `string`  | Optional cookie file path       |
-| `memory.notebooklm.auth.autoLogin.enabled`    | `boolean` | Enable periodic auto login      |
-| `memory.notebooklm.auth.autoLogin.intervalMs` | `number`  | Auto login interval in ms       |
-| `memory.notebooklm.auth.autoLogin.provider`   | `string`  | `nlm_profile` or `openclaw_cdp` |
-| `memory.notebooklm.auth.autoLogin.cdpUrl`     | `string`  | CDP URL for OpenClaw provider   |
-| `memory.notebooklm.cli.enabled`               | `boolean` | Enable CLI-backed read queries  |
-| `memory.notebooklm.cli.command`               | `string`  | Optional read command override  |
-| `memory.notebooklm.cli.args`                  | `array`   | Read command arguments          |
-| `memory.notebooklm.cli.notebookId`            | `string`  | Optional read notebook id       |
-| `memory.notebooklm.write.command`             | `string`  | Optional write command override |
-| `memory.notebooklm.write.args`                | `array`   | Custom write command arguments  |
-| `memory.notebooklm.write.notebookId`          | `string`  | Optional write notebook id      |
+| Key                               | Type      | Default                          | Description                                   |
+| --------------------------------- | --------- | -------------------------------- | --------------------------------------------- |
+| `memory.hindsight.enabled`        | `boolean` | `false`                          | Enable Hindsight recall and writeback         |
+| `memory.hindsight.baseUrl`        | `string`  | `""`                             | Hindsight HTTP API base URL                   |
+| `memory.hindsight.apiKey`         | `string`  | `""`                             | Optional bearer token for the Hindsight API   |
+| `memory.hindsight.apiKeyEnv`      | `string`  | `""`                             | Env var name that contains the bearer token   |
+| `memory.hindsight.experienceBank` | `string`  | `crawclaw:main:experience`       | Bank used for experience recall and writes    |
+| `memory.hindsight.durableBank`    | `string`  | `crawclaw:main:durable`          | Bank used for durable-derived recall          |
+| `memory.hindsight.resourceBank`   | `string`  | `crawclaw:main:resource`         | Bank used for source/resource recall          |
+| `memory.hindsight.defaultBudget`  | `string`  | `mid`                            | Hindsight recall budget: `low`, `mid`, `high` |
+| `memory.hindsight.maxTokens`      | `number`  | `2048`                           | Maximum Hindsight recall tokens               |
+| `memory.hindsight.timeoutMs`      | `number`  | `15000`                          | HTTP timeout for Hindsight calls              |
+| `memory.hindsight.tagsMatch`      | `string`  | `all_strict`                     | Tag matching mode for recall filters          |
+| `memory.hindsight.tags`           | `array`   | `agent:main`, `layer:experience` | Tags sent with recall and writeback           |
 
 ## Extraction and summaries
 

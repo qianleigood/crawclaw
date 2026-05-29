@@ -13,6 +13,7 @@ crawclaw-plugin-sdk = { path = "../crawclaw-plugin-sdk" }
 crawclaw-providers = { path = "../crawclaw-providers" }
 crawclaw-runtime = { path = "../crawclaw-runtime" }
 futures-util = "0.3"
+regex = "1"
 ring = "0.17"
 rusqlite = "0.39"
 serde = { version = "1", features = ["derive"] }

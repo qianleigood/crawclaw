@@ -16,6 +16,22 @@ pub(super) fn required_param_string(
     required_tool_param(tool_name, input, keys).map_err(|error| error.to_string())
 }
 
+fn require_media_tool_keys(
+    input: &Value,
+    allowed_keys: &[&str],
+    tool_name: &str,
+) -> Result<(), String> {
+    let Some(object) = input.as_object() else {
+        return Err(format!("{tool_name} input must be an object"));
+    };
+    for key in object.keys() {
+        if !allowed_keys.contains(&key.as_str()) {
+            return Err(format!("{tool_name} input contains unknown field: {key}"));
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn canvas_state_path(runtime_root: &Path) -> PathBuf {
     runtime_root.join("canvas").join("state.json")
 }
@@ -138,6 +154,7 @@ pub(super) fn media_urls_param(input: &Value) -> Vec<String> {
     input
         .get("mediaUrls")
         .or_else(|| input.get("media"))
+        .or_else(|| input.get("attachments"))
         .and_then(Value::as_array)
         .map(|items| {
             items
@@ -149,6 +166,192 @@ pub(super) fn media_urls_param(input: &Value) -> Vec<String> {
                 .collect()
         })
         .unwrap_or_default()
+}
+
+fn user_message_attachment_paths(input: &Value) -> Vec<String> {
+    input
+        .get("attachments")
+        .or_else(|| input.get("files"))
+        .or_else(|| input.get("paths"))
+        .and_then(Value::as_array)
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(ToOwned::to_owned)
+                .collect()
+        })
+        .or_else(|| {
+            string_param(input, &["path", "file"]).map(|path| {
+                let path = path.trim().to_string();
+                if path.is_empty() {
+                    Vec::new()
+                } else {
+                    vec![path]
+                }
+            })
+        })
+        .unwrap_or_default()
+}
+
+fn resolve_user_message_attachment(runtime_root: &Path, raw: &str) -> Result<Value, String> {
+    let path = Path::new(raw);
+    let path = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        runtime_root.join(path)
+    };
+    let metadata = fs::metadata(&path).map_err(|error| match error.kind() {
+        std::io::ErrorKind::NotFound => format!(
+            "Attachment \"{raw}\" does not exist. Current working directory: {}.",
+            runtime_root.display()
+        ),
+        std::io::ErrorKind::PermissionDenied => {
+            format!("Attachment \"{raw}\" is not accessible (permission denied).")
+        }
+        _ => format!("Attachment \"{raw}\" cannot be read: {error}"),
+    })?;
+    if !metadata.is_file() {
+        return Err(format!("Attachment \"{raw}\" is not a regular file."));
+    }
+    let extension = path
+        .extension()
+        .and_then(|value| value.to_str())
+        .map(str::to_ascii_lowercase)
+        .unwrap_or_default();
+    let is_image = matches!(
+        extension.as_str(),
+        "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "tiff" | "tif" | "heic" | "heif"
+    );
+    Ok(json!({
+        "path": path.to_string_lossy(),
+        "size": metadata.len(),
+        "isImage": is_image
+    }))
+}
+
+pub(super) fn run_user_message_tool(
+    runtime_root: &Path,
+    tool_name: &str,
+    input: Value,
+) -> Result<Value, String> {
+    if matches!(tool_name, "SendUserMessage" | "Brief") {
+        require_user_message_keys(&input, &["message", "attachments", "status"], tool_name)?;
+    }
+    let message = required_param_string(tool_name, &input, &["message"])?;
+    let status = required_param_string(tool_name, &input, &["status"])?;
+    if !matches!(status.as_str(), "normal" | "proactive") {
+        return Err("status must be normal or proactive".to_string());
+    }
+    let attachments = user_message_attachment_paths(&input)
+        .iter()
+        .map(|path| resolve_user_message_attachment(runtime_root, path))
+        .collect::<Result<Vec<_>, _>>()?;
+    let sent_at = chrono::Utc::now().to_rfc3339();
+    let now = now_millis();
+    let request = ChannelOutboundRequest {
+        request_id: string_param(&input, &["idempotencyKey", "runId", "requestId"])
+            .unwrap_or_else(|| format!("user-message-{now}")),
+        channel: string_param(&input, &["channel"]).unwrap_or_else(|| "desktop".to_string()),
+        account_id: Some(
+            string_param(&input, &["accountId"]).unwrap_or_else(|| "default".to_string()),
+        ),
+        action: ChannelOutboundAction::Send,
+        to: string_param(&input, &["to", "target", "recipient"])
+            .unwrap_or_else(|| "user".to_string()),
+        text: Some(message.clone()),
+        media_urls: attachments
+            .iter()
+            .filter_map(|attachment| attachment.get("path").and_then(Value::as_str))
+            .map(ToOwned::to_owned)
+            .collect(),
+        reply_to_id: string_param(&input, &["replyToId", "replyTo", "messageId"]),
+        thread_id: string_param(&input, &["threadId"]),
+        params: BTreeMap::new(),
+    };
+    let delivery = dispatch_native_channel_outbound(
+        &request,
+        NativeChannelDispatchContext {
+            connected: crate::is_local_native_delivery_channel(&request.channel),
+            now_ms: now,
+        },
+    );
+    let sent = delivery.sent;
+    let details = json!({
+        "message": message,
+        "status": status,
+        "attachments": attachments,
+        "sentAt": sent_at,
+        "delivery": delivery
+    });
+    let file = if sent {
+        runtime_root.join("channels").join("deliveries.jsonl")
+    } else {
+        runtime_root.join("channels").join("outbox.jsonl")
+    };
+    append_tool_jsonl(&file, &details)?;
+    let attachment_count = details
+        .get("attachments")
+        .and_then(Value::as_array)
+        .map(Vec::len)
+        .unwrap_or(0);
+    let suffix = if attachment_count == 0 {
+        String::new()
+    } else if attachment_count == 1 {
+        " (1 attachment included)".to_string()
+    } else {
+        format!(" ({attachment_count} attachments included)")
+    };
+    Ok(tool_envelope(
+        format!("Message delivered to user.{suffix}"),
+        details,
+        false,
+    ))
+}
+
+fn require_user_message_keys(
+    input: &Value,
+    allowed_keys: &[&str],
+    tool_name: &str,
+) -> Result<(), String> {
+    let Some(object) = input.as_object() else {
+        return Err(format!("{tool_name} input must be an object"));
+    };
+    for key in object.keys() {
+        if !allowed_keys.contains(&key.as_str()) {
+            return Err(format!("{tool_name} input contains unknown field: {key}"));
+        }
+    }
+    Ok(())
+}
+
+pub(super) fn run_send_user_file_tool(runtime_root: &Path, input: Value) -> Result<Value, String> {
+    let attachments = user_message_attachment_paths(&input);
+    if attachments.is_empty() {
+        return Err("SendUserFile requires at least one file path".to_string());
+    }
+    let mut normalized = input.as_object().cloned().unwrap_or_default();
+    normalized.insert(
+        "message".to_string(),
+        Value::String(string_param(&input, &["message"]).unwrap_or_else(|| {
+            if attachments.len() == 1 {
+                "Sending 1 file.".to_string()
+            } else {
+                format!("Sending {} files.", attachments.len())
+            }
+        })),
+    );
+    normalized.insert(
+        "status".to_string(),
+        Value::String(string_param(&input, &["status"]).unwrap_or_else(|| "normal".to_string())),
+    );
+    normalized.insert(
+        "attachments".to_string(),
+        Value::Array(attachments.into_iter().map(Value::String).collect()),
+    );
+    run_user_message_tool(runtime_root, "SendUserFile", Value::Object(normalized))
 }
 
 pub(super) fn append_tool_jsonl(path: &Path, value: &Value) -> Result<(), String> {
@@ -222,6 +425,38 @@ pub(super) fn run_message_tool(runtime_root: &Path, input: Value) -> Result<Valu
             "Message queued or blocked."
         },
         details,
+        false,
+    ))
+}
+
+pub(super) async fn run_sleep_tool(input: Value) -> Result<Value, String> {
+    let duration_ms = input
+        .get("durationMs")
+        .or_else(|| input.get("duration_ms"))
+        .or_else(|| input.get("milliseconds"))
+        .and_then(Value::as_u64)
+        .or_else(|| {
+            input
+                .get("seconds")
+                .or_else(|| input.get("duration"))
+                .and_then(Value::as_f64)
+                .filter(|seconds| seconds.is_finite() && *seconds >= 0.0)
+                .map(|seconds| (seconds * 1000.0).round() as u64)
+        })
+        .unwrap_or(1000);
+    let duration_ms = duration_ms.min(5 * 60 * 1000);
+    let started_at = now_millis();
+    tokio::time::sleep(Duration::from_millis(duration_ms)).await;
+    let ended_at = now_millis();
+    Ok(tool_envelope(
+        format!("Slept for {duration_ms}ms."),
+        json!({
+            "status": "completed",
+            "durationMs": duration_ms,
+            "startedAtMs": started_at,
+            "endedAtMs": ended_at,
+            "source": "rust-native"
+        }),
         false,
     ))
 }
@@ -515,33 +750,182 @@ pub(super) fn run_discover_skills_tool(runtime_root: &Path, input: Value) -> Res
 }
 
 pub(super) fn run_tool_search_tool(runtime_root: &Path, input: Value) -> Result<Value, String> {
-    let query =
-        required_param_string("tool_search", &input, &["query", "task", "taskDescription"])?;
-    let limit = input.get("limit").and_then(Value::as_u64).unwrap_or(8) as usize;
-    let terms = query
-        .split(|character: char| !character.is_alphanumeric())
-        .map(str::trim)
-        .filter(|term| !term.is_empty())
-        .map(str::to_lowercase)
-        .collect::<Vec<_>>();
-    let mut matches = pi_agent_rust_tool_descriptors_for_runtime_root(runtime_root)
+    require_media_tool_keys(&input, &["query", "max_results"], "tool_search")?;
+    let query = required_param_string("tool_search", &input, &["query"])?;
+    let limit = tool_search_max_results(&input)?;
+    let descriptors = pi_agent_rust_tool_descriptors_for_runtime_root(runtime_root)
         .into_iter()
         .filter(|descriptor| {
             !matches!(
                 descriptor.name.as_str(),
-                "tool_search" | "discover_skills" | "load_skill"
+                "tool_search" | "ToolSearch" | "discover_skills" | "Skill" | "load_skill"
             ) && !is_special_agent_only_tool(descriptor.name.as_str())
         })
-        .map(|descriptor| {
-            let haystack = format!(
-                "{} {} {}",
-                descriptor.name, descriptor.label, descriptor.description
-            )
-            .to_lowercase();
-            let score = terms
+        .collect::<Vec<_>>();
+    let trimmed_query = query.trim();
+    if trimmed_query
+        .get(.."select:".len())
+        .is_some_and(|prefix| prefix.eq_ignore_ascii_case("select:"))
+    {
+        let selected = trimmed_query["select:".len()..].trim();
+        if selected.is_empty() {
+            let total_deferred_tools = descriptors.len();
+            let pending_mcp_servers = pending_mcp_server_names(runtime_root);
+            let text = tool_search_result_text(&[], &pending_mcp_servers);
+            return Ok(tool_envelope(
+                text,
+                json!({
+                    "status": "ok",
+                    "query": query,
+                    "matches": [],
+                    "matchDetails": [],
+                    "pending_mcp_servers": pending_mcp_servers,
+                    "total_deferred_tools": total_deferred_tools,
+                    "activatedTools": [],
+                    "activationScope": "next-provider-request",
+                    "source": "rust-native"
+                }),
+                false,
+            ));
+        }
+        let requested = selected
+            .split(',')
+            .map(str::trim)
+            .filter(|tool_name| !tool_name.is_empty())
+            .collect::<Vec<_>>();
+        let total_deferred_tools = descriptors.len();
+        let mut matches = Vec::new();
+        for tool_name in requested {
+            let Some(descriptor) = descriptors
                 .iter()
-                .filter(|term| haystack.contains(term.as_str()))
-                .count();
+                .find(|descriptor| descriptor.name.eq_ignore_ascii_case(tool_name))
+            else {
+                continue;
+            };
+            if matches.iter().any(|entry: &Value| {
+                entry
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .is_some_and(|name| name.eq_ignore_ascii_case(&descriptor.name))
+            }) {
+                continue;
+            }
+            matches.push(json!({
+                "name": descriptor.name,
+                "description": descriptor.description,
+                "readOnly": descriptor.read_only,
+                "schemaActivated": true,
+                "score": 1
+            }));
+        }
+        let activated_tools = matches
+            .iter()
+            .filter_map(|value| {
+                value
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .map(str::to_string)
+            })
+            .collect::<Vec<_>>();
+        record_tool_activation_state(runtime_root, &activated_tools)?;
+        let pending_mcp_servers = if activated_tools.is_empty() {
+            pending_mcp_server_names(runtime_root)
+        } else {
+            Vec::new()
+        };
+        let text = tool_search_result_text(&activated_tools, &pending_mcp_servers);
+        return Ok(tool_envelope(
+            text,
+            json!({
+                "status": "ok",
+                "query": query,
+                "matches": activated_tools.clone(),
+                "matchDetails": matches,
+                "pending_mcp_servers": pending_mcp_servers,
+                "total_deferred_tools": total_deferred_tools,
+                "activatedTools": activated_tools,
+                "activationScope": "next-provider-request",
+                "source": "rust-native"
+            }),
+            false,
+        ));
+    }
+    let total_deferred_tools = descriptors.len();
+    let query_lower = query.to_lowercase();
+    if let Some(descriptor) = descriptors
+        .iter()
+        .find(|descriptor| descriptor.name.eq_ignore_ascii_case(query.trim()))
+    {
+        let activated_tools = vec![descriptor.name.clone()];
+        record_tool_activation_state(runtime_root, &activated_tools)?;
+        let text = tool_search_result_text(&activated_tools, &[]);
+        return Ok(tool_envelope(
+            text,
+            json!({
+                "status": "ok",
+                "query": query,
+                "matches": activated_tools.clone(),
+                "total_deferred_tools": total_deferred_tools,
+                "activatedTools": activated_tools,
+                "activationScope": "next-provider-request",
+                "source": "rust-native"
+            }),
+            false,
+        ));
+    }
+    if query_lower.starts_with("mcp__") && query_lower.len() > "mcp__".len() {
+        let activated_tools = descriptors
+            .iter()
+            .filter(|descriptor| descriptor.name.to_lowercase().starts_with(&query_lower))
+            .take(limit)
+            .map(|descriptor| descriptor.name.clone())
+            .collect::<Vec<_>>();
+        if !activated_tools.is_empty() {
+            record_tool_activation_state(runtime_root, &activated_tools)?;
+            let text = tool_search_result_text(&activated_tools, &[]);
+            return Ok(tool_envelope(
+                text,
+                json!({
+                    "status": "ok",
+                    "query": query,
+                    "matches": activated_tools.clone(),
+                    "pending_mcp_servers": [],
+                    "total_deferred_tools": total_deferred_tools,
+                    "activatedTools": activated_tools,
+                    "activationScope": "next-provider-request",
+                    "source": "rust-native"
+                }),
+                false,
+            ));
+        }
+    }
+    let (required_terms, optional_terms) = tool_search_terms(&query);
+    let scoring_terms = if required_terms.is_empty() {
+        optional_terms.clone()
+    } else {
+        required_terms
+            .iter()
+            .chain(optional_terms.iter())
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+    let mut matches = descriptors
+        .into_iter()
+        .map(|descriptor| {
+            let parsed = parsed_tool_search_name(&descriptor.name);
+            let description = descriptor.description.to_lowercase();
+            let label = descriptor.label.to_lowercase();
+            let matches_required = required_terms
+                .iter()
+                .all(|term| tool_search_term_matches(&parsed, &label, &description, term));
+            let score = if matches_required {
+                scoring_terms
+                    .iter()
+                    .map(|term| tool_search_term_score(&parsed, &label, &description, term))
+                    .sum()
+            } else {
+                0
+            };
             (score, descriptor)
         })
         .filter(|(score, _)| *score > 0)
@@ -551,7 +935,7 @@ pub(super) fn run_tool_search_tool(runtime_root: &Path, input: Value) -> Result<
             .cmp(score_a)
             .then_with(|| tool_a.name.cmp(&tool_b.name))
     });
-    matches.truncate(limit.max(1));
+    matches.truncate(limit);
     let activated_tools = matches
         .iter()
         .map(|(_, descriptor)| descriptor.name.clone())
@@ -569,11 +953,21 @@ pub(super) fn run_tool_search_tool(runtime_root: &Path, input: Value) -> Result<
         })
         .collect::<Vec<_>>();
     record_tool_activation_state(runtime_root, &activated_tools)?;
+    let pending_mcp_servers = if activated_tools.is_empty() {
+        pending_mcp_server_names(runtime_root)
+    } else {
+        Vec::new()
+    };
+    let text = tool_search_result_text(&activated_tools, &pending_mcp_servers);
     Ok(tool_envelope(
-        "Deferred tool search complete.",
+        text,
         json!({
             "status": "ok",
-            "matches": result_matches,
+            "query": query,
+            "matches": activated_tools.clone(),
+            "matchDetails": result_matches,
+            "pending_mcp_servers": pending_mcp_servers,
+            "total_deferred_tools": total_deferred_tools,
             "activatedTools": activated_tools,
             "activationScope": "next-provider-request",
             "source": "rust-native"
@@ -582,23 +976,145 @@ pub(super) fn run_tool_search_tool(runtime_root: &Path, input: Value) -> Result<
     ))
 }
 
+fn tool_search_max_results(input: &Value) -> Result<usize, String> {
+    let Some(value) = input.get("max_results") else {
+        return Ok(5);
+    };
+    if let Some(number) = value.as_u64() {
+        return usize::try_from(number)
+            .map_err(|_| "max_results is too large for this platform.".to_string());
+    }
+    if let Some(number) = value.as_f64() {
+        if number.is_finite() && number >= 0.0 {
+            return Ok(number.trunc() as usize);
+        }
+    }
+    Err("max_results must be a number.".to_string())
+}
+
+#[derive(Clone)]
+struct ParsedToolSearchName {
+    parts: Vec<String>,
+    full: String,
+    is_mcp: bool,
+}
+
+fn tool_search_terms(query: &str) -> (Vec<String>, Vec<String>) {
+    let mut required = Vec::new();
+    let mut optional = Vec::new();
+    for token in query.to_lowercase().split_whitespace() {
+        let token = token.trim();
+        if token.is_empty() {
+            continue;
+        }
+        if let Some(term) = token.strip_prefix('+').filter(|term| !term.is_empty()) {
+            required.push(tool_search_clean_term(term));
+        } else {
+            optional.push(tool_search_clean_term(token));
+        }
+    }
+    required.retain(|term| !term.is_empty());
+    optional.retain(|term| !term.is_empty());
+    (required, optional)
+}
+
+fn tool_search_clean_term(term: &str) -> String {
+    term.trim_matches(|ch: char| !ch.is_alphanumeric() && ch != '_' && ch != '-')
+        .to_string()
+}
+
+fn parsed_tool_search_name(name: &str) -> ParsedToolSearchName {
+    if let Some(without_prefix) = name.strip_prefix("mcp__") {
+        let parts = without_prefix
+            .to_lowercase()
+            .split("__")
+            .flat_map(|part| part.split('_'))
+            .map(str::trim)
+            .filter(|part| !part.is_empty())
+            .map(ToOwned::to_owned)
+            .collect::<Vec<_>>();
+        return ParsedToolSearchName {
+            full: parts.join(" "),
+            parts,
+            is_mcp: true,
+        };
+    }
+    let mut normalized = String::new();
+    for (index, ch) in name.chars().enumerate() {
+        if index > 0 && ch.is_ascii_uppercase() {
+            normalized.push(' ');
+        }
+        if ch == '_' || ch == '-' {
+            normalized.push(' ');
+        } else {
+            normalized.push(ch.to_ascii_lowercase());
+        }
+    }
+    let parts = normalized
+        .split_whitespace()
+        .map(ToOwned::to_owned)
+        .collect::<Vec<_>>();
+    ParsedToolSearchName {
+        full: parts.join(" "),
+        parts,
+        is_mcp: false,
+    }
+}
+
+fn tool_search_term_matches(
+    parsed: &ParsedToolSearchName,
+    label: &str,
+    description: &str,
+    term: &str,
+) -> bool {
+    parsed.parts.iter().any(|part| part.contains(term))
+        || parsed.full.contains(term)
+        || label.contains(term)
+        || description.contains(term)
+}
+
+fn tool_search_term_score(
+    parsed: &ParsedToolSearchName,
+    label: &str,
+    description: &str,
+    term: &str,
+) -> usize {
+    let mut score = 0;
+    if parsed.parts.iter().any(|part| part == term) {
+        score += if parsed.is_mcp { 12 } else { 10 };
+    } else if parsed.parts.iter().any(|part| part.contains(term)) {
+        score += if parsed.is_mcp { 6 } else { 5 };
+    }
+    if parsed.full.contains(term) && score == 0 {
+        score += 3;
+    }
+    if label.contains(term) {
+        score += 4;
+    }
+    if description.contains(term) {
+        score += 2;
+    }
+    score
+}
+
+fn tool_search_result_text(matches: &[String], pending_mcp_servers: &[String]) -> String {
+    if matches.is_empty() {
+        let mut text = "No matching deferred tools found".to_string();
+        if !pending_mcp_servers.is_empty() {
+            text.push_str(&format!(
+                ". Some MCP servers are still connecting: {}. Their tools will become available shortly — try searching again.",
+                pending_mcp_servers.join(", ")
+            ));
+        }
+        text
+    } else {
+        matches.join("\n")
+    }
+}
+
 pub(super) fn run_load_skill_tool(runtime_root: &Path, input: Value) -> Result<Value, String> {
     let skill = required_param_string("load_skill", &input, &["skill", "name", "id"])?;
-    let normalized = skill.trim().to_lowercase();
-    let mut candidates = load_skill_candidates(runtime_root, &skill);
-    candidates.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.name.cmp(&b.name)));
-    let candidate = candidates
-        .into_iter()
-        .find(|candidate| {
-            candidate.name.eq_ignore_ascii_case(&normalized)
-                || candidate.name.to_lowercase() == normalized
-        })
-        .or_else(|| {
-            load_skill_candidates(runtime_root, "")
-                .into_iter()
-                .find(|candidate| candidate.name.to_lowercase() == normalized)
-        })
-        .ok_or_else(|| format!("load_skill could not find skill: {skill}"))?;
+    let candidate = resolve_skill_candidate(runtime_root, &skill, "load_skill")?;
     record_loaded_skill_state(runtime_root, std::slice::from_ref(&candidate.name))?;
     Ok(tool_envelope(
         format!("Loaded skill {}.", candidate.name),
@@ -613,4 +1129,53 @@ pub(super) fn run_load_skill_tool(runtime_root: &Path, input: Value) -> Result<V
         }),
         false,
     ))
+}
+
+pub(super) fn run_skill_tool(runtime_root: &Path, input: Value) -> Result<Value, String> {
+    require_media_tool_keys(&input, &["skill", "args"], "Skill")?;
+    let skill = required_param_string("Skill", &input, &["skill"])?;
+    let args = input
+        .get("args")
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    let candidate = resolve_skill_candidate(runtime_root, &skill, "Skill")?;
+    record_loaded_skill_state(runtime_root, std::slice::from_ref(&candidate.name))?;
+    Ok(tool_envelope(
+        format!("Launching skill: {}", candidate.name),
+        json!({
+            "success": true,
+            "commandName": candidate.name,
+            "status": "inline",
+            "args": args,
+            "skill": {
+                "name": candidate.name,
+                "description": candidate.description,
+                "content": candidate.content
+            },
+            "source": "rust-native"
+        }),
+        false,
+    ))
+}
+
+fn resolve_skill_candidate(
+    runtime_root: &Path,
+    skill: &str,
+    tool_name: &str,
+) -> Result<crate::SkillCandidate, String> {
+    let normalized = skill.trim().trim_start_matches('/').to_lowercase();
+    if normalized.is_empty() {
+        return Err(format!("{tool_name} requires a non-empty skill name"));
+    }
+    let mut candidates = load_skill_candidates(runtime_root, &normalized);
+    candidates.sort_by(|a, b| b.score.cmp(&a.score).then_with(|| a.name.cmp(&b.name)));
+    candidates
+        .into_iter()
+        .find(|candidate| candidate.name.to_lowercase() == normalized)
+        .or_else(|| {
+            load_skill_candidates(runtime_root, "")
+                .into_iter()
+                .find(|candidate| candidate.name.to_lowercase() == normalized)
+        })
+        .ok_or_else(|| format!("{tool_name} could not find skill: {skill}"))
 }

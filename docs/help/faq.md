@@ -1132,8 +1132,8 @@ for usage/billing and raise limits as needed.
     for extraction, summaries, and consolidation. Provider-specific commands still
     need the credentials that provider requires.
 
-    NotebookLM-backed experience recall is optional and uses the command/profile
-    you configure under `memory.notebooklm`.
+    Hindsight-backed experience recall is optional and uses the endpoint and
+    banks you configure under `memory.hindsight`.
 
   </Accordion>
 </AccordionGroup>

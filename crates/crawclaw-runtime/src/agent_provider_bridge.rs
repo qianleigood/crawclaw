@@ -1,5 +1,71 @@
 use super::*;
 
+const PROVIDER_RETRY_DELAYS_MS: &[u64] = &[500, 1_000, 2_000];
+
+pub(super) async fn send_native_provider_conversation_with_retry(
+    config: &NativeProviderConfig,
+    messages: &[NativeProviderMessage],
+    options: &NativeProviderRequestOptions,
+) -> Result<String, ProviderTransportError> {
+    let mut attempt = 0usize;
+    loop {
+        match send_native_provider_conversation_with_options(config, messages, options).await {
+            Ok(text) => return Ok(text),
+            Err(error)
+                if attempt < PROVIDER_RETRY_DELAYS_MS.len()
+                    && is_retryable_provider_error(&error) =>
+            {
+                let delay_ms = PROVIDER_RETRY_DELAYS_MS[attempt];
+                attempt += 1;
+                tracing::debug!(
+                    provider = config.provider,
+                    attempt,
+                    delay_ms,
+                    error = %error,
+                    "native_provider_retry_scheduled"
+                );
+                tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+            }
+            Err(error) => return Err(error),
+        }
+    }
+}
+
+fn is_retryable_provider_error(error: &ProviderTransportError) -> bool {
+    match error {
+        ProviderTransportError::Unsupported(_) => false,
+        ProviderTransportError::InvalidResponse(message) => {
+            is_retryable_provider_error_message(message)
+        }
+        ProviderTransportError::Unavailable(message) => {
+            is_retryable_provider_error_message(message)
+        }
+    }
+}
+
+fn is_retryable_provider_error_message(message: &str) -> bool {
+    let message = message.to_ascii_lowercase();
+    [
+        "http 429",
+        "http 500",
+        "http 502",
+        "http 503",
+        "http 504",
+        "http 529",
+        "timeout",
+        "timed out",
+        "connection",
+        "connect",
+        "econnreset",
+        "epipe",
+        "network",
+        "overload",
+        "temporarily unavailable",
+    ]
+    .iter()
+    .any(|needle| message.contains(needle))
+}
+
 pub(super) fn build_filtered_pi_agent_rust_tool_registry(
     runtime_root: &Path,
     enabled_tools: &[String],
@@ -20,7 +86,11 @@ pub(super) fn build_filtered_pi_agent_rust_tool_registry(
         registry
             .into_tools()
             .into_iter()
-            .filter(|tool| allowlist.contains(tool.name()))
+            .filter(|tool| {
+                allowlist
+                    .iter()
+                    .any(|rule| crate::core_tools::tool_name_matches_rule(tool.name(), rule))
+            })
             .collect(),
     )
 }
@@ -39,6 +109,7 @@ pub(super) fn build_pi_agent_rust_tool_registry_for_selection(
     runtime_root: &Path,
     selection: &AgentRuntimeToolSelection,
     permission_policy: Option<AgentRuntimePermissionPolicy>,
+    tool_hook_policy: Option<AgentRuntimeToolHookPolicy>,
 ) -> pi::sdk::ToolRegistry {
     let registry = match selection {
         AgentRuntimeToolSelection::Default => build_default_profile_tool_registry(runtime_root),
@@ -47,7 +118,8 @@ pub(super) fn build_pi_agent_rust_tool_registry_for_selection(
             build_filtered_pi_agent_rust_tool_registry(runtime_root, enabled_tools)
         }
     };
-    apply_permission_policy_to_registry(registry, permission_policy)
+    let registry = apply_permission_policy_to_registry(registry, permission_policy);
+    apply_tool_hook_policy_to_registry(registry, tool_hook_policy)
 }
 
 #[derive(Clone)]
@@ -104,10 +176,9 @@ impl pi::sdk::Provider for CrawClawPiProvider {
                 })
                 .collect(),
         };
-        let text =
-            send_native_provider_conversation_with_options(&self.config, &messages, &options)
-                .await
-                .map_err(|error| pi::sdk::Error::provider(self.name(), error.to_string()))?;
+        let text = send_native_provider_conversation_with_retry(&self.config, &messages, &options)
+            .await
+            .map_err(|error| pi::sdk::Error::provider(self.name(), error.to_string()))?;
         let message = pi_assistant_message(&self.config, text.clone());
         let mut partial = message.clone();
         partial.content.clear();
@@ -264,17 +335,12 @@ pub(super) fn pi_session_from_history(history: &[AgentRuntimeMessage]) -> pi::sd
     for message in history {
         match message.role {
             AgentRuntimeMessageRole::User => {
-                session.append_model_message(pi::sdk::Message::User(pi::sdk::UserMessage {
-                    content: pi::sdk::UserContent::Text(message.content.clone()),
-                    timestamp: current_unix_millis(),
-                }));
+                append_pi_user_message_from_runtime_message(&mut session, message);
             }
             AgentRuntimeMessageRole::Assistant => {
                 session.append_model_message(pi::sdk::Message::assistant(
                     pi::sdk::AssistantMessage {
-                        content: vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
-                            message.content.clone(),
-                        ))],
+                        content: runtime_assistant_blocks_to_pi_content(message),
                         api: String::new(),
                         provider: String::new(),
                         model: String::new(),
@@ -288,6 +354,114 @@ pub(super) fn pi_session_from_history(history: &[AgentRuntimeMessage]) -> pi::sd
         }
     }
     session
+}
+
+fn append_pi_user_message_from_runtime_message(
+    session: &mut pi::sdk::Session,
+    message: &AgentRuntimeMessage,
+) {
+    if message.blocks.is_empty() && !message.content.trim().is_empty() {
+        session.append_model_message(pi::sdk::Message::User(pi::sdk::UserMessage {
+            content: pi::sdk::UserContent::Text(message.content.clone()),
+            timestamp: current_unix_millis(),
+        }));
+    } else {
+        let user_blocks = runtime_user_blocks_to_pi_content(message);
+        if !user_blocks.is_empty() {
+            session.append_model_message(pi::sdk::Message::User(pi::sdk::UserMessage {
+                content: pi::sdk::UserContent::Blocks(user_blocks),
+                timestamp: current_unix_millis(),
+            }));
+        }
+    }
+
+    for block in &message.blocks {
+        if let AgentRuntimeMessageBlock::ToolResult {
+            tool_use_id,
+            content,
+            is_error,
+        } = block
+        {
+            session.append_model_message(pi::sdk::Message::tool_result(
+                pi::sdk::ToolResultMessage {
+                    tool_call_id: tool_use_id.clone(),
+                    tool_name: String::new(),
+                    content: vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
+                        content.clone(),
+                    ))],
+                    details: None,
+                    is_error: *is_error,
+                    timestamp: current_unix_millis(),
+                },
+            ));
+        }
+    }
+}
+
+fn runtime_user_blocks_to_pi_content(message: &AgentRuntimeMessage) -> Vec<pi::sdk::ContentBlock> {
+    let blocks = message
+        .blocks
+        .iter()
+        .filter_map(|block| match block {
+            AgentRuntimeMessageBlock::Text { text } => Some(pi::sdk::ContentBlock::Text(
+                pi::sdk::TextContent::new(text.clone()),
+            )),
+            AgentRuntimeMessageBlock::Image { mime_type, data } => {
+                Some(pi::sdk::ContentBlock::Image(pi::sdk::ImageContent {
+                    data: data.clone(),
+                    mime_type: mime_type.clone(),
+                }))
+            }
+            AgentRuntimeMessageBlock::ToolUse { .. }
+            | AgentRuntimeMessageBlock::ToolResult { .. }
+            | AgentRuntimeMessageBlock::Meta { .. } => None,
+        })
+        .collect::<Vec<_>>();
+    if blocks.is_empty() && message.blocks.is_empty() && !message.content.trim().is_empty() {
+        vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
+            message.content.clone(),
+        ))]
+    } else {
+        blocks
+    }
+}
+
+fn runtime_assistant_blocks_to_pi_content(
+    message: &AgentRuntimeMessage,
+) -> Vec<pi::sdk::ContentBlock> {
+    let blocks = message
+        .blocks
+        .iter()
+        .filter_map(|block| match block {
+            AgentRuntimeMessageBlock::Text { text } => Some(pi::sdk::ContentBlock::Text(
+                pi::sdk::TextContent::new(text.clone()),
+            )),
+            AgentRuntimeMessageBlock::Image { mime_type, data } => {
+                Some(pi::sdk::ContentBlock::Image(pi::sdk::ImageContent {
+                    data: data.clone(),
+                    mime_type: mime_type.clone(),
+                }))
+            }
+            AgentRuntimeMessageBlock::ToolUse { id, name, input } => {
+                Some(pi::sdk::ContentBlock::ToolCall(pi::sdk::ToolCall {
+                    id: id.clone(),
+                    name: name.clone(),
+                    arguments: input.clone(),
+                    thought_signature: None,
+                }))
+            }
+            AgentRuntimeMessageBlock::ToolResult { .. } | AgentRuntimeMessageBlock::Meta { .. } => {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+    if blocks.is_empty() {
+        vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
+            message.content.clone(),
+        ))]
+    } else {
+        blocks
+    }
 }
 
 pub(super) fn pi_assistant_message(

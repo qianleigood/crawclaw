@@ -97,7 +97,7 @@ Examples:
 - experience notes
 - recall indexes
 - vector or graph-backed memory
-- NotebookLM-backed experience integration
+- Hindsight-backed experience integration
 
 This is not raw history. It is retained experience.
 
@@ -205,8 +205,8 @@ Use memory for:
 Experience is the structured subset of memory that captures reusable context,
 trigger, action, result, lesson, applicability boundaries, and evidence.
 
-It may be staged in the local pending outbox when NotebookLM writeback is not
-available, then queried from NotebookLM after sync. Future promoted forms may
+It may be staged in the local pending outbox when Hindsight writeback is not
+available, then queried from Hindsight after sync. Future promoted forms may
 also live in graph, vector, or note stores, but the local outbox itself is not a
 prompt recall provider.
 
@@ -335,7 +335,7 @@ Today the project already contains the main pieces of this loop:
 - action: Rust tool catalog/runtime, Gateway, Rust plugin SDK, plugins
 - record: `sessions`, `chat`, `context-archive`, gateway execution surfaces
 - evaluate: `memory/extraction`, `memory/session-summary`, `memory/promotion`
-- retain: `memory/durable`, `memory/experience`, `memory/notebooklm`, `memory/vector`, `memory/graph`
+- retain: `memory/durable`, `memory/experience`, `memory/hindsight`, `memory/vector`, `memory/graph`
 - recall: `memory/engine`, `memory/search`, `memory/recall`, `agents/query-context`, `agents/skills`
 - automate: `agents/skills`, `workflows`, `cron`, `hooks`
 

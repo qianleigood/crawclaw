@@ -1,0 +1,213 @@
+# Hindsight 生产环境部署配置
+# 用法：docker compose -f docker-compose.prod.yml up -d
+
+version: "3.8"
+
+services:
+  # ============================================
+  # PostgreSQL（Hindsight 内嵌或外部）
+  # ============================================
+  postgres:
+    image: pgroonga/pgroonga:3.2.1-alpine-16
+    container_name: crawclaw-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hindsight
+      POSTGRES_USER: hindsight
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 必须设置}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=zh_CN.UTF-8"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./scripts/init-pgroonga.sql:/docker-entrypoint-initdb.d/01-pgroonga.sql:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hindsight -d hindsight"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2.0"
+        reservations:
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    networks:
+      - hindsight-net
+
+  # ============================================
+  # Hindsight API
+  # ============================================
+  hindsight:
+    image: ghcr.io/vectorize-io/hindsight:latest
+    container_name: crawclaw-hindsight
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # 数据库连接
+      HINDSIGHT_API_DATABASE_URL: "postgresql://hindsight:${POSTGRES_PASSWORD}@postgres:5432/hindsight"
+      # 嵌入模型（中文必需）
+      HINDSIGHT_API_EMBEDDINGS_LOCAL_MODEL: "${EMBEDDINGS_MODEL:-BAAI/bge-m3}"
+      # 重排序模型（中文必需）
+      HINDSIGHT_API_RERANKER_LOCAL_MODEL: "${RERANKER_MODEL:-BAAI/bge-reranker-v2-m3}"
+      # BM25 后端（中文必需）
+      HINDSIGHT_API_TEXT_SEARCH_EXTENSION: "pgroonga"
+      # LLM 配置
+      HINDSIGHT_API_LLM_PROVIDER: "${LLM_PROVIDER:-openai}"
+      HINDSIGHT_API_LLM_API_KEY: "${LLM_API_KEY}"
+      HINDSIGHT_API_LLM_MODEL: "${LLM_MODEL:-gpt-4o-mini}"
+      # 网络
+      HINDSIGHT_API_PORT: "8888"
+      HINDSIGHT_API_HOST: "0.0.0.0"
+      # Prometheus 指标
+      HINDSIGHT_API_METRICS_ENABLED: "true"
+      HINDSIGHT_API_METRICS_PORT: "9090"
+    volumes:
+      - hindsight-data:/home/hindsight/.pg0
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8888/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: "4.0"
+        reservations:
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "10"
+    networks:
+      - hindsight-net
+
+  # ============================================
+  # Nginx 反向代理（TLS + 限流）
+  # ============================================
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: crawclaw-nginx
+    restart: unless-stopped
+    depends_on:
+      hindsight:
+        condition: service_healthy
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - nginx-cache:/var/cache/nginx
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    networks:
+      - hindsight-net
+
+  # ============================================
+  # Prometheus 监控
+  # ============================================
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: crawclaw-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=30d"
+      - "--storage.tsdb.retention.size=5GB"
+      - "--web.enable-lifecycle"
+    ports:
+      - "127.0.0.1:9091:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+      - prometheus-data:/prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+    networks:
+      - hindsight-net
+
+  # ============================================
+  # Grafana 可视化
+  # ============================================
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: crawclaw-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_SERVER_ROOT_URL: "${GRAFANA_ROOT_URL:-http://localhost:3000}"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+    networks:
+      - hindsight-net
+
+volumes:
+  pg-data:
+    driver: local
+  hindsight-data:
+    driver: local
+  nginx-cache:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+networks:
+  hindsight-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

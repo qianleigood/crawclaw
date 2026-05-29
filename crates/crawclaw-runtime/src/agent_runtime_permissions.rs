@@ -7,6 +7,31 @@ pub struct AgentRuntimePermissionPolicy {
     pub requester: Option<Arc<dyn AgentRuntimePermissionRequester>>,
 }
 
+#[derive(Clone, Default)]
+pub struct AgentRuntimeToolHookPolicy {
+    pub pre_tool_use: Option<Arc<dyn AgentRuntimePreToolUseHook>>,
+    pub post_tool_use: Option<Arc<dyn AgentRuntimePostToolUseHook>>,
+}
+
+impl AgentRuntimeToolHookPolicy {
+    pub fn with_pre_tool_use(hook: Arc<dyn AgentRuntimePreToolUseHook>) -> Self {
+        Self {
+            pre_tool_use: Some(hook),
+            post_tool_use: None,
+        }
+    }
+
+    pub fn with_tool_hooks(
+        pre_tool_use: Option<Arc<dyn AgentRuntimePreToolUseHook>>,
+        post_tool_use: Option<Arc<dyn AgentRuntimePostToolUseHook>>,
+    ) -> Self {
+        Self {
+            pre_tool_use,
+            post_tool_use,
+        }
+    }
+}
+
 impl AgentRuntimePermissionPolicy {
     pub fn workspace() -> Self {
         Self {
@@ -103,6 +128,55 @@ pub trait AgentRuntimePermissionRequester: Send + Sync {
     ) -> Pin<Box<dyn Future<Output = AgentRuntimePermissionDecision> + Send + 'a>>;
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct AgentRuntimePreToolUseRequest {
+    pub tool_call_id: String,
+    pub tool_name: String,
+    pub input: Value,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum AgentRuntimePreToolUseDecision {
+    Continue {
+        input: Value,
+        additional_context: Vec<String>,
+    },
+    Block {
+        message: String,
+    },
+}
+
+pub trait AgentRuntimePreToolUseHook: Send + Sync {
+    fn pre_tool_use<'a>(
+        &'a self,
+        request: AgentRuntimePreToolUseRequest,
+    ) -> Pin<Box<dyn Future<Output = AgentRuntimePreToolUseDecision> + Send + 'a>>;
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct AgentRuntimePostToolUseRequest {
+    pub tool_call_id: String,
+    pub tool_name: String,
+    pub input: Value,
+    pub output: Option<Value>,
+    pub error: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum AgentRuntimePostToolUseDecision {
+    Continue {
+        updated_mcp_tool_output: Option<Value>,
+        additional_context: Vec<String>,
+    },
+}
+
+pub trait AgentRuntimePostToolUseHook: Send + Sync {
+    fn post_tool_use<'a>(
+        &'a self,
+        request: AgentRuntimePostToolUseRequest,
+    ) -> Pin<Box<dyn Future<Output = AgentRuntimePostToolUseDecision> + Send + 'a>>;
+}
+
 pub(super) fn apply_permission_policy_to_registry(
     registry: pi::sdk::ToolRegistry,
     policy: Option<AgentRuntimePermissionPolicy>,
@@ -128,6 +202,30 @@ pub(super) fn apply_permission_policy_to_registry(
                 }) as Box<dyn pi::sdk::Tool>);
             }
             Some(tool)
+        })
+        .collect();
+    pi::sdk::ToolRegistry::from_tools(tools)
+}
+
+pub(super) fn apply_tool_hook_policy_to_registry(
+    registry: pi::sdk::ToolRegistry,
+    policy: Option<AgentRuntimeToolHookPolicy>,
+) -> pi::sdk::ToolRegistry {
+    let Some(policy) = policy else {
+        return registry;
+    };
+    if policy.pre_tool_use.is_none() && policy.post_tool_use.is_none() {
+        return registry;
+    }
+    let tools = registry
+        .into_tools()
+        .into_iter()
+        .map(|tool| {
+            Box::new(ToolHookCheckedTool {
+                inner: tool,
+                pre_hook: policy.pre_tool_use.as_ref().map(Arc::clone),
+                post_hook: policy.post_tool_use.as_ref().map(Arc::clone),
+            }) as Box<dyn pi::sdk::Tool>
         })
         .collect();
     pi::sdk::ToolRegistry::from_tools(tools)
@@ -201,6 +299,265 @@ impl pi::sdk::Tool for PermissionCheckedTool {
     }
 }
 
+struct ToolHookCheckedTool {
+    inner: Box<dyn pi::sdk::Tool>,
+    pre_hook: Option<Arc<dyn AgentRuntimePreToolUseHook>>,
+    post_hook: Option<Arc<dyn AgentRuntimePostToolUseHook>>,
+}
+
+#[async_trait::async_trait]
+impl pi::sdk::Tool for ToolHookCheckedTool {
+    fn name(&self) -> &str {
+        self.inner.name()
+    }
+
+    fn label(&self) -> &str {
+        self.inner.label()
+    }
+
+    fn description(&self) -> &str {
+        self.inner.description()
+    }
+
+    fn parameters(&self) -> Value {
+        self.inner.parameters()
+    }
+
+    async fn execute(
+        &self,
+        tool_call_id: &str,
+        input: Value,
+        on_update: Option<Box<dyn Fn(pi::sdk::ToolUpdate) + Send + Sync>>,
+    ) -> pi::sdk::Result<pi::sdk::ToolOutput> {
+        let tool_name = self.name().to_string();
+        let mut additional_context = Vec::new();
+        let input = if let Some(hook) = &self.pre_hook {
+            let request = AgentRuntimePreToolUseRequest {
+                tool_call_id: tool_call_id.to_string(),
+                tool_name: tool_name.clone(),
+                input,
+            };
+            match hook.pre_tool_use(request).await {
+                AgentRuntimePreToolUseDecision::Continue {
+                    input,
+                    additional_context: context,
+                } => {
+                    additional_context.extend(context);
+                    input
+                }
+                AgentRuntimePreToolUseDecision::Block { message } => {
+                    return Err(permission_error(
+                        &tool_name,
+                        message
+                            .trim()
+                            .is_empty()
+                            .then_some("blocked by PreToolUse hook")
+                            .unwrap_or(message.as_str()),
+                    ));
+                }
+            }
+        } else {
+            input
+        };
+
+        let result = self
+            .inner
+            .execute(tool_call_id, input.clone(), on_update)
+            .await;
+        let Some(hook) = &self.post_hook else {
+            return result.map(|mut output| {
+                append_hook_additional_context(&mut output, additional_context);
+                output
+            });
+        };
+        match result {
+            Ok(output) => {
+                let request = AgentRuntimePostToolUseRequest {
+                    tool_call_id: tool_call_id.to_string(),
+                    tool_name: tool_name.clone(),
+                    input,
+                    output: Some(tool_output_to_hook_value(&output)),
+                    error: None,
+                };
+                match hook.post_tool_use(request).await {
+                    AgentRuntimePostToolUseDecision::Continue {
+                        updated_mcp_tool_output,
+                        additional_context: context,
+                    } => {
+                        let mut output = apply_updated_mcp_tool_output(
+                            &tool_name,
+                            output,
+                            updated_mcp_tool_output,
+                        );
+                        additional_context.extend(context);
+                        append_hook_additional_context(&mut output, additional_context);
+                        Ok(output)
+                    }
+                }
+            }
+            Err(error) => {
+                let request = AgentRuntimePostToolUseRequest {
+                    tool_call_id: tool_call_id.to_string(),
+                    tool_name: tool_name.clone(),
+                    input,
+                    output: None,
+                    error: Some(error.to_string()),
+                };
+                let AgentRuntimePostToolUseDecision::Continue {
+                    additional_context: context,
+                    ..
+                } = hook.post_tool_use(request).await;
+                if context.is_empty() {
+                    return Err(error);
+                }
+                additional_context.extend(context);
+                Err(pi::sdk::Error::tool(
+                    &tool_name,
+                    error_message_with_hook_context(error.to_string(), additional_context),
+                ))
+            }
+        }
+    }
+
+    fn is_read_only(&self) -> bool {
+        self.inner.is_read_only()
+    }
+}
+
+fn append_hook_additional_context(output: &mut pi::sdk::ToolOutput, contexts: Vec<String>) {
+    for context in contexts {
+        let context = context.trim();
+        if context.is_empty() {
+            continue;
+        }
+        output
+            .content
+            .push(pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
+                format!("<system-reminder>\n{context}\n</system-reminder>"),
+            )));
+    }
+}
+
+fn error_message_with_hook_context(message: String, contexts: Vec<String>) -> String {
+    let mut text = message;
+    for context in contexts {
+        let context = context.trim();
+        if context.is_empty() {
+            continue;
+        }
+        if !text.is_empty() {
+            text.push_str("\n\n");
+        }
+        text.push_str("<system-reminder>\n");
+        text.push_str(context);
+        text.push_str("\n</system-reminder>");
+    }
+    text
+}
+
+fn tool_output_to_hook_value(output: &pi::sdk::ToolOutput) -> Value {
+    serde_json::to_value(output).unwrap_or_else(|_| {
+        json!({
+            "content": [],
+            "details": output.details,
+            "isError": output.is_error
+        })
+    })
+}
+
+fn apply_updated_mcp_tool_output(
+    tool_name: &str,
+    mut output: pi::sdk::ToolOutput,
+    updated_mcp_tool_output: Option<Value>,
+) -> pi::sdk::ToolOutput {
+    let Some(updated) = updated_mcp_tool_output else {
+        return output;
+    };
+    if !tool_name.starts_with("mcp__") {
+        return output;
+    }
+    let text = mcp_updated_output_text(&updated);
+    output.content = vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(text))];
+    output.is_error = updated
+        .get("isError")
+        .or_else(|| updated.get("is_error"))
+        .and_then(Value::as_bool)
+        .unwrap_or(output.is_error);
+    output.details = Some(updated_mcp_output_details(output.details, updated));
+    output
+}
+
+fn updated_mcp_output_details(previous: Option<Value>, updated: Value) -> Value {
+    if let Some(Value::Object(mut object)) = previous {
+        object.insert("result".to_string(), updated);
+        object.insert("hookUpdatedMcpToolOutput".to_string(), Value::Bool(true));
+        return Value::Object(object);
+    }
+    json!({
+        "hookUpdatedMcpToolOutput": true,
+        "result": updated
+    })
+}
+
+fn mcp_updated_output_text(updated: &Value) -> String {
+    if let Some(text) = updated.as_str() {
+        return text.to_string();
+    }
+    let mut text_blocks = Vec::new();
+    if let Some(structured_content) = updated
+        .get("structuredContent")
+        .or_else(|| updated.get("structured_content"))
+    {
+        text_blocks.push(
+            serde_json::to_string_pretty(structured_content)
+                .unwrap_or_else(|_| structured_content.to_string()),
+        );
+    }
+    if let Some(content) = updated.get("content").and_then(Value::as_array) {
+        for block in content {
+            match block.get("type").and_then(Value::as_str) {
+                Some("text") => {
+                    if let Some(text) = block.get("text").and_then(Value::as_str) {
+                        text_blocks.push(text.to_string());
+                    }
+                }
+                Some("image") => {
+                    let mime_type = block
+                        .get("mimeType")
+                        .or_else(|| block.get("mime_type"))
+                        .and_then(Value::as_str)
+                        .unwrap_or("image/*");
+                    text_blocks.push(format!("[Image content: {mime_type}]"));
+                }
+                Some("resource") => {
+                    if let Some(resource) = block.get("resource") {
+                        let uri = resource
+                            .get("uri")
+                            .and_then(Value::as_str)
+                            .unwrap_or("unknown");
+                        if let Some(text) = resource.get("text").and_then(Value::as_str) {
+                            text_blocks.push(format!("[Resource at {uri}] {text}"));
+                        } else {
+                            let mime_type = resource
+                                .get("mimeType")
+                                .or_else(|| resource.get("mime_type"))
+                                .and_then(Value::as_str)
+                                .unwrap_or("application/octet-stream");
+                            text_blocks
+                                .push(format!("[Resource at {uri}] Binary resource ({mime_type})"));
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    if !text_blocks.is_empty() {
+        return text_blocks.join("\n\n");
+    }
+    serde_json::to_string_pretty(updated).unwrap_or_else(|_| updated.to_string())
+}
+
 fn permission_error(tool_name: &str, message: &str) -> pi::sdk::Error {
     pi::sdk::Error::tool(tool_name, message)
 }
@@ -215,7 +572,6 @@ fn is_read_only_allowed_tool(
             category,
             Some(
                 AgentRuntimePermissionCategory::Command
-                    | AgentRuntimePermissionCategory::ExternalApp
                     | AgentRuntimePermissionCategory::FileChange
                     | AgentRuntimePermissionCategory::HighRisk
             )
@@ -238,25 +594,49 @@ fn should_confirm(
 fn permission_category(tool_name: &str) -> Option<AgentRuntimePermissionCategory> {
     if matches!(
         tool_name,
-        "workflow" | "workflowize" | "cron" | "message" | "review_task"
+        "workflow"
+            | "workflowize"
+            | "Config"
+            | "cron"
+            | "CronCreate"
+            | "CronDelete"
+            | "RemoteTrigger"
+            | "message"
+            | "SendUserMessage"
+            | "SendUserFile"
+            | "SendMessage"
+            | "TeamCreate"
+            | "TeamDelete"
+            | "EnterWorktree"
+            | "ExitWorktree"
+            | "Brief"
+            | "review_task"
+            | "ExitPlanMode"
     ) {
         return Some(AgentRuntimePermissionCategory::HighRisk);
     }
-    if matches!(tool_name, "bash" | "process") {
+    if matches!(
+        tool_name,
+        "bash" | "Bash" | "PowerShell" | "process" | "TaskStop" | "KillShell"
+    ) {
         return Some(AgentRuntimePermissionCategory::Command);
     }
     if matches!(
         tool_name,
         "write"
+            | "Write"
             | "edit"
+            | "Edit"
+            | "NotebookEdit"
             | "apply_patch"
-            | "memory_note_write"
-            | "memory_note_edit"
-            | "memory_note_delete"
+            | "knowledge_ingest"
+            | "knowledge_model_create"
             | "session_summary_file_edit"
-            | "write_experience_note"
     ) {
         return Some(AgentRuntimePermissionCategory::FileChange);
+    }
+    if is_mcp_tool(tool_name) {
+        return Some(AgentRuntimePermissionCategory::ExternalApp);
     }
     if is_native_plugin_tool(tool_name) {
         return Some(AgentRuntimePermissionCategory::ExternalApp);
@@ -265,45 +645,16 @@ fn permission_category(tool_name: &str) -> Option<AgentRuntimePermissionCategory
 }
 
 fn is_native_plugin_tool(tool_name: &str) -> bool {
-    !matches!(
-        tool_name,
-        "read"
-            | "write"
-            | "edit"
-            | "apply_patch"
-            | "bash"
-            | "process"
-            | "grep"
-            | "find"
-            | "ls"
-            | "web_search"
-            | "web_fetch"
-            | "session_status"
-            | "sessions_list"
-            | "sessions_history"
-            | "sessions_send"
-            | "subagents_spawn"
-            | "sessions_yield"
-            | "subagents"
-            | "canvas"
-            | "message"
-            | "cron"
-            | "image"
-            | "pdf"
-            | "tts"
-            | "discover_skills"
-            | "workflow"
-            | "workflowize"
-            | "review_task"
-            | "write_experience_note"
-            | "memory_manifest_read"
-            | "memory_note_read"
-            | "memory_note_write"
-            | "memory_note_edit"
-            | "memory_note_delete"
-            | "session_summary_file_read"
-            | "session_summary_file_edit"
-    )
+    if is_mcp_tool(tool_name) {
+        return false;
+    }
+    !rust_core_tool_definitions()
+        .iter()
+        .any(|definition| definition.id == tool_name)
+}
+
+fn is_mcp_tool(tool_name: &str) -> bool {
+    tool_name.starts_with("mcp__")
 }
 
 fn permission_request(

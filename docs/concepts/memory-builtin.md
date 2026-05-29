@@ -37,25 +37,23 @@ Most users do not need to configure the builtin runtime. To pin the runtime DB:
 }
 ```
 
-NotebookLM is optional and is configured under `memory.notebooklm`. When it is
+Hindsight is optional and is configured under `memory.hindsight`. When it is
 disabled or returns no useful result, CrawClaw skips experience recall for that
 turn instead of reading the local outbox as a fallback. Durable-memory recall
 still runs independently. The local experience store is a pending write queue
-for NotebookLM, not a prompt recall source. NotebookLM/Gemini
-owns semantic relevance and ordering for experience recall; CrawClaw preserves
-provider order and only applies deterministic guardrails before prompt assembly.
-The default NotebookLM
-CLI path uses CrawClaw's managed `notebooklm-mcp-cli` runtime when it is
-installed; run CrawClaw Desktop or the local Gateway API or CrawClaw Desktop or the local Gateway API if
-`nlm` is missing.
+for Hindsight, not a prompt recall source. Hindsight owns semantic relevance and
+ordering for experience recall; CrawClaw preserves provider order and only
+applies deterministic guardrails before prompt assembly. Run Hindsight as a
+sidecar or remote service; CrawClaw only needs the HTTP API endpoint and bank
+configuration.
 
 ## Operational notes
 
 - Durable notes live in scoped Markdown files and are recalled during prompt
   assembly.
 - Experience extraction runs after eligible completed turns.
-- Experience recall reads NotebookLM only; local pending entries sync after
-  login, heartbeat, startup, or CrawClaw Desktop or the local Gateway API.
+- Experience recall reads Hindsight only; local pending entries sync after
+  heartbeat, startup, or CrawClaw Desktop or the local Gateway API.
 - Session summaries are maintained separately from durable memory and are used
   as compaction continuity.
 - Context Archive is off by default unless enabled under `memory.contextArchive`.

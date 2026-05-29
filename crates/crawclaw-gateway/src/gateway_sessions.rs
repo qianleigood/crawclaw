@@ -126,8 +126,9 @@ pub(super) fn sessions_patch(state: &GatewayState, params: Value) -> Result<Valu
     }))
 }
 
-pub(super) fn sessions_reset(state: &GatewayState, params: Value) -> Result<Value, String> {
+pub(super) async fn sessions_reset(state: &GatewayState, params: Value) -> Result<Value, String> {
     let key = normalize_session_key(&required_param(&params, &["key", "sessionKey"])?)?;
+    run_sdk_session_end_hooks(state, &key, "clear").await?;
     let status = state
         .session_store
         .reset_session(&key)
@@ -154,16 +155,25 @@ pub(super) fn sessions_delete(state: &GatewayState, params: Value) -> Result<Val
     Ok(json!({ "ok": true, "key": key, "deleted": deleted }))
 }
 
-pub(super) fn sessions_compact(state: &GatewayState, params: Value) -> Result<Value, String> {
+pub(super) async fn sessions_compact(state: &GatewayState, params: Value) -> Result<Value, String> {
     let key = normalize_session_key(&required_param(&params, &["key", "sessionKey"])?)?;
     let max_lines = params
         .get("maxLines")
         .and_then(Value::as_u64)
         .unwrap_or(200) as usize;
+    let trigger = string_param(&params, &["trigger"]).unwrap_or_else(|| "manual".to_string());
+    run_sdk_pre_compact_hooks(state, &key, &trigger, None).await?;
     let (compacted, kept) = state
         .session_store
         .compact_session(&key, max_lines)
         .map_err(|error| error.to_string())?;
+    run_sdk_post_compact_hooks(
+        state,
+        &key,
+        &trigger,
+        &format!("Compacted {compacted} messages; kept {kept}."),
+    )
+    .await?;
     Ok(json!({ "ok": true, "key": key, "compacted": compacted, "kept": kept }))
 }
 
@@ -183,10 +193,26 @@ pub(super) fn sessions_messages_subscription(
 }
 
 pub(super) async fn subagents_spawn(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let task = required_param(&params, &["task", "message"])?;
+    let task = required_param(&params, &["task", "message", "prompt"])?;
     let parent = string_param(&params, &["parentSessionKey", "parent", "spawnedBy"])
         .unwrap_or_else(|| "main".to_string());
-    let label = string_param(&params, &["label", "title"]);
+    let label = string_param(
+        &params,
+        &[
+            "label",
+            "title",
+            "description",
+            "subagent_type",
+            "subagentType",
+        ],
+    );
+    let tool_alias = string_param(&params, &["toolAlias"]);
+    let agent_type = string_param(
+        &params,
+        &["subagent_type", "subagentType", "agentType", "agentId"],
+    )
+    .or_else(|| label.clone())
+    .unwrap_or_else(|| "general-purpose".to_string());
     let session = state
         .session_store
         .spawn_session(Some(&parent), label.as_deref(), &task)
@@ -211,21 +237,17 @@ pub(super) async fn subagents_spawn(state: &GatewayState, params: Value) -> Resu
             "session": session
         }));
     }
-    let running_session = state
-        .session_store
-        .patch_session(&session.key, None, None, None, Some("running"))
-        .map_err(|error| error.to_string())?;
-    emit(
-        state,
-        "sessions.changed",
-        json!({ "session": running_session.clone() }),
-    );
 
     let mut run_params = params.clone();
     let run_object = ensure_json_object(&mut run_params);
     run_object.insert("sessionKey".to_string(), Value::String(session.key.clone()));
-    run_object.insert("message".to_string(), Value::String(task));
+    run_object.insert("message".to_string(), Value::String(task.clone()));
     run_object.insert("channel".to_string(), Value::String("subagent".to_string()));
+    if !run_object.contains_key("agentId") {
+        if let Some(agent_type) = string_param(&params, &["subagent_type", "subagentType"]) {
+            run_object.insert("agentId".to_string(), Value::String(agent_type));
+        }
+    }
     run_object.insert(
         "profile".to_string(),
         json!({
@@ -240,6 +262,114 @@ pub(super) async fn subagents_spawn(state: &GatewayState, params: Value) -> Resu
                 .unwrap_or_else(|| format!("subagent-run-{}", now_millis())),
         ),
     );
+    let start_context =
+        run_sdk_subagent_start_hooks(state, &parent, &session.key, &agent_type).await?;
+    append_subagent_start_context(&mut run_params, start_context);
+
+    if params
+        .get("run_in_background")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        let background_state = state.clone();
+        let parent_session_key = parent.clone();
+        let session_key = session.key.clone();
+        let background_agent_type = agent_type.clone();
+        let description = label.clone().unwrap_or_else(|| session.title.clone());
+        let task_session_key = session_key.clone();
+        let background_task = tokio::spawn(async move {
+            match background_state.session_store.patch_session(
+                &task_session_key,
+                None,
+                None,
+                None,
+                Some("running"),
+            ) {
+                Ok(running_session) => emit(
+                    &background_state,
+                    "sessions.changed",
+                    json!({ "session": running_session }),
+                ),
+                Err(_) => {
+                    let _ =
+                        unregister_agent_task_abort_handle(&background_state, &task_session_key);
+                    return;
+                }
+            }
+            match execute_agent_run_turn(&background_state, &run_params, "rust-subagent").await {
+                Ok(result) => {
+                    let _ = run_sdk_subagent_stop_hooks(
+                        &background_state,
+                        &parent_session_key,
+                        &task_session_key,
+                        &background_agent_type,
+                        Some(&result.assistant_text),
+                    )
+                    .await;
+                    if let Ok(completed_session) = background_state.session_store.patch_session(
+                        &task_session_key,
+                        None,
+                        None,
+                        None,
+                        Some("completed"),
+                    ) {
+                        emit(
+                            &background_state,
+                            "sessions.changed",
+                            json!({ "session": completed_session }),
+                        );
+                    }
+                }
+                Err(_) => {
+                    let _ = run_sdk_subagent_stop_hooks(
+                        &background_state,
+                        &parent_session_key,
+                        &task_session_key,
+                        &background_agent_type,
+                        None,
+                    )
+                    .await;
+                    if let Ok(failed_session) = background_state.session_store.patch_session(
+                        &task_session_key,
+                        None,
+                        None,
+                        None,
+                        Some("failed"),
+                    ) {
+                        emit(
+                            &background_state,
+                            "sessions.changed",
+                            json!({ "session": failed_session }),
+                        );
+                    }
+                }
+            }
+            let _ = unregister_agent_task_abort_handle(&background_state, &task_session_key);
+        });
+        register_agent_task_abort_handle(state, &session_key, background_task.abort_handle())?;
+        return Ok(json!({
+            "ok": true,
+            "status": "async_launched",
+            "implementation": "rust-native",
+            "agentId": session.key.clone(),
+            "description": description,
+            "prompt": task,
+            "outputFile": format!("sessions/{}.jsonl", session.key),
+            "canReadOutputFile": true,
+            "sessionKey": session.key.clone(),
+            "session": session
+        }));
+    }
+
+    let running_session = state
+        .session_store
+        .patch_session(&session.key, None, None, None, Some("running"))
+        .map_err(|error| error.to_string())?;
+    emit(
+        state,
+        "sessions.changed",
+        json!({ "session": running_session.clone() }),
+    );
 
     let result = match execute_agent_run_turn(state, &run_params, "rust-subagent").await {
         Ok(result) => result,
@@ -248,6 +378,8 @@ pub(super) async fn subagents_spawn(state: &GatewayState, params: Value) -> Resu
                 .session_store
                 .patch_session(&session.key, None, None, None, Some("failed"))
                 .map_err(|patch_error| patch_error.to_string())?;
+            let _ =
+                run_sdk_subagent_stop_hooks(state, &parent, &session.key, &agent_type, None).await;
             emit(
                 state,
                 "sessions.changed",
@@ -256,6 +388,14 @@ pub(super) async fn subagents_spawn(state: &GatewayState, params: Value) -> Resu
             return Err(error);
         }
     };
+    run_sdk_subagent_stop_hooks(
+        state,
+        &parent,
+        &session.key,
+        &agent_type,
+        Some(&result.assistant_text),
+    )
+    .await?;
     let completed_session = state
         .session_store
         .patch_session(&session.key, None, None, None, Some("completed"))
@@ -266,6 +406,39 @@ pub(super) async fn subagents_spawn(state: &GatewayState, params: Value) -> Resu
         json!({ "session": completed_session.clone() }),
     );
     let events = agent_run_events_value(&result.events)?;
+    if tool_alias
+        .as_deref()
+        .is_some_and(|alias| alias == "Agent" || alias == "Task")
+    {
+        return Ok(json!({
+            "ok": true,
+            "status": "completed",
+            "implementation": "rust-native",
+            "prompt": task,
+            "agentId": completed_session.key.clone(),
+            "agentType": string_param(&params, &["subagent_type", "subagentType", "agentType"]),
+            "content": [{
+                "type": "text",
+                "text": result.assistant_text.clone()
+            }],
+            "totalToolUseCount": result.events.iter().filter(|event| matches!(event, AgentRunEvent::ToolCall { .. })).count(),
+            "totalDurationMs": 0,
+            "totalTokens": result.context_summary.estimated_tokens,
+            "usage": {
+                "input_tokens": result.context_summary.estimated_tokens,
+                "output_tokens": 0,
+                "cache_creation_input_tokens": null,
+                "cache_read_input_tokens": null,
+                "server_tool_use": null,
+                "service_tier": null,
+                "cache_creation": null
+            },
+            "sessionKey": result.session_key.clone(),
+            "session": completed_session,
+            "runId": result.run_id.clone(),
+            "events": events
+        }));
+    }
     Ok(json!({
         "ok": true,
         "status": "completed",
@@ -276,6 +449,29 @@ pub(super) async fn subagents_spawn(state: &GatewayState, params: Value) -> Resu
         "assistantText": result.assistant_text,
         "events": events
     }))
+}
+
+fn append_subagent_start_context(params: &mut Value, contexts: Vec<String>) {
+    let context = contexts
+        .into_iter()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n\n");
+    if context.is_empty() {
+        return;
+    }
+    let object = ensure_json_object(params);
+    let message = object
+        .get("message")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let next = if message.trim().is_empty() {
+        context
+    } else {
+        format!("{message}\n\n{context}")
+    };
+    object.insert("message".to_string(), Value::String(next));
 }
 
 pub(super) async fn subagents_control(

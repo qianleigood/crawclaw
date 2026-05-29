@@ -68,13 +68,14 @@ fn tool_execution_event_to_run_event(run_id: &str, event: ToolExecutionEvent) ->
         ToolExecutionEvent::Completed {
             call_id,
             tool_name,
+            output,
             is_error,
         } => AgentRunEvent::ToolProgress {
             run_id: run_id.to_string(),
             call_id,
             tool_name,
             status: if is_error { "failed" } else { "completed" }.to_string(),
-            message: None,
+            message: output,
         },
     }
 }
@@ -108,12 +109,14 @@ pub(super) fn pi_agent_event_to_loop_event(event: pi::sdk::AgentEvent) -> Option
         pi::sdk::AgentEvent::ToolExecutionEnd {
             tool_call_id,
             tool_name,
+            result,
             is_error,
             ..
         } => Some(AgentLoopEvent::ToolExecution {
             event: ToolExecutionEvent::Completed {
                 call_id: tool_call_id,
                 tool_name,
+                output: pi_tool_output_summary(&result),
                 is_error,
             },
         }),
@@ -157,5 +160,20 @@ fn provider_block_from_pi_message_event(event: &impl Serialize) -> Option<AgentL
 }
 
 fn pi_tool_output_summary(output: &pi::sdk::ToolOutput) -> Option<String> {
-    serde_json::to_string(output).ok()
+    let text = output
+        .content
+        .iter()
+        .filter_map(|block| match block {
+            pi::sdk::ContentBlock::Text(text) => Some(text.text.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    if !text.trim().is_empty() {
+        return Some(text);
+    }
+    output
+        .details
+        .as_ref()
+        .and_then(|details| serde_json::to_string(details).ok())
 }

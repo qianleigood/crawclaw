@@ -64,7 +64,7 @@ Do not delete or disable every feature named heartbeat. These mechanisms are not
 legacy agent heartbeat:
 
 - Weixin Web `web.heartbeatSeconds` keeps the Web channel connection observable.
-- NotebookLM auth heartbeat checks authentication health.
+- Hindsight memory sync heartbeat checks provider availability.
 - WebSocket, gateway, and provider heartbeat or ping frames keep protocol
   connections alive.
 

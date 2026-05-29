@@ -3,12 +3,13 @@ use super::*;
 #[derive(Clone, Copy)]
 pub(super) enum SpecialAgentToolKind {
     ReviewTask,
-    MemoryManifestRead,
-    MemoryNoteRead,
-    MemoryNoteWrite,
-    MemoryNoteEdit,
-    MemoryNoteDelete,
-    WriteExperienceNote,
+    // Hindsight knowledge tools (replace old file-based memory tools)
+    KnowledgeRecall,
+    KnowledgeReflect,
+    KnowledgeIngest,
+    KnowledgeModelList,
+    KnowledgeModelCreate,
+    // Session summary (unchanged — stays local)
     SessionSummaryFileRead,
     SessionSummaryFileEdit,
 }
@@ -17,12 +18,11 @@ impl SpecialAgentToolKind {
     pub(super) fn name(self) -> &'static str {
         match self {
             Self::ReviewTask => "review_task",
-            Self::MemoryManifestRead => "memory_manifest_read",
-            Self::MemoryNoteRead => "memory_note_read",
-            Self::MemoryNoteWrite => "memory_note_write",
-            Self::MemoryNoteEdit => "memory_note_edit",
-            Self::MemoryNoteDelete => "memory_note_delete",
-            Self::WriteExperienceNote => "write_experience_note",
+            Self::KnowledgeRecall => "knowledge_recall",
+            Self::KnowledgeReflect => "knowledge_reflect",
+            Self::KnowledgeIngest => "knowledge_ingest",
+            Self::KnowledgeModelList => "knowledge_model_list",
+            Self::KnowledgeModelCreate => "knowledge_model_create",
             Self::SessionSummaryFileRead => "session_summary_file_read",
             Self::SessionSummaryFileEdit => "session_summary_file_edit",
         }
@@ -31,12 +31,26 @@ impl SpecialAgentToolKind {
     fn description(self) -> &'static str {
         match self {
             Self::ReviewTask => "Run the Rust-native review special agent.",
-            Self::MemoryManifestRead => "Read the Rust-native durable memory manifest for a scope.",
-            Self::MemoryNoteRead => "Read a Rust-native durable memory Markdown note.",
-            Self::MemoryNoteWrite => "Write a Rust-native durable memory Markdown note.",
-            Self::MemoryNoteEdit => "Edit a Rust-native durable memory Markdown note.",
-            Self::MemoryNoteDelete => "Delete a Rust-native durable memory Markdown note.",
-            Self::WriteExperienceNote => "Append a Rust-native experience note to the outbox.",
+            Self::KnowledgeRecall => {
+                "Search Hindsight memory banks for relevant knowledge. \
+                 Returns observations, facts, and mental model content."
+            }
+            Self::KnowledgeReflect => {
+                "Deep synthesis query against Hindsight memory. \
+                 Generates higher-order insights from accumulated memories."
+            }
+            Self::KnowledgeIngest => {
+                "Ingest content into Hindsight memory bank. \
+                 Useful for injecting documents, code snippets, or reference material."
+            }
+            Self::KnowledgeModelList => {
+                "List all mental models in a Hindsight bank. \
+                 Mental models are pre-computed high-level understandings."
+            }
+            Self::KnowledgeModelCreate => {
+                "Create a new mental model in a Hindsight bank. \
+                 The model will be auto-refreshed after future consolidations."
+            }
             Self::SessionSummaryFileRead => "Read the Rust-native session summary Markdown file.",
             Self::SessionSummaryFileEdit => {
                 "Replace the Rust-native session summary Markdown file."
@@ -57,48 +71,79 @@ impl SpecialAgentToolKind {
                 },
                 "required": ["task"]
             }),
-            Self::MemoryManifestRead | Self::SessionSummaryFileRead => json!({
+            Self::KnowledgeRecall => json!({
+                "type": "object",
+                "properties": {
+                    "query": { "type": "string", "description": "Search query" },
+                    "layer": {
+                        "type": "string",
+                        "enum": ["durable", "experience", "resource", "mental-models"],
+                        "description": "Memory layer to search (default: durable)"
+                    },
+                    "budget": {
+                        "type": "string",
+                        "enum": ["low", "mid", "high"],
+                        "description": "Search thoroughness (default: mid)"
+                    },
+                    "maxTokens": { "type": "integer", "description": "Max result tokens (default: 2048)" }
+                },
+                "required": ["query"]
+            }),
+            Self::KnowledgeReflect => json!({
+                "type": "object",
+                "properties": {
+                    "query": { "type": "string", "description": "Reflection query" },
+                    "budget": {
+                        "type": "string",
+                        "enum": ["low", "mid", "high"],
+                        "description": "Reflection depth (default: high)"
+                    },
+                    "maxTokens": { "type": "integer", "description": "Max result tokens (default: 2048)" }
+                },
+                "required": ["query"]
+            }),
+            Self::KnowledgeIngest => json!({
+                "type": "object",
+                "properties": {
+                    "content": { "type": "string", "description": "Content to ingest" },
+                    "context": { "type": "string", "description": "Context about the content" },
+                    "layer": {
+                        "type": "string",
+                        "enum": ["durable", "experience", "resource"],
+                        "description": "Target layer (default: resource)"
+                    }
+                },
+                "required": ["content"]
+            }),
+            Self::KnowledgeModelList => json!({
+                "type": "object",
+                "properties": {
+                    "layer": {
+                        "type": "string",
+                        "enum": ["durable", "experience", "mental-models"],
+                        "description": "Bank layer (default: mental-models)"
+                    }
+                }
+            }),
+            Self::KnowledgeModelCreate => json!({
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string", "description": "Model name" },
+                    "sourceQuery": { "type": "string", "description": "Source query for the model" },
+                    "tags": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Tags for the model"
+                    },
+                    "maxTokens": { "type": "integer", "description": "Max tokens (default: 2048)" }
+                },
+                "required": ["name", "sourceQuery"]
+            }),
+            Self::SessionSummaryFileRead => json!({
                 "type": "object",
                 "properties": {
                     "scope": { "type": "string" }
                 }
-            }),
-            Self::MemoryNoteRead | Self::MemoryNoteDelete => json!({
-                "type": "object",
-                "properties": {
-                    "scope": { "type": "string" },
-                    "notePath": { "type": "string" }
-                },
-                "required": ["notePath"]
-            }),
-            Self::MemoryNoteWrite => json!({
-                "type": "object",
-                "properties": {
-                    "scope": { "type": "string" },
-                    "notePath": { "type": "string" },
-                    "content": { "type": "string" }
-                },
-                "required": ["notePath", "content"]
-            }),
-            Self::MemoryNoteEdit => json!({
-                "type": "object",
-                "properties": {
-                    "scope": { "type": "string" },
-                    "notePath": { "type": "string" },
-                    "search": { "type": "string" },
-                    "replace": { "type": "string" }
-                },
-                "required": ["notePath", "search", "replace"]
-            }),
-            Self::WriteExperienceNote => json!({
-                "type": "object",
-                "properties": {
-                    "scope": { "type": "string" },
-                    "title": { "type": "string" },
-                    "body": { "type": "string" },
-                    "source": { "type": "string" }
-                },
-                "required": ["body"]
             }),
             Self::SessionSummaryFileEdit => json!({
                 "type": "object",
@@ -115,26 +160,87 @@ impl SpecialAgentToolKind {
         matches!(
             self,
             Self::ReviewTask
-                | Self::MemoryManifestRead
-                | Self::MemoryNoteRead
+                | Self::KnowledgeRecall
+                | Self::KnowledgeReflect
+                | Self::KnowledgeModelList
                 | Self::SessionSummaryFileRead
         )
     }
+
+    fn all() -> &'static [Self] {
+        &[
+            Self::ReviewTask,
+            Self::KnowledgeRecall,
+            Self::KnowledgeReflect,
+            Self::KnowledgeIngest,
+            Self::KnowledgeModelList,
+            Self::KnowledgeModelCreate,
+            Self::SessionSummaryFileRead,
+            Self::SessionSummaryFileEdit,
+        ]
+    }
 }
 
-#[derive(Clone)]
 pub(super) struct SpecialAgentTool {
     runtime_root: PathBuf,
     kind: SpecialAgentToolKind,
 }
 
 impl SpecialAgentTool {
-    pub(super) fn new(runtime_root: &Path, kind: SpecialAgentToolKind) -> Self {
-        Self {
-            runtime_root: runtime_root.to_path_buf(),
-            kind,
+    pub(super) fn new(runtime_root: impl Into<PathBuf>, kind: SpecialAgentToolKind) -> Self {
+        Self { runtime_root: runtime_root.into(), kind }
+    }
+
+    pub(super) fn all(runtime_root: impl Into<PathBuf> + Clone) -> Vec<Self> {
+        SpecialAgentToolKind::all()
+            .iter()
+            .map(|&kind| Self::new(runtime_root.clone(), kind))
+            .collect()
+    }
+}
+
+fn scope_param(input: &Value) -> String {
+    string_param(input, &["scope"]).unwrap_or_else(|| "default".to_string())
+}
+
+fn required_tool_param(kind: SpecialAgentToolKind, input: &Value, keys: &[&str]) -> pi::sdk::Result<String> {
+    string_param(input, keys).ok_or_else(|| {
+        pi::sdk::Error::validation(format!(
+            "Missing required parameter '{}' for tool '{}'",
+            keys.join(" | "),
+            kind.name()
+        ))
+    })
+}
+
+fn string_param(input: &Value, keys: &[&str]) -> Option<String> {
+    for key in keys {
+        if let Some(s) = input.get(key).and_then(Value::as_str) {
+            if !s.is_empty() {
+                return Some(s.to_string());
+            }
         }
     }
+    None
+}
+
+fn now_millis() -> u128 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()
+}
+
+fn resolve_bank_id(runtime_root: &Path, layer: &str) -> String {
+    let config = crate::memory::MemoryRuntimeConfig::load(runtime_root);
+    let resolver =
+        crate::memory::bank_resolver::BankResolverConfig::from_hindsight_config(&config.hindsight);
+    let ctx = crate::memory::bank_resolver::BankContext {
+        agent_id: "main".to_string(),
+        channel: None,
+        user_id: None,
+    };
+    resolver.resolve(&ctx, layer)
 }
 
 #[async_trait]
@@ -163,86 +269,189 @@ impl pi::sdk::Tool for SpecialAgentTool {
     ) -> pi::sdk::Result<pi::sdk::ToolOutput> {
         let result = match self.kind {
             SpecialAgentToolKind::ReviewTask => {
-                let task = required_tool_param(self.kind.name(), &input, &["task", "message"])?;
-                let stage = string_param(&input, &["stage", "kind"]).unwrap_or_default();
-                let kind = if stage == "spec" {
-                    "review-spec"
-                } else {
-                    "review-quality"
-                };
+                let task = required_tool_param(self.kind, &input, &["task"])?;
+                let kind = string_param(&input, &["stage"])
+                    .unwrap_or_else(|| "quality".to_string());
                 run_review_task_with_agent_runtime(
                     &self.runtime_root,
-                    kind,
+                    &kind,
                     &task,
-                    session_key_param(&input),
+                    None,
                 )
                 .await
-                .map_err(|error| tool_error(self.kind.name(), error))?
+                .map_err(|error| pi::sdk::Error::tool(self.kind.name(), error))?
             }
-            SpecialAgentToolKind::MemoryManifestRead => {
-                let scope = scope_param(&input);
-                json!(SpecialAgentMemoryTools::new(self.runtime_root.clone())
-                    .read_manifest(&scope)
-                    .map_err(|error| tool_error(self.kind.name(), error))?)
+
+            // --- Hindsight Knowledge Tools ---
+            SpecialAgentToolKind::KnowledgeRecall => {
+                let query = required_tool_param(self.kind, &input, &["query"])?;
+                let layer = string_param(&input, &["layer"]).unwrap_or_else(|| "durable".to_string());
+                let budget = string_param(&input, &["budget"]).unwrap_or_else(|| "mid".to_string());
+                let max_tokens = input
+                    .get("maxTokens")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(2048) as u32;
+
+                let runtime = crate::memory::MemoryRuntime::new(self.runtime_root.clone());
+                let client = runtime.hindsight().ok_or_else(|| {
+                    pi::sdk::Error::tool(self.kind.name(), "Hindsight not configured")
+                })?;
+                let bank_id = resolve_bank_id(&self.runtime_root, &layer);
+                let config = runtime.config();
+                let tags: Vec<&str> = config.hindsight.tags.iter().map(|s| s.as_str()).collect();
+
+                let response = client
+                    .recall(
+                        &bank_id,
+                        &query,
+                        &config.hindsight.recall_types.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
+                        &budget,
+                        max_tokens,
+                        &tags,
+                        &config.hindsight.tags_match,
+                    )
+                    .map_err(|e| pi::sdk::Error::tool(self.kind.name(), e))?;
+
+                json!({
+                    "status": "ok",
+                    "provider": "hindsight",
+                    "bank": bank_id,
+                    "items": response.items.iter().map(|item| json!({
+                        "text": item.text,
+                        "type": item.memory_type,
+                        "score": item.score,
+                    })).collect::<Vec<_>>(),
+                    "itemCount": response.items.len(),
+                })
             }
-            SpecialAgentToolKind::MemoryNoteRead => {
-                let scope = scope_param(&input);
-                let note_path =
-                    required_tool_param(self.kind.name(), &input, &["notePath", "path"])?;
-                json!(SpecialAgentMemoryTools::new(self.runtime_root.clone())
-                    .read_note(&scope, &note_path)
-                    .map_err(|error| tool_error(self.kind.name(), error))?)
+
+            SpecialAgentToolKind::KnowledgeReflect => {
+                let query = required_tool_param(self.kind, &input, &["query"])?;
+                let budget = string_param(&input, &["budget"]).unwrap_or_else(|| "high".to_string());
+                let max_tokens = input
+                    .get("maxTokens")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(2048) as u32;
+
+                let runtime = crate::memory::MemoryRuntime::new(self.runtime_root.clone());
+                let client = runtime.hindsight().ok_or_else(|| {
+                    pi::sdk::Error::tool(self.kind.name(), "Hindsight not configured")
+                })?;
+                let bank_id = resolve_bank_id(&self.runtime_root, "mental-models");
+
+                let response = client
+                    .reflect(&bank_id, &query, &budget, max_tokens)
+                    .map_err(|e| pi::sdk::Error::tool(self.kind.name(), e))?;
+
+                json!({
+                    "status": "ok",
+                    "provider": "hindsight",
+                    "text": response.text,
+                    "basedOn": response.based_on,
+                })
             }
-            SpecialAgentToolKind::MemoryNoteWrite => {
-                let scope = scope_param(&input);
-                let note_path =
-                    required_tool_param(self.kind.name(), &input, &["notePath", "path"])?;
-                let content = required_tool_param(self.kind.name(), &input, &["content"])?;
-                json!(SpecialAgentMemoryTools::new(self.runtime_root.clone())
-                    .write_note(&scope, &note_path, &content)
-                    .map_err(|error| tool_error(self.kind.name(), error))?)
+
+            SpecialAgentToolKind::KnowledgeIngest => {
+                let content = required_tool_param(self.kind, &input, &["content"])?;
+                let context = string_param(&input, &["context"]).unwrap_or_else(|| "manual_ingest".to_string());
+                let layer = string_param(&input, &["layer"]).unwrap_or_else(|| "resource".to_string());
+
+                let runtime = crate::memory::MemoryRuntime::new(self.runtime_root.clone());
+                let client = runtime.hindsight().ok_or_else(|| {
+                    pi::sdk::Error::tool(self.kind.name(), "Hindsight not configured")
+                })?;
+                let bank_id = resolve_bank_id(&self.runtime_root, &layer);
+                let config = runtime.config();
+                let tags: Vec<&str> = config.hindsight.tags.iter().map(|s| s.as_str()).collect();
+
+                let response = client
+                    .retain(
+                        &bank_id,
+                        &content,
+                        &context,
+                        json!({ "source": "knowledge_ingest_tool", "layer": layer }),
+                        &tags,
+                    )
+                    .map_err(|e| pi::sdk::Error::tool(self.kind.name(), e))?;
+
+                json!({
+                    "status": "ok",
+                    "provider": "hindsight",
+                    "bank": response.bank,
+                })
             }
-            SpecialAgentToolKind::MemoryNoteEdit => {
-                let scope = scope_param(&input);
-                let note_path =
-                    required_tool_param(self.kind.name(), &input, &["notePath", "path"])?;
-                let search = required_tool_param(self.kind.name(), &input, &["search"])?;
-                let replace = required_tool_param(self.kind.name(), &input, &["replace"])?;
-                json!(SpecialAgentMemoryTools::new(self.runtime_root.clone())
-                    .edit_note(&scope, &note_path, &search, &replace)
-                    .map_err(|error| tool_error(self.kind.name(), error))?)
+
+            SpecialAgentToolKind::KnowledgeModelList => {
+                let layer = string_param(&input, &["layer"]).unwrap_or_else(|| "mental-models".to_string());
+
+                let runtime = crate::memory::MemoryRuntime::new(self.runtime_root.clone());
+                let client = runtime.hindsight().ok_or_else(|| {
+                    pi::sdk::Error::tool(self.kind.name(), "Hindsight not configured")
+                })?;
+                let bank_id = resolve_bank_id(&self.runtime_root, &layer);
+
+                let models = client
+                    .list_mental_models(&bank_id)
+                    .map_err(|e| pi::sdk::Error::tool(self.kind.name(), e))?;
+
+                json!({
+                    "status": "ok",
+                    "provider": "hindsight",
+                    "bank": bank_id,
+                    "models": models.iter().map(|m| json!({
+                        "id": m.id,
+                        "name": m.name,
+                        "content": m.content,
+                        "tags": m.tags,
+                    })).collect::<Vec<_>>(),
+                    "modelCount": models.len(),
+                })
             }
-            SpecialAgentToolKind::MemoryNoteDelete => {
-                let scope = scope_param(&input);
-                let note_path =
-                    required_tool_param(self.kind.name(), &input, &["notePath", "path"])?;
-                json!(SpecialAgentMemoryTools::new(self.runtime_root.clone())
-                    .delete_note(&scope, &note_path)
-                    .map_err(|error| tool_error(self.kind.name(), error))?)
+
+            SpecialAgentToolKind::KnowledgeModelCreate => {
+                let name = required_tool_param(self.kind, &input, &["name"])?;
+                let source_query = required_tool_param(self.kind, &input, &["sourceQuery"])?;
+                let tags = input
+                    .get("tags")
+                    .and_then(Value::as_array)
+                    .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                    .unwrap_or_default();
+                let max_tokens = input
+                    .get("maxTokens")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(2048) as u32;
+
+                let runtime = crate::memory::MemoryRuntime::new(self.runtime_root.clone());
+                let client = runtime.hindsight().ok_or_else(|| {
+                    pi::sdk::Error::tool(self.kind.name(), "Hindsight not configured")
+                })?;
+                let bank_id = resolve_bank_id(&self.runtime_root, "mental-models");
+
+                client
+                    .create_mental_model(&bank_id, &name, &source_query, tags, max_tokens)
+                    .map_err(|e| pi::sdk::Error::tool(self.kind.name(), e))?;
+
+                json!({
+                    "status": "ok",
+                    "provider": "hindsight",
+                    "bank": bank_id,
+                    "name": name,
+                })
             }
-            SpecialAgentToolKind::WriteExperienceNote => {
-                let scope = scope_param(&input);
-                let title = string_param(&input, &["title"])
-                    .unwrap_or_else(|| "Experience note".to_string());
-                let body = required_tool_param(self.kind.name(), &input, &["body", "content"])?;
-                let source =
-                    string_param(&input, &["source"]).unwrap_or_else(|| "tool".to_string());
-                ExperienceStore::new(self.runtime_root.clone())
-                    .write_note(&scope, &title, &body, &source)
-                    .map_err(|error| tool_error(self.kind.name(), error))?
-            }
+
+            // --- Session Summary (unchanged) ---
             SpecialAgentToolKind::SessionSummaryFileRead => {
                 let scope = scope_param(&input);
-                SessionSummaryStore::new(self.runtime_root.clone())
+                crate::memory::SessionSummaryStore::new(self.runtime_root.clone())
                     .read(&scope)
-                    .map_err(|error| tool_error(self.kind.name(), error))?
+                    .map_err(|error| pi::sdk::Error::tool(self.kind.name(), error))?
             }
             SpecialAgentToolKind::SessionSummaryFileEdit => {
                 let scope = scope_param(&input);
-                let content = required_tool_param(self.kind.name(), &input, &["content"])?;
-                SessionSummaryStore::new(self.runtime_root.clone())
+                let content = required_tool_param(self.kind, &input, &["content"])?;
+                crate::memory::SessionSummaryStore::new(self.runtime_root.clone())
                     .edit(&scope, &content)
-                    .map_err(|error| tool_error(self.kind.name(), error))?
+                    .map_err(|error| pi::sdk::Error::tool(self.kind.name(), error))?
             }
         };
         Ok(native_tool_output(result))

@@ -70,14 +70,647 @@ pub(super) async fn execute_agent_run_turn(
     let session_key = normalize_session_key(&required_param(params, &["sessionKey", "key"])?)?;
     let run_id = string_param(params, &["idempotencyKey", "runId"])
         .unwrap_or_else(|| format!("{default_run_prefix}-{}", now_millis()));
-    let request = build_agent_run_request(params, run_id, session_key)?;
-    let result = state
+    let mut params = params.clone();
+    apply_gateway_agent_defaults(state, &mut params)?;
+    let mut request = build_agent_run_request(&params, run_id, session_key)?;
+    apply_sdk_session_start_hooks(state, &mut request).await?;
+    apply_sdk_user_prompt_submit_hooks(state, &mut request).await?;
+    record_rewind_checkpoint(state, &request);
+    let tool_hook_policy = sdk_tool_use_hook_policy(state, &request)?;
+    let run_post_turn_hooks = match &tool_hook_policy {
+        Some(policy) => policy.post_tool_use.is_none(),
+        None => true,
+    };
+    let failure_session_key = request.session_key.clone();
+    let failure_agent_id = request.agent_id.clone();
+    let result = match state
         .agent_runtime
-        .run_turn(request)
+        .run_turn_with_tool_hook_policy(request, tool_hook_policy)
         .await
-        .map_err(|error| error.message().to_string())?;
+    {
+        Ok(result) => result,
+        Err(error) => {
+            let message = error.message().to_string();
+            run_sdk_stop_failure_hooks(
+                state,
+                &failure_session_key,
+                &failure_agent_id,
+                &message,
+                None,
+            )
+            .await;
+            return Err(message);
+        }
+    };
     record_agent_run_events(state, &result)?;
+    if run_post_turn_hooks {
+        run_sdk_post_turn_hooks(state, &result).await?;
+    }
     Ok(result)
+}
+
+async fn apply_sdk_session_start_hooks(
+    state: &GatewayState,
+    request: &mut AgentRunRequest,
+) -> Result<(), String> {
+    let is_new_session = state
+        .session_store
+        .session_history(&request.session_key)
+        .map(|history| history.is_empty())
+        .unwrap_or(true);
+    if !is_new_session {
+        return Ok(());
+    }
+    let mut input = sdk_base_hook_input(state, request, "SessionStart");
+    if let Some(object) = input.as_object_mut() {
+        object.insert("source".to_string(), Value::String("startup".to_string()));
+        if request.model.model != "configured" {
+            object.insert(
+                "model".to_string(),
+                Value::String(request.model.model.clone()),
+            );
+        }
+    }
+    let responses =
+        run_sdk_hook_callbacks(state, "SessionStart", Some("startup"), input, None).await?;
+    for response in responses {
+        if let Some(reason) = sdk_hook_blocking_reason(&response) {
+            return Err(reason);
+        }
+        if let Some(message) =
+            sdk_hook_specific_string(&response, "SessionStart", "initialUserMessage")
+        {
+            prepend_hook_context_to_agent_request(request, &message);
+        }
+        if let Some(context) =
+            sdk_hook_specific_string(&response, "SessionStart", "additionalContext")
+        {
+            append_hook_context_to_agent_request(request, &context);
+        }
+    }
+    Ok(())
+}
+
+async fn apply_sdk_user_prompt_submit_hooks(
+    state: &GatewayState,
+    request: &mut AgentRunRequest,
+) -> Result<(), String> {
+    let mut input = sdk_base_hook_input(state, request, "UserPromptSubmit");
+    if let Some(object) = input.as_object_mut() {
+        object.insert(
+            "prompt".to_string(),
+            Value::String(request.inbound.body.clone()),
+        );
+    }
+    let responses = run_sdk_hook_callbacks(state, "UserPromptSubmit", None, input, None).await?;
+    for response in responses {
+        if let Some(reason) = sdk_hook_blocking_reason(&response) {
+            return Err(reason);
+        }
+        if let Some(context) =
+            sdk_hook_specific_string(&response, "UserPromptSubmit", "additionalContext")
+        {
+            append_hook_context_to_agent_request(request, &context);
+        }
+    }
+    Ok(())
+}
+
+pub(super) async fn run_sdk_session_end_hooks(
+    state: &GatewayState,
+    session_key: &str,
+    reason: &str,
+) -> Result<(), String> {
+    let mut input = sdk_base_hook_input_for_session(state, session_key, "main", "SessionEnd");
+    if let Some(object) = input.as_object_mut() {
+        object.insert("reason".to_string(), Value::String(reason.to_string()));
+    }
+    let _ = run_sdk_hook_callbacks(state, "SessionEnd", Some(reason), input, None).await?;
+    Ok(())
+}
+
+async fn run_sdk_post_turn_hooks(
+    state: &GatewayState,
+    result: &AgentRunResult,
+) -> Result<(), String> {
+    let agent_id = agent_run_result_agent_id(result);
+    let mut calls = BTreeMap::<String, (String, Value)>::new();
+    for event in &result.events {
+        match event {
+            AgentRunEvent::ToolCall {
+                call_id,
+                tool_name,
+                arguments,
+                ..
+            } => {
+                calls.insert(call_id.clone(), (tool_name.clone(), arguments.clone()));
+            }
+            AgentRunEvent::ToolProgress {
+                call_id,
+                tool_name,
+                status,
+                message,
+                ..
+            } if matches!(status.as_str(), "completed" | "failed") => {
+                let (tool_name, tool_input) = calls
+                    .get(call_id)
+                    .cloned()
+                    .unwrap_or_else(|| (tool_name.clone(), Value::Null));
+                let hook_event = if status == "failed" {
+                    "PostToolUseFailure"
+                } else {
+                    "PostToolUse"
+                };
+                let mut input = sdk_base_hook_input_for_session(
+                    state,
+                    &result.session_key,
+                    agent_id,
+                    hook_event,
+                );
+                if let Some(object) = input.as_object_mut() {
+                    object.insert("tool_name".to_string(), Value::String(tool_name.clone()));
+                    object.insert("tool_input".to_string(), tool_input);
+                    object.insert("tool_use_id".to_string(), Value::String(call_id.clone()));
+                    if hook_event == "PostToolUseFailure" {
+                        object.insert(
+                            "error".to_string(),
+                            Value::String(message.clone().unwrap_or_default()),
+                        );
+                    } else {
+                        object.insert(
+                            "tool_response".to_string(),
+                            json!({ "output": message.clone().unwrap_or_default() }),
+                        );
+                    }
+                }
+                let _ = run_sdk_hook_callbacks(
+                    state,
+                    hook_event,
+                    Some(&tool_name),
+                    input,
+                    Some(call_id.clone()),
+                )
+                .await?;
+            }
+            _ => {}
+        }
+    }
+    let mut stop_input =
+        sdk_base_hook_input_for_session(state, &result.session_key, agent_id, "Stop");
+    if let Some(object) = stop_input.as_object_mut() {
+        object.insert("stop_hook_active".to_string(), Value::Bool(false));
+        object.insert(
+            "last_assistant_message".to_string(),
+            Value::String(result.assistant_text.clone()),
+        );
+    }
+    let _ = run_sdk_hook_callbacks(state, "Stop", None, stop_input, None).await?;
+    Ok(())
+}
+
+async fn run_sdk_stop_failure_hooks(
+    state: &GatewayState,
+    session_key: &str,
+    agent_id: &str,
+    error: &str,
+    last_assistant_message: Option<&str>,
+) {
+    let mut input = sdk_base_hook_input_for_session(state, session_key, agent_id, "StopFailure");
+    if let Some(object) = input.as_object_mut() {
+        object.insert("error".to_string(), Value::String(error.to_string()));
+        if let Some(last_assistant_message) = last_assistant_message {
+            object.insert(
+                "last_assistant_message".to_string(),
+                Value::String(last_assistant_message.to_string()),
+            );
+        }
+    }
+    let _ = run_sdk_hook_callbacks(state, "StopFailure", Some(error), input, None).await;
+}
+
+pub(super) async fn run_sdk_subagent_start_hooks(
+    state: &GatewayState,
+    parent_session_key: &str,
+    agent_id: &str,
+    agent_type: &str,
+) -> Result<Vec<String>, String> {
+    let mut input =
+        sdk_base_hook_input_for_session(state, parent_session_key, "main", "SubagentStart");
+    if let Some(object) = input.as_object_mut() {
+        object.insert("agent_id".to_string(), Value::String(agent_id.to_string()));
+        object.insert(
+            "agent_type".to_string(),
+            Value::String(agent_type.to_string()),
+        );
+    }
+    let responses =
+        run_sdk_hook_callbacks(state, "SubagentStart", Some(agent_type), input, None).await?;
+    Ok(responses
+        .into_iter()
+        .filter_map(|response| {
+            sdk_hook_specific_string(&response, "SubagentStart", "additionalContext")
+        })
+        .collect())
+}
+
+pub(super) async fn run_sdk_subagent_stop_hooks(
+    state: &GatewayState,
+    parent_session_key: &str,
+    agent_id: &str,
+    agent_type: &str,
+    last_assistant_message: Option<&str>,
+) -> Result<(), String> {
+    let mut input =
+        sdk_base_hook_input_for_session(state, parent_session_key, "main", "SubagentStop");
+    let agent_transcript_path = state
+        .session_store
+        .session_transcript_path(agent_id)
+        .map(|path| path.to_string_lossy().to_string())
+        .unwrap_or_default();
+    if let Some(object) = input.as_object_mut() {
+        object.insert("stop_hook_active".to_string(), Value::Bool(false));
+        object.insert("agent_id".to_string(), Value::String(agent_id.to_string()));
+        object.insert(
+            "agent_transcript_path".to_string(),
+            Value::String(agent_transcript_path),
+        );
+        object.insert(
+            "agent_type".to_string(),
+            Value::String(agent_type.to_string()),
+        );
+        if let Some(message) = last_assistant_message {
+            object.insert(
+                "last_assistant_message".to_string(),
+                Value::String(message.to_string()),
+            );
+        }
+    }
+    let _ = run_sdk_hook_callbacks(state, "SubagentStop", Some(agent_type), input, None).await?;
+    Ok(())
+}
+
+fn agent_run_result_agent_id(result: &AgentRunResult) -> &str {
+    result
+        .events
+        .iter()
+        .find_map(|event| match event {
+            AgentRunEvent::RunStarted { agent_id, .. } => Some(agent_id.as_str()),
+            _ => None,
+        })
+        .unwrap_or("main")
+}
+
+fn sdk_base_hook_input(
+    state: &GatewayState,
+    request: &AgentRunRequest,
+    hook_event_name: &str,
+) -> Value {
+    sdk_base_hook_input_for_session(
+        state,
+        &request.session_key,
+        &request.agent_id,
+        hook_event_name,
+    )
+}
+
+pub(super) fn sdk_base_hook_input_for_session(
+    state: &GatewayState,
+    session_key: &str,
+    agent_id: &str,
+    hook_event_name: &str,
+) -> Value {
+    let transcript_path = state
+        .session_store
+        .session_transcript_path(session_key)
+        .map(|path| path.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let mut input = json!({
+        "session_id": session_key,
+        "transcript_path": transcript_path,
+        "cwd": state.runtime_root.to_string_lossy().to_string(),
+        "hook_event_name": hook_event_name
+    });
+    if agent_id != "main" {
+        if let Some(object) = input.as_object_mut() {
+            object.insert(
+                "agent_type".to_string(),
+                Value::String(agent_id.to_string()),
+            );
+        }
+    }
+    input
+}
+
+pub(super) fn sdk_hook_blocking_reason(response: &Value) -> Option<String> {
+    if response
+        .get("continue")
+        .and_then(Value::as_bool)
+        .is_some_and(|value| !value)
+    {
+        return Some(
+            response
+                .get("stopReason")
+                .or_else(|| response.get("reason"))
+                .and_then(Value::as_str)
+                .unwrap_or("SDK hook blocked the turn")
+                .to_string(),
+        );
+    }
+    if response.get("decision").and_then(Value::as_str) == Some("block") {
+        return Some(
+            response
+                .get("reason")
+                .and_then(Value::as_str)
+                .unwrap_or("SDK hook blocked the turn")
+                .to_string(),
+        );
+    }
+    None
+}
+
+pub(super) fn sdk_hook_specific_string(
+    response: &Value,
+    hook_event_name: &str,
+    key: &str,
+) -> Option<String> {
+    let output = response.get("hookSpecificOutput")?;
+    if output.get("hookEventName").and_then(Value::as_str) != Some(hook_event_name) {
+        return None;
+    }
+    output
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+}
+
+fn prepend_hook_context_to_agent_request(request: &mut AgentRunRequest, context: &str) {
+    let body = if request.inbound.body.trim().is_empty() {
+        context.to_string()
+    } else {
+        format!("{context}\n\n{}", request.inbound.body)
+    };
+    request.inbound.raw_body = Some(body.clone());
+    request.inbound.body = body;
+}
+
+fn append_hook_context_to_agent_request(request: &mut AgentRunRequest, context: &str) {
+    let body = if request.inbound.body.trim().is_empty() {
+        context.to_string()
+    } else {
+        format!("{}\n\n{context}", request.inbound.body)
+    };
+    request.inbound.raw_body = Some(body.clone());
+    request.inbound.body = body;
+}
+
+fn sdk_tool_use_hook_policy(
+    state: &GatewayState,
+    request: &AgentRunRequest,
+) -> Result<Option<AgentRuntimeToolHookPolicy>, String> {
+    let matchers = state
+        .sdk_hook_matchers
+        .lock()
+        .map_err(|_| "SDK hook matcher store lock poisoned".to_string())?;
+    let has_pre_tool_use_hooks = matchers
+        .get("PreToolUse")
+        .is_some_and(|matchers| !matchers.is_empty());
+    let has_post_tool_use_hooks = matchers
+        .get("PostToolUse")
+        .is_some_and(|matchers| !matchers.is_empty())
+        || matchers
+            .get("PostToolUseFailure")
+            .is_some_and(|matchers| !matchers.is_empty());
+    drop(matchers);
+    if !has_pre_tool_use_hooks && !has_post_tool_use_hooks {
+        return Ok(None);
+    }
+    let pre_tool_use: Option<Arc<dyn AgentRuntimePreToolUseHook>> = if has_pre_tool_use_hooks {
+        Some(Arc::new(GatewayPreToolUseHook {
+            state: state.clone(),
+            session_key: request.session_key.clone(),
+            agent_id: request.agent_id.clone(),
+        }))
+    } else {
+        None
+    };
+    let post_tool_use: Option<Arc<dyn AgentRuntimePostToolUseHook>> = if has_post_tool_use_hooks {
+        Some(Arc::new(GatewayPostToolUseHook {
+            state: state.clone(),
+            session_key: request.session_key.clone(),
+            agent_id: request.agent_id.clone(),
+        }))
+    } else {
+        None
+    };
+    Ok(Some(AgentRuntimeToolHookPolicy::with_tool_hooks(
+        pre_tool_use,
+        post_tool_use,
+    )))
+}
+
+struct GatewayPreToolUseHook {
+    state: GatewayState,
+    session_key: String,
+    agent_id: String,
+}
+
+impl AgentRuntimePreToolUseHook for GatewayPreToolUseHook {
+    fn pre_tool_use<'a>(
+        &'a self,
+        request: AgentRuntimePreToolUseRequest,
+    ) -> Pin<Box<dyn Future<Output = AgentRuntimePreToolUseDecision> + Send + 'a>> {
+        Box::pin(async move {
+            let mut input = sdk_base_hook_input_for_session(
+                &self.state,
+                &self.session_key,
+                &self.agent_id,
+                "PreToolUse",
+            );
+            if let Some(object) = input.as_object_mut() {
+                object.insert(
+                    "tool_name".to_string(),
+                    Value::String(request.tool_name.clone()),
+                );
+                object.insert("tool_input".to_string(), request.input.clone());
+                object.insert(
+                    "tool_use_id".to_string(),
+                    Value::String(request.tool_call_id.clone()),
+                );
+            }
+            let responses = match run_sdk_hook_callbacks(
+                &self.state,
+                "PreToolUse",
+                Some(&request.tool_name),
+                input,
+                Some(request.tool_call_id.clone()),
+            )
+            .await
+            {
+                Ok(responses) => responses,
+                Err(error) => {
+                    tracing::warn!(
+                        tool_name = %request.tool_name,
+                        tool_call_id = %request.tool_call_id,
+                        error = %error,
+                        "sdk_pre_tool_use_hook_failed"
+                    );
+                    return AgentRuntimePreToolUseDecision::Continue {
+                        input: request.input,
+                        additional_context: Vec::new(),
+                    };
+                }
+            };
+            sdk_pre_tool_use_decision(request.input, responses)
+        })
+    }
+}
+
+fn sdk_pre_tool_use_decision(
+    original_input: Value,
+    responses: Vec<Value>,
+) -> AgentRuntimePreToolUseDecision {
+    let mut input = original_input;
+    let mut additional_context = Vec::new();
+    for response in responses {
+        if let Some(reason) = sdk_hook_blocking_reason(&response) {
+            return AgentRuntimePreToolUseDecision::Block { message: reason };
+        }
+        if let Some(context) =
+            sdk_hook_specific_string(&response, "PreToolUse", "additionalContext")
+        {
+            additional_context.push(context);
+        }
+        let Some(output) = response.get("hookSpecificOutput") else {
+            continue;
+        };
+        if output.get("hookEventName").and_then(Value::as_str) != Some("PreToolUse") {
+            continue;
+        }
+        if output.get("permissionDecision").and_then(Value::as_str) == Some("deny") {
+            let message = output
+                .get("permissionDecisionReason")
+                .or_else(|| response.get("reason"))
+                .and_then(Value::as_str)
+                .unwrap_or("blocked by PreToolUse hook")
+                .to_string();
+            return AgentRuntimePreToolUseDecision::Block { message };
+        }
+        if let Some(updated_input) = output.get("updatedInput").filter(|value| value.is_object()) {
+            input = updated_input.clone();
+        }
+    }
+    AgentRuntimePreToolUseDecision::Continue {
+        input,
+        additional_context,
+    }
+}
+
+struct GatewayPostToolUseHook {
+    state: GatewayState,
+    session_key: String,
+    agent_id: String,
+}
+
+impl AgentRuntimePostToolUseHook for GatewayPostToolUseHook {
+    fn post_tool_use<'a>(
+        &'a self,
+        request: AgentRuntimePostToolUseRequest,
+    ) -> Pin<Box<dyn Future<Output = AgentRuntimePostToolUseDecision> + Send + 'a>> {
+        Box::pin(async move {
+            let hook_event = if request.error.is_some() {
+                "PostToolUseFailure"
+            } else {
+                "PostToolUse"
+            };
+            let mut input = sdk_base_hook_input_for_session(
+                &self.state,
+                &self.session_key,
+                &self.agent_id,
+                hook_event,
+            );
+            if let Some(object) = input.as_object_mut() {
+                object.insert(
+                    "tool_name".to_string(),
+                    Value::String(request.tool_name.clone()),
+                );
+                object.insert("tool_input".to_string(), request.input);
+                object.insert(
+                    "tool_use_id".to_string(),
+                    Value::String(request.tool_call_id.clone()),
+                );
+                if let Some(error) = request.error {
+                    object.insert("error".to_string(), Value::String(error));
+                } else {
+                    object.insert(
+                        "tool_response".to_string(),
+                        request.output.unwrap_or(Value::Null),
+                    );
+                }
+            }
+            let responses = match run_sdk_hook_callbacks(
+                &self.state,
+                hook_event,
+                Some(&request.tool_name),
+                input,
+                Some(request.tool_call_id),
+            )
+            .await
+            {
+                Ok(responses) => responses,
+                Err(error) => {
+                    tracing::warn!(
+                        tool_name = %request.tool_name,
+                        error = %error,
+                        "sdk_post_tool_use_hook_failed"
+                    );
+                    return AgentRuntimePostToolUseDecision::Continue {
+                        updated_mcp_tool_output: None,
+                        additional_context: Vec::new(),
+                    };
+                }
+            };
+            sdk_post_tool_use_decision(hook_event, responses)
+        })
+    }
+}
+
+fn sdk_post_tool_use_decision(
+    hook_event: &str,
+    responses: Vec<Value>,
+) -> AgentRuntimePostToolUseDecision {
+    if hook_event != "PostToolUse" {
+        let additional_context = sdk_hook_additional_contexts(hook_event, &responses);
+        return AgentRuntimePostToolUseDecision::Continue {
+            updated_mcp_tool_output: None,
+            additional_context,
+        };
+    }
+    let mut updated_mcp_tool_output = None;
+    let additional_context = sdk_hook_additional_contexts(hook_event, &responses);
+    for response in responses {
+        let Some(output) = response.get("hookSpecificOutput") else {
+            continue;
+        };
+        if output.get("hookEventName").and_then(Value::as_str) != Some("PostToolUse") {
+            continue;
+        }
+        if let Some(updated) = output.get("updatedMCPToolOutput") {
+            updated_mcp_tool_output = Some(updated.clone());
+        }
+    }
+    AgentRuntimePostToolUseDecision::Continue {
+        updated_mcp_tool_output,
+        additional_context,
+    }
+}
+
+fn sdk_hook_additional_contexts(hook_event: &str, responses: &[Value]) -> Vec<String> {
+    responses
+        .iter()
+        .filter_map(|response| sdk_hook_specific_string(response, hook_event, "additionalContext"))
+        .collect()
 }
 
 pub(super) fn build_agent_run_request(
@@ -94,7 +727,7 @@ pub(super) fn build_agent_run_request(
         }
         inbound
     } else {
-        let message = required_param(params, &["message", "text"])?;
+        let message = required_param(params, &["message", "text", "prompt"])?;
         let mut metadata = BTreeMap::new();
         if let Some(parent) = string_param(params, &["parentSessionKey", "parent", "spawnedBy"]) {
             metadata.insert("parentSessionKey".to_string(), json!(parent));
@@ -154,7 +787,7 @@ pub(super) fn build_agent_run_request(
             model: agent_model_param(params, "model").unwrap_or_else(|| "configured".to_string()),
             reasoning_level: string_param(params, &["reasoningLevel"]),
         },
-        enabled_tools: Vec::new(),
+        enabled_tools: agent_run_enabled_tools(params),
         profile,
         options: agent_run_options(params),
     })
@@ -174,7 +807,49 @@ pub(super) fn agent_run_options(params: &Value) -> BTreeMap<String, Value> {
     if let Some(question) = string_param(params, &["btwQuestion"]) {
         options.insert("btwQuestion".to_string(), Value::String(question));
     }
+    for key in [
+        "systemPrompt",
+        "system_prompt",
+        "jsonSchema",
+        "parentContextPolicy",
+        "description",
+        "subagent_type",
+        "subagentType",
+        "agentType",
+    ] {
+        if let Some(value) = params.get(key) {
+            options
+                .entry(key.to_string())
+                .or_insert_with(|| value.clone());
+        }
+    }
     options
+}
+
+fn nested_string_array_param(input: &Value, object_key: &str, key: &str) -> Option<Vec<String>> {
+    input
+        .get(object_key)
+        .and_then(|value| value.as_object())
+        .and_then(|object| object.get(key))
+        .and_then(Value::as_array)
+        .and_then(|values| {
+            let out = values
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(ToOwned::to_owned)
+                .collect::<Vec<_>>();
+            (!out.is_empty()).then_some(out)
+        })
+}
+
+pub(super) fn agent_run_enabled_tools(params: &Value) -> Vec<String> {
+    string_array_param(params, "enabledTools")
+        .or_else(|| string_array_param(params, "allowedTools"))
+        .or_else(|| nested_string_array_param(params, "options", "enabledTools"))
+        .or_else(|| nested_string_array_param(params, "options", "allowedTools"))
+        .unwrap_or_default()
 }
 
 pub(super) fn agent_model_param(params: &Value, field: &str) -> Option<String> {
@@ -478,6 +1153,7 @@ pub(super) async fn memory_compact_with_agent_runtime(
             "reason": "below_threshold"
         }));
     }
+    run_sdk_pre_compact_hooks(state, session_id, "manual", None).await?;
     let transcript = serde_json::to_string_pretty(&messages)
         .map_err(|error| format!("failed to serialize compact transcript: {error}"))?;
     let definition = find_special_agent("session-summary")
@@ -503,6 +1179,7 @@ pub(super) async fn memory_compact_with_agent_runtime(
         .unwrap_or_default()
         .to_string();
     store.upsert_session_compaction_state(session_id, messages.len() as i64)?;
+    run_sdk_post_compact_hooks(state, session_id, "manual", &summary).await?;
     Ok(json!({
         "ok": true,
         "compacted": true,
@@ -519,6 +1196,66 @@ pub(super) async fn memory_compact_with_agent_runtime(
             "implementation": "rust-native-agent-runtime"
         }
     }))
+}
+
+pub(super) async fn run_sdk_pre_compact_hooks(
+    state: &GatewayState,
+    session_key: &str,
+    trigger: &str,
+    custom_instructions: Option<String>,
+) -> Result<(), String> {
+    let trigger = compact_trigger(trigger);
+    let mut input = sdk_base_hook_input_for_session(state, session_key, "main", "PreCompact");
+    if let Some(object) = input.as_object_mut() {
+        object.insert("trigger".to_string(), Value::String(trigger.clone()));
+        object.insert(
+            "custom_instructions".to_string(),
+            custom_instructions
+                .map(Value::String)
+                .unwrap_or(Value::Null),
+        );
+    }
+    let responses =
+        run_sdk_hook_callbacks(state, "PreCompact", Some(&trigger), input, None).await?;
+    for response in responses {
+        if let Some(reason) = sdk_hook_blocking_reason(&response) {
+            return Err(reason);
+        }
+    }
+    Ok(())
+}
+
+pub(super) async fn run_sdk_post_compact_hooks(
+    state: &GatewayState,
+    session_key: &str,
+    trigger: &str,
+    compact_summary: &str,
+) -> Result<(), String> {
+    let trigger = compact_trigger(trigger);
+    let mut input = sdk_base_hook_input_for_session(state, session_key, "main", "PostCompact");
+    if let Some(object) = input.as_object_mut() {
+        object.insert("trigger".to_string(), Value::String(trigger.clone()));
+        object.insert(
+            "compact_summary".to_string(),
+            Value::String(compact_summary.to_string()),
+        );
+    }
+    let responses =
+        run_sdk_hook_callbacks(state, "PostCompact", Some(&trigger), input, None).await?;
+    for response in responses {
+        if let Some(reason) = sdk_hook_blocking_reason(&response) {
+            return Err(reason);
+        }
+    }
+    Ok(())
+}
+
+fn compact_trigger(value: &str) -> String {
+    if value == "auto" {
+        "auto".to_string()
+    } else {
+        "manual".to_string()
+    }
 }
 
 pub(super) fn estimate_gateway_json_tokens(value: &Value) -> u32 {

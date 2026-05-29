@@ -10,6 +10,14 @@ pub(super) async fn ws(
 pub(super) async fn handle_ws(socket: WebSocket, state: GatewayState) {
     let nonce = format!("rust-{}", now_millis());
     let (mut sender, mut receiver) = socket.split();
+    let connection_id = format!("sdk-ws-{}", now_millis());
+    let (sdk_mcp_tx, mut sdk_mcp_rx) = mpsc::unbounded_channel::<SdkMcpOutboundRequest>();
+    let (sdk_control_tx, mut sdk_control_rx) =
+        mpsc::unbounded_channel::<SdkControlOutboundRequest>();
+    let mut pending_sdk_mcp_requests =
+        BTreeMap::<String, oneshot::Sender<Result<Value, String>>>::new();
+    let mut pending_sdk_control_requests =
+        BTreeMap::<String, oneshot::Sender<Result<Value, String>>>::new();
     let _ = sender
         .send(Message::Text(
             json!({
@@ -38,6 +46,129 @@ pub(super) async fn handle_ws(socket: WebSocket, state: GatewayState) {
                 let Message::Text(raw) = message else {
                     continue;
                 };
+                let raw_value = match serde_json::from_str::<Value>(&raw) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        let _ = send_ws_event(
+                            &mut sender,
+                            "operationFailed",
+                            json!({ "message": format!("invalid gateway frame: {error}") }),
+                        )
+                        .await;
+                        continue;
+                    }
+                };
+                if let Some(control_type) = raw_value.get("type").and_then(Value::as_str) {
+                    match control_type {
+                        "keep_alive" => continue,
+                        "control_request" => {
+                            let request_id = string_param(&raw_value, &["request_id", "requestId"])
+                                .unwrap_or_else(|| format!("gateway-control-{}", now_millis()));
+                            let sdk_mcp_servers =
+                                sdk_mcp_servers_from_control_request(&raw_value);
+                            let response = if connected {
+                                claude_control_request(&state, raw_value.clone()).await.unwrap_or_else(|error| {
+                                    claude_control_error_response(request_id, error)
+                                })
+                            } else {
+                                claude_control_error_response(
+                                    request_id,
+                                    "gateway connect is required before SDK control messages"
+                                        .to_string(),
+                                )
+                            };
+                            if !sdk_mcp_servers.is_empty()
+                                && sdk_control_response_is_success(&response)
+                            {
+                                if let Err(message) = register_sdk_mcp_transport(
+                                    &state,
+                                    &connection_id,
+                                    sdk_mcp_tx.clone(),
+                                    sdk_mcp_servers,
+                                ) {
+                                    let _ = send_ws_event(
+                                        &mut sender,
+                                        "operationFailed",
+                                        json!({ "message": message }),
+                                    )
+                                    .await;
+                                }
+                            }
+                            if sdk_frame_is_initialize(&raw_value)
+                                && sdk_control_response_is_success(&response)
+                            {
+                                if let Err(message) = register_sdk_control_transport(
+                                    &state,
+                                    &connection_id,
+                                    sdk_control_tx.clone(),
+                                ) {
+                                    let _ = send_ws_event(
+                                        &mut sender,
+                                        "operationFailed",
+                                        json!({ "message": message }),
+                                    )
+                                    .await;
+                                }
+                            }
+                            if sender.send(Message::Text(response.to_string().into())).await.is_err()
+                            {
+                                break;
+                            }
+                            continue;
+                        }
+                        "control_response" => {
+                            if connected {
+                                if take_sdk_mcp_control_response(
+                                    &mut pending_sdk_control_requests,
+                                    &raw_value,
+                                ) {
+                                    continue;
+                                }
+                                let _ = take_sdk_mcp_control_response(
+                                    &mut pending_sdk_mcp_requests,
+                                    &raw_value,
+                                );
+                            }
+                            continue;
+                        }
+                        "control_cancel_request" => {
+                            if connected {
+                                let _ = control_cancel_request(&state, raw_value);
+                            } else {
+                                let _ = send_ws_event(
+                                    &mut sender,
+                                    "operationFailed",
+                                    json!({ "message": "gateway connect is required before SDK control messages" }),
+                                )
+                                .await;
+                            }
+                            continue;
+                        }
+                        "update_environment_variables" => {
+                            if connected {
+                                if let Err(message) =
+                                    control_update_environment_variables(raw_value)
+                                {
+                                    let _ = send_ws_event(
+                                        &mut sender,
+                                        "operationFailed",
+                                        json!({ "message": message }),
+                                    )
+                                    .await;
+                                }
+                            } else {
+                                let _ = send_ws_event(
+                                    &mut sender,
+                                    "operationFailed",
+                                    json!({ "message": "gateway connect is required before SDK control messages" }),
+                                )
+                                .await;
+                            }
+                            continue;
+                        }
+                        _ => {}
+                    }
+                }
                 let request = match serde_json::from_str::<GatewayWsRequest>(&raw) {
                     Ok(request) if request.frame_type == "req" => request,
                     Ok(request) => {
@@ -87,8 +218,51 @@ pub(super) async fn handle_ws(socket: WebSocket, state: GatewayState) {
                 }
 
                 let method = request.method.clone();
+                let sdk_mcp_servers = if method == "initialize" {
+                    sdk_mcp_servers_from_initialize_params(&request.params)
+                } else if matches!(method.as_str(), "control_request" | "sdk.control_request") {
+                    sdk_mcp_servers_from_control_request(&request.params)
+                } else {
+                    Vec::new()
+                };
+                let is_sdk_initialize_method = sdk_method_is_initialize(&method, &request.params);
                 match handle_gateway_method(&state, &method, request.params).await {
                     Ok(payload) => {
+                        let can_register_sdk_mcp = !matches!(
+                            method.as_str(),
+                            "control_request" | "sdk.control_request"
+                        ) || sdk_control_response_is_success(&payload);
+                        if !sdk_mcp_servers.is_empty() && can_register_sdk_mcp {
+                            if let Err(message) = register_sdk_mcp_transport(
+                                &state,
+                                &connection_id,
+                                sdk_mcp_tx.clone(),
+                                sdk_mcp_servers,
+                            ) {
+                                let _ = send_ws_event(
+                                    &mut sender,
+                                    "operationFailed",
+                                    json!({ "message": message }),
+                                )
+                                .await;
+                            }
+                        }
+                        if is_sdk_initialize_method
+                            && (method == "initialize" || can_register_sdk_mcp)
+                        {
+                            if let Err(message) = register_sdk_control_transport(
+                                &state,
+                                &connection_id,
+                                sdk_control_tx.clone(),
+                            ) {
+                                let _ = send_ws_event(
+                                    &mut sender,
+                                    "operationFailed",
+                                    json!({ "message": message }),
+                                )
+                                .await;
+                            }
+                        }
                         apply_ws_subscription_state(
                             &method,
                             &payload,
@@ -115,7 +289,41 @@ pub(super) async fn handle_ws(socket: WebSocket, state: GatewayState) {
                     break;
                 }
             }
+            sdk_mcp_request = sdk_mcp_rx.recv(), if connected => {
+                let Some(request) = sdk_mcp_request else {
+                    break;
+                };
+                let request_id = request.request_id.clone();
+                if let Err(error) = send_sdk_mcp_control_request(&mut sender, &request).await {
+                    let _ = request.response.send(Err(format!(
+                        "failed to send SDK MCP control request: {error}"
+                    )));
+                    break;
+                }
+                pending_sdk_mcp_requests.insert(request_id, request.response);
+            }
+            sdk_control_request = sdk_control_rx.recv(), if connected => {
+                let Some(request) = sdk_control_request else {
+                    break;
+                };
+                let request_id = request.request_id.clone();
+                if let Err(error) = send_sdk_outbound_control_request(&mut sender, &request).await {
+                    let _ = request.response.send(Err(format!(
+                        "failed to send SDK control request: {error}"
+                    )));
+                    break;
+                }
+                pending_sdk_control_requests.insert(request_id, request.response);
+            }
         }
+    }
+    let _ = unregister_sdk_mcp_transport(&state, &connection_id);
+    let _ = unregister_sdk_control_transport(&state, &connection_id);
+    for (_, response) in pending_sdk_control_requests {
+        let _ = response.send(Err("SDK WebSocket disconnected".to_string()));
+    }
+    for (_, response) in pending_sdk_mcp_requests {
+        let _ = response.send(Err("SDK MCP WebSocket disconnected".to_string()));
     }
 }
 

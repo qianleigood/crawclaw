@@ -27,6 +27,7 @@ const DEFAULT_RUN_LOG_MAX_BYTES: u64 = 2_000_000;
 const DEFAULT_RUN_LOG_KEEP_LINES: usize = 2_000;
 const DEFAULT_MAX_TRANSIENT_RETRIES: u32 = 3;
 const DEFAULT_BACKOFF_MS: &[u64] = &[30_000, 60_000, 300_000];
+const MAX_CLAUDE_CRON_JOBS: usize = 50;
 
 #[derive(Clone)]
 pub struct CronServiceOptions {
@@ -1101,12 +1102,351 @@ pub struct CronTool {
     runtime_root: PathBuf,
 }
 
+#[derive(Clone, Copy)]
+pub enum ClaudeCronToolKind {
+    Create,
+    Delete,
+    List,
+}
+
+pub struct ClaudeCronTool {
+    runtime_root: PathBuf,
+    kind: ClaudeCronToolKind,
+}
+
+pub struct RemoteTriggerTool {
+    runtime_root: PathBuf,
+}
+
 impl CronTool {
     pub fn new(runtime_root: &Path) -> Self {
         Self {
             runtime_root: runtime_root.to_path_buf(),
         }
     }
+}
+
+impl ClaudeCronTool {
+    pub fn new(runtime_root: &Path, kind: ClaudeCronToolKind) -> Self {
+        Self {
+            runtime_root: runtime_root.to_path_buf(),
+            kind,
+        }
+    }
+}
+
+impl RemoteTriggerTool {
+    pub fn new(runtime_root: &Path) -> Self {
+        Self {
+            runtime_root: runtime_root.to_path_buf(),
+        }
+    }
+}
+
+impl ClaudeCronToolKind {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Create => "CronCreate",
+            Self::Delete => "CronDelete",
+            Self::List => "CronList",
+        }
+    }
+
+    fn description(self) -> &'static str {
+        match self {
+            Self::Create => "Schedule a prompt to run at a future time within this Claude session — either recurring on a cron schedule, or once at a specific time.",
+            Self::Delete => "Cancel a scheduled cron job by ID",
+            Self::List => "List scheduled cron jobs",
+        }
+    }
+
+    fn parameters(self) -> Value {
+        match self {
+            Self::Create => json!({
+                "type": "object",
+                "properties": {
+                    "cron": {
+                        "type": "string",
+                        "description": "Standard 5-field cron expression in local time: \"M H DoM Mon DoW\" (e.g. \"*/5 * * * *\" = every 5 minutes, \"30 14 28 2 *\" = Feb 28 at 2:30pm local once)."
+                    },
+                    "prompt": {
+                        "type": "string",
+                        "description": "The prompt to enqueue at each fire time."
+                    },
+                    "recurring": {
+                        "type": "boolean",
+                        "description": "true (default) = fire on every cron match until deleted. false = fire once at the next match, then auto-delete. Use false for \"remind me at X\" one-shot requests with pinned minute/hour/dom/month."
+                    },
+                    "durable": {
+                        "type": "boolean",
+                        "description": "true = mark the job as durable runtime metadata. false (default) = mark it as non-durable runtime metadata. Use true only when the user asks the task to survive across sessions."
+                    }
+                },
+                "required": ["cron", "prompt"],
+                "additionalProperties": false
+            }),
+            Self::Delete => json!({
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Job ID returned by CronCreate."
+                    }
+                },
+                "required": ["id"],
+                "additionalProperties": false
+            }),
+            Self::List => json!({
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+            }),
+        }
+    }
+}
+
+fn claude_cron_schedule_string(schedule: &CronSchedule) -> String {
+    match schedule {
+        CronSchedule::Cron { expr, .. } => expr.clone(),
+        CronSchedule::At { at, at_ms } => at
+            .clone()
+            .or_else(|| at_ms.as_ref().map(Value::to_string))
+            .map(|value| format!("at:{value}"))
+            .unwrap_or_else(|| "at".to_string()),
+        CronSchedule::Every { every_ms, .. } => format!("every:{}", every_ms),
+    }
+}
+
+fn claude_cron_human_schedule(schedule: &CronSchedule) -> String {
+    match schedule {
+        CronSchedule::Cron { expr, .. } => expr.clone(),
+        CronSchedule::At { at, at_ms } => at
+            .clone()
+            .or_else(|| at_ms.as_ref().map(Value::to_string))
+            .map(|value| format!("At {value}"))
+            .unwrap_or_else(|| "At scheduled time".to_string()),
+        CronSchedule::Every { every_ms, .. } => format!("Every {every_ms}ms"),
+    }
+}
+
+fn claude_cron_prompt(job: &CronJob) -> String {
+    match &job.payload {
+        CronPayload::SystemEvent { text } => text.clone(),
+        CronPayload::AgentTurn { message, .. } => message.clone(),
+    }
+}
+
+fn claude_cron_job(job: &CronJob) -> Value {
+    let recurring = !job.delete_after_run;
+    let durable = job
+        .extra
+        .get("durable")
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    let mut details = Map::new();
+    details.insert("id".to_string(), Value::String(job.id.clone()));
+    details.insert(
+        "cron".to_string(),
+        Value::String(claude_cron_schedule_string(&job.schedule)),
+    );
+    details.insert(
+        "humanSchedule".to_string(),
+        Value::String(claude_cron_human_schedule(&job.schedule)),
+    );
+    details.insert("prompt".to_string(), Value::String(claude_cron_prompt(job)));
+    if recurring {
+        details.insert("recurring".to_string(), Value::Bool(true));
+    }
+    if !durable {
+        details.insert("durable".to_string(), Value::Bool(false));
+    }
+    Value::Object(details)
+}
+
+fn claude_cron_job_from_result(result: &Value) -> Option<CronJob> {
+    result
+        .get("job")
+        .cloned()
+        .and_then(|value| serde_json::from_value::<CronJob>(value).ok())
+}
+
+fn claude_cron_create_details(job: &CronJob) -> Value {
+    json!({
+        "id": job.id,
+        "humanSchedule": claude_cron_human_schedule(&job.schedule),
+        "recurring": !job.delete_after_run,
+        "durable": job.extra.get("durable").and_then(Value::as_bool).unwrap_or(true)
+    })
+}
+
+fn claude_cron_create_message(details: &Value) -> String {
+    let id = details
+        .get("id")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let human_schedule = details
+        .get("humanSchedule")
+        .and_then(Value::as_str)
+        .unwrap_or("scheduled time");
+    let where_text = if details
+        .get("durable")
+        .and_then(Value::as_bool)
+        .unwrap_or(true)
+    {
+        "Persisted to CrawClaw cron store"
+    } else {
+        "Stored in CrawClaw cron store with durable=false metadata"
+    };
+    if details
+        .get("recurring")
+        .and_then(Value::as_bool)
+        .unwrap_or(true)
+    {
+        format!(
+            "Scheduled recurring job {id} ({human_schedule}). {where_text}. Use CronDelete to cancel."
+        )
+    } else {
+        format!(
+            "Scheduled one-shot task {id} ({human_schedule}). {where_text}. It will fire once then auto-delete."
+        )
+    }
+}
+
+fn claude_cron_list_details(result: &Value) -> Value {
+    let jobs = result
+        .get("jobs")
+        .and_then(Value::as_array)
+        .map(|jobs| {
+            jobs.iter()
+                .filter_map(|job| serde_json::from_value::<CronJob>(job.clone()).ok())
+                .map(|job| claude_cron_job(&job))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    json!({ "jobs": jobs })
+}
+
+fn claude_cron_list_message(details: &Value) -> String {
+    let jobs = details
+        .get("jobs")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    if jobs.is_empty() {
+        return "No scheduled jobs.".to_string();
+    }
+    jobs.iter()
+        .map(|job| {
+            let id = job.get("id").and_then(Value::as_str).unwrap_or("unknown");
+            let human_schedule = job
+                .get("humanSchedule")
+                .and_then(Value::as_str)
+                .unwrap_or("scheduled time");
+            let recurring = if job
+                .get("recurring")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+            {
+                "recurring"
+            } else {
+                "one-shot"
+            };
+            let durable_suffix = if job.get("durable").and_then(Value::as_bool).unwrap_or(true) {
+                ""
+            } else {
+                " [durable=false]"
+            };
+            let prompt = job
+                .get("prompt")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .chars()
+                .take(80)
+                .collect::<String>();
+            format!("{id} - {human_schedule} ({recurring}){durable_suffix}: {prompt}")
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn validate_claude_cron_expression(expr: &str, tz: &str) -> Result<(), String> {
+    if !is_claude_cron_expression(expr) || Cron::from_str(expr).is_err() {
+        return Err(format!(
+            "Invalid cron expression '{expr}'. Expected 5 fields: M H DoM Mon DoW."
+        ));
+    }
+    let schedule = CronSchedule::Cron {
+        expr: expr.to_string(),
+        tz: Some(tz.to_string()),
+        stagger_ms: None,
+    };
+    if compute_next_run_at_ms(&schedule, now_millis(), "claude-cron-validation").is_none() {
+        return Err(format!(
+            "Cron expression '{expr}' does not match any calendar date in the next year."
+        ));
+    }
+    Ok(())
+}
+
+fn is_claude_cron_expression(expr: &str) -> bool {
+    let parts = expr.split_whitespace().collect::<Vec<_>>();
+    parts.len() == 5
+        && validate_claude_cron_field(parts[0], 0, 59, false)
+        && validate_claude_cron_field(parts[1], 0, 23, false)
+        && validate_claude_cron_field(parts[2], 1, 31, false)
+        && validate_claude_cron_field(parts[3], 1, 12, false)
+        && validate_claude_cron_field(parts[4], 0, 6, true)
+}
+
+fn validate_claude_cron_field(field: &str, min: u32, max: u32, allow_dow_seven: bool) -> bool {
+    if field.is_empty() {
+        return false;
+    }
+    field
+        .split(',')
+        .all(|part| validate_claude_cron_part(part, min, max, allow_dow_seven))
+}
+
+fn validate_claude_cron_part(part: &str, min: u32, max: u32, allow_dow_seven: bool) -> bool {
+    if part == "*" {
+        return true;
+    }
+    if let Some(step) = part.strip_prefix("*/") {
+        return parse_positive_cron_step(step).is_some();
+    }
+    let (range_part, step) = part
+        .split_once('/')
+        .map(|(range, step)| (range, Some(step)))
+        .unwrap_or((part, None));
+    if let Some(step) = step {
+        if parse_positive_cron_step(step).is_none() {
+            return false;
+        }
+    }
+    if let Some((left, right)) = range_part.split_once('-') {
+        let Some(left) = parse_cron_field_number(left) else {
+            return false;
+        };
+        let Some(right) = parse_cron_field_number(right) else {
+            return false;
+        };
+        let effective_max = if allow_dow_seven { 7 } else { max };
+        return left <= right && left >= min && right <= effective_max;
+    }
+    let Some(value) = parse_cron_field_number(range_part) else {
+        return false;
+    };
+    value >= min && (value <= max || (allow_dow_seven && value == 7))
+}
+
+fn parse_cron_field_number(value: &str) -> Option<u32> {
+    (!value.is_empty() && value.chars().all(|ch| ch.is_ascii_digit()))
+        .then(|| value.parse::<u32>().ok())
+        .flatten()
+}
+
+fn parse_positive_cron_step(value: &str) -> Option<u32> {
+    parse_cron_field_number(value).filter(|step| *step > 0)
 }
 
 #[async_trait]
@@ -1169,6 +1509,368 @@ impl pi::sdk::Tool for CronTool {
             is_error: false,
         })
     }
+}
+
+#[async_trait]
+impl pi::sdk::Tool for ClaudeCronTool {
+    fn name(&self) -> &str {
+        self.kind.name()
+    }
+
+    fn label(&self) -> &str {
+        self.kind.name()
+    }
+
+    fn description(&self) -> &str {
+        self.kind.description()
+    }
+
+    fn parameters(&self) -> Value {
+        self.kind.parameters()
+    }
+
+    async fn execute(
+        &self,
+        _tool_call_id: &str,
+        input: Value,
+        _on_update: Option<Box<dyn Fn(pi::sdk::ToolUpdate) + Send + Sync>>,
+    ) -> pi::sdk::Result<pi::sdk::ToolOutput> {
+        let service = CronService::new(CronServiceOptions {
+            runtime_root: self.runtime_root.clone(),
+            start_scheduler: false,
+            ..CronServiceOptions::default()
+        })
+        .map_err(|error| pi::sdk::Error::tool(self.kind.name(), error))?;
+        let (content, details) = match self.kind {
+            ClaudeCronToolKind::Create => {
+                require_claude_cron_keys(
+                    &input,
+                    &["cron", "prompt", "recurring", "durable"],
+                    self.kind.name(),
+                )?;
+                let cron = string_field(&input, "cron")
+                    .ok_or_else(|| pi::sdk::Error::validation("cron is required"))?;
+                let prompt = string_field(&input, "prompt")
+                    .ok_or_else(|| pi::sdk::Error::validation("prompt is required"))?;
+                let recurring = semantic_bool_field(&input, "recurring")
+                    .map_err(pi::sdk::Error::validation)?
+                    .unwrap_or(true);
+                let durable = semantic_bool_field(&input, "durable")
+                    .map_err(pi::sdk::Error::validation)?
+                    .unwrap_or(false);
+                let name = "Cron job".to_string();
+                let timezone = std::env::var("TZ").unwrap_or_else(|_| "UTC".to_string());
+                validate_claude_cron_expression(&cron, &timezone)
+                    .map_err(pi::sdk::Error::validation)?;
+                let existing_jobs = service
+                    .handle_action(json!({
+                        "action": "list",
+                        "includeDisabled": true
+                    }))
+                    .await
+                    .map_err(|error| pi::sdk::Error::tool(self.kind.name(), error))?
+                    .get("jobs")
+                    .and_then(Value::as_array)
+                    .map(Vec::len)
+                    .unwrap_or(0);
+                if existing_jobs >= MAX_CLAUDE_CRON_JOBS {
+                    return Err(pi::sdk::Error::validation(format!(
+                        "Too many scheduled jobs (max {MAX_CLAUDE_CRON_JOBS}). Cancel one first."
+                    )));
+                }
+                let result = service
+                    .handle_action(json!({
+                        "action": "add",
+                        "name": name,
+                        "durable": durable,
+                        "schedule": {
+                            "kind": "cron",
+                            "expr": cron,
+                            "tz": timezone
+                        },
+                        "text": prompt,
+                        "deleteAfterRun": !recurring
+                    }))
+                    .await
+                    .map_err(|error| pi::sdk::Error::tool(self.kind.name(), error))?;
+                let job = claude_cron_job_from_result(&result).ok_or_else(|| {
+                    pi::sdk::Error::tool(self.kind.name(), "CronCreate returned no job")
+                })?;
+                let details = claude_cron_create_details(&job);
+                (claude_cron_create_message(&details), details)
+            }
+            ClaudeCronToolKind::Delete => {
+                require_claude_cron_keys(&input, &["id"], self.kind.name())?;
+                let id = string_field(&input, "id")
+                    .ok_or_else(|| pi::sdk::Error::validation("id is required"))?;
+                service
+                    .handle_action(json!({
+                        "action": "remove",
+                        "id": id
+                    }))
+                    .await
+                    .map_err(|error| pi::sdk::Error::tool(self.kind.name(), error))
+                    .and_then(|result| {
+                        if result
+                            .get("removed")
+                            .and_then(Value::as_bool)
+                            .unwrap_or(false)
+                        {
+                            Ok(result)
+                        } else {
+                            Err(pi::sdk::Error::validation(format!(
+                                "No scheduled job with id '{id}'"
+                            )))
+                        }
+                    })?;
+                let details = json!({ "id": id });
+                (format!("Cancelled job {id}."), details)
+            }
+            ClaudeCronToolKind::List => {
+                require_claude_cron_keys(&input, &[], self.kind.name())?;
+                let result = service
+                    .handle_action(json!({
+                        "action": "list"
+                    }))
+                    .await
+                    .map_err(|error| pi::sdk::Error::tool(self.kind.name(), error))?;
+                let details = claude_cron_list_details(&result);
+                (claude_cron_list_message(&details), details)
+            }
+        };
+        Ok(pi::sdk::ToolOutput {
+            content: vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
+                content,
+            ))],
+            details: Some(details),
+            is_error: false,
+        })
+    }
+
+    fn is_read_only(&self) -> bool {
+        matches!(self.kind, ClaudeCronToolKind::List)
+    }
+}
+
+#[async_trait]
+impl pi::sdk::Tool for RemoteTriggerTool {
+    fn name(&self) -> &str {
+        "RemoteTrigger"
+    }
+
+    fn label(&self) -> &str {
+        "RemoteTrigger"
+    }
+
+    fn description(&self) -> &str {
+        "Manage scheduled runtime agent triggers through the CrawClaw cron store."
+    }
+
+    fn parameters(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["list", "get", "create", "update", "run"]
+                },
+                "trigger_id": {
+                    "type": "string",
+                    "pattern": "^[\\w-]+$",
+                    "description": "Required for get, update, and run"
+                },
+                "body": {
+                    "type": "object",
+                    "description": "JSON body for create and update"
+                }
+            },
+            "required": ["action"],
+            "additionalProperties": false
+        })
+    }
+
+    async fn execute(
+        &self,
+        _tool_call_id: &str,
+        input: Value,
+        _on_update: Option<Box<dyn Fn(pi::sdk::ToolUpdate) + Send + Sync>>,
+    ) -> pi::sdk::Result<pi::sdk::ToolOutput> {
+        let service = CronService::new(CronServiceOptions {
+            runtime_root: self.runtime_root.clone(),
+            start_scheduler: false,
+            ..CronServiceOptions::default()
+        })
+        .map_err(|error| pi::sdk::Error::tool("RemoteTrigger", error))?;
+        let result = run_remote_trigger_action(&service, input)
+            .await
+            .map_err(|error| pi::sdk::Error::tool("RemoteTrigger", error))?;
+        let status = result.get("status").and_then(Value::as_u64).unwrap_or(200);
+        let body = result.get("json").and_then(Value::as_str).unwrap_or("{}");
+        Ok(pi::sdk::ToolOutput {
+            content: vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
+                format!("HTTP {status}\n{body}"),
+            ))],
+            details: Some(result),
+            is_error: false,
+        })
+    }
+
+    fn is_read_only(&self) -> bool {
+        false
+    }
+}
+
+async fn run_remote_trigger_action(service: &CronService, input: Value) -> Result<Value, String> {
+    require_remote_trigger_keys(&input, &["action", "trigger_id", "body"])?;
+    let action = string_field(&input, "action").ok_or_else(|| {
+        "RemoteTrigger requires action: list, get, create, update, or run".to_string()
+    })?;
+    match action.as_str() {
+        "list" => remote_trigger_service_response(
+            200,
+            service
+                .handle_action(json!({ "action": "list", "includeDisabled": true }))
+                .await?,
+        ),
+        "get" => {
+            let trigger_id = required_remote_trigger_id(&input, "get")?;
+            let listed = service
+                .handle_action(json!({ "action": "list", "includeDisabled": true }))
+                .await?;
+            let trigger = listed
+                .get("jobs")
+                .and_then(Value::as_array)
+                .and_then(|jobs| {
+                    jobs.iter()
+                        .find(|job| job.get("id").and_then(Value::as_str) == Some(&trigger_id))
+                })
+                .cloned();
+            match trigger {
+                Some(trigger) => remote_trigger_service_response(200, trigger),
+                None => remote_trigger_service_response(
+                    404,
+                    json!({ "error": format!("unknown trigger: {trigger_id}") }),
+                ),
+            }
+        }
+        "create" => {
+            let body = required_remote_trigger_body(&input, "create")?;
+            match service
+                .handle_action(json!({
+                    "action": "add",
+                    "job": normalize_remote_trigger_body(body)
+                }))
+                .await
+            {
+                Ok(value) => remote_trigger_service_response(200, value),
+                Err(error) => remote_trigger_service_response(400, json!({ "error": error })),
+            }
+        }
+        "update" => {
+            let trigger_id = required_remote_trigger_id(&input, "update")?;
+            let body = required_remote_trigger_body(&input, "update")?;
+            match service
+                .handle_action(json!({
+                    "action": "update",
+                    "id": trigger_id,
+                    "patch": normalize_remote_trigger_body(body)
+                }))
+                .await
+            {
+                Ok(value) => remote_trigger_service_response(200, value),
+                Err(error) => remote_trigger_service_response(404, json!({ "error": error })),
+            }
+        }
+        "run" => {
+            let trigger_id = required_remote_trigger_id(&input, "run")?;
+            match service
+                .handle_action(json!({
+                    "action": "run",
+                    "id": trigger_id,
+                    "mode": "force"
+                }))
+                .await
+            {
+                Ok(value) => remote_trigger_service_response(200, value),
+                Err(error) => remote_trigger_service_response(404, json!({ "error": error })),
+            }
+        }
+        other => Err(format!("unsupported RemoteTrigger action: {other}")),
+    }
+}
+
+fn remote_trigger_service_response(status: u16, value: Value) -> Result<Value, String> {
+    let json = serde_json::to_string(&value)
+        .map_err(|error| format!("serialize RemoteTrigger response: {error}"))?;
+    Ok(json!({
+        "status": status,
+        "json": json
+    }))
+}
+
+fn required_remote_trigger_id(input: &Value, action: &str) -> Result<String, String> {
+    let id =
+        string_field(input, "trigger_id").ok_or_else(|| format!("{action} requires trigger_id"))?;
+    if id
+        .chars()
+        .all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-')
+    {
+        return Ok(id);
+    }
+    Err("RemoteTrigger trigger_id must match ^[\\w-]+$".to_string())
+}
+
+fn require_remote_trigger_keys(input: &Value, allowed_keys: &[&str]) -> Result<(), String> {
+    let Some(object) = input.as_object() else {
+        return Err("RemoteTrigger input must be an object".to_string());
+    };
+    for key in object.keys() {
+        if !allowed_keys.contains(&key.as_str()) {
+            return Err(format!("RemoteTrigger input contains unknown field: {key}"));
+        }
+    }
+    Ok(())
+}
+
+fn required_remote_trigger_body(input: &Value, action: &str) -> Result<Value, String> {
+    input
+        .get("body")
+        .cloned()
+        .filter(Value::is_object)
+        .ok_or_else(|| format!("{action} requires body"))
+}
+
+fn normalize_remote_trigger_body(body: Value) -> Value {
+    let mut object = object_or_empty(body);
+    if !object.contains_key("id") {
+        if let Some(trigger_id) =
+            string_from_map(&object, "trigger_id").or_else(|| string_from_map(&object, "triggerId"))
+        {
+            object.insert("id".to_string(), Value::String(trigger_id));
+        }
+    }
+    if !object.contains_key("schedule") {
+        if let Some(expr) = string_from_map(&object, "cron") {
+            let mut schedule = Map::new();
+            schedule.insert("kind".to_string(), Value::String("cron".to_string()));
+            schedule.insert("expr".to_string(), Value::String(expr));
+            if let Some(tz) =
+                string_from_map(&object, "tz").or_else(|| string_from_map(&object, "timezone"))
+            {
+                schedule.insert("tz".to_string(), Value::String(tz));
+            }
+            object.insert("schedule".to_string(), Value::Object(schedule));
+        }
+    }
+    if !object.contains_key("payload")
+        && !object.contains_key("text")
+        && !object.contains_key("message")
+    {
+        if let Some(prompt) = string_from_map(&object, "prompt") {
+            object.insert("text".to_string(), Value::String(prompt));
+        }
+    }
+    Value::Object(object)
 }
 
 static WORKER_CRON_SERVICE: OnceLock<Mutex<Option<WorkerCronService>>> = OnceLock::new();
@@ -1771,6 +2473,43 @@ fn string_field(input: &Value, key: &str) -> Option<String> {
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(ToOwned::to_owned)
+}
+
+fn require_claude_cron_keys(
+    input: &Value,
+    allowed_keys: &[&str],
+    tool_name: &str,
+) -> pi::sdk::Result<()> {
+    let Some(object) = input.as_object() else {
+        return Err(pi::sdk::Error::validation(format!(
+            "{tool_name} input must be an object"
+        )));
+    };
+    for key in object.keys() {
+        if !allowed_keys.contains(&key.as_str()) {
+            return Err(pi::sdk::Error::validation(format!(
+                "{tool_name} input contains unknown field: {key}"
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn semantic_bool_field(input: &Value, key: &str) -> Result<Option<bool>, String> {
+    let Some(value) = input.get(key) else {
+        return Ok(None);
+    };
+    if let Some(value) = value.as_bool() {
+        return Ok(Some(value));
+    }
+    if let Some(raw) = value.as_str() {
+        return match raw {
+            "true" => Ok(Some(true)),
+            "false" => Ok(Some(false)),
+            _ => Err(format!("{key} must be true or false")),
+        };
+    }
+    Err(format!("{key} must be true or false"))
 }
 
 fn string_from_map(input: &Map<String, Value>, key: &str) -> Option<String> {

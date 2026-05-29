@@ -273,7 +273,7 @@ Memory is aligned with the current simplified model, but follow-up work remains.
     manifest, structured signals, and narrow transcript refs.
   - It does not spawn a child session, emit a subagent completion message, or
     inherit parent prompt/context state.
-  - NotebookLM/experience writes stay on the explicit experience path; Dream
+  - Hindsight/experience writes stay on the explicit experience path; Dream
     does not run main memory runtime recall and only consolidates durable
     profile/context memory.
 
@@ -310,7 +310,7 @@ more systematic validation.
 These are intentionally **not** backlog items right now:
 
 - bringing back the old experience review queue
-- making NotebookLM writeback go through a hidden approval pipeline
+- making Hindsight writeback go through a hidden approval pipeline
 - replacing transcript, runtime store, or trajectory with a single new store
 - putting LLMs in charge of hard guard allow/deny decisions
 - letting an online agent self-modify guard safety boundaries

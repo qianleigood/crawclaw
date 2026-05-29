@@ -1,10 +1,20 @@
 use super::*;
 
-const ALWAYS_LOAD_TOOLS: &[&str] = &["tool_search", "discover_skills", "load_skill"];
+const ALWAYS_LOAD_TOOLS: &[&str] = &[
+    "tool_search",
+    "ToolSearch",
+    "discover_skills",
+    "Skill",
+    "load_skill",
+    "StructuredOutput",
+];
 const MAX_SURFACED_SKILLS: usize = 5;
 const MAX_MEMORY_SNIPPETS: usize = 3;
 const MAX_MEMORY_SNIPPET_CHARS: usize = 360;
 const MAX_LOADED_SKILL_CHARS: usize = 12_000;
+const DEFAULT_CONTEXT_WINDOW_TOKENS: usize = 128_000;
+const DEFAULT_OUTPUT_RESERVE_TOKENS: usize = 16_384;
+const CONTEXT_NEAR_LIMIT_PERCENT: usize = 85;
 
 #[derive(Clone, Debug)]
 pub(crate) struct SkillCandidate {
@@ -79,6 +89,7 @@ pub(crate) fn build_runtime_model_context(
         AgentRuntimeMessageRole::User,
         user_text,
     ));
+    let messages = ensure_tool_result_pairing(messages);
     let mut system_sections = Vec::new();
     if let Some(system_prompt) = options
         .system_prompt
@@ -103,6 +114,15 @@ pub(crate) fn build_runtime_model_context(
             loaded_skill_contents.join("\n\n---\n\n")
         ));
     }
+    if included_tool_schemas
+        .iter()
+        .any(|descriptor| descriptor.name == "StructuredOutput")
+    {
+        system_sections.push(
+            "Use this tool to return your final response in the requested structured format. You MUST call this tool exactly once at the end of your response to provide the structured output."
+                .to_string(),
+        );
+    }
     system_sections.push(context_system_section(
         &included_tool_schemas,
         &deferred_tool_names,
@@ -110,6 +130,14 @@ pub(crate) fn build_runtime_model_context(
         &memory_snippets,
     ));
 
+    let max_prompt_tokens = max_prompt_tokens_for_runtime(runtime_root);
+    let (messages, overflow_projection_applied) = project_messages_for_context_budget(
+        system_sections.as_slice(),
+        messages,
+        &surfaced_skills,
+        &memory_snippets,
+        max_prompt_tokens,
+    );
     let estimated_tokens = estimate_context_tokens(
         &system_sections,
         &messages,
@@ -125,7 +153,9 @@ pub(crate) fn build_runtime_model_context(
         projected_message_count: messages.len(),
         retained_tail_message_count: compaction.retained_message_count,
         compaction_active: compaction.active,
-        collapse_state: if compaction.active {
+        collapse_state: if overflow_projection_applied {
+            "overflow-tail".to_string()
+        } else if compaction.active {
             "summary-plus-tail".to_string()
         } else {
             "none".to_string()
@@ -133,10 +163,23 @@ pub(crate) fn build_runtime_model_context(
     };
     let budget = ContextBudgetReport {
         estimated_tokens,
-        max_prompt_tokens: 0,
-        state: "within-budget".to_string(),
-        overflow_retry_enabled: false,
+        max_prompt_tokens,
+        state: context_budget_state(
+            estimated_tokens,
+            max_prompt_tokens,
+            overflow_projection_applied,
+        )
+        .to_string(),
+        overflow_retry_enabled: overflow_projection_applied
+            || estimated_tokens >= near_limit_tokens(max_prompt_tokens),
     };
+    let mut warnings = profile.warnings.clone();
+    if overflow_projection_applied {
+        warnings.push(
+            "Context exceeded the estimated prompt budget; older messages were projected out for this turn."
+                .to_string(),
+        );
+    }
     let context_summary = AgentRuntimeContextSummary {
         profile_kind: profile.kind.as_summary_str().to_string(),
         parent_context_policy: profile.parent_context_policy.as_summary_str().to_string(),
@@ -153,7 +196,7 @@ pub(crate) fn build_runtime_model_context(
         loaded_skills: loaded_skill_names,
         memory_snippets,
         compaction,
-        warnings: profile.warnings.clone(),
+        warnings,
         message_count: messages.len(),
         estimated_tokens,
     };
@@ -191,7 +234,11 @@ fn tool_descriptors_for_context(
                 .collect::<BTreeSet<_>>();
             pi_agent_rust_tool_descriptors_for_runtime_root(runtime_root)
                 .into_iter()
-                .filter(|descriptor| allowlist.contains(descriptor.name.as_str()))
+                .filter(|descriptor| {
+                    allowlist.iter().any(|rule| {
+                        crate::core_tools::tool_name_matches_rule(&descriptor.name, rule)
+                    })
+                })
                 .collect()
         }
     };
@@ -206,7 +253,11 @@ fn tool_descriptors_for_context(
                 .collect::<BTreeSet<_>>();
             descriptors
                 .into_iter()
-                .filter(|descriptor| allowlist.contains(descriptor.name.as_str()))
+                .filter(|descriptor| {
+                    allowlist.iter().any(|rule| {
+                        crate::core_tools::tool_name_matches_rule(&descriptor.name, rule)
+                    })
+                })
                 .collect()
         }
         ToolPolicy::Default => descriptors
@@ -386,56 +437,43 @@ pub(crate) fn load_skill_candidates(runtime_root: &Path, query: &str) -> Vec<Ski
 }
 
 fn ranked_memory_snippets(runtime_root: &Path, user_text: &str) -> Vec<String> {
-    let terms = query_terms(user_text);
-    if terms.is_empty() {
+    use crate::memory::{MemoryRuntime, recall_pipeline};
+
+    let runtime = MemoryRuntime::new(runtime_root);
+    let config = runtime.config();
+
+    if !config.hindsight.enabled {
         return Vec::new();
     }
-    let store = DesktopMemoryStore::new(runtime_root.to_path_buf());
-    let Ok(items) = store.load_items() else {
+
+    let Some(client) = runtime.hindsight() else {
         return Vec::new();
     };
-    let mut scored = items
-        .into_iter()
-        .filter(|item| !item.archived)
-        .map(|item| {
-            let haystack = format!(
-                "{} {} {} {} {}",
-                item.title,
-                item.summary,
-                item.content,
-                item.source,
-                item.tags.join(" ")
-            )
-            .to_lowercase();
-            let score = terms
-                .iter()
-                .filter(|term| haystack.contains(term.as_str()))
-                .count();
-            (score, item)
-        })
-        .filter(|(score, _)| *score > 0)
-        .collect::<Vec<_>>();
-    scored.sort_by(|(score_a, item_a), (score_b, item_b)| {
-        score_b
-            .cmp(score_a)
-            .then_with(|| item_a.title.cmp(&item_b.title))
-    });
-    scored
+
+    if !client.is_configured() {
+        return Vec::new();
+    }
+
+    let ctx = runtime.bank_context("main");
+    let recall_config = recall_pipeline::RecallConfig::from(&config.hindsight);
+    let query = recall_pipeline::compose_recall_query(user_text, &[], &recall_config);
+
+    let items = recall_pipeline::parallel_recall(
+        client,
+        &crate::memory::bank_resolver::BankResolverConfig::from_hindsight_config(&config.hindsight),
+        &ctx,
+        &query,
+        &recall_config,
+    );
+
+    items
         .into_iter()
         .take(MAX_MEMORY_SNIPPETS)
-        .map(|(_, item)| {
-            let text = if item.summary.trim().is_empty() {
-                item.content
-            } else {
-                item.summary
-            };
-            format!(
-                "{}: {}",
-                item.title,
-                text.chars()
-                    .take(MAX_MEMORY_SNIPPET_CHARS)
-                    .collect::<String>()
-            )
+        .map(|item| {
+            let text = item.text;
+            text.chars()
+                .take(MAX_MEMORY_SNIPPET_CHARS)
+                .collect::<String>()
         })
         .collect()
 }
@@ -505,6 +543,174 @@ fn project_compacted_history(
         .skip(tail_start.min(history.len()))
         .cloned()
         .collect()
+}
+
+fn project_messages_for_context_budget(
+    system_sections: &[String],
+    messages: Vec<AgentRuntimeMessage>,
+    surfaced_skills: &[AgentRuntimeSkillSummary],
+    memory_snippets: &[String],
+    max_prompt_tokens: usize,
+) -> (Vec<AgentRuntimeMessage>, bool) {
+    if estimate_context_tokens(system_sections, &messages, surfaced_skills, memory_snippets)
+        <= max_prompt_tokens
+    {
+        return (messages, false);
+    }
+    let mut desired_start = 1;
+    while desired_start < messages.len() {
+        let tail_start = safe_tail_start_index(&messages, desired_start);
+        let candidate = messages
+            .iter()
+            .skip(tail_start.min(messages.len()))
+            .cloned()
+            .collect::<Vec<_>>();
+        if estimate_context_tokens(
+            system_sections,
+            &candidate,
+            surfaced_skills,
+            memory_snippets,
+        ) <= max_prompt_tokens
+        {
+            return (candidate, true);
+        }
+        desired_start = tail_start.max(desired_start).saturating_add(1);
+    }
+    (
+        messages
+            .last()
+            .cloned()
+            .map(|message| vec![message])
+            .unwrap_or_default(),
+        true,
+    )
+}
+
+fn ensure_tool_result_pairing(messages: Vec<AgentRuntimeMessage>) -> Vec<AgentRuntimeMessage> {
+    let mut repaired = Vec::with_capacity(messages.len());
+    for (index, message) in messages.iter().enumerate() {
+        let missing_results = missing_tool_results_after_message(&messages, index);
+        repaired.push(message.clone());
+        if !missing_results.is_empty() {
+            let blocks = missing_results
+                .iter()
+                .map(|(tool_use_id, _)| AgentRuntimeMessageBlock::ToolResult {
+                    tool_use_id: tool_use_id.clone(),
+                    content: "Synthetic error: tool result was missing from session history."
+                        .to_string(),
+                    is_error: true,
+                })
+                .collect::<Vec<_>>();
+            let content = missing_results
+                .into_iter()
+                .map(|(_, tool_name)| {
+                    format!("{tool_name}: Synthetic error: tool result was missing from session history.")
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            repaired.push(AgentRuntimeMessage {
+                role: AgentRuntimeMessageRole::User,
+                content,
+                blocks,
+            });
+        }
+    }
+    repaired
+}
+
+fn missing_tool_results_after_message(
+    messages: &[AgentRuntimeMessage],
+    index: usize,
+) -> Vec<(String, String)> {
+    let message = &messages[index];
+    if message.role != AgentRuntimeMessageRole::Assistant {
+        return Vec::new();
+    }
+    let tool_uses = message
+        .blocks
+        .iter()
+        .filter_map(|block| match block {
+            AgentRuntimeMessageBlock::ToolUse { id, name, .. } => Some((id.clone(), name.clone())),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    if tool_uses.is_empty() {
+        return Vec::new();
+    }
+    let next_result_ids = messages
+        .get(index + 1)
+        .filter(|message| message.role == AgentRuntimeMessageRole::User)
+        .map(|message| tool_result_ids(std::slice::from_ref(message)))
+        .unwrap_or_default();
+    tool_uses
+        .into_iter()
+        .filter(|(tool_use_id, _)| !next_result_ids.contains(tool_use_id))
+        .collect()
+}
+
+fn max_prompt_tokens_for_runtime(runtime_root: &Path) -> usize {
+    let settings = context_budget_settings(runtime_root);
+    settings
+        .context_window_tokens
+        .saturating_sub(settings.reserve_tokens)
+        .max(1)
+}
+
+#[derive(Clone, Copy)]
+struct ContextBudgetSettings {
+    context_window_tokens: usize,
+    reserve_tokens: usize,
+}
+
+fn context_budget_settings(runtime_root: &Path) -> ContextBudgetSettings {
+    let mut settings = ContextBudgetSettings {
+        context_window_tokens: DEFAULT_CONTEXT_WINDOW_TOKENS,
+        reserve_tokens: DEFAULT_OUTPUT_RESERVE_TOKENS,
+    };
+    let path = runtime_root.join("config").join("crawclaw.json");
+    let Ok(raw) = fs::read_to_string(path) else {
+        return settings;
+    };
+    let Ok(value) = serde_json::from_str::<Value>(&raw) else {
+        return settings;
+    };
+    if let Some(context_tokens) = positive_usize_at(&value, "/agents/defaults/contextTokens") {
+        settings.context_window_tokens = context_tokens;
+    }
+    if let Some(reserve_tokens) =
+        positive_usize_at(&value, "/agents/defaults/compaction/reserveTokens")
+    {
+        settings.reserve_tokens = reserve_tokens;
+    }
+    settings
+}
+
+fn positive_usize_at(value: &Value, pointer: &str) -> Option<usize> {
+    value
+        .pointer(pointer)
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .filter(|value| *value > 0)
+}
+
+fn near_limit_tokens(max_prompt_tokens: usize) -> usize {
+    max_prompt_tokens.saturating_mul(CONTEXT_NEAR_LIMIT_PERCENT) / 100
+}
+
+fn context_budget_state(
+    estimated_tokens: usize,
+    max_prompt_tokens: usize,
+    overflow_projection_applied: bool,
+) -> &'static str {
+    if overflow_projection_applied {
+        "reduced"
+    } else if estimated_tokens > max_prompt_tokens {
+        "over-budget"
+    } else if estimated_tokens >= near_limit_tokens(max_prompt_tokens) {
+        "near-limit"
+    } else {
+        "within-budget"
+    }
 }
 
 #[derive(Default)]

@@ -89,14 +89,52 @@ async fn handle_gateway_method_inner(
             "runtime": "rust",
             "status": "ok",
             "implementation": "rust-native",
+            "mcpServers": mcp_servers_snapshot(state),
             "gatewayMethods": gateway_methods()
         })),
         "config.get" => config_get(state, params),
-        "config.set" => config_set(state, params),
-        "config.apply" => config_apply(state, params),
-        "config.patch" => config_patch(state, params),
+        "config.set" => config_set(state, params).await,
+        "config.apply" => config_apply(state, params).await,
+        "config.patch" => config_patch(state, params).await,
         "config.schema" => config_schema(),
         "config.schema.lookup" => config_schema_lookup(params),
+        "control_request" | "sdk.control_request" => claude_control_request(state, params).await,
+        "control_cancel_request" | "sdk.control_cancel_request" => {
+            control_cancel_request(state, params)
+        }
+        "hook_callback" => control_hook_callback(state, params).await,
+        "hook_callback.list" | "sdk.hook_callback.list" => control_hook_callback_list(state),
+        "hook_callback.respond" | "sdk.hook_callback.respond" => {
+            control_hook_callback_respond(state, params)
+        }
+        "elicitation" => control_elicitation(state, params).await,
+        "elicitation.list" | "sdk.elicitation.list" => control_elicitation_list(state),
+        "elicitation.respond" | "sdk.elicitation.respond" => {
+            control_elicitation_respond(state, params)
+        }
+        "update_environment_variables" | "sdk.update_environment_variables" => {
+            control_update_environment_variables(params)
+        }
+        "keep_alive" | "sdk.keep_alive" => Ok(json!({})),
+        "can_use_tool" => control_can_use_tool(state, params).await,
+        "initialize"
+        | "interrupt"
+        | "set_permission_mode"
+        | "set_model"
+        | "set_max_thinking_tokens"
+        | "mcp_status"
+        | "get_context_usage"
+        | "rewind_files"
+        | "cancel_async_message"
+        | "seed_read_state"
+        | "reload_plugins"
+        | "mcp_reconnect"
+        | "mcp_toggle"
+        | "stop_task"
+        | "apply_flag_settings"
+        | "get_settings" => claude_control_method(state, method, params).await,
+        "mcp_message" => control_mcp_message(state, params).await,
+        "mcp_set_servers" => mcp_set_servers(state, params),
         "secrets.reload" => secrets_reload(state),
         "secrets.resolve" => secrets_resolve(state, params),
         "tools.catalog" => Ok(tools_catalog(state, params)),
@@ -268,11 +306,11 @@ async fn handle_gateway_method_inner(
         "memory.status" | "memory_status" => memory_runtime(state).status(),
         "memory.refresh" | "memory_refresh" => Ok(json!({
             "status": "ok",
-            "provider": memory_runtime(state).refresh_notebooklm()?
+            "provider": memory_runtime(state).hindsight_status()
         })),
         "memory.login" | "memory_login" => Ok(json!({
             "status": "ok",
-            "provider": memory_runtime(state).login_notebooklm()?
+            "provider": memory_runtime(state).hindsight_status()
         })),
         "memory.sync"
         | "memory_sync"
@@ -449,9 +487,9 @@ async fn handle_gateway_method_inner(
         "sessions.preview" => sessions_preview(state, params),
         "sessions.resolve" => sessions_resolve(state, params),
         "sessions.patch" => sessions_patch(state, params),
-        "sessions.reset" => sessions_reset(state, params),
+        "sessions.reset" => sessions_reset(state, params).await,
         "sessions.delete" => sessions_delete(state, params),
-        "sessions.compact" => sessions_compact(state, params),
+        "sessions.compact" => sessions_compact(state, params).await,
         "sessions.abort" => chat_abort(params),
         "sessions.status" | "session_status" => {
             let session_key =
@@ -505,6 +543,12 @@ async fn handle_gateway_method_inner(
             Ok(json!({
                 "subagents": state.session_store.list_subagents(parent.as_deref()).map_err(|error| error.to_string())?
             }))
+        }
+        "Agent" | "Task" => {
+            let mut params = params;
+            ensure_json_object(&mut params)
+                .insert("toolAlias".to_string(), Value::String(method.to_string()));
+            subagents_spawn(state, params).await
         }
         "subagents_spawn" => subagents_spawn(state, params).await,
         "subagents.control" | "subagents_control" => subagents_control(state, params).await,

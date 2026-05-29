@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+rule_files:
+  - "alert.rules.yml"
+
+scrape_configs:
+  # Hindsight API 指标
+  - job_name: "hindsight"
+    static_configs:
+      - targets: ["hindsight:9090"]
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # PostgreSQL 指标（通过 pgroonga exporter）
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["postgres:9187"]
+    scrape_interval: 30s
+
+  # Nginx 指标
+  - job_name: "nginx"
+    static_configs:
+      - targets: ["nginx:9113"]
+    scrape_interval: 30s

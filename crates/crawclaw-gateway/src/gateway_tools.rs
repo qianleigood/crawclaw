@@ -5,33 +5,45 @@ pub(super) fn tools_catalog(state: &GatewayState, params: Value) -> Value {
     let native_registry = crawclaw_runtime::native_plugin_registry(&state.runtime_root);
     let rust_tools =
         crawclaw_runtime::pi_agent_rust_tool_descriptors_for_runtime_root(&state.runtime_root);
+    let mut groups = vec![json!({
+        "id": "core",
+        "label": "Core tools",
+        "source": "core",
+        "tools": crawclaw_runtime::rust_core_tool_definitions()
+            .iter()
+            .map(|definition| tool_catalog_entry(
+                definition,
+                rust_tools.iter().find(|tool| tool.name == definition.id),
+            ))
+            .collect::<Vec<_>>()
+    })];
+    let mcp_tools = rust_tools
+        .iter()
+        .filter(|tool| tool.name.starts_with("mcp__"))
+        .map(mcp_tool_catalog_entry)
+        .collect::<Vec<_>>();
+    if !mcp_tools.is_empty() {
+        groups.push(json!({
+            "id": "mcp",
+            "label": "MCP tools",
+            "source": "mcp",
+            "tools": mcp_tools
+        }));
+    }
+    groups.push(json!({
+        "id": "native-plugins",
+        "label": "Native plugin tools",
+        "source": "native-plugin",
+        "tools": native_registry
+            .tool_descriptors()
+            .into_iter()
+            .map(native_tool_catalog_entry)
+            .collect::<Vec<_>>()
+    }));
     json!({
         "agentId": agent_id,
         "profiles": tool_profiles(),
-        "groups": [
-            {
-                "id": "core",
-                "label": "Core tools",
-                "source": "core",
-                "tools": crawclaw_runtime::rust_core_tool_definitions()
-                    .iter()
-                    .map(|definition| tool_catalog_entry(
-                        definition,
-                        rust_tools.iter().find(|tool| tool.name == definition.id),
-                    ))
-                    .collect::<Vec<_>>()
-            },
-            {
-                "id": "native-plugins",
-                "label": "Native plugin tools",
-                "source": "native-plugin",
-                "tools": native_registry
-                    .tool_descriptors()
-                    .into_iter()
-                    .map(native_tool_catalog_entry)
-                    .collect::<Vec<_>>()
-            }
-        ],
+        "groups": groups,
         "nativePluginRegistryDiagnostics": native_registry.diagnostics
     })
 }
@@ -46,35 +58,47 @@ pub(super) fn tools_effective(state: &GatewayState, params: Value) -> Value {
     let native_registry = crawclaw_runtime::native_plugin_registry(&state.runtime_root);
     let rust_tools =
         crawclaw_runtime::pi_agent_rust_tool_descriptors_for_runtime_root(&state.runtime_root);
+    let mut groups = vec![json!({
+        "id": "core",
+        "label": "Core tools",
+        "source": "core",
+        "tools": crawclaw_runtime::rust_core_tool_definitions()
+            .iter()
+            .filter(|definition| definition.default_enabled)
+            .map(|definition| tool_effective_entry(
+                definition,
+                rust_tools.iter().find(|tool| tool.name == definition.id),
+            ))
+            .collect::<Vec<_>>()
+    })];
+    let mcp_tools = rust_tools
+        .iter()
+        .filter(|tool| tool.name.starts_with("mcp__"))
+        .map(mcp_tool_effective_entry)
+        .collect::<Vec<_>>();
+    if !mcp_tools.is_empty() {
+        groups.push(json!({
+            "id": "mcp",
+            "label": "MCP tools",
+            "source": "mcp",
+            "tools": mcp_tools
+        }));
+    }
+    groups.push(json!({
+        "id": "native-plugins",
+        "label": "Native plugin tools",
+        "source": "native-plugin",
+        "tools": native_registry
+            .tool_descriptors()
+            .into_iter()
+            .filter(|(_, descriptor)| descriptor.default_enabled)
+            .map(native_tool_effective_entry)
+            .collect::<Vec<_>>()
+    }));
     json!({
         "agentId": agent_id,
         "profile": profile,
-        "groups": [
-            {
-                "id": "core",
-                "label": "Core tools",
-                "source": "core",
-                "tools": crawclaw_runtime::rust_core_tool_definitions()
-                    .iter()
-                    .filter(|definition| definition.default_enabled)
-                    .map(|definition| tool_effective_entry(
-                        definition,
-                        rust_tools.iter().find(|tool| tool.name == definition.id),
-                    ))
-                    .collect::<Vec<_>>()
-            },
-            {
-                "id": "native-plugins",
-                "label": "Native plugin tools",
-                "source": "native-plugin",
-                "tools": native_registry
-                    .tool_descriptors()
-                    .into_iter()
-                    .filter(|(_, descriptor)| descriptor.default_enabled)
-                    .map(native_tool_effective_entry)
-                    .collect::<Vec<_>>()
-            }
-        ],
+        "groups": groups,
         "unavailableTools": [],
         "diagnostics": native_registry.diagnostics
     })
@@ -174,6 +198,42 @@ pub(super) fn tool_effective_entry(
         "source": "core",
         "defaultProfiles": definition.default_profiles,
         "includeInCrawClawGroup": definition.include_in_crawclaw_group
+    })
+}
+
+pub(super) fn mcp_tool_catalog_entry(
+    descriptor: &crawclaw_runtime::RustAgentToolDescriptor,
+) -> Value {
+    json!({
+        "id": descriptor.name,
+        "label": descriptor.label,
+        "description": descriptor.description,
+        "sectionId": "runtime",
+        "lifecycle": "profile_default",
+        "parameters": descriptor.parameters,
+        "readOnly": descriptor.read_only,
+        "source": "mcp",
+        "optional": false,
+        "defaultProfiles": ["coding", "full"],
+        "includeInCrawClawGroup": true
+    })
+}
+
+pub(super) fn mcp_tool_effective_entry(
+    descriptor: &crawclaw_runtime::RustAgentToolDescriptor,
+) -> Value {
+    json!({
+        "id": descriptor.name,
+        "label": descriptor.label,
+        "description": descriptor.description,
+        "rawDescription": descriptor.description,
+        "sectionId": "runtime",
+        "lifecycle": "profile_default",
+        "parameters": descriptor.parameters,
+        "readOnly": descriptor.read_only,
+        "source": "mcp",
+        "defaultProfiles": ["coding", "full"],
+        "includeInCrawClawGroup": true
     })
 }
 

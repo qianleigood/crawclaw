@@ -14,7 +14,7 @@ CrawClaw remembers things through a layered memory system:
 - **Session memory** for short-lived task continuity inside one session
 - **Durable memory** for long-term user and collaboration facts, scoped by
   `agentId`
-- **Experience memory** backed by NotebookLM prompt-time recall, NotebookLM
+- **Experience memory** backed by Hindsight prompt-time recall, Hindsight
   writeback, a local pending outbox for failed writes, and a background
   Experience Agent
 - **Context Archive** for replay/export/debug records of what a run actually saw
@@ -246,17 +246,17 @@ can write durable memory or an experience note depending on what should be retai
 
 Experience memory is a separate memory layer for validated lessons from prior
 work. It stores reusable procedures, decisions, runtime patterns, failure
-patterns, workflow patterns, and references. NotebookLM is the prompt-facing
+patterns, workflow patterns, and references. Hindsight is the prompt-facing
 experience recall provider and the primary write target. The local experience
-store is only used as a failure outbox when NotebookLM writeback is unavailable;
+store is only used as a failure outbox when Hindsight writeback is unavailable;
 it is not a fallback prompt recall source or the primary experience store.
 CrawClaw can:
 
-- query NotebookLM for relevant reusable experience
+- query Hindsight for relevant reusable experience
 - write structured experience notes directly through `write_experience_note`
 - run a background Experience Agent after top-level turns to extract reusable
   experience without blocking the main task
-- manage login, refresh, and provider status via CrawClaw Desktop or the local Gateway API
+- manage Hindsight provider status via CrawClaw Desktop or the local Gateway API
 - flush local pending experience notes with CrawClaw Desktop or the local Gateway API
 - summarize nightly memory prompt diagnostics via CrawClaw Desktop or the local Gateway API
 
@@ -264,16 +264,16 @@ Experience extraction and recall are deliberately split:
 
 - lifecycle `stop` captures the just-finished top-level turn
 - the Experience Agent reviews recent model-visible messages, session summary
-  context, and the local pending outbox for unsynced NotebookLM writes
+  context, and the local pending outbox for unsynced Hindsight writes
 - experience extraction progress is tracked per session in the runtime store, so
   restarts resume from the persisted cursor instead of rescanning from turn `0`
 - the agent can only use `write_experience_note`; it cannot run shell commands,
   browse, inspect source files, write durable memory, or spawn agents
-- successful writes go directly to NotebookLM when the provider is ready
-- if NotebookLM is not ready, writes stay in the local pending outbox until
-  login, heartbeat, startup, or CrawClaw Desktop or the local Gateway API flushes them
+- successful flushes write directly to Hindsight when the provider is ready
+- if Hindsight is not ready, writes stay in the local pending outbox until
+  startup, heartbeat, or CrawClaw Desktop or the local Gateway API flushes them
 - the next prompt assembly synchronously recalls the most relevant experience
-  from NotebookLM only
+  from Hindsight only
 
 Experience recall runs during the context-assembly phase of each agent turn. The
 runtime first classifies the user query, then builds a provider query plan from
@@ -284,12 +284,12 @@ that classification:
 - SOP and runbook prompts can borrow a small amount of provider search budget so
   weak metadata does not starve operational experience
 - successful `write_experience_note` calls do not keep a full local experience
-  copy; only failed NotebookLM writes are kept in the local pending outbox
-- if NotebookLM returns no hits or is not authenticated, experience recall is
+  copy; only failed Hindsight writes are kept in the local pending outbox
+- if Hindsight returns no hits or is unavailable, experience recall is
   empty for that turn instead of falling back to local outbox entries
-- NotebookLM/Gemini owns semantic relevance and ordering for experience recall;
+- Hindsight owns semantic relevance and ordering for experience recall;
   CrawClaw preserves provider order and only applies deterministic guardrails
-  such as NotebookLM-only source filtering, duplicate removal, non-empty content
+  such as Hindsight-only source filtering, duplicate removal, non-empty content
   checks, and prompt-budget limits
 - experience recall diagnostics expose the preserved `providerOrder` and
   selection reason, not a local score breakdown; local score fields are reserved
@@ -305,25 +305,36 @@ If there is no usable prompt for the current turn, the runtime skips experience
 provider querying entirely.
 
 `write_experience_note` is the only experience write tool in the current
-runtime. When NotebookLM is enabled, it writes to NotebookLM first. With the
-managed NotebookLM runtime, CrawClaw writes via `nlm source add --text --wait`
-so the experience is available to later NotebookLM queries; a custom
-`memory.notebooklm.write.command` is only needed for nonstandard write helpers.
-If NotebookLM writeback fails, CrawClaw stores the
+runtime. The tool records a structured local outbox entry, and the sync path
+writes that entry to Hindsight through `POST /v1/default/banks/{bank}/memories`
+with strict tags. If Hindsight writeback fails, CrawClaw stores the
 structured note in the local pending outbox and retries it later through
-heartbeat, startup, or CrawClaw Desktop or the local Gateway API. After a pending item syncs
-successfully, the local payload is removed. Experience notes should capture
+heartbeat, startup, or CrawClaw Desktop or the local Gateway API. After a pending
+item syncs successfully, the local payload is removed. Experience notes should capture
 reusable context, trigger, action, result, lesson, applicability boundaries, and
 supporting evidence rather than temporary task state. The write schema only
 accepts the current structured fields; legacy aliases such as freeform
 body/rationale fields are not kept as compatibility inputs.
 
-NotebookLM auth can be kept warm by `memory.notebooklm.auth.autoLogin`. The
-default provider runs the managed `nlm login --profile <profile>` flow on a
-daily interval, reusing the persisted notebooklm-mcp-cli browser profile. For an
-OpenClaw-managed browser, set the provider to `openclaw_cdp` and provide a CDP
-URL. After auto login succeeds, CrawClaw clears the provider cache and flushes
-pending experience notes to NotebookLM.
+Hindsight runs as a sidecar or remote memory service. CrawClaw does not embed
+Python, Postgres, PyTorch, embedding models, or reranker models in the runtime;
+it only keeps a small HTTP adapter with a bounded timeout. Prompt assembly
+queries three Hindsight banks with strict layer tags:
+
+- `memory.hindsight.durableBank` with `layer:durable` for preferences,
+  decisions, facts, procedures, and world knowledge
+- `memory.hindsight.resourceBank` with `layer:resource` for source, document,
+  and resource recall
+- `memory.hindsight.experienceBank` with `layer:experience` for experience and
+  observation recall
+
+For Chinese-heavy memory recall, configure the Hindsight sidecar with
+multilingual retrieval models such as `BAAI/bge-m3` for embeddings and
+`BAAI/bge-reranker-v2-m3` for reranking, and use the Hindsight text-search
+extension that supports better Chinese segmentation when keyword recall matters.
+CrawClaw sends strict tags such as `agent:main`, `layer:<layer>`, and
+`scope:<scope>` so Hindsight can filter before reranking instead of merging
+unrelated banks.
 
 ## Context Archive
 
@@ -356,7 +367,7 @@ These layers do not share the same boundaries:
   sessions.
 - **Durable memory** is shared whenever runs resolve to the same `agentId`
   scope.
-- **Experience memory** uses the same NotebookLM provider configuration and
+- **Experience memory** uses the same Hindsight provider configuration and
   prompt-facing recall across runs, while the local pending outbox is scoped by
   the same `agentId` boundary and the extraction cursor is still tracked per
   session.

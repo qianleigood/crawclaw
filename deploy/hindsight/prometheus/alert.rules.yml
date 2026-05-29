@@ -1,0 +1,98 @@
+groups:
+  - name: hindsight_alerts
+    rules:
+      # --- 服务可用性 ---
+      - alert: HindsightDown
+        expr: up{job="hindsight"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Hindsight 服务不可用"
+          description: "Hindsight API 已离线超过 2 分钟"
+
+      - alert: HindsightHealthCheckFailed
+        expr: probe_success{job="hindsight"} == 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Hindsight 健康检查失败"
+          description: "健康检查端点 /health 返回非 200"
+
+      # --- 延迟 ---
+      - alert: HindsightHighLatency
+        expr: histogram_quantile(0.95, rate(hindsight_operation_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Hindsight 操作延迟过高"
+          description: "P95 延迟超过 5 秒（当前: {{ $value }}s）"
+
+      - alert: RecallLatencyHigh
+        expr: histogram_quantile(0.95, rate(hindsight_operation_duration_seconds_bucket{operation="recall"}[5m])) > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Recall 操作延迟过高"
+          description: "Recall P95 延迟超过 3 秒"
+
+      # --- 资源 ---
+      - alert: HighMemoryUsage
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "容器内存使用率过高"
+          description: "容器 {{ $labels.name }} 内存使用率 {{ $value | humanizePercentage }}"
+
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total[5m]) / container_spec_cpu_quota * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "容器 CPU 使用率过高"
+          description: "容器 {{ $labels.name }} CPU 使用率 {{ $value | humanizePercentage }}"
+
+      # --- 数据库 ---
+      - alert: PostgresDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL 不可用"
+          description: "PostgreSQL 已离线超过 1 分钟"
+
+      - alert: PostgresDiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/var/lib/postgresql/data"} / node_filesystem_size_bytes{mountpoint="/var/lib/postgresql/data"}) < 0.15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL 磁盘空间不足"
+          description: "剩余空间低于 15%"
+
+      # --- LLM ---
+      - alert: LLMTokenUsageHigh
+        expr: sum(rate(hindsight_llm_tokens_input_total[1h])) > 100000
+        for: 1h
+        labels:
+          severity: info
+        annotations:
+          summary: "LLM Token 使用量偏高"
+          description: "过去 1 小时输入 token 超过 10 万"
+
+      # --- 错误率 ---
+      - alert: HighErrorRate
+        expr: rate(hindsight_http_requests_total{status=~"5.."}[5m]) / rate(hindsight_http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Hindsight 错误率偏高"
+          description: "5xx 错误率超过 5%"

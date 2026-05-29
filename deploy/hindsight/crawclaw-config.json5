@@ -1,0 +1,79 @@
+// CrawClaw 记忆配置 - Hindsight 原生模式
+// 将此内容合并到 ~/.crawclaw/crawclaw.json 的 memory 字段
+
+{
+  memory: {
+    // 启用 Hindsight 作为主存储
+    // 不再支持 "builtin" 模式，Hindsight 是唯一的记忆后端
+
+    runtimeStore: {
+      type: "sqlite",
+      dbPath: "~/.crawclaw/memory-runtime.db"
+    },
+
+    hindsight: {
+      enabled: true,
+
+      // Hindsight 连接
+      baseUrl: "http://localhost:8888",
+      // apiKey: "your-api-key",  // 如果启用了认证
+      // apiKeyEnv: "HINDSIGHT_API_KEY",  // 或从环境变量读取
+
+      // Bank 拓扑
+      bankPrefix: "crawclaw",
+      bankGranularity: ["agent"],  // 可选: "agent", "channel", "user"
+      sharedMode: false,
+      sharedBankId: "crawclaw:shared",
+
+      // 记忆模式
+      memoryMode: "hybrid",  // "hybrid" = 自动注入 + 工具, "context" = 仅自动注入, "tools" = 仅工具
+
+      // 自动保留（每轮结束后自动捕获记忆）
+      autoRetain: true,
+      retainRoles: ["user", "assistant"],
+      retainEveryNTurns: 1,  // 每 N 个轮次保留一次
+      retainAsync: false,    // 高频场景可设为 true
+
+      // 自动召回（每轮开始前注入相关记忆）
+      defaultBudget: "mid",  // "low", "mid", "high"
+      maxTokens: 2048,
+      recallContextTurns: 1,
+      recallMaxQueryChars: 800,
+      recallTypes: ["observation"],  // 使用整合后的 Observation，避免重复
+      recallInjectionPosition: "prepend",
+
+      // 反思与心智模型
+      autoReflect: true,
+      reflectBudget: "high",
+      reflectMaxTokens: 2048,
+      defaultMentalModels: true,  // 自动创建默认心智模型
+
+      // 知识工具（可选）
+      enableKnowledgeTools: false,
+
+      // 标签配置
+      tagsMatch: "all_strict",
+      tags: ["agent:main"],
+
+      // 超时配置
+      timeoutMs: 15000,
+
+      // 中文优化配置
+      languageHints: {
+        primaryLanguage: "auto",  // "auto" = 自动检测, "zh-CN" = 强制中文
+        bilingualTechnicalTerms: true  // 中英双语术语展开
+      }
+    },
+
+    dreaming: {
+      enabled: true,
+      minHours: 4,
+      minSessions: 3
+    },
+
+    sessionSummary: {
+      enabled: true,
+      minTokensToInit: 500
+    }
+  }
+}

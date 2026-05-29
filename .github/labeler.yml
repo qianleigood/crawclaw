@@ -87,10 +87,6 @@
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/anthropic-vertex/**"
-"extensions: brave":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/brave/**"
 "extensions: browser":
   - changed-files:
       - any-glob-to-any-file:
@@ -123,10 +119,6 @@
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/deepseek/**"
-"extensions: device-pair":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/device-pair/**"
 "extensions: diagnostics-otel":
   - changed-files:
       - any-glob-to-any-file:
@@ -143,10 +135,6 @@
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/elevenlabs/**"
-"extensions: exa":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/exa/**"
 "extensions: fal":
   - changed-files:
       - any-glob-to-any-file:
@@ -191,10 +179,6 @@
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/lobster/**"
-"extensions: media-understanding-core":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/media-understanding-core/**"
 "extensions: microsoft":
   - changed-files:
       - any-glob-to-any-file:
@@ -251,14 +235,6 @@
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/openshell/**"
-"extensions: perplexity":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/perplexity/**"
-"extensions: phone-control":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/phone-control/**"
 "extensions: qianfan":
   - changed-files:
       - any-glob-to-any-file:
@@ -291,10 +267,6 @@
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/talk-voice/**"
-"extensions: thread-ownership":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/thread-ownership/**"
 "extensions: together":
   - changed-files:
       - any-glob-to-any-file:
