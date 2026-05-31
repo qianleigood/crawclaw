@@ -57,7 +57,7 @@ x-i18n:
 不要删除或禁用所有名为 heartbeat 的功能。以下机制不是旧版 agent heartbeat：
 
 - Weixin Web `web.heartbeatSeconds` 用来观察 Web 渠道连接状态。
-- NotebookLM auth heartbeat 检查认证健康状态。
+- Hindsight health checks 检查记忆后端健康状态。
 - WebSocket、Gateway 和 provider heartbeat/ping 帧用于保持协议连接存活。
 
 这些 keepalive 和 auth 路径会继续使用已有名称和配置，以保持兼容。

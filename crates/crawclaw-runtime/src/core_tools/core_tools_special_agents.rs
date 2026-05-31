@@ -188,7 +188,10 @@ pub(super) struct SpecialAgentTool {
 
 impl SpecialAgentTool {
     pub(super) fn new(runtime_root: impl Into<PathBuf>, kind: SpecialAgentToolKind) -> Self {
-        Self { runtime_root: runtime_root.into(), kind }
+        Self {
+            runtime_root: runtime_root.into(),
+            kind,
+        }
     }
 
     pub(super) fn all(runtime_root: impl Into<PathBuf> + Clone) -> Vec<Self> {
@@ -203,7 +206,11 @@ fn scope_param(input: &Value) -> String {
     string_param(input, &["scope"]).unwrap_or_else(|| "default".to_string())
 }
 
-fn required_tool_param(kind: SpecialAgentToolKind, input: &Value, keys: &[&str]) -> pi::sdk::Result<String> {
+fn required_tool_param(
+    kind: SpecialAgentToolKind,
+    input: &Value,
+    keys: &[&str],
+) -> pi::sdk::Result<String> {
     string_param(input, keys).ok_or_else(|| {
         pi::sdk::Error::validation(format!(
             "Missing required parameter '{}' for tool '{}'",
@@ -270,22 +277,22 @@ impl pi::sdk::Tool for SpecialAgentTool {
         let result = match self.kind {
             SpecialAgentToolKind::ReviewTask => {
                 let task = required_tool_param(self.kind, &input, &["task"])?;
-                let kind = string_param(&input, &["stage"])
-                    .unwrap_or_else(|| "quality".to_string());
-                run_review_task_with_agent_runtime(
-                    &self.runtime_root,
-                    &kind,
-                    &task,
-                    None,
-                )
-                .await
-                .map_err(|error| pi::sdk::Error::tool(self.kind.name(), error))?
+                let stage = string_param(&input, &["stage"]);
+                let kind = match stage.as_deref() {
+                    Some("spec") => "review-spec".to_string(),
+                    Some("quality") | None => "review-quality".to_string(),
+                    Some(other) => other.to_string(),
+                };
+                run_review_task_with_agent_runtime(&self.runtime_root, &kind, &task, None)
+                    .await
+                    .map_err(|error| pi::sdk::Error::tool(self.kind.name(), error))?
             }
 
             // --- Hindsight Knowledge Tools ---
             SpecialAgentToolKind::KnowledgeRecall => {
                 let query = required_tool_param(self.kind, &input, &["query"])?;
-                let layer = string_param(&input, &["layer"]).unwrap_or_else(|| "durable".to_string());
+                let layer =
+                    string_param(&input, &["layer"]).unwrap_or_else(|| "durable".to_string());
                 let budget = string_param(&input, &["budget"]).unwrap_or_else(|| "mid".to_string());
                 let max_tokens = input
                     .get("maxTokens")
@@ -304,7 +311,12 @@ impl pi::sdk::Tool for SpecialAgentTool {
                     .recall(
                         &bank_id,
                         &query,
-                        &config.hindsight.recall_types.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
+                        &config
+                            .hindsight
+                            .recall_types
+                            .iter()
+                            .map(|s| s.as_str())
+                            .collect::<Vec<_>>(),
                         &budget,
                         max_tokens,
                         &tags,
@@ -327,7 +339,8 @@ impl pi::sdk::Tool for SpecialAgentTool {
 
             SpecialAgentToolKind::KnowledgeReflect => {
                 let query = required_tool_param(self.kind, &input, &["query"])?;
-                let budget = string_param(&input, &["budget"]).unwrap_or_else(|| "high".to_string());
+                let budget =
+                    string_param(&input, &["budget"]).unwrap_or_else(|| "high".to_string());
                 let max_tokens = input
                     .get("maxTokens")
                     .and_then(Value::as_u64)
@@ -353,8 +366,10 @@ impl pi::sdk::Tool for SpecialAgentTool {
 
             SpecialAgentToolKind::KnowledgeIngest => {
                 let content = required_tool_param(self.kind, &input, &["content"])?;
-                let context = string_param(&input, &["context"]).unwrap_or_else(|| "manual_ingest".to_string());
-                let layer = string_param(&input, &["layer"]).unwrap_or_else(|| "resource".to_string());
+                let context = string_param(&input, &["context"])
+                    .unwrap_or_else(|| "manual_ingest".to_string());
+                let layer =
+                    string_param(&input, &["layer"]).unwrap_or_else(|| "resource".to_string());
 
                 let runtime = crate::memory::MemoryRuntime::new(self.runtime_root.clone());
                 let client = runtime.hindsight().ok_or_else(|| {
@@ -382,7 +397,8 @@ impl pi::sdk::Tool for SpecialAgentTool {
             }
 
             SpecialAgentToolKind::KnowledgeModelList => {
-                let layer = string_param(&input, &["layer"]).unwrap_or_else(|| "mental-models".to_string());
+                let layer =
+                    string_param(&input, &["layer"]).unwrap_or_else(|| "mental-models".to_string());
 
                 let runtime = crate::memory::MemoryRuntime::new(self.runtime_root.clone());
                 let client = runtime.hindsight().ok_or_else(|| {
@@ -414,7 +430,11 @@ impl pi::sdk::Tool for SpecialAgentTool {
                 let tags = input
                     .get("tags")
                     .and_then(Value::as_array)
-                    .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|v| v.as_str().map(String::from))
+                            .collect()
+                    })
                     .unwrap_or_default();
                 let max_tokens = input
                     .get("maxTokens")

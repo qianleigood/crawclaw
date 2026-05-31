@@ -82,7 +82,7 @@ use crawclaw_runtime::{
     dispatch_native_channel_outbound, find_native_channel_descriptor,
     is_local_native_delivery_channel, list_native_channel_descriptors,
     lookup_native_channel_directory,
-    memory::RustMemoryRuntime,
+    memory::MemoryRuntime,
     resolve_native_channel_lifecycle_update,
     special_agents::{
         find_special_agent, special_agent_definitions, SpecialAgentDefinition,

@@ -113,22 +113,22 @@ tools by itself.
 
 Use `group:*` shorthands in allow/deny lists:
 
-| Group                   | Tools                                                                                                                  |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `group:runtime`         | bash, process, grep, find, ls                                                                                          |
-| `group:fs`              | read, write, edit, apply_patch                                                                                         |
-| `group:web`             | web_search, web_fetch                                                                                                  |
-| `group:sessions`        | sessions_list, sessions_history, sessions_send, sessions_spawn, sessions_yield, subagents, session_status              |
-| `group:ui`              | browser, canvas                                                                                                        |
-| `group:automation`      | cron, gateway                                                                                                          |
-| `group:messaging`       | message                                                                                                                |
-| `group:skills`          | discover_skills                                                                                                        |
-| `group:workflow`        | workflow, workflowize                                                                                                  |
-| `group:review`          | review_task                                                                                                            |
-| `group:memory`          | write_experience_note, memory_manifest_read, memory_note_read, memory_note_write, memory_note_edit, memory_note_delete |
-| `group:session_summary` | session_summary_file_read, session_summary_file_edit                                                                   |
-| `group:media`           | image, pdf, tts                                                                                                        |
-| `group:crawclaw`        | All built-in CrawClaw tools (excludes plugin tools)                                                                    |
+| Group                   | Tools                                                                                                     |
+| ----------------------- | --------------------------------------------------------------------------------------------------------- |
+| `group:runtime`         | bash, process, grep, find, ls                                                                             |
+| `group:fs`              | read, write, edit, apply_patch                                                                            |
+| `group:web`             | web_search, web_fetch                                                                                     |
+| `group:sessions`        | sessions_list, sessions_history, sessions_send, sessions_spawn, sessions_yield, subagents, session_status |
+| `group:ui`              | browser, canvas                                                                                           |
+| `group:automation`      | cron, gateway                                                                                             |
+| `group:messaging`       | message                                                                                                   |
+| `group:skills`          | discover_skills                                                                                           |
+| `group:workflow`        | workflow, workflowize                                                                                     |
+| `group:review`          | review_task                                                                                               |
+| `group:memory`          | knowledge_recall, knowledge_reflect, knowledge_ingest, knowledge_model_list, knowledge_model_create       |
+| `group:session_summary` | session_summary_file_read, session_summary_file_edit                                                      |
+| `group:media`           | image, pdf, tts                                                                                           |
+| `group:crawclaw`        | All built-in CrawClaw tools (excludes plugin tools)                                                       |
 
 Group expansion does not bypass lifecycle gates. For example,
 `group:session_summary` names tools that remain available only to their owning

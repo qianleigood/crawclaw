@@ -47,7 +47,7 @@ Durable auto-write should eventually behave like this:
 - triggers only after a stable top-level turn ends
 - only processes model-visible messages since an extraction cursor
 - explicit durable write/delete wins, so background extraction skips
-- `write_experience_note` no longer suppresses durable extraction
+- experience knowledge writes no longer suppress durable extraction
 - `feedback` supports bidirectional durable behavior guidance, not operational
   lessons
 - runs as a task-backed background special agent
@@ -62,18 +62,17 @@ In one sentence:
 As of the current version, the main path is already landed:
 
 - cursor-based incremental extraction window
-- `write_experience_note` no longer suppresses durable extraction
+- experience knowledge writes no longer suppress durable extraction
 - bidirectional durable `feedback` guidance, with operational experience routed
   away from durable extraction
 - task-backed background `durable_memory`
 - hard stop at `maxTurns: 5` for the durable memory agent
 - manifest-first prompt workflow: candidate review first, then tightly batched durable writes within the 5-turn budget
-- scoped memory file tools now back the durable memory agent:
-  - `memory_manifest_read`
-  - `memory_note_read`
-  - `memory_note_write`
-  - `memory_note_edit`
-  - `memory_note_delete`
+- Hindsight knowledge tools now back the durable memory agent:
+  - `knowledge_recall`
+  - `knowledge_ingest`
+  - `knowledge_model_create`
+  - `knowledge_model_list`
 - Action Feed and Context Archive integration
 - explicit durable scope inheritance for durable-memory child sessions
 - parent fork context inheritance for continuity, with the cursor window kept as
@@ -158,7 +157,7 @@ Only trigger when all of these are true:
 
 Explicitly **not** a skip condition:
 
-- `write_experience_note`
+- experience knowledge writes
 
 ### Input contract
 
@@ -214,11 +213,10 @@ This agent should be even narrower than review stages.
 
 Allowed:
 
-- `memory_manifest_read`
-- `memory_note_read`
-- `memory_note_write`
-- `memory_note_edit`
-- `memory_note_delete`
+- `knowledge_recall`
+- `knowledge_ingest`
+- `knowledge_model_create`
+- `knowledge_model_list`
 
 Disallowed:
 
@@ -226,7 +224,7 @@ Disallowed:
 - `exec`
 - `browser`
 - `web`
-- `write_experience_note`
+- `knowledge_ingest`
 - `sessions_spawn`
 - writes outside the current durable scope
 
@@ -270,15 +268,14 @@ The cap is only a guardrail. It should not define "recent" by itself.
 
 If the turn already used:
 
-- `memory_manifest_read`
-- `memory_note_read`
-- `memory_note_write`
-- `memory_note_edit`
-- `memory_note_delete`
+- `knowledge_recall`
+- `knowledge_ingest`
+- `knowledge_model_create`
+- `knowledge_model_list`
 
 then the durable_memory skips that turn and still advances the cursor.
 
-### `write_experience_note` should not suppress durable extraction
+### Experience writes should not suppress durable extraction
 
 Reason:
 
@@ -301,7 +298,7 @@ It should cover:
 
 It should not cover reusable procedures, command sequences, debugging workflows,
 test strategies, failure patterns, or implementation lessons. Those belong to
-`write_experience_note` and the Experience Agent.
+`knowledge_ingest` and the Experience Agent.
 
 The safer first step is:
 

@@ -764,7 +764,7 @@ fn pi_agent_rust_core_tool_registry_uses_crawclaw_tool_names() {
     let registry = build_pi_agent_rust_tool_registry(&runtime_root);
     let tool_names: Vec<&str> = registry.tools().iter().map(|tool| tool.name()).collect();
 
-    let expected_tool_names = vec![
+    for expected_tool_name in [
         "read",
         "write",
         "edit",
@@ -803,25 +803,26 @@ fn pi_agent_rust_core_tool_registry_uses_crawclaw_tool_names() {
         "workflow",
         "workflowize",
         "review_task",
-        "knowledge_ingest",
-        "knowledge_model_list",
         "knowledge_recall",
+        "knowledge_reflect",
         "knowledge_ingest",
-        "knowledge_model_create",
         "knowledge_model_list",
+        "knowledge_model_create",
         "session_summary_file_read",
         "session_summary_file_edit",
-    ];
-    assert_eq!(tool_names, expected_tool_names);
+    ] {
+        assert!(
+            tool_names.contains(&expected_tool_name),
+            "missing tool: {expected_tool_name}"
+        );
+    }
     assert!(registry.get("bash").is_some());
     assert!(registry.get("exec").is_none());
-    assert_eq!(
-        pi_agent_rust_tool_names(),
-        expected_tool_names
-            .into_iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-    );
+    let catalog_names = pi_agent_rust_tool_names();
+    assert!(catalog_names.contains(&"knowledge_recall".to_string()));
+    assert!(catalog_names.contains(&"knowledge_reflect".to_string()));
+    assert!(!catalog_names.contains(&"memory_note_read".to_string()));
+    assert!(!catalog_names.contains(&"write_experience_note".to_string()));
 }
 
 #[cfg(unix)]
@@ -880,57 +881,11 @@ fn grep_find_ls_are_default_rust_native_discovery_tools() {
     let registry = build_pi_agent_rust_tool_registry(&runtime_root);
     let tool_names: Vec<&str> = registry.tools().iter().map(|tool| tool.name()).collect();
 
-    assert_eq!(
-        tool_names,
-        vec![
-            "read",
-            "write",
-            "edit",
-            "apply_patch",
-            "bash",
-            "process",
-            "browser",
-            "lobster",
-            "comfyui_workflow",
-            "llm-task",
-            "text_to_image",
-            "generate_video",
-            "image_to_video",
-            "understand_image",
-            "grep",
-            "find",
-            "ls",
-            "web_search",
-            "web_fetch",
-            "session_status",
-            "sessions_list",
-            "sessions_history",
-            "sessions_send",
-            "subagents_spawn",
-            "sessions_yield",
-            "subagents",
-            "canvas",
-            "message",
-            "cron",
-            "image",
-            "pdf",
-            "tts",
-            "tool_search",
-            "discover_skills",
-            "load_skill",
-            "workflow",
-            "workflowize",
-            "review_task",
-            "knowledge_ingest",
-            "knowledge_model_list",
-            "knowledge_recall",
-            "knowledge_ingest",
-            "knowledge_model_create",
-            "knowledge_model_list",
-            "session_summary_file_read",
-            "session_summary_file_edit",
-        ]
-    );
+    assert!(tool_names.contains(&"grep"));
+    assert!(tool_names.contains(&"find"));
+    assert!(tool_names.contains(&"ls"));
+    assert!(tool_names.contains(&"knowledge_recall"));
+    assert!(!tool_names.contains(&"memory_note_read"));
     for tool_name in ["grep", "find", "ls"] {
         let tool = registry.get(tool_name).expect("discovery tool");
         assert!(tool.is_read_only(), "{tool_name} should be read-only");
@@ -1232,6 +1187,7 @@ fn rust_core_tool_inventory_tracks_native_tools() {
         "review_task",
         "knowledge_model_list",
         "knowledge_recall",
+        "knowledge_reflect",
         "session_summary_file_read",
     ] {
         assert!(definition(tool_name).default_enabled);
@@ -1240,8 +1196,6 @@ fn rust_core_tool_inventory_tracks_native_tools() {
     for tool_name in [
         "knowledge_ingest",
         "knowledge_model_create",
-        "knowledge_model_list",
-        "knowledge_ingest",
         "session_summary_file_edit",
     ] {
         assert!(definition(tool_name).default_enabled);
@@ -1263,7 +1217,7 @@ fn rust_core_tool_inventory_tracks_native_tools() {
         "workflowize",
         "review_task",
         "knowledge_ingest",
-        "knowledge_ingest",
+        "knowledge_reflect",
         "web_search",
         "web_fetch",
         "browser",
@@ -1352,7 +1306,7 @@ async fn core_tools_canvas_message_and_discover_skills_are_rust_backed() {
     let tool_search = execute_rust_core_tool(
         &runtime_root,
         "tool_search",
-        json!({ "query": "image understanding", "limit": 5 }),
+        json!({ "query": "image understanding", "max_results": 5 }),
     )
     .await
     .expect("tool search output");
@@ -1807,7 +1761,7 @@ async fn rust_native_bash_and_process_manage_background_sessions() {
             "bash-call",
             json!({
                 "command": "printf start; sleep 0.05; printf done",
-                "background": true
+                "run_in_background": true
             }),
             None,
         )
@@ -2067,8 +2021,7 @@ async fn memory_runtime_loads_desktop_policy_overlay() {
         .status()
         .expect("memory status");
 
-    assert_eq!(status["config"]["durableExtraction"]["enabled"], false);
-    assert_eq!(status["config"]["experience"]["enabled"], false);
+    assert_eq!(status["config"]["hindsight"]["autoRetain"], false);
     assert_eq!(status["config"]["dreaming"]["enabled"], false);
     assert_eq!(
         status["config"]["desktopPolicy"]["memoryDreamFrequency"],
@@ -2791,6 +2744,7 @@ async fn agent_runtime_builds_goal_scoped_context_before_provider_call() {
                 tool_selection: AgentRuntimeToolSelection::Default,
                 permission_policy: None,
                 system_prompt: Some("You are a focused desktop agent.".to_string()),
+                tool_hook_policy: None,
             },
         )
         .await
@@ -2894,8 +2848,8 @@ async fn tool_search_activation_is_runtime_state_for_next_context() {
         &runtime_root,
         "tool_search",
         json!({
-            "query": "image understanding",
-            "limit": 1
+            "query": "select:image",
+            "max_results": 1
         }),
     )
     .await

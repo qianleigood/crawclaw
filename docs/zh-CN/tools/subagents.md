@@ -31,7 +31,7 @@ task-backed 子智能体运行现在还会持久化：
 - 它拿到的是子任务 prompt 和 lineage 元数据（`requesterSessionKey`、来源渠道、父子关系等）。
 - Session memory 按子会话自己的 `sessionId` 隔离。
 - Durable memory 只要父子运行命中同一个 `agentId + channel + userId` scope，就仍然共享。
-- NotebookLM knowledge recall 会在子运行自己的 prompt assembly 阶段查询同一个 backend，不按 session id 隔离。
+- Hindsight knowledge recall 会在子运行自己的 prompt assembly 阶段查询同一个 backend，不按 session id 隔离。
 - 同一 agent 下的 spawn 默认继承调用者 workspace；跨 agent spawn 会切到目标 agent 自己的 workspace。
 
 子运行结束后，可通过 `crawclaw agent inspect`、`crawclaw agent export-context`

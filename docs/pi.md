@@ -41,8 +41,8 @@ The public runtime entry points are Gateway RPC methods backed by Rust:
 - `autoReply.run`
 - cron `agentTurn` payload execution
 - memory RPCs such as `memory.bootstrap`, `memory.ingestBatch`,
-  `memory.assemble`, `memory.compact`, `memory.dream.*`,
-  `memory.session_summary.*`, and `memory.experience.*`
+  `memory.assemble`, `memory.compact`, `memory.dream.*`, and
+  `memory.session_summary.*`
 - special-agent runtime methods exposed by the Rust gateway
 
 These methods normalize request metadata and call the same Rust runtime core so

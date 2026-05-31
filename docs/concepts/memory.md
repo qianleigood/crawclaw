@@ -14,26 +14,20 @@ CrawClaw remembers things through a layered memory system:
 - **Session memory** for short-lived task continuity inside one session
 - **Durable memory** for long-term user and collaboration facts, scoped by
   `agentId`
-- **Experience memory** backed by Hindsight prompt-time recall, Hindsight
-  writeback, a local pending outbox for failed writes, and a background
-  Experience Agent
+- **Experience memory** backed by Hindsight prompt-time recall and Hindsight
+  writeback through the special-agent knowledge tools
 - **Context Archive** for replay/export/debug records of what a run actually saw
   and did
 
 The model only "remembers" what is persisted into those layers -- there is no
 hidden state.
 
-The `coding` tool profile includes `write_experience_note` for explicit
-experience writes and the scoped durable-memory file tools
-(`memory_manifest_read`, `memory_note_read`, `memory_note_write`,
-`memory_note_edit`, and `memory_note_delete`) for explicit durable-memory
-maintenance. Local onboarding defaults new configs to that profile when unset;
-it does not add a `main` agent `tools.alsoAllow` override for memory tools.
-The main agent decides when to use those durable tools from the memory routing
-prompt, matching Claude Code's prompt-driven memory writes. Dedicated
-maintenance agents receive the same durable tools through their special-agent
-allowlist and remain runtime-restricted to that narrow surface.
-Session-summary file edits stay restricted to their owning background agent.
+Memory maintenance tools are special-agent-only. Durable, experience, resource,
+and mental-model maintenance uses the Hindsight-backed `knowledge_recall`,
+`knowledge_reflect`, `knowledge_ingest`, `knowledge_model_list`, and
+`knowledge_model_create` tools. Session-summary file edits stay restricted to
+their owning background agent through `session_summary_file_read` and
+`session_summary_file_edit`.
 
 ## Durable memory files
 
@@ -247,31 +241,26 @@ can write durable memory or an experience note depending on what should be retai
 Experience memory is a separate memory layer for validated lessons from prior
 work. It stores reusable procedures, decisions, runtime patterns, failure
 patterns, workflow patterns, and references. Hindsight is the prompt-facing
-experience recall provider and the primary write target. The local experience
-store is only used as a failure outbox when Hindsight writeback is unavailable;
-it is not a fallback prompt recall source or the primary experience store.
+experience recall provider and the write target.
 CrawClaw can:
 
 - query Hindsight for relevant reusable experience
-- write structured experience notes directly through `write_experience_note`
+- write structured experience notes through the special-agent
+  `knowledge_ingest` tool
 - run a background Experience Agent after top-level turns to extract reusable
   experience without blocking the main task
 - manage Hindsight provider status via CrawClaw Desktop or the local Gateway API
-- flush local pending experience notes with CrawClaw Desktop or the local Gateway API
 - summarize nightly memory prompt diagnostics via CrawClaw Desktop or the local Gateway API
 
 Experience extraction and recall are deliberately split:
 
 - lifecycle `stop` captures the just-finished top-level turn
 - the Experience Agent reviews recent model-visible messages, session summary
-  context, and the local pending outbox for unsynced Hindsight writes
+  context, and Hindsight recall context
 - experience extraction progress is tracked per session in the runtime store, so
   restarts resume from the persisted cursor instead of rescanning from turn `0`
-- the agent can only use `write_experience_note`; it cannot run shell commands,
-  browse, inspect source files, write durable memory, or spawn agents
-- successful flushes write directly to Hindsight when the provider is ready
-- if Hindsight is not ready, writes stay in the local pending outbox until
-  startup, heartbeat, or CrawClaw Desktop or the local Gateway API flushes them
+- the agent can only use the Hindsight knowledge tools; it cannot run shell
+  commands, browse, inspect source files, or spawn agents
 - the next prompt assembly synchronously recalls the most relevant experience
   from Hindsight only
 
@@ -283,10 +272,10 @@ that classification:
   provider queries
 - SOP and runbook prompts can borrow a small amount of provider search budget so
   weak metadata does not starve operational experience
-- successful `write_experience_note` calls do not keep a full local experience
-  copy; only failed Hindsight writes are kept in the local pending outbox
+- successful `knowledge_ingest` calls write to Hindsight and do not keep a full
+  local experience copy
 - if Hindsight returns no hits or is unavailable, experience recall is
-  empty for that turn instead of falling back to local outbox entries
+  empty for that turn instead of falling back to local entries
 - Hindsight owns semantic relevance and ordering for experience recall;
   CrawClaw preserves provider order and only applies deterministic guardrails
   such as Hindsight-only source filtering, duplicate removal, non-empty content
@@ -304,17 +293,11 @@ that classification:
 If there is no usable prompt for the current turn, the runtime skips experience
 provider querying entirely.
 
-`write_experience_note` is the only experience write tool in the current
-runtime. The tool records a structured local outbox entry, and the sync path
-writes that entry to Hindsight through `POST /v1/default/banks/{bank}/memories`
-with strict tags. If Hindsight writeback fails, CrawClaw stores the
-structured note in the local pending outbox and retries it later through
-heartbeat, startup, or CrawClaw Desktop or the local Gateway API. After a pending
-item syncs successfully, the local payload is removed. Experience notes should capture
-reusable context, trigger, action, result, lesson, applicability boundaries, and
-supporting evidence rather than temporary task state. The write schema only
-accepts the current structured fields; legacy aliases such as freeform
-body/rationale fields are not kept as compatibility inputs.
+`knowledge_ingest` is the current experience write path. It writes to the
+resolved Hindsight bank through the runtime Hindsight client with strict layer
+tags. Experience notes should capture reusable context, trigger, action, result,
+lesson, applicability boundaries, and supporting evidence rather than temporary
+task state.
 
 Hindsight runs as a sidecar or remote memory service. CrawClaw does not embed
 Python, Postgres, PyTorch, embedding models, or reranker models in the runtime;
@@ -368,9 +351,8 @@ These layers do not share the same boundaries:
 - **Durable memory** is shared whenever runs resolve to the same `agentId`
   scope.
 - **Experience memory** uses the same Hindsight provider configuration and
-  prompt-facing recall across runs, while the local pending outbox is scoped by
-  the same `agentId` boundary and the extraction cursor is still tracked per
-  session.
+  prompt-facing recall across runs, while the extraction cursor is still tracked
+  per session.
 
 `channel` and `userId` can still be recorded as source metadata on extracted
 memory records, but they no longer determine storage directories, scope keys,

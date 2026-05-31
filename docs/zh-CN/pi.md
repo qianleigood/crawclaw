@@ -39,7 +39,7 @@ TypeScript 只保留 UI、CLI、channel adapters、Gateway client calls 和小�
 - `agent.command.run`
 - `autoReply.run`
 - cron `agentTurn` payload execution
-- memory RPCs，例如 `memory.bootstrap`、`memory.ingestBatch`、`memory.assemble`、`memory.compact`、`memory.dream.*`、`memory.session_summary.*` 和 `memory.experience.*`
+- memory RPCs，例如 `memory.bootstrap`、`memory.ingestBatch`、`memory.assemble`、`memory.compact`、`memory.dream.*` 和 `memory.session_summary.*`
 - Rust gateway 暴露的 special-agent runtime methods
 
 这些方法会规范化 request metadata，并调用相同的 Rust runtime core，确保 session、transcript、tools、model selection、cancellation 和 memory handling 在不同入口之间保持一致。

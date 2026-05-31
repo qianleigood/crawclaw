@@ -12,16 +12,17 @@ pub struct RuntimeStore {
 
 impl RuntimeStore {
     pub fn new(db_path: impl Into<PathBuf>) -> Self {
-        Self { db_path: db_path.into() }
+        Self {
+            db_path: db_path.into(),
+        }
     }
 
     pub fn init(&self) -> Result<(), String> {
         if let Some(parent) = self.db_path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| format!("failed to create db dir: {e}"))?;
+            std::fs::create_dir_all(parent).map_err(|e| format!("failed to create db dir: {e}"))?;
         }
-        let conn = Connection::open(&self.db_path)
-            .map_err(|e| format!("failed to open db: {e}"))?;
+        let conn =
+            Connection::open(&self.db_path).map_err(|e| format!("failed to open db: {e}"))?;
         conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS gm_messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,8 +65,8 @@ impl RuntimeStore {
         index: i64,
         message: &Value,
     ) -> Result<(), String> {
-        let conn = Connection::open(&self.db_path)
-            .map_err(|e| format!("failed to open db: {e}"))?;
+        let conn =
+            Connection::open(&self.db_path).map_err(|e| format!("failed to open db: {e}"))?;
         let role = message.get("role").and_then(Value::as_str).unwrap_or("");
         let content = serde_json::to_string(message).unwrap_or_default();
         conn.execute(
@@ -78,8 +79,8 @@ impl RuntimeStore {
     }
 
     pub fn list_messages(&self, session_id: &str, limit: usize) -> Result<Vec<Value>, String> {
-        let conn = Connection::open(&self.db_path)
-            .map_err(|e| format!("failed to open db: {e}"))?;
+        let conn =
+            Connection::open(&self.db_path).map_err(|e| format!("failed to open db: {e}"))?;
         let mut stmt = conn
             .prepare("SELECT raw_json FROM gm_messages WHERE session_id = ?1 ORDER BY message_index ASC LIMIT ?2")
             .map_err(|e| format!("failed to prepare query: {e}"))?;
@@ -104,8 +105,8 @@ impl RuntimeStore {
         session_id: &str,
         tail_start_index: i64,
     ) -> Result<(), String> {
-        let conn = Connection::open(&self.db_path)
-            .map_err(|e| format!("failed to open db: {e}"))?;
+        let conn =
+            Connection::open(&self.db_path).map_err(|e| format!("failed to open db: {e}"))?;
         conn.execute(
             "INSERT OR REPLACE INTO gm_session_compaction_state (session_id, tail_start_message_index, updated_at)
              VALUES (?1, ?2, ?3)",
@@ -120,8 +121,8 @@ impl RuntimeStore {
         session_id: &str,
         tokens_at_last_summary: i64,
     ) -> Result<(), String> {
-        let conn = Connection::open(&self.db_path)
-            .map_err(|e| format!("failed to open db: {e}"))?;
+        let conn =
+            Connection::open(&self.db_path).map_err(|e| format!("failed to open db: {e}"))?;
         conn.execute(
             "INSERT OR REPLACE INTO gm_session_summary_state (session_id, tokens_at_last_summary, updated_at)
              VALUES (?1, ?2, ?3)",
@@ -132,8 +133,8 @@ impl RuntimeStore {
     }
 
     pub fn session_summary_state(&self, session_id: &str) -> Result<Option<Value>, String> {
-        let conn = Connection::open(&self.db_path)
-            .map_err(|e| format!("failed to open db: {e}"))?;
+        let conn =
+            Connection::open(&self.db_path).map_err(|e| format!("failed to open db: {e}"))?;
         let result: Option<String> = conn
             .query_row(
                 "SELECT json_object(

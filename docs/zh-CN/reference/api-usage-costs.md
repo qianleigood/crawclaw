@@ -68,7 +68,7 @@ CrawClaw 可以从以下来源获取凭证：
 ### 3) 记忆
 
 内置记忆运行时可以调用配置的 LLM 角色进行持久提取、经验提取、梦境整合和会话摘要。
-NotebookLM 集成也可以在启用时调用配置的本地 NotebookLM 命令。
+Hindsight 集成在启用时会调用配置的 Hindsight HTTP 服务。
 
 详见 [记忆](/concepts/memory)。
 

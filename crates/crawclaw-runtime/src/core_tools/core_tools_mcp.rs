@@ -1,9 +1,9 @@
 use super::*;
+use futures::{SinkExt, StreamExt};
+use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::io::{BufRead, BufReader};
 use std::sync::mpsc;
-use futures::{SinkExt, StreamExt};
-use sha2::{Digest, Sha256};
 use tokio_tungstenite::tungstenite::{
     client::IntoClientRequest,
     http::{HeaderName, HeaderValue},
@@ -555,7 +555,7 @@ fn read_mcp_config(runtime_root: &Path) -> Option<CrawClawMcpConfig> {
     saw_config.then_some(merged)
 }
 
-pub(crate) fn mcp_prompt_slash_commands(runtime_root: &Path) -> Vec<Value> {
+pub fn mcp_prompt_slash_commands(runtime_root: &Path) -> Vec<Value> {
     let Some(config) = read_mcp_config(runtime_root) else {
         return Vec::new();
     };
@@ -607,7 +607,7 @@ fn mcp_prompt_slash_command(server_name: &str, prompt: McpPromptSchema) -> Optio
     }))
 }
 
-pub(crate) fn mcp_server_runtime_statuses(runtime_root: &Path) -> Vec<Value> {
+pub fn mcp_server_runtime_statuses(runtime_root: &Path) -> Vec<Value> {
     let Some(config) = read_mcp_config(runtime_root) else {
         return Vec::new();
     };
@@ -752,7 +752,7 @@ fn mcp_runtime_status_for_transport(server_name: &str, transport: &McpTransport)
     })
 }
 
-pub(crate) async fn send_mcp_jsonrpc_message(
+pub async fn send_mcp_jsonrpc_message(
     runtime_root: &Path,
     server_name: &str,
     message: Value,

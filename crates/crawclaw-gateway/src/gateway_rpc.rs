@@ -312,46 +312,6 @@ async fn handle_gateway_method_inner(
             "status": "ok",
             "provider": memory_runtime(state).hindsight_status()
         })),
-        "memory.sync"
-        | "memory_sync"
-        | "memory.experience.sync.flush"
-        | "memory_experience_sync_flush" => memory_runtime(state).sync_experience_outbox(),
-        "memory.admin.overview" | "memory_admin_overview" => {
-            let runtime = memory_runtime(state);
-            Ok(json!({
-                "status": "ok",
-                "implementation": "rust-native",
-                "runtime": runtime.info(),
-                "memory": runtime.status()?,
-                "dream": runtime.dream_store().status()?,
-                "experience": {
-                    "entries": runtime.experience_store().list()?
-                }
-            }))
-        }
-        "memory.durable.index.list" | "memory_durable_index_list" => {
-            let scope =
-                string_param(&params, &["scope", "agentId"]).unwrap_or_else(|| "main".to_string());
-            let limit = params
-                .get("limit")
-                .and_then(Value::as_u64)
-                .unwrap_or(50)
-                .min(500) as usize;
-            memory_runtime(state).durable_index_list(&scope, limit)
-        }
-        "memory.durable.index.get" | "memory_durable_index_get" => {
-            let scope =
-                string_param(&params, &["scope", "agentId"]).unwrap_or_else(|| "main".to_string());
-            let id = required_param(&params, &["id", "notePath", "path"])?;
-            memory_runtime(state).durable_index_get(&scope, &id)
-        }
-        "memory.dream.status" | "memory_dream_status" => {
-            memory_runtime(state).dream_store().status()
-        }
-        "memory.dream.history" | "memory_dream_history" => Ok(json!({
-            "status": "ok",
-            "history": memory_runtime(state).dream_store().history()?
-        })),
         "memory.dream.run" | "memory_dream_run" => {
             let scope =
                 string_param(&params, &["scope", "agentId"]).unwrap_or_else(|| "main".to_string());
@@ -374,10 +334,10 @@ async fn handle_gateway_method_inner(
         "memory.session_summary.status"
         | "memory_session_summary_status"
         | "memory.sessionSummary.status" => {
-            let scope = string_param(&params, &["scope", "agentId", "sessionKey"])
+            let _scope = string_param(&params, &["scope", "agentId", "sessionKey"])
                 .or_else(|| string_param(&params, &["sessionId"]))
                 .unwrap_or_else(|| "main".to_string());
-            memory_runtime(state).session_summary_store().status(&scope)
+            memory_runtime(state).status()
         }
         "memory.session_summary.refresh"
         | "memory_session_summary_refresh"
@@ -401,20 +361,6 @@ async fn handle_gateway_method_inner(
                 definition,
             )
             .await
-        }
-        "memory.experience.outbox.list" | "memory_experience_outbox_list" => Ok(json!({
-            "status": "ok",
-            "entries": memory_runtime(state).experience_store().list()?
-        })),
-        "memory.experience.outbox.updateStatus" | "memory_experience_outbox_update_status" => {
-            let entry_id = required_param(&params, &["id", "entryId"])?;
-            let status = required_param(&params, &["status"])?;
-            memory_runtime(state)
-                .experience_store()
-                .update_status(&entry_id, &status)
-        }
-        "memory.experience.outbox.prune" | "memory_experience_outbox_prune" => {
-            memory_runtime(state).experience_store().prune()
         }
         "memory.promptJournal.summary" | "memory_prompt_journal_summary" => {
             memory_prompt_journal_summary(state, params)
@@ -470,17 +416,6 @@ async fn handle_gateway_method_inner(
                 &messages,
                 pre_prompt_message_count,
             )
-        }
-        "memory.prepareSubagentSpawn" | "memory_prepare_subagent_spawn" => {
-            let parent_session_key = required_param(&params, &["parentSessionKey"])?;
-            let child_session_key = required_param(&params, &["childSessionKey"])?;
-            memory_runtime(state).prepare_subagent_spawn(&parent_session_key, &child_session_key)
-        }
-        "memory.onSubagentEnded" | "memory_on_subagent_ended" => {
-            let child_session_key = required_param(&params, &["childSessionKey"])?;
-            let reason =
-                string_param(&params, &["reason"]).unwrap_or_else(|| "completed".to_string());
-            memory_runtime(state).on_subagent_ended(&child_session_key, &reason)
         }
         "sessions.list" | "sessions_list" => sessions_list(state),
         "sessions.create" => sessions_create(state, params),

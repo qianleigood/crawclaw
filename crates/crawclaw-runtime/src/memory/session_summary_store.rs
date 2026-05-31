@@ -36,7 +36,6 @@ impl SessionSummaryStore {
         }))
     }
 
-
     pub fn edit(&self, scope: &str, content: &str) -> Result<Value, String> {
         let path = self.summary_file(scope)?;
         if let Some(parent) = path.parent() {

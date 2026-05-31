@@ -479,81 +479,65 @@
       "status": "rust-native"
     },
     {
-      "backingRuntimeId": "write_experience_note",
-      "defaultEnabled": true,
-      "defaultProfiles": [
-        "coding",
-        "full"
-      ],
-      "description": "Write reusable experience notes",
-      "id": "write_experience_note",
-      "includeInCrawClawGroup": true,
-      "label": "write_experience_note",
-      "lifecycle": "profile_default",
-      "readOnly": false,
-      "sectionId": "memory",
-      "status": "rust-native"
-    },
-    {
-      "backingRuntimeId": "memory_manifest_read",
+      "backingRuntimeId": "knowledge_recall",
       "defaultEnabled": true,
       "defaultProfiles": [],
-      "description": "Read scoped durable-memory manifest",
-      "id": "memory_manifest_read",
+      "description": "Search Hindsight memory banks for relevant knowledge",
+      "id": "knowledge_recall",
       "includeInCrawClawGroup": false,
-      "label": "memory_manifest_read",
+      "label": "knowledge_recall",
       "lifecycle": "special_agent_only",
       "readOnly": true,
       "sectionId": "memory",
       "status": "rust-native"
     },
     {
-      "backingRuntimeId": "memory_note_read",
+      "backingRuntimeId": "knowledge_reflect",
       "defaultEnabled": true,
       "defaultProfiles": [],
-      "description": "Read scoped durable-memory notes",
-      "id": "memory_note_read",
+      "description": "Deep synthesis query against Hindsight memory",
+      "id": "knowledge_reflect",
       "includeInCrawClawGroup": false,
-      "label": "memory_note_read",
+      "label": "knowledge_reflect",
       "lifecycle": "special_agent_only",
       "readOnly": true,
       "sectionId": "memory",
       "status": "rust-native"
     },
     {
-      "backingRuntimeId": "memory_note_write",
+      "backingRuntimeId": "knowledge_ingest",
       "defaultEnabled": true,
       "defaultProfiles": [],
-      "description": "Write scoped durable-memory notes",
-      "id": "memory_note_write",
+      "description": "Ingest content into Hindsight memory bank",
+      "id": "knowledge_ingest",
       "includeInCrawClawGroup": false,
-      "label": "memory_note_write",
+      "label": "knowledge_ingest",
       "lifecycle": "special_agent_only",
       "readOnly": false,
       "sectionId": "memory",
       "status": "rust-native"
     },
     {
-      "backingRuntimeId": "memory_note_edit",
+      "backingRuntimeId": "knowledge_model_list",
       "defaultEnabled": true,
       "defaultProfiles": [],
-      "description": "Edit scoped durable-memory notes",
-      "id": "memory_note_edit",
+      "description": "List mental models in Hindsight bank",
+      "id": "knowledge_model_list",
       "includeInCrawClawGroup": false,
-      "label": "memory_note_edit",
+      "label": "knowledge_model_list",
       "lifecycle": "special_agent_only",
-      "readOnly": false,
+      "readOnly": true,
       "sectionId": "memory",
       "status": "rust-native"
     },
     {
-      "backingRuntimeId": "memory_note_delete",
+      "backingRuntimeId": "knowledge_model_create",
       "defaultEnabled": true,
       "defaultProfiles": [],
-      "description": "Delete scoped durable-memory notes",
-      "id": "memory_note_delete",
+      "description": "Create a new mental model in Hindsight bank",
+      "id": "knowledge_model_create",
       "includeInCrawClawGroup": false,
-      "label": "memory_note_delete",
+      "label": "knowledge_model_create",
       "lifecycle": "special_agent_only",
       "readOnly": false,
       "sectionId": "memory",
@@ -584,8 +568,436 @@
       "readOnly": false,
       "sectionId": "session_summary",
       "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "StructuredOutput",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Return structured output in the requested format",
+      "id": "StructuredOutput",
+      "includeInCrawClawGroup": true,
+      "label": "StructuredOutput",
+      "lifecycle": "profile_default",
+      "readOnly": true,
+      "sectionId": "sessions",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "PowerShell",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Run PowerShell commands",
+      "id": "PowerShell",
+      "includeInCrawClawGroup": true,
+      "label": "PowerShell",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "runtime",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "AskUserQuestion",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Ask the user multiple choice questions",
+      "id": "AskUserQuestion",
+      "includeInCrawClawGroup": true,
+      "label": "AskUserQuestion",
+      "lifecycle": "profile_default",
+      "readOnly": true,
+      "sectionId": "sessions",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "EnterPlanMode",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Enter plan mode for complex tasks",
+      "id": "EnterPlanMode",
+      "includeInCrawClawGroup": true,
+      "label": "EnterPlanMode",
+      "lifecycle": "profile_default",
+      "readOnly": true,
+      "sectionId": "sessions",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "ExitPlanMode",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Exit plan mode and start coding",
+      "id": "ExitPlanMode",
+      "includeInCrawClawGroup": true,
+      "label": "ExitPlanMode",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "sessions",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "EnterWorktree",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Create an isolated worktree and switch into it",
+      "id": "EnterWorktree",
+      "includeInCrawClawGroup": true,
+      "label": "EnterWorktree",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "runtime",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "ExitWorktree",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Exit a worktree session and restore original cwd",
+      "id": "ExitWorktree",
+      "includeInCrawClawGroup": true,
+      "label": "ExitWorktree",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "runtime",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "SendMessage",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Send a message to another agent",
+      "id": "SendMessage",
+      "includeInCrawClawGroup": true,
+      "label": "SendMessage",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "sessions",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "Agent",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Launch a new agent",
+      "id": "Agent",
+      "includeInCrawClawGroup": true,
+      "label": "Agent",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "sessions",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "Task",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Launch a new agent task",
+      "id": "Task",
+      "includeInCrawClawGroup": true,
+      "label": "Task",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "sessions",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "TeamCreate",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Create a new team for coordinating multiple agents",
+      "id": "TeamCreate",
+      "includeInCrawClawGroup": true,
+      "label": "TeamCreate",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "sessions",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "TeamDelete",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Clean up team and task directories",
+      "id": "TeamDelete",
+      "includeInCrawClawGroup": true,
+      "label": "TeamDelete",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "sessions",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "TodoWrite",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Update the todo list for the current session",
+      "id": "TodoWrite",
+      "includeInCrawClawGroup": true,
+      "label": "TodoWrite",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "sessions",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "TaskCreate",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Create a new task",
+      "id": "TaskCreate",
+      "includeInCrawClawGroup": true,
+      "label": "TaskCreate",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "sessions",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "TaskGet",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Get a task by ID",
+      "id": "TaskGet",
+      "includeInCrawClawGroup": true,
+      "label": "TaskGet",
+      "lifecycle": "profile_default",
+      "readOnly": true,
+      "sectionId": "sessions",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "TaskUpdate",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Update an existing task",
+      "id": "TaskUpdate",
+      "includeInCrawClawGroup": true,
+      "label": "TaskUpdate",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "sessions",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "TaskList",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "List all tasks",
+      "id": "TaskList",
+      "includeInCrawClawGroup": true,
+      "label": "TaskList",
+      "lifecycle": "profile_default",
+      "readOnly": true,
+      "sectionId": "sessions",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "TaskOutput",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Get output from a running task",
+      "id": "TaskOutput",
+      "includeInCrawClawGroup": true,
+      "label": "TaskOutput",
+      "lifecycle": "profile_default",
+      "readOnly": true,
+      "sectionId": "runtime",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "TaskStop",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Stop a running task",
+      "id": "TaskStop",
+      "includeInCrawClawGroup": true,
+      "label": "TaskStop",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "runtime",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "LSP",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Language Server Protocol operations",
+      "id": "LSP",
+      "includeInCrawClawGroup": true,
+      "label": "LSP",
+      "lifecycle": "profile_default",
+      "readOnly": true,
+      "sectionId": "runtime",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "ListMcpResourcesTool",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "List available MCP resources",
+      "id": "ListMcpResourcesTool",
+      "includeInCrawClawGroup": true,
+      "label": "ListMcpResourcesTool",
+      "lifecycle": "profile_default",
+      "readOnly": true,
+      "sectionId": "runtime",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "ReadMcpResourceTool",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Read an MCP resource by URI",
+      "id": "ReadMcpResourceTool",
+      "includeInCrawClawGroup": true,
+      "label": "ReadMcpResourceTool",
+      "lifecycle": "profile_default",
+      "readOnly": true,
+      "sectionId": "runtime",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "Sleep",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "full"
+      ],
+      "description": "Wait for a specified duration",
+      "id": "Sleep",
+      "includeInCrawClawGroup": true,
+      "label": "Sleep",
+      "lifecycle": "profile_default",
+      "readOnly": true,
+      "sectionId": "automation",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "CronCreate",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "full"
+      ],
+      "description": "Schedule a prompt to run at a future time",
+      "id": "CronCreate",
+      "includeInCrawClawGroup": true,
+      "label": "CronCreate",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "automation",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "CronDelete",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "full"
+      ],
+      "description": "Cancel a scheduled cron job by ID",
+      "id": "CronDelete",
+      "includeInCrawClawGroup": true,
+      "label": "CronDelete",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "automation",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "CronList",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "full"
+      ],
+      "description": "List scheduled cron jobs",
+      "id": "CronList",
+      "includeInCrawClawGroup": true,
+      "label": "CronList",
+      "lifecycle": "profile_default",
+      "readOnly": true,
+      "sectionId": "automation",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "RemoteTrigger",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "full"
+      ],
+      "description": "Manage remote triggers for scheduled execution",
+      "id": "RemoteTrigger",
+      "includeInCrawClawGroup": true,
+      "label": "RemoteTrigger",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "automation",
+      "status": "rust-native"
     }
   ],
+  "mcpTools": [],
   "nativeTools": [
     {
       "defaultEnabled": true,

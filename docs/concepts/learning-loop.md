@@ -205,10 +205,10 @@ Use memory for:
 Experience is the structured subset of memory that captures reusable context,
 trigger, action, result, lesson, applicability boundaries, and evidence.
 
-It may be staged in the local pending outbox when Hindsight writeback is not
-available, then queried from Hindsight after sync. Future promoted forms may
-also live in graph, vector, or note stores, but the local outbox itself is not a
-prompt recall provider.
+It is written to Hindsight through the knowledge ingestion path when Hindsight
+is configured, then queried from Hindsight during prompt assembly. Future
+promoted forms may also live in graph, vector, or note stores, but local
+fallback entries are not prompt recall providers.
 
 Use experience for:
 

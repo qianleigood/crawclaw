@@ -66,8 +66,8 @@ pub(super) fn hello_ok(state: &GatewayState) -> Value {
     })
 }
 
-pub(super) fn memory_runtime(state: &GatewayState) -> RustMemoryRuntime {
-    RustMemoryRuntime::new(state.runtime_root.clone())
+pub(super) fn memory_runtime(state: &GatewayState) -> MemoryRuntime {
+    MemoryRuntime::new(state.runtime_root.clone())
 }
 
 pub(super) fn memory_prompt_journal_summary(

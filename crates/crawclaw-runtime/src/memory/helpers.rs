@@ -9,7 +9,13 @@ pub fn normalize_scope(scope: &str) -> Result<String, String> {
     }
     let normalized: String = scope
         .chars()
-        .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '-'
+            }
+        })
         .collect();
     Ok(normalized)
 }
@@ -39,8 +45,7 @@ pub fn read_json_array(path: &std::path::Path) -> Result<Vec<Value>, String> {
     if text.trim().is_empty() {
         return Ok(Vec::new());
     }
-    serde_json::from_str(&text)
-        .map_err(|e| format!("failed to parse {}: {e}", path.display()))
+    serde_json::from_str(&text).map_err(|e| format!("failed to parse {}: {e}", path.display()))
 }
 
 pub fn write_json_array(path: &std::path::Path, entries: &[Value]) -> Result<(), String> {
@@ -50,8 +55,7 @@ pub fn write_json_array(path: &std::path::Path, entries: &[Value]) -> Result<(),
     }
     let body = serde_json::to_vec_pretty(entries)
         .map_err(|e| format!("failed to serialize entries: {e}"))?;
-    std::fs::write(path, &body)
-        .map_err(|e| format!("failed to write {}: {e}", path.display()))
+    std::fs::write(path, &body).map_err(|e| format!("failed to write {}: {e}", path.display()))
 }
 
 pub fn estimate_text_tokens(text: &str) -> u32 {

@@ -21,22 +21,20 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 
 use crate::cron::{ClaudeCronTool, ClaudeCronToolKind, CronTool, RemoteTriggerTool};
-use crate::special_agents::{
-    find_special_agent, SpecialAgentToolGuard,
-};
+use crate::special_agents::{find_special_agent, SpecialAgentToolGuard};
 use crate::DesktopSessionStore;
 use crate::{
     dispatch_native_channel_outbound, invoke_native_plugin_operation, is_special_agent_only_tool,
     load_skill_candidates, pi_agent_rust_tool_descriptors_for_runtime_root,
     record_loaded_skill_state, record_tool_activation_state, with_native_runtime_context,
-    AgentModelSelection, AgentRunEvent, AgentRunProfileKind, AgentRunProfileRequest, AgentRunRequest, AgentRunResult,
-    AgentRuntime, ChannelChatType, ChannelInboundEnvelope, ChannelOutboundAction,
-    ChannelOutboundRequest, NativeChannelDispatchContext, NativePluginRuntime,
-    NativeToolRegistration, DesktopSessionStatus,
+    AgentModelSelection, AgentRunEvent, AgentRunProfileKind, AgentRunProfileRequest,
+    AgentRunRequest, AgentRunResult, AgentRuntime, ChannelChatType, ChannelInboundEnvelope,
+    ChannelOutboundAction, ChannelOutboundRequest, DesktopSessionStatus,
+    NativeChannelDispatchContext, NativePluginRuntime, NativeToolRegistration,
 };
 
 mod core_tools_lsp;
-mod core_tools_mcp;
+pub mod core_tools_mcp;
 mod core_tools_media;
 mod core_tools_native_plugins;
 mod core_tools_patch;
@@ -48,8 +46,8 @@ mod core_tools_sessions;
 mod core_tools_special_agents;
 mod core_tools_todo;
 mod core_tools_web;
-mod core_tools_worktree;
 mod core_tools_workflow;
+mod core_tools_worktree;
 use self::core_tools_lsp::*;
 use self::core_tools_mcp::*;
 use self::core_tools_media::*;
@@ -63,9 +61,8 @@ use self::core_tools_sessions::*;
 use self::core_tools_special_agents::*;
 use self::core_tools_todo::*;
 use self::core_tools_web::*;
-use self::core_tools_worktree::*;
 use self::core_tools_workflow::*;
-
+use self::core_tools_worktree::*;
 
 /// Check if a tool name matches a rule (supports wildcard suffix like "plugin:*")
 pub(crate) fn tool_name_matches_rule(tool_name: &str, rule: &str) -> bool {
@@ -140,7 +137,10 @@ pub(crate) fn build_pi_agent_rust_tool_registry(runtime_root: &Path) -> pi::sdk:
         Box::new(ApplyPatchTool::new(runtime_root)),
         Box::new(BashTool::new(runtime_root, Arc::clone(&process_registry))),
         Box::new(ProcessTool::new(process_registry.clone())),
-        Box::new(PowerShellTool::new(runtime_root, Arc::clone(&process_registry))),
+        Box::new(PowerShellTool::new(
+            runtime_root,
+            Arc::clone(&process_registry),
+        )),
     ];
     tools.extend(
         crate::native_plugin_registry(runtime_root)
@@ -179,26 +179,53 @@ pub(crate) fn build_pi_agent_rust_tool_registry(runtime_root: &Path) -> pi::sdk:
         Box::new(SessionTool::new(runtime_root, SessionToolKind::TeamDelete)),
         // --- Task tools (TodoWrite, TaskCreate, TaskGet, TaskUpdate, TaskList) ---
         Box::new(TodoWriteTool::new(runtime_root)),
-        Box::new(RuntimeTaskTool::new(runtime_root, RuntimeTaskToolKind::Create)),
+        Box::new(RuntimeTaskTool::new(
+            runtime_root,
+            RuntimeTaskToolKind::Create,
+        )),
         Box::new(RuntimeTaskTool::new(runtime_root, RuntimeTaskToolKind::Get)),
-        Box::new(RuntimeTaskTool::new(runtime_root, RuntimeTaskToolKind::Update)),
-        Box::new(RuntimeTaskTool::new(runtime_root, RuntimeTaskToolKind::List)),
+        Box::new(RuntimeTaskTool::new(
+            runtime_root,
+            RuntimeTaskToolKind::Update,
+        )),
+        Box::new(RuntimeTaskTool::new(
+            runtime_root,
+            RuntimeTaskToolKind::List,
+        )),
         // --- Process control tools ---
-        Box::new(TaskOutputTool::new(runtime_root, Arc::clone(&process_registry))),
-        Box::new(TaskStopTool::new(runtime_root, Arc::clone(&process_registry))),
+        Box::new(TaskOutputTool::new(
+            runtime_root,
+            Arc::clone(&process_registry),
+        )),
+        Box::new(TaskStopTool::new(
+            runtime_root,
+            Arc::clone(&process_registry),
+        )),
         // --- LSP tool ---
         Box::new(LspTool::new(runtime_root)),
         // --- MCP resource tools ---
-        Box::new(McpResourceTool::new(runtime_root, McpResourceToolKind::List)),
-        Box::new(McpResourceTool::new(runtime_root, McpResourceToolKind::Read)),
+        Box::new(McpResourceTool::new(
+            runtime_root,
+            McpResourceToolKind::List,
+        )),
+        Box::new(McpResourceTool::new(
+            runtime_root,
+            McpResourceToolKind::Read,
+        )),
         // --- Sleep tool ---
         Box::new(CoreRuntimeTool::new(
             runtime_root,
             CoreRuntimeToolKind::Sleep,
         )),
         // --- Cron tools (ClaudeCronTool: Create/Delete/List) ---
-        Box::new(ClaudeCronTool::new(runtime_root, ClaudeCronToolKind::Create)),
-        Box::new(ClaudeCronTool::new(runtime_root, ClaudeCronToolKind::Delete)),
+        Box::new(ClaudeCronTool::new(
+            runtime_root,
+            ClaudeCronToolKind::Create,
+        )),
+        Box::new(ClaudeCronTool::new(
+            runtime_root,
+            ClaudeCronToolKind::Delete,
+        )),
         Box::new(ClaudeCronTool::new(runtime_root, ClaudeCronToolKind::List)),
         // --- RemoteTrigger tool ---
         Box::new(RemoteTriggerTool::new(runtime_root)),
@@ -239,28 +266,36 @@ pub(crate) fn build_pi_agent_rust_tool_registry(runtime_root: &Path) -> pi::sdk:
             runtime_root,
             CoreRuntimeToolKind::Workflowize,
         )),
-        Box::new(SpecialAgentTool::new(runtime_root.to_path_buf(),
+        Box::new(SpecialAgentTool::new(
+            runtime_root.to_path_buf(),
             SpecialAgentToolKind::ReviewTask,
         )),
-        Box::new(SpecialAgentTool::new(runtime_root.to_path_buf(),
+        Box::new(SpecialAgentTool::new(
+            runtime_root.to_path_buf(),
             SpecialAgentToolKind::KnowledgeRecall,
         )),
-        Box::new(SpecialAgentTool::new(runtime_root.to_path_buf(),
+        Box::new(SpecialAgentTool::new(
+            runtime_root.to_path_buf(),
             SpecialAgentToolKind::KnowledgeReflect,
         )),
-        Box::new(SpecialAgentTool::new(runtime_root.to_path_buf(),
+        Box::new(SpecialAgentTool::new(
+            runtime_root.to_path_buf(),
             SpecialAgentToolKind::KnowledgeIngest,
         )),
-        Box::new(SpecialAgentTool::new(runtime_root.to_path_buf(),
+        Box::new(SpecialAgentTool::new(
+            runtime_root.to_path_buf(),
             SpecialAgentToolKind::KnowledgeModelList,
         )),
-        Box::new(SpecialAgentTool::new(runtime_root.to_path_buf(),
+        Box::new(SpecialAgentTool::new(
+            runtime_root.to_path_buf(),
             SpecialAgentToolKind::KnowledgeModelCreate,
         )),
-        Box::new(SpecialAgentTool::new(runtime_root.to_path_buf(),
+        Box::new(SpecialAgentTool::new(
+            runtime_root.to_path_buf(),
             SpecialAgentToolKind::SessionSummaryFileRead,
         )),
-        Box::new(SpecialAgentTool::new(runtime_root.to_path_buf(),
+        Box::new(SpecialAgentTool::new(
+            runtime_root.to_path_buf(),
             SpecialAgentToolKind::SessionSummaryFileEdit,
         )),
     ]);

@@ -5918,7 +5918,7 @@ async fn spawn_openai_compatible_provider_sequence(
                 assert!(request.starts_with("POST /v1/chat/completions "));
                 for required in &response_fixture.required_substrings {
                     assert!(
-                        request.contains(required),
+                        request_contains_required_provider_substring(&request, required),
                         "provider request did not contain required substring {required}: {request}"
                     );
                 }
@@ -5975,6 +5975,18 @@ async fn spawn_openai_compatible_provider_sequence(
     });
 
     format!("http://{addr}/v1")
+}
+
+#[cfg(unix)]
+fn request_contains_required_provider_substring(request: &str, required: &str) -> bool {
+    if request.contains(required) {
+        return true;
+    }
+
+    required
+        .strip_prefix(r#""content":"#)
+        .map(|json_string| request.contains(&format!(r#""text":{json_string}"#)))
+        .unwrap_or(false)
 }
 
 #[cfg(unix)]

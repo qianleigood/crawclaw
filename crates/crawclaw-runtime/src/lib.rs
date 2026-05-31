@@ -9,7 +9,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-mod core_tools;
+pub mod core_tools;
 pub mod cron;
 pub mod memory;
 mod message_policy;
@@ -35,6 +35,9 @@ pub use self::desktop_runtime_stores::*;
 pub use self::runtime_tool_catalog::*;
 
 use core_tools::build_pi_agent_rust_tool_registry;
+pub use core_tools::core_tools_mcp::{
+    mcp_prompt_slash_commands, mcp_server_runtime_statuses, send_mcp_jsonrpc_message,
+};
 pub use message_policy::execute_message_policy_operation;
 pub use native_plugin_registry::{
     dispatch_native_service_lifecycle, invoke_native_plugin_operation, load_native_plugin_registry,

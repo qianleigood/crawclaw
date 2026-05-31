@@ -44,7 +44,7 @@ title: Memory Extractor Agent 设计
 - 只在顶层稳定回合结束后触发
 - 只处理 extraction cursor 之后新增的 model-visible messages
 - 显式 durable write/delete 优先，后台补写自动跳过
-- `write_experience_note` 不再抑制 durable extraction
+- experience knowledge 写入不再抑制 durable extraction
 - `feedback` 支持 corrective + reinforcing
 - 运行在一个 task-backed 的后台 special agent 里
 - Action Feed、Context Archive、inspect 都能看到这条后台工作
@@ -58,17 +58,16 @@ title: Memory Extractor Agent 设计
 截至当前版本，这条线的主链已经落地：
 
 - 已切成 cursor-based 增量窗口
-- 已去掉 `write_experience_note` 对 durable extraction 的抑制
+- 已去掉 experience knowledge 写入对 durable extraction 的抑制
 - 已补上 `feedback` 双向 guidance
 - 已改成 task-backed background `memory_extractor`
 - extraction agent 现在有 `maxTurns: 5` 的硬上限
 - 提示词流程已对齐 Claude：先看 manifest、先判断候选更新项，再在 5 回合预算内集中完成 durable 写入
 - Claude 风格的 scoped memory file tools 也已经接进去：
-  - `memory_manifest_read`
-  - `memory_note_read`
-  - `memory_note_write`
-  - `memory_note_edit`
-  - `memory_note_delete`
+  - `knowledge_recall`
+  - `knowledge_ingest`
+  - `knowledge_model_create`
+  - `knowledge_model_list`
 - 已接上 Action Feed 和 Context Archive
 - memory_extraction child session 现在会显式继承 durable scope
 
@@ -147,7 +146,7 @@ Claude 的 forked agent 直接写 memory 文件，这在 Claude 那边成立，�
 
 明确 **不** 作为 skip 条件：
 
-- `write_experience_note`
+- experience knowledge 写入
 
 ### 输入契约
 
@@ -202,11 +201,10 @@ type MemoryExtractorInput = {
 
 允许：
 
-- `memory_manifest_read`
-- `memory_note_read`
-- `memory_note_write`
-- `memory_note_edit`
-- `memory_note_delete`
+- `knowledge_recall`
+- `knowledge_ingest`
+- `knowledge_model_create`
+- `knowledge_model_list`
 
 禁止：
 
@@ -214,7 +212,7 @@ type MemoryExtractorInput = {
 - `exec`
 - `browser`
 - `web`
-- `write_experience_note`
+- `knowledge_ingest`
 - `sessions_spawn`
 - scope 外写入
 
@@ -258,19 +256,18 @@ type MemoryExtractorResult = {
 
 如果本轮已经发生：
 
-- `memory_manifest_read`
-- `memory_note_read`
-- `memory_note_write`
-- `memory_note_edit`
-- `memory_note_delete`
+- `knowledge_recall`
+- `knowledge_ingest`
+- `knowledge_model_create`
+- `knowledge_model_list`
 
 那么这轮 memory_extractor 直接跳过，并推进 cursor。
 
-### `write_experience_note` 不再抑制 durable extraction
+### Experience 写入不应抑制 durable extraction
 
 理由很简单：
 
-- NotebookLM experience 写入和 durable collaboration memory 不是同一层
+- Hindsight experience 写入和 durable collaboration memory 不是同一层
 - 一轮里既写 experience，又值得补 durable feedback/project，是完全合理的
 
 ### `feedback` 改成双向

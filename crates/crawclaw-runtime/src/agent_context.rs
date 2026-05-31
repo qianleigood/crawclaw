@@ -73,7 +73,7 @@ pub(crate) fn build_runtime_model_context(
         .map(|skill| skill.content.clone())
         .collect::<Vec<_>>();
     let memory_snippets = if profile.memory_policy.recall {
-        ranked_memory_snippets(runtime_root, user_text)
+        hindsight_memory_snippets(runtime_root, user_text)
     } else {
         Vec::new()
     };
@@ -436,8 +436,8 @@ pub(crate) fn load_skill_candidates(runtime_root: &Path, query: &str) -> Vec<Ski
     skills
 }
 
-fn ranked_memory_snippets(runtime_root: &Path, user_text: &str) -> Vec<String> {
-    use crate::memory::{MemoryRuntime, recall_pipeline};
+fn hindsight_memory_snippets(runtime_root: &Path, user_text: &str) -> Vec<String> {
+    use crate::memory::{recall_pipeline, MemoryRuntime};
 
     let runtime = MemoryRuntime::new(runtime_root);
     let config = runtime.config();

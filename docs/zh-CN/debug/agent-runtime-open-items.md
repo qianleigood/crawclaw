@@ -219,20 +219,20 @@ memory 当前已经按简化模型收口，但还有后续工作。
   - 当前已完成：
     - cursor-based 增量窗口
     - 显式 durable write/delete 优先
-    - `write_experience_note` 不再抑制 durable extraction
+    - experience knowledge 写入不再抑制 durable extraction
     - `feedback` 双向 guidance
     - task-backed background special agent
     - Action Feed / Context Archive 记录
   - 设计与背景：
     - [`Memory Extractor Agent 设计`](/debug/memory-extractor-agent)
     - [`Claude 式 Durable Memory 重构方案`](/debug/claude-memory-refactor)
-- [ ] 给 `write_experience_note` 补一段和 durable memory 对等质量的
+- [ ] 给 experience knowledge 写入补一段和 durable memory 对等质量的
       agent-scoped routing guidance。
 - [ ] 重新定位 candidate extraction，只保留为未来建议层。
   - 不要再把它变回隐藏写入链。
 - [ ] 决定后续要不要把 dreaming / dream runs 做成新的 runtime pipeline。
 - [ ] 如果以后引入 dreaming：
-  - 继续保持 NotebookLM 写入走显式 tool
+  - 继续保持 Hindsight 写入走显式 tool
   - 保持自动 consolidation 和 formal knowledge write 分离
 
 ## 优先级 2：多 agent 治理
@@ -267,7 +267,7 @@ memory 当前已经按简化模型收口，但还有后续工作。
 这些现在**不是** backlog：
 
 - 恢复旧的 knowledge review queue
-- 让 NotebookLM 写回重新走隐藏审批链
+- 让 Hindsight 写回重新走隐藏审批链
 - 用一个新 store 替换 transcript / runtime store / trajectory
 - 让 LLM 直接负责 hard guard allow/deny
 - 让在线 agent 自改 guard 安全边界

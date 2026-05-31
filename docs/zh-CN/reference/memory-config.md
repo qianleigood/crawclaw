@@ -1,9 +1,9 @@
 ---
 read_when:
   - 你想要配置 CrawClaw 记忆
-  - 你想要启用基于 NotebookLM 的体验召回
-  - 你想要调整会话摘要、dream 或 Context Archive
-summary: 内置记忆运行时、NotebookLM、会话摘要和 Context Archive 的配置键
+  - 你想要启用 Hindsight 支撑的体验召回
+  - 你想要调整会话摘要或 dream 整合
+summary: Hindsight 原生记忆运行时和会话摘要的配置键
 title: 记忆配置参考
 x-i18n:
   generated_at: "2026-05-02T05:44:53Z"
@@ -25,66 +25,65 @@ CrawClaw 记忆配置位于顶级 `memory` 键。旧的每智能体搜索配置�
 
 ## 运行时存储
 
-| Key                          | Type     | Default                         | Description                  |
-| ---------------------------- | -------- | ------------------------------- | ---------------------------- |
-| `memory.runtimeStore.type`   | `string` | `"sqlite"`                      | Runtime store implementation |
-| `memory.runtimeStore.dbPath` | `string` | `~/.crawclaw/memory-runtime.db` | SQLite DB path               |
+| Key                          | Type     | Default                         | Description    |
+| ---------------------------- | -------- | ------------------------------- | -------------- |
+| `memory.runtimeStore.dbPath` | `string` | `~/.crawclaw/memory-runtime.db` | SQLite DB path |
 
 ```json5
 {
   memory: {
     runtimeStore: {
-      type: "sqlite",
       dbPath: "~/.crawclaw/memory-runtime.db",
     },
   },
 }
 ```
 
-## NotebookLM
+## Hindsight
 
-NotebookLM 是面向提示的体验召回和体验笔记写回提供商。CrawClaw 保留本地待处理发件箱，以便在 NotebookLM 认证不可用时不会丢失体验写入。成功的写入不会保留重复的本地负载；待处理的本地负载在同步到 NotebookLM 后被移除。NotebookLM/Gemini 负责体验召回期间的语义相关性和排序；CrawClaw 保留提供商顺序，仅应用本地防护栏，如源过滤、去重、空内容检查和提示预算限制。
+Hindsight 是面向提示的召回、保留、反思和 mental model 提供商。当前写入通过 Hindsight knowledge ingestion 路径执行，不保留重复的本地负载。Hindsight 负责语义相关性和排序；CrawClaw 保留提供商顺序，仅应用本地防护栏，如源过滤、去重、空内容检查和提示预算限制。
 
-内置 CLI 默认目标统一
-[`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli) 包。CrawClaw 在 postinstall 期间将其作为托管运行时安装，并
-`crawclaw runtimes install`：保留 `memory.notebooklm.cli.command` 空以使用该托管 `nlm` 先查找指定位置，然后再查找 PATH `nlm` 作为后备。运行 `crawclaw memory
-login` 或 `nlm login`然后为读写路径设置 notebook ID，你希望 CrawClaw 使用这些路径。
+| Key                                                      | Type      | Default             | Description                                   |
+| -------------------------------------------------------- | --------- | ------------------- | --------------------------------------------- |
+| `memory.hindsight.enabled`                               | `boolean` | `false`             | Enable Hindsight recall and writeback         |
+| `memory.hindsight.baseUrl`                               | `string`  | `""`                | Hindsight HTTP API base URL                   |
+| `memory.hindsight.apiKey`                                | `string`  | `""`                | Optional bearer token for the Hindsight API   |
+| `memory.hindsight.apiKeyEnv`                             | `string`  | `""`                | Env var name that contains the bearer token   |
+| `memory.hindsight.bankPrefix`                            | `string`  | `crawclaw`          | Prefix for derived Hindsight banks            |
+| `memory.hindsight.bankGranularity`                       | `array`   | `agent`             | Dimensions used to derive bank IDs            |
+| `memory.hindsight.sharedMode`                            | `boolean` | `false`             | Use one shared Hindsight bank                 |
+| `memory.hindsight.sharedBankId`                          | `string`  | `crawclaw:shared`   | Shared bank ID when shared mode is enabled    |
+| `memory.hindsight.memoryMode`                            | `string`  | `hybrid`            | Assembly mode for Hindsight plus summaries    |
+| `memory.hindsight.autoRetain`                            | `boolean` | `true`              | Automatically retain eligible completed turns |
+| `memory.hindsight.retainRoles`                           | `array`   | `user`, `assistant` | Roles eligible for retain payloads            |
+| `memory.hindsight.retainEveryNTurns`                     | `number`  | `1`                 | Eligible turn interval for auto retain        |
+| `memory.hindsight.retainOverlapTurns`                    | `number`  | `0`                 | Prior turns included when retaining           |
+| `memory.hindsight.retainAsync`                           | `boolean` | `false`             | Run retain work asynchronously when supported |
+| `memory.hindsight.defaultBudget`                         | `string`  | `mid`               | Recall budget: `low`, `mid`, or `high`        |
+| `memory.hindsight.maxTokens`                             | `number`  | `2048`              | Maximum Hindsight recall tokens               |
+| `memory.hindsight.recallContextTurns`                    | `number`  | `1`                 | Recent turns used to compose recall queries   |
+| `memory.hindsight.recallMaxQueryChars`                   | `number`  | `800`               | Maximum recall query characters               |
+| `memory.hindsight.recallTypes`                           | `array`   | `observation`       | Hindsight memory types requested in recall    |
+| `memory.hindsight.recallInjectionPosition`               | `string`  | `prepend`           | Where recall is injected into model context   |
+| `memory.hindsight.autoReflect`                           | `boolean` | `true`              | Enable dream-time reflection                  |
+| `memory.hindsight.reflectBudget`                         | `string`  | `high`              | Hindsight budget for reflection calls         |
+| `memory.hindsight.reflectMaxTokens`                      | `number`  | `2048`              | Maximum reflection output tokens              |
+| `memory.hindsight.defaultMentalModels`                   | `boolean` | `true`              | Maintain default mental-model banks           |
+| `memory.hindsight.enableKnowledgeTools`                  | `boolean` | `false`             | Expose Hindsight-backed knowledge tools       |
+| `memory.hindsight.tagsMatch`                             | `string`  | `all_strict`        | Tag matching mode for recall filters          |
+| `memory.hindsight.tags`                                  | `array`   | `agent:main`        | Base tags sent with Hindsight operations      |
+| `memory.hindsight.timeoutMs`                             | `number`  | `15000`             | HTTP timeout for Hindsight calls              |
+| `memory.hindsight.languageHints.primaryLanguage`         | `string`  | `auto`              | Language hint for bank descriptions           |
+| `memory.hindsight.languageHints.bilingualTechnicalTerms` | `boolean` | `true`              | Expand Chinese and English technical terms    |
 
-| Key                                           | Type      | Description                     |
-| --------------------------------------------- | --------- | ------------------------------- |
-| `memory.notebooklm.enabled`                   | `boolean` | Enable NotebookLM integration   |
-| `memory.notebooklm.auth.profile`              | `string`  | Local NotebookLM profile name   |
-| `memory.notebooklm.auth.cookieFile`           | `string`  | Optional cookie file path       |
-| `memory.notebooklm.auth.autoLogin.enabled`    | `boolean` | Enable periodic auto login      |
-| `memory.notebooklm.auth.autoLogin.intervalMs` | `number`  | Auto login interval in ms       |
-| `memory.notebooklm.auth.autoLogin.provider`   | `string`  | `nlm_profile` or `openclaw_cdp` |
-| `memory.notebooklm.auth.autoLogin.cdpUrl`     | `string`  | CDP URL for OpenClaw provider   |
-| `memory.notebooklm.cli.enabled`               | `boolean` | Enable CLI-backed read queries  |
-| `memory.notebooklm.cli.command`               | `string`  | Optional read command override  |
-| `memory.notebooklm.cli.args`                  | `array`   | Read command arguments          |
-| `memory.notebooklm.cli.notebookId`            | `string`  | Optional read notebook id       |
-| `memory.notebooklm.write.command`             | `string`  | Optional write command override |
-| `memory.notebooklm.write.args`                | `array`   | Custom write command arguments  |
-| `memory.notebooklm.write.notebookId`          | `string`  | Optional write notebook id      |
+## Dream 和摘要
 
-## 提取和摘要
-
-| Key                                             | Description                                 |
-| ----------------------------------------------- | ------------------------------------------- |
-| `memory.durableExtraction.enabled`              | Enable the durable memory agent             |
-| `memory.durableExtraction.recentMessageLimit`   | Recent message window for extraction        |
-| `memory.experience.enabled`                     | Enable background experience extraction     |
-| `memory.experience.maxNotesPerTurn`             | Maximum experience notes per completed turn |
-| `memory.sessionSummary.enabled`                 | Enable session-summary maintenance          |
-| `memory.sessionSummary.minTokensBetweenUpdates` | Token growth threshold between updates      |
-| `memory.sessionSummary.toolCallsBetweenUpdates` | Tool-call threshold between updates         |
-
-## Context Archive
-
-| Key                                   | Description                              |
-| ------------------------------------- | ---------------------------------------- |
-| `memory.contextArchive.enabled`       | Enable Context Archive                   |
-| `memory.contextArchive.mode`          | Archive mode: `off`, `replay`, or `full` |
-| `memory.contextArchive.rootDir`       | Archive output directory                 |
-| `memory.contextArchive.redactSecrets` | Redact secrets in archive payloads       |
-| `memory.contextArchive.retentionDays` | Retention window for archive records     |
+| Key                                             | Description                            |
+| ----------------------------------------------- | -------------------------------------- |
+| `memory.dreaming.enabled`                       | Enable Hindsight reflection jobs       |
+| `memory.dreaming.minHours`                      | Minimum hours between dream scans      |
+| `memory.dreaming.minSessions`                   | Minimum sessions before consolidation  |
+| `memory.sessionSummary.enabled`                 | Enable session-summary maintenance     |
+| `memory.sessionSummary.minTokensToInit`         | Token threshold before first summary   |
+| `memory.sessionSummary.minTokensBetweenUpdates` | Token growth threshold between updates |
+| `memory.sessionSummary.toolCallsBetweenUpdates` | Tool-call threshold between updates    |

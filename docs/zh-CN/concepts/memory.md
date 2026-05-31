@@ -19,15 +19,13 @@ x-i18n:
 CrawClaw 通过分层记忆系统来记住事物：
 
 - **会话记忆** 用于单个会话内的短期任务连续性
-- **持久记忆** 用于长期用户和协作事实，按作用域限定
-  `agentId + channel + userId`
-- **体验记忆** 由 NotebookLM 提示时召回、NotebookLM 写回、用于失败写入的本地待处理发件箱和后台体验智能体提供支持
+- **持久记忆** 用于长期用户和协作事实，按 `agentId` 作用域限定
+- **体验记忆** 由 Hindsight 提示时召回和特殊智能体 knowledge 工具写回提供支持
 - **Context Archive** 用于重放/导出/调试运行实际看到和执行的内容的记录
 
 模型只“记住”持久化到这些层中的内容——没有隐藏状态。
 
-该 `coding` 工具配置文件包含 `write_experience_note` 用于显式体验写入和作用域限定的持久记忆文件工具（`memory_manifest_read`， `memory_note_read`， `memory_note_write`，
-`memory_note_edit`和 `memory_note_delete`）用于显式持久记忆维护。本地新手引导在新配置未设置时默认使用该配置文件；它不会添加 `main` 智能体 `tools.alsoAllow` 内存工具的覆盖。主智能体从内存路由提示决定何时使用那些持久工具，与 Claude Code 的提示驱动内存写入方式一致。专用维护智能体通过其特殊智能体允许列表接收相同的持久工具，并保持在运行时限制在该窄表面上。会话摘要文件编辑和晋升裁决提交仍然限制在其所属的后台智能体中。
+记忆维护工具只面向特殊智能体开放。持久、体验、资源和心智模型维护使用 Hindsight-backed 的 `knowledge_recall`、`knowledge_reflect`、`knowledge_ingest`、`knowledge_model_list` 和 `knowledge_model_create` 工具。会话摘要文件编辑仍通过 `session_summary_file_read` 和 `session_summary_file_edit` 限制在所属后台智能体中。
 
 ## 持久记忆文件
 
@@ -153,42 +151,35 @@ CrawClaw 也有第二层持久记忆维护层：
 
 ## 体验召回
 
-体验记忆是一个独立的记忆层，用于存储来自之前工作的已验证经验。它存储可复用流程、决策、运行时模式、失败模式、工作流模式和引用。NotebookLM 是面向提示的体验召回提供者和主要写入目标。本地体验存储仅在 NotebookLM 写回不可用时用作失败发件箱；它不是后备提示召回来源或主要体验存储。CrawClaw 可以：
+体验记忆是一个独立的记忆层，用于存储来自之前工作的已验证经验。它存储可复用流程、决策、运行时模式、失败模式、工作流模式和引用。Hindsight 是面向提示的体验召回提供者和写入目标。CrawClaw 可以：
 
-- 查询 NotebookLM 以获取相关可复用体验
-- 通过 `write_experience_note`
+- 查询 Hindsight 以获取相关可复用体验
+- 通过特殊智能体 `knowledge_ingest` 工具写入结构化体验
 - 在顶级回合后运行后台体验智能体以提取可复用体验，而不阻塞主任务
-- 通过以下方式管理登录、刷新和提供商状态 `crawclaw memory`
-- 使用以下方式刷新本地待处理体验笔记 `crawclaw memory sync`
+- 通过 CrawClaw Desktop 或本地 Gateway API 管理 Hindsight 提供商状态
 - 通过以下方式汇总夜间记忆提示诊断 `crawclaw memory prompt-journal-summary`
 
 体验提取和召回是故意分开的：
 
 - 生命周期 `stop` 捕获刚刚完成的顶级回合
-- 体验智能体审查最近的模型可见消息、会话摘要上下文和本地待处理发件箱中未同步的 NotebookLM 写入
-- 智能体只能使用 `write_experience_note`它不能运行 shell 命令、浏览、检查源文件、写入持久记忆或生成智能体
-- 成功的写入在提供商就绪时直接发送到 NotebookLM
-- 如果 NotebookLM 未就绪，写入会留在本地待处理发件箱中，直到登录、心跳、启动或 `crawclaw memory sync` 将其刷新
-- 下一个提示组装同步地从 NotebookLM 召回最相关的体验
+- 体验智能体审查最近的模型可见消息、会话摘要上下文和 Hindsight 召回上下文
+- 智能体只能使用 Hindsight knowledge 工具；它不能运行 shell 命令、浏览、检查源文件或生成智能体
+- 下一个提示组装同步地从 Hindsight 召回最相关的体验
 
 体验召回在每个智能体回合的上下文组装阶段运行。运行时首先对用户查询进行分类，然后根据该分类构建提供商查询计划：
 
 - 纯偏好提示被路由到持久记忆，并跳过体验提供商查询
 - SOP 和操作手册提示可以借用少量提供商搜索预算，这样较弱的元数据不会使操作体验匮乏
-- 成功的 `write_experience_note` 调用不会保留完整的本地体验副本；只有失败的 NotebookLM 写入才会保留在本地待处理发件箱中
-- 如果 NotebookLM 返回无结果或未认证，则该回合的体验召回为空，而非回退到本地发件箱条目
-- NotebookLM/Gemini 拥有体验召回的语义相关性和排序权；CrawClaw 保留提供商顺序，仅应用确定性防护栏，如仅 NotebookLM 源过滤、去重、非空内容检查和提示预算限制
+- 成功的 `knowledge_ingest` 调用写入 Hindsight，不保留完整的本地体验副本
+- 如果 Hindsight 返回无结果或不可用，则该回合的体验召回为空，而非回退到本地条目
+- Hindsight 拥有体验召回的语义相关性和排序权；CrawClaw 保留提供商顺序，仅应用确定性防护栏，如仅 Hindsight 源过滤、去重、非空内容检查和提示预算限制
 - 体验召回诊断暴露保留的 `providerOrder` 和选择原因，而非本地评分细分；本地评分字段保留给持久记忆可观测性
 - 选中的体验召回仍受记忆提示预算限制；层分配是软性指导，但组装的体验部分必须符合该回合的全局体验预算
 - 选中的目标层、提供商 ID、原因和限制被写入记忆召回诊断，以便 inspect/debug 流程可以解释为什么查询或跳过了体验
 
 如果没有适用于当前回合的提示，运行时完全跳过体验提供商查询。
 
-`write_experience_note` 是当前运行时中唯一的体验写入工具。当 NotebookLM 启用时，它首先写入 NotebookLM。使用托管的 NotebookLM 运行时时，CrawClaw 通过以下方式写入 `nlm note create`；自定义
-`memory.notebooklm.write.command` 仅在需要非标准写入帮助器时才需要。
-如果 NotebookLM 写回失败，CrawClaw 将结构化笔记存储在本地待处理发件箱中，稍后通过 heartbeat、启动或 `crawclaw memory sync`。 待处理项目成功同步后，本地负载被移除。体验笔记应捕获可复用上下文、触发器、行动、结果、经验教训、适用边界和支持证据，而非临时任务状态。写入模式仅接受当前的结构化字段；遗留别名（如自由格式正文/理由字段）不作为兼容性输入保留。
-
-NotebookLM 认证可以通过以下方式保持活跃 `memory.notebooklm.auth.autoLogin`。默认提供商运行托管 `nlm login --profile <profile>` 流程按每日间隔运行，复用持久化的 notebooklm-mcp-cli 浏览器配置文件。对于 OpenClaw 管理的浏览器，将提供商设置为 `openclaw_cdp` 并提供 CDP URL。自动登录成功后，CrawClaw 清除提供商缓存并将待处理体验笔记刷新到 NotebookLM。
+`knowledge_ingest` 是当前体验写入路径。它通过运行时 Hindsight client 写入解析后的 Hindsight bank，并带上严格的层标签。体验笔记应捕获可复用上下文、触发器、行动、结果、经验教训、适用边界和支持证据，而非临时任务状态。
 
 ## Context Archive
 
@@ -213,9 +204,8 @@ Context Archive 与旧的记录层不同：
 这些层的边界不相同：
 
 - **会话记忆** 按会话隔离。
-- **持久记忆** 共享于（当运行解析到相同的
-  `agentId + channel + userId` 作用域。
-- **体验记忆** 跨运行使用相同的 NotebookLM 提供商配置和本地待处理发件箱；它不按会话 ID 分区。
+- **持久记忆** 在运行解析到相同 `agentId` 作用域时共享。
+- **体验记忆** 跨运行使用相同的 Hindsight 提供商配置和面向提示的召回，同时提取 cursor 仍按会话跟踪。
 
 所有使用内置记忆运行时的智能体都收到相同的智能体记忆路由契约。此指导不仅限于 `main` 智能体。
 
@@ -232,20 +222,9 @@ Context Archive 与旧的记录层不同：
 - 压缩后，模型可见历史包含压缩摘要消息加上该保留尾部
 - 提示组装继续使用最近的转录文本，不单独注入 `summary.md`
 
-## CLI
+## Desktop 和 Gateway API
 
-```bash
-crawclaw memory status   # Check NotebookLM provider status
-crawclaw memory login    # Rebuild the NotebookLM profile
-crawclaw memory refresh  # Refresh NotebookLM auth from cookie fallback
-crawclaw memory sync     # Flush pending experience notes to NotebookLM
-crawclaw memory dream status --json
-crawclaw memory dream history --json
-crawclaw memory dream run --agent main --channel feishu --user alice --force
-crawclaw memory dream run --agent main --channel feishu --user alice --dry-run --session-limit 6 --feishu-limit 6
-crawclaw memory prompt-journal-summary --json --days 1
-crawclaw agent export-context --task-id <task-id> --json
-```
+交互式记忆设置和诊断使用 CrawClaw Desktop。自动化应调用本地 Gateway API，而不是包装命令行。
 
 ## 延伸阅读
 

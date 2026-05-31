@@ -124,29 +124,29 @@ const toolPresentations: Record<string, PluginPresentation> = {
     name: '目录列表',
     tone: 'document',
   },
-  'crawclaw-runtime/memory_manifest_read': {
-    description: '读取作用域内的长期记忆清单。',
-    name: '读取记忆清单',
+  'crawclaw-runtime/knowledge_ingest': {
+    description: '将对话、资料或经验写入 Hindsight 记忆库。',
+    name: '知识写入',
     tone: 'summary',
   },
-  'crawclaw-runtime/memory_note_delete': {
-    description: '删除作用域内的长期记忆笔记。',
-    name: '删除记忆笔记',
-    tone: 'health',
-  },
-  'crawclaw-runtime/memory_note_edit': {
-    description: '编辑作用域内的长期记忆笔记。',
-    name: '编辑记忆笔记',
+  'crawclaw-runtime/knowledge_model_create': {
+    description: '在 Hindsight 记忆库中创建心智模型。',
+    name: '创建心智模型',
     tone: 'summary',
   },
-  'crawclaw-runtime/memory_note_read': {
-    description: '读取作用域内的长期记忆笔记。',
-    name: '读取记忆笔记',
+  'crawclaw-runtime/knowledge_model_list': {
+    description: '列出 Hindsight 记忆库中的心智模型。',
+    name: '心智模型列表',
     tone: 'summary',
   },
-  'crawclaw-runtime/memory_note_write': {
-    description: '写入作用域内的长期记忆笔记。',
-    name: '写入记忆笔记',
+  'crawclaw-runtime/knowledge_recall': {
+    description: '搜索 Hindsight 记忆库，召回相关知识。',
+    name: '知识召回',
+    tone: 'summary',
+  },
+  'crawclaw-runtime/knowledge_reflect': {
+    description: '对 Hindsight 记忆执行深度综合查询。',
+    name: '知识反思',
     tone: 'summary',
   },
   'crawclaw-runtime/message': {
@@ -248,11 +248,6 @@ const toolPresentations: Record<string, PluginPresentation> = {
     description: '创建或覆盖文件。',
     name: '写入文件',
     tone: 'code',
-  },
-  'crawclaw-runtime/write_experience_note': {
-    description: '写入可复用的经验笔记。',
-    name: '写入经验',
-    tone: 'summary',
   },
   'llm-task/llm-task': {
     description: '运行结构化 LLM JSON 任务，适合工作流里的模型子任务。',

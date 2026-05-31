@@ -1,7 +1,4 @@
-use std::path::PathBuf;
-
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -37,7 +34,6 @@ pub enum SpecialAgentOutputContract {
     Findings,
     SessionSummary,
     MemoryReport,
-    ExperienceNote,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
@@ -45,9 +41,9 @@ pub enum SpecialAgentOutputContract {
 pub enum SpecialAgentPersistenceHandler {
     ChildTranscript,
     SessionSummary,
-    MemoryNotes,
-    DreamNotes,
-    ExperienceNotes,
+    HindsightMemory,
+    HindsightDream,
+    HindsightExperience,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
@@ -81,7 +77,7 @@ pub const REVIEW_AGENT_TOOL_ALLOWLIST: &[&str] = &[
     "sessions_history",
 ];
 
-pub const MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST: &[&str] = &[
+pub const KNOWLEDGE_MAINTENANCE_TOOL_ALLOWLIST: &[&str] = &[
     "knowledge_recall",
     "knowledge_ingest",
     "knowledge_model_create",
@@ -105,7 +101,11 @@ pub const SESSION_SUMMARY_TOOL_ALLOWLIST: &[&str] = &[
     "sessions_history",
 ];
 
-pub const EXPERIENCE_TOOL_ALLOWLIST: &[&str] = &["knowledge_ingest", "knowledge_model_create", "sessions_history"];
+pub const EXPERIENCE_TOOL_ALLOWLIST: &[&str] = &[
+    "knowledge_ingest",
+    "knowledge_model_create",
+    "sessions_history",
+];
 
 const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
     SpecialAgentDefinition {
@@ -145,13 +145,13 @@ const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
         execution_mode: SpecialAgentExecutionMode::EmbeddedFork,
         transcript_policy: SpecialAgentTranscriptPolicy::ThreadBound,
         parent_context_policy: SpecialAgentParentContextPolicy::ForkMessagesOnly,
-        tool_allowlist: MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST,
+        tool_allowlist: KNOWLEDGE_MAINTENANCE_TOOL_ALLOWLIST,
         guard: Some(SpecialAgentToolGuard::MemoryMaintenance),
         timeout_seconds: 90,
         max_turns: 5,
         prompt_id: "durable-memory",
         output_contract: SpecialAgentOutputContract::MemoryReport,
-        persistence_handler: SpecialAgentPersistenceHandler::MemoryNotes,
+        persistence_handler: SpecialAgentPersistenceHandler::HindsightMemory,
     },
     SpecialAgentDefinition {
         id: "dream",
@@ -166,7 +166,7 @@ const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
         max_turns: 5,
         prompt_id: "dream",
         output_contract: SpecialAgentOutputContract::MemoryReport,
-        persistence_handler: SpecialAgentPersistenceHandler::DreamNotes,
+        persistence_handler: SpecialAgentPersistenceHandler::HindsightDream,
     },
     SpecialAgentDefinition {
         id: "session-summary",
@@ -195,8 +195,8 @@ const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
         timeout_seconds: 90,
         max_turns: 5,
         prompt_id: "experience",
-        output_contract: SpecialAgentOutputContract::ExperienceNote,
-        persistence_handler: SpecialAgentPersistenceHandler::ExperienceNotes,
+        output_contract: SpecialAgentOutputContract::MemoryReport,
+        persistence_handler: SpecialAgentPersistenceHandler::HindsightExperience,
     },
 ];
 
@@ -232,4 +232,3 @@ pub struct SpecialAgentRunRequest {
     pub scope: Option<String>,
     pub parent_session_key: Option<String>,
 }
-

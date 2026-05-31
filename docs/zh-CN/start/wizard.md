@@ -83,7 +83,7 @@ CLI 新手引导包含一个 web search 步骤，你可以选择一个提供商
    非交互式 token SecretRef 路径：`--gateway-token-ref-env <ENV_VAR>`。
 4. **渠道** —— Weixin、Feishu、QQBot、Feishu、Feishu、Feishu、Weixin 或 Weixin。
 5. **输出与展示** —— 选择默认回复预设（`quiet`、`balanced`、`operator`），控制 streaming 和过程可见性。
-6. **Memory / Knowledge** —— 决定是否启用 NotebookLM knowledge recall；如果已启用且 provider 明确建议 `crawclaw memory login`，onboarding 会在接近结束时提供登录入口。
+6. **Memory / Knowledge** —— 决定是否启用 Hindsight knowledge recall；如果已启用，onboarding 会在接近结束时展示记忆状态。
 7. **守护进程** —— 安装 LaunchAgent（macOS）、systemd 用户单元（Linux）或 Windows 每用户启动模式。
    如果 token 认证需要 token，且 `gateway.auth.token` 由 SecretRef 管理，守护进程安装会验证它，但不会将已解析的 token 持久化到监督服务的环境元数据中。
    如果 token 认证需要 token，而已配置的 token SecretRef 无法解析，守护进程安装会被阻止，并提供可执行的指导。

@@ -7,6 +7,7 @@ use super::hindsight_client::HindsightClient;
 
 #[derive(Clone, Debug)]
 pub struct RetainConfig {
+    pub auto_retain: bool,
     pub retain_roles: Vec<String>,
     pub retain_every_n_turns: u32,
     pub retain_async: bool,
@@ -15,6 +16,7 @@ pub struct RetainConfig {
 impl From<&HindsightConfig> for RetainConfig {
     fn from(config: &HindsightConfig) -> Self {
         Self {
+            auto_retain: config.auto_retain,
             retain_roles: config.retain_roles.clone(),
             retain_every_n_turns: config.retain_every_n_turns,
             retain_async: config.retain_async,
@@ -24,7 +26,7 @@ impl From<&HindsightConfig> for RetainConfig {
 
 pub fn compose_retain_payload(
     messages: &[Value],
-    ctx: &BankContext,
+    _ctx: &BankContext,
     config: &RetainConfig,
 ) -> Option<String> {
     let filtered: Vec<&Value> = messages
@@ -59,7 +61,10 @@ pub fn compose_retain_payload(
 }
 
 pub fn build_retain_tags(ctx: &BankContext, layer: &str) -> Vec<String> {
-    let mut tags = vec![format!("agent:{}", ctx.agent_id), format!("layer:{}", layer)];
+    let mut tags = vec![
+        format!("agent:{}", ctx.agent_id),
+        format!("layer:{}", layer),
+    ];
     if let Some(ref channel) = ctx.channel {
         tags.push(format!("channel:{}", channel));
     }
@@ -124,6 +129,7 @@ mod tests {
             json!({"role": "system", "content": "system msg"}),
         ];
         let config = RetainConfig {
+            auto_retain: true,
             retain_roles: vec!["user".to_string(), "assistant".to_string()],
             retain_every_n_turns: 1,
             retain_async: false,
@@ -148,6 +154,7 @@ mod tests {
             "content": "Before <hindsight_memories>injected</hindsight_memories> After"
         })];
         let config = RetainConfig {
+            auto_retain: true,
             retain_roles: vec!["user".to_string()],
             retain_every_n_turns: 1,
             retain_async: false,

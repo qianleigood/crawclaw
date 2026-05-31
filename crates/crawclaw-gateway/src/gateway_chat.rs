@@ -1122,17 +1122,13 @@ pub(super) fn persist_special_agent_memory_result(
 ) -> Result<Value, String> {
     let runtime = memory_runtime(state);
     match kind {
-        "dream" => runtime.dream_store().run(scope, assistant_text),
         "session-summary" => runtime
             .session_summary_store()
             .refresh(scope, assistant_text),
-        "experience" => runtime.experience_store().write_note(
-            scope,
-            "special-agent",
-            assistant_text,
-            "rust-agent-runtime",
-        ),
-        "durable-memory" => runtime.durable_index_list(scope, 100),
+        "dream" | "experience" | "durable-memory" => Ok(json!({
+            "status": "tool_owned",
+            "handler": kind,
+        })),
         _ => Ok(Value::Null),
     }
 }

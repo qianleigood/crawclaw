@@ -69,7 +69,7 @@ policy。
 - **Session memory** 由于按 `sessionId` 分桶，因此天然隔离。
 - **Durable memory** 只要父子运行最终命中同一个
   `agentId + channel + userId` scope，就会共享。
-- **Knowledge recall** 会在 prompt assembly 时从同一个 NotebookLM backend
+- **Knowledge recall** 会在 prompt assembly 时从同一个 Hindsight backend
   查询，不按 session id 隔离。
 - **Workspace** 默认只在同一 agent 内继承；跨 agent spawn 会切到目标
   agent 自己的 workspace。

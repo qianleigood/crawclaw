@@ -44,7 +44,7 @@ crawclaw onboard
 3. **Gateway 网关**
 4. **渠道**（可选）
 5. **输出与展示**（默认回复可见性与 streaming 预设）
-6. **Memory / Knowledge**（可选的 NotebookLM knowledge recall）
+6. **Memory / Knowledge**（可选的 Hindsight knowledge recall）
 7. **守护进程**（可选）
 
 ## 自定义提供商

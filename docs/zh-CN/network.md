@@ -44,11 +44,6 @@ x-i18n:
 - [远程访问（SSH）](/gateway/remote)
 - [Tailscale](/gateway/tailscale)
 
-## 节点 + 传输协议
-
-- [节点概述](/nodes)
-- [桥接协议（旧版节点）](/gateway/bridge-protocol)
-
 ## 安全
 
 - [安全概述](/gateway/security)

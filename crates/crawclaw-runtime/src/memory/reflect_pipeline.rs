@@ -10,6 +10,7 @@ pub struct ReflectConfig {
     pub reflect_budget: String,
     pub reflect_max_tokens: u32,
     pub default_mental_models: bool,
+    pub primary_language: String,
     pub min_hours: u32,
 }
 
@@ -20,6 +21,7 @@ impl ReflectConfig {
             reflect_budget: hc.reflect_budget.clone(),
             reflect_max_tokens: hc.reflect_max_tokens,
             default_mental_models: hc.default_mental_models,
+            primary_language: hc.language_hints.primary_language.clone(),
             min_hours: dc.min_hours,
         }
     }
@@ -27,18 +29,9 @@ impl ReflectConfig {
 
 const DEFAULT_MENTAL_MODELS_ZH: &[(&str, &str)] = &[
     ("用户偏好", "用户的长期偏好、习惯、沟通风格是什么？"),
-    (
-        "项目知识",
-        "当前项目的技术栈、架构决策、已知问题是什么？",
-    ),
-    (
-        "工作模式",
-        "用户常见的工作流程、重复出现的模式是什么？",
-    ),
-    (
-        "决策历史",
-        "过去做过的重要决策及其理由是什么？",
-    ),
+    ("项目知识", "当前项目的技术栈、架构决策、已知问题是什么？"),
+    ("工作模式", "用户常见的工作流程、重复出现的模式是什么？"),
+    ("决策历史", "过去做过的重要决策及其理由是什么？"),
 ];
 
 const DEFAULT_MENTAL_MODELS_EN: &[(&str, &str)] = &[
@@ -118,6 +111,16 @@ pub fn dream_reflect(
         return Ok(json!({ "status": "skipped", "reason": "hindsight_not_configured" }));
     }
 
+    let mm_bank = resolver.resolve(ctx, "mental-models");
+    if config.default_mental_models {
+        match ensure_default_mental_models(client, &mm_bank, &config.primary_language) {
+            Ok(()) => {}
+            Err(e) => {
+                tracing::warn!(error = %e, "failed_to_ensure_default_mental_models");
+            }
+        }
+    }
+
     let query = compose_reflection_query(recent_summaries);
 
     let durable_bank = resolver.resolve(ctx, "durable");
@@ -128,7 +131,6 @@ pub fn dream_reflect(
         config.reflect_max_tokens,
     )?;
 
-    let mm_bank = resolver.resolve(ctx, "mental-models");
     let tags = vec![
         format!("agent:{}", ctx.agent_id),
         "layer:mental-model".to_string(),

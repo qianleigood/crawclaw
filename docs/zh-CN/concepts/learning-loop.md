@@ -99,7 +99,7 @@ Agent 在当前 turn 中执行工作：
 - experience notes
 - recall indexes
 - vector or graph-backed memory
-- NotebookLM-backed experience integration
+- Hindsight-backed experience integration
 
 这不是 raw history，而是 retained experience。
 
@@ -193,9 +193,9 @@ Memory 是从先前工作中提取的 retained information 和 experience。
 Experience 是 memory 的结构化子集，用来捕获 reusable context、trigger、
 action、result、lesson、applicability boundaries 和 evidence。
 
-当 NotebookLM writeback 不可用时，它可以暂存在本地 pending outbox；同步后再从
-NotebookLM 查询。未来 promoted forms 也可以进入 graph、vector 或 note stores，
-但本地 outbox 本身不是 prompt recall provider。
+当 Hindsight 已配置时，它会通过 knowledge ingestion 路径写入 Hindsight，并在
+prompt assembly 时从 Hindsight 查询。未来 promoted forms 也可以进入 graph、
+vector 或 note stores，但本地后备条目不是 prompt recall provider。
 
 ### Skill
 

@@ -1409,44 +1409,44 @@ Defaults for Talk mode (macOS; archived mobile runtimes had separate compatibili
 `tools.profile` sets a base allowlist before `tools.allow`/`tools.deny`:
 
 Local onboarding defaults new local configs to `tools.profile: "coding"` when unset
-(existing explicit profiles are preserved). The `coding` profile includes
-`write_experience_note` and the scoped durable-memory file tools; onboarding
-does not add a `main` agent `tools.alsoAllow` override for them.
+(existing explicit profiles are preserved). Memory maintenance tools are
+special-agent-only; onboarding does not add a `main` agent `tools.alsoAllow`
+override for them.
 
 Some tools are lifecycle-gated before profile allow/deny policy. Runtime
 conditional tools still require their runtime/plugin/channel capability, and
 special-agent-only tools such as `session_summary_file_read`,
 `session_summary_file_edit` are not main-agent defaults.
 
-| Profile     | Includes                                                                                                                                              |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `minimal`   | `session_status` only                                                                                                                                 |
-| `coding`    | `group:fs`, `group:runtime`, `group:web`, `sessions_spawn`, `sessions_yield`, `session_status`, `browser`, `discover_skills`, `write_experience_note` |
-| `messaging` | `group:messaging`, `session_status`                                                                                                                   |
+| Profile     | Includes                                                                                                                     |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `minimal`   | `session_status` only                                                                                                        |
+| `coding`    | `group:fs`, `group:runtime`, `group:web`, `sessions_spawn`, `sessions_yield`, `session_status`, `browser`, `discover_skills` |
+| `messaging` | `group:messaging`, `session_status`                                                                                          |
 
 ### Tool groups
 
-| Group                   | Tools                                                                                                                              |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `group:runtime`         | `bash`, `process`, `grep`, `find`, `ls`                                                                                            |
-| `group:fs`              | `read`, `write`, `edit`, `apply_patch`                                                                                             |
-| `group:web`             | `web_search`, `web_fetch`                                                                                                          |
-| `group:sessions`        | `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`, `sessions_yield`, `subagents`, `session_status`            |
-| `group:ui`              | `browser`, `canvas`                                                                                                                |
-| `group:messaging`       | `message`                                                                                                                          |
-| `group:automation`      | `cron`, `gateway`                                                                                                                  |
-| `group:skills`          | `discover_skills`                                                                                                                  |
-| `group:workflow`        | `workflow`, `workflowize`                                                                                                          |
-| `group:review`          | `review_task`                                                                                                                      |
-| `group:memory`          | `write_experience_note`, `memory_manifest_read`, `memory_note_read`, `memory_note_write`, `memory_note_edit`, `memory_note_delete` |
-| `group:session_summary` | `session_summary_file_read`, `session_summary_file_edit`                                                                           |
-| `group:media`           | `image`, `pdf`, `tts`                                                                                                              |
-| `group:crawclaw`        | All built-in tools (excludes provider plugins)                                                                                     |
+| Group                   | Tools                                                                                                                   |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `group:runtime`         | `bash`, `process`, `grep`, `find`, `ls`                                                                                 |
+| `group:fs`              | `read`, `write`, `edit`, `apply_patch`                                                                                  |
+| `group:web`             | `web_search`, `web_fetch`                                                                                               |
+| `group:sessions`        | `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`, `sessions_yield`, `subagents`, `session_status` |
+| `group:ui`              | `browser`, `canvas`                                                                                                     |
+| `group:messaging`       | `message`                                                                                                               |
+| `group:automation`      | `cron`, `gateway`                                                                                                       |
+| `group:skills`          | `discover_skills`                                                                                                       |
+| `group:workflow`        | `workflow`, `workflowize`                                                                                               |
+| `group:review`          | `review_task`                                                                                                           |
+| `group:memory`          | `knowledge_recall`, `knowledge_reflect`, `knowledge_ingest`, `knowledge_model_list`, `knowledge_model_create`           |
+| `group:session_summary` | `session_summary_file_read`, `session_summary_file_edit`                                                                |
+| `group:media`           | `image`, `pdf`, `tts`                                                                                                   |
+| `group:crawclaw`        | All built-in tools (excludes provider plugins)                                                                          |
 
 Group expansion does not bypass lifecycle gates. For example, adding
-`group:memory` to an allowlist does not expose scoped durable-memory file tools
-to `main` unless the host opened those tools for the current turn or the run is
-a matching special agent.
+`group:memory` to an allowlist does not expose knowledge tools to `main` unless
+the host opened those tools for the current turn or the run is a matching
+special agent.
 
 ### `tools.allow` / `tools.deny`
 

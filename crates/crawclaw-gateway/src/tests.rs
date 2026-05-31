@@ -777,11 +777,8 @@ async fn rust_gateway_rpc_manages_special_agents_and_memory() {
     .await
     .expect("run dream");
     assert_eq!(dream["status"], "completed");
-
-    let history = handle_gateway_method(&state, "memory.dream.history", json!({}))
-        .await
-        .expect("dream history");
-    assert_eq!(history["history"].as_array().expect("history").len(), 1);
+    assert_eq!(dream["result"]["memory"]["status"], "tool_owned");
+    assert_eq!(dream["result"]["memory"]["handler"], "dream");
 
     let _ = std::fs::remove_dir_all(runtime_root);
 }
@@ -1166,23 +1163,13 @@ async fn rust_gateway_memory_special_agent_uses_native_agent_runtime() {
         run["result"]["assistantText"],
         "dreamed by rust agent runtime"
     );
-    assert_eq!(
-        run["result"]["memory"]["summary"],
-        "dreamed by rust agent runtime"
-    );
+    assert_eq!(run["result"]["memory"]["status"], "tool_owned");
+    assert_eq!(run["result"]["memory"]["handler"], "dream");
 
     let request = request_rx
         .recv_timeout(Duration::from_secs(2))
         .expect("captured dream special agent request");
     assert!(request.contains("consolidate memory"));
-
-    let history = handle_gateway_method(&state, "memory.dream.history", json!({}))
-        .await
-        .expect("dream history");
-    assert_eq!(
-        history["history"][0]["summary"],
-        "dreamed by rust agent runtime"
-    );
 
     let _ = std::fs::remove_dir_all(runtime_root);
 }
@@ -1228,22 +1215,12 @@ async fn rust_gateway_memory_dream_run_uses_native_agent_runtime() {
         dream["result"]["assistantText"],
         "dream rpc used rust agent runtime"
     );
-    assert_eq!(
-        dream["result"]["memory"]["summary"],
-        "dream rpc used rust agent runtime"
-    );
+    assert_eq!(dream["result"]["memory"]["status"], "tool_owned");
+    assert_eq!(dream["result"]["memory"]["handler"], "dream");
     let request = request_rx
         .recv_timeout(Duration::from_secs(2))
         .expect("captured memory dream request");
     assert!(request.contains("consolidate from memory RPC"));
-
-    let history = handle_gateway_method(&state, "memory.dream.history", json!({}))
-        .await
-        .expect("dream history");
-    assert_eq!(
-        history["history"][0]["summary"],
-        "dream rpc used rust agent runtime"
-    );
 
     let _ = std::fs::remove_dir_all(runtime_root);
 }
@@ -1424,22 +1401,12 @@ async fn rust_gateway_experience_special_agent_writes_agent_runtime_result() {
         run["result"]["assistantText"],
         "experience captured by rust agent runtime"
     );
-    assert_eq!(
-        run["result"]["memory"]["entry"]["body"],
-        "experience captured by rust agent runtime"
-    );
+    assert_eq!(run["result"]["memory"]["status"], "tool_owned");
+    assert_eq!(run["result"]["memory"]["handler"], "experience");
     let request = request_rx
         .recv_timeout(Duration::from_secs(2))
         .expect("captured experience request");
     assert!(request.contains("extract an experience note"));
-
-    let entries = handle_gateway_method(&state, "memory.experience.outbox.list", json!({}))
-        .await
-        .expect("list experience outbox");
-    assert_eq!(
-        entries["entries"][0]["body"],
-        "experience captured by rust agent runtime"
-    );
 
     let _ = std::fs::remove_dir_all(runtime_root);
 }
@@ -1612,9 +1579,9 @@ async fn rust_gateway_memory_after_turn_ingests_from_native_runtime() {
     .expect("memory after turn");
 
     assert_eq!(result["status"], "ok");
-    assert_eq!(result["ingest"]["ingestedCount"], 2);
-    assert_eq!(result["durableExtraction"], true);
-    assert_eq!(result["experienceExtraction"], true);
+    assert_eq!(result["ingestedCount"], 2);
+    assert_eq!(result["hindsightEnabled"], false);
+    assert_eq!(result["shouldRetain"], true);
 
     let _ = std::fs::remove_dir_all(runtime_root);
 }
@@ -4731,29 +4698,18 @@ fn legacy_node_core_gateway_methods() -> &'static [&'static str] {
         "nativePlugin.service.start",
         "nativePlugin.service.stop",
         "agents.list",
-        "memory.admin.overview",
         "memory.status",
         "memory.refresh",
         "memory.login",
-        "memory.durable.index.list",
-        "memory.durable.index.get",
-        "memory.dream.status",
-        "memory.dream.history",
         "memory.dream.run",
         "memory.sessionSummary.status",
         "memory.sessionSummary.refresh",
-        "memory.experience.outbox.list",
-        "memory.experience.outbox.updateStatus",
-        "memory.experience.outbox.prune",
-        "memory.experience.sync.flush",
         "memory.promptJournal.summary",
         "memory.bootstrap",
         "memory.ingestBatch",
         "memory.assemble",
         "memory.compact",
         "memory.afterTurn",
-        "memory.prepareSubagentSpawn",
-        "memory.onSubagentEnded",
         "agentRuntime.summary",
         "agentRuntime.list",
         "agentRuntime.get",
@@ -4862,15 +4818,41 @@ fn serve_openai_compatible_n(
     thread::spawn(move || {
         for _ in 0..request_count {
             let (mut stream, _) = listener.accept().expect("accept provider request");
-            let mut buffer = [0; 8192];
-            let count = stream.read(&mut buffer).expect("read provider request");
+            let request = read_http_request(&mut stream);
+            let request_text = String::from_utf8_lossy(&request).to_string();
             request_tx
-                .send(String::from_utf8_lossy(&buffer[..count]).to_string())
+                .send(request_text.clone())
                 .expect("send captured request");
+            let (content_type, body) = if request_text.contains(r#""stream":true"#) {
+                let content = serde_json::from_str::<serde_json::Value>(response_body)
+                    .ok()
+                    .and_then(|value| {
+                        value["choices"][0]["message"]["content"]
+                            .as_str()
+                            .map(str::to_string)
+                    })
+                    .unwrap_or_default();
+                let chunk = serde_json::to_string(&json!({
+                    "choices": [
+                        {
+                            "delta": {
+                                "content": content
+                            }
+                        }
+                    ]
+                }))
+                .expect("stream chunk json");
+                (
+                    "text/event-stream",
+                    format!("data: {chunk}\n\ndata: [DONE]\n\n"),
+                )
+            } else {
+                ("application/json", response_body.to_string())
+            };
             let response = format!(
-                    "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}",
-                    response_body.len(),
-                    response_body
+                    "HTTP/1.1 200 OK\r\ncontent-type: {content_type}\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}",
+                    body.len(),
+                    body
                 );
             stream
                 .write_all(response.as_bytes())

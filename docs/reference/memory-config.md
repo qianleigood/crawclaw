@@ -1,10 +1,10 @@
 ---
 title: "Memory configuration reference"
-summary: "Configuration keys for the built-in memory runtime, Hindsight, session summaries, and Context Archive"
+summary: "Configuration keys for the Hindsight-native memory runtime and session summaries"
 read_when:
   - You want to configure CrawClaw memory
   - You want to enable Hindsight-backed experience recall
-  - You want to tune session summaries, dream, or Context Archive
+  - You want to tune session summaries or dream consolidation
 ---
 
 # Memory configuration reference
@@ -19,16 +19,14 @@ For the conceptual model, start with:
 
 ## Runtime store
 
-| Key                          | Type     | Default                         | Description                  |
-| ---------------------------- | -------- | ------------------------------- | ---------------------------- |
-| `memory.runtimeStore.type`   | `string` | `"sqlite"`                      | Runtime store implementation |
-| `memory.runtimeStore.dbPath` | `string` | `~/.crawclaw/memory-runtime.db` | SQLite DB path               |
+| Key                          | Type     | Default                         | Description    |
+| ---------------------------- | -------- | ------------------------------- | -------------- |
+| `memory.runtimeStore.dbPath` | `string` | `~/.crawclaw/memory-runtime.db` | SQLite DB path |
 
 ```json5
 {
   memory: {
     runtimeStore: {
-      type: "sqlite",
       dbPath: "~/.crawclaw/memory-runtime.db",
     },
   },
@@ -37,14 +35,12 @@ For the conceptual model, start with:
 
 ## Hindsight
 
-Hindsight is the prompt-facing provider for experience recall and
-experience-note writeback. CrawClaw keeps a local pending outbox so experience
-writes are not lost while Hindsight is unavailable. Successful writes do not
-keep a duplicate local payload; pending local payloads are removed after they
-sync to Hindsight. Hindsight is responsible for semantic relevance and ordering
-during experience recall; CrawClaw preserves provider order and only applies
-local guardrails such as source filtering, duplicate removal, empty-content
-checks, and prompt-budget limits.
+Hindsight is the prompt-facing provider for experience recall and experience
+writeback. Current writes go through the Hindsight knowledge ingestion path and
+do not keep a duplicate local payload. Hindsight is responsible for semantic
+relevance and ordering during experience recall; CrawClaw preserves provider
+order and only applies local guardrails such as source filtering, duplicate
+removal, empty-content checks, and prompt-budget limits.
 
 Hindsight runs as a sidecar or remote service. CrawClaw only stores the endpoint,
 bank names, timeout, and recall policy; Python, Postgres, embedding models, and
@@ -53,38 +49,47 @@ multilingual Hindsight setup such as `BAAI/bge-m3` embeddings plus
 `BAAI/bge-reranker-v2-m3` reranking, and configure the Hindsight text-search
 extension that best supports Chinese keyword segmentation.
 
-| Key                               | Type      | Default                          | Description                                   |
-| --------------------------------- | --------- | -------------------------------- | --------------------------------------------- |
-| `memory.hindsight.enabled`        | `boolean` | `false`                          | Enable Hindsight recall and writeback         |
-| `memory.hindsight.baseUrl`        | `string`  | `""`                             | Hindsight HTTP API base URL                   |
-| `memory.hindsight.apiKey`         | `string`  | `""`                             | Optional bearer token for the Hindsight API   |
-| `memory.hindsight.apiKeyEnv`      | `string`  | `""`                             | Env var name that contains the bearer token   |
-| `memory.hindsight.experienceBank` | `string`  | `crawclaw:main:experience`       | Bank used for experience recall and writes    |
-| `memory.hindsight.durableBank`    | `string`  | `crawclaw:main:durable`          | Bank used for durable-derived recall          |
-| `memory.hindsight.resourceBank`   | `string`  | `crawclaw:main:resource`         | Bank used for source/resource recall          |
-| `memory.hindsight.defaultBudget`  | `string`  | `mid`                            | Hindsight recall budget: `low`, `mid`, `high` |
-| `memory.hindsight.maxTokens`      | `number`  | `2048`                           | Maximum Hindsight recall tokens               |
-| `memory.hindsight.timeoutMs`      | `number`  | `15000`                          | HTTP timeout for Hindsight calls              |
-| `memory.hindsight.tagsMatch`      | `string`  | `all_strict`                     | Tag matching mode for recall filters          |
-| `memory.hindsight.tags`           | `array`   | `agent:main`, `layer:experience` | Tags sent with recall and writeback           |
+| Key                                                      | Type      | Default             | Description                                   |
+| -------------------------------------------------------- | --------- | ------------------- | --------------------------------------------- |
+| `memory.hindsight.enabled`                               | `boolean` | `false`             | Enable Hindsight recall and writeback         |
+| `memory.hindsight.baseUrl`                               | `string`  | `""`                | Hindsight HTTP API base URL                   |
+| `memory.hindsight.apiKey`                                | `string`  | `""`                | Optional bearer token for the Hindsight API   |
+| `memory.hindsight.apiKeyEnv`                             | `string`  | `""`                | Env var name that contains the bearer token   |
+| `memory.hindsight.bankPrefix`                            | `string`  | `crawclaw`          | Prefix for derived Hindsight banks            |
+| `memory.hindsight.bankGranularity`                       | `array`   | `agent`             | Dimensions used to derive bank IDs            |
+| `memory.hindsight.sharedMode`                            | `boolean` | `false`             | Use one shared Hindsight bank                 |
+| `memory.hindsight.sharedBankId`                          | `string`  | `crawclaw:shared`   | Shared bank ID when shared mode is enabled    |
+| `memory.hindsight.memoryMode`                            | `string`  | `hybrid`            | Assembly mode for Hindsight plus summaries    |
+| `memory.hindsight.autoRetain`                            | `boolean` | `true`              | Automatically retain eligible completed turns |
+| `memory.hindsight.retainRoles`                           | `array`   | `user`, `assistant` | Roles eligible for retain payloads            |
+| `memory.hindsight.retainEveryNTurns`                     | `number`  | `1`                 | Eligible turn interval for auto retain        |
+| `memory.hindsight.retainOverlapTurns`                    | `number`  | `0`                 | Prior turns included when retaining           |
+| `memory.hindsight.retainAsync`                           | `boolean` | `false`             | Run retain work asynchronously when supported |
+| `memory.hindsight.defaultBudget`                         | `string`  | `mid`               | Recall budget: `low`, `mid`, or `high`        |
+| `memory.hindsight.maxTokens`                             | `number`  | `2048`              | Maximum Hindsight recall tokens               |
+| `memory.hindsight.recallContextTurns`                    | `number`  | `1`                 | Recent turns used to compose recall queries   |
+| `memory.hindsight.recallMaxQueryChars`                   | `number`  | `800`               | Maximum recall query characters               |
+| `memory.hindsight.recallTypes`                           | `array`   | `observation`       | Hindsight memory types requested in recall    |
+| `memory.hindsight.recallInjectionPosition`               | `string`  | `prepend`           | Where recall is injected into model context   |
+| `memory.hindsight.autoReflect`                           | `boolean` | `true`              | Enable dream-time reflection                  |
+| `memory.hindsight.reflectBudget`                         | `string`  | `high`              | Hindsight budget for reflection calls         |
+| `memory.hindsight.reflectMaxTokens`                      | `number`  | `2048`              | Maximum reflection output tokens              |
+| `memory.hindsight.defaultMentalModels`                   | `boolean` | `true`              | Maintain default mental-model banks           |
+| `memory.hindsight.enableKnowledgeTools`                  | `boolean` | `false`             | Expose Hindsight-backed knowledge tools       |
+| `memory.hindsight.tagsMatch`                             | `string`  | `all_strict`        | Tag matching mode for recall filters          |
+| `memory.hindsight.tags`                                  | `array`   | `agent:main`        | Base tags sent with Hindsight operations      |
+| `memory.hindsight.timeoutMs`                             | `number`  | `15000`             | HTTP timeout for Hindsight calls              |
+| `memory.hindsight.languageHints.primaryLanguage`         | `string`  | `auto`              | Language hint for bank descriptions           |
+| `memory.hindsight.languageHints.bilingualTechnicalTerms` | `boolean` | `true`              | Expand Chinese and English technical terms    |
 
-## Extraction and summaries
+## Dreaming and summaries
 
-| Key                                             | Description                                 |
-| ----------------------------------------------- | ------------------------------------------- |
-| `memory.durableExtraction.enabled`              | Enable the durable memory agent             |
-| `memory.experience.enabled`                     | Enable background experience extraction     |
-| `memory.experience.maxNotesPerTurn`             | Maximum experience notes per completed turn |
-| `memory.sessionSummary.enabled`                 | Enable session-summary maintenance          |
-| `memory.sessionSummary.minTokensBetweenUpdates` | Token growth threshold between updates      |
-| `memory.sessionSummary.toolCallsBetweenUpdates` | Tool-call threshold between updates         |
-
-## Context Archive
-
-| Key                                   | Description                              |
-| ------------------------------------- | ---------------------------------------- |
-| `memory.contextArchive.enabled`       | Enable Context Archive                   |
-| `memory.contextArchive.mode`          | Archive mode: `off`, `replay`, or `full` |
-| `memory.contextArchive.rootDir`       | Archive output directory                 |
-| `memory.contextArchive.redactSecrets` | Redact secrets in archive payloads       |
-| `memory.contextArchive.retentionDays` | Retention window for archive records     |
+| Key                                             | Description                            |
+| ----------------------------------------------- | -------------------------------------- |
+| `memory.dreaming.enabled`                       | Enable Hindsight reflection jobs       |
+| `memory.dreaming.minHours`                      | Minimum hours between dream scans      |
+| `memory.dreaming.minSessions`                   | Minimum sessions before consolidation  |
+| `memory.sessionSummary.enabled`                 | Enable session-summary maintenance     |
+| `memory.sessionSummary.minTokensToInit`         | Token threshold before first summary   |
+| `memory.sessionSummary.minTokensBetweenUpdates` | Token growth threshold between updates |
+| `memory.sessionSummary.toolCallsBetweenUpdates` | Tool-call threshold between updates    |

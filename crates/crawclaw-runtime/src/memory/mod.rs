@@ -10,9 +10,15 @@ mod helpers;
 mod runtime_store;
 mod session_summary_store;
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
+
+use crate::{
+    AgentModelSelection, AgentRunProfileKind, AgentRunProfileRequest, AgentRunRequest,
+    AgentRuntime, ChannelChatType, ChannelInboundEnvelope,
+};
 
 pub use self::config::*;
 pub use self::helpers::*;
@@ -29,6 +35,7 @@ use self::retain_pipeline::RetainConfig;
 pub struct MemoryRuntime {
     runtime_root: PathBuf,
     config: MemoryRuntimeConfig,
+    desktop_policy: Option<Value>,
     bank_resolver: BankResolverConfig,
     hindsight: Option<HindsightClient>,
 }
@@ -36,12 +43,15 @@ pub struct MemoryRuntime {
 impl MemoryRuntime {
     pub fn new(runtime_root: impl Into<PathBuf>) -> Self {
         let runtime_root = runtime_root.into();
-        let config = MemoryRuntimeConfig::load(&runtime_root);
+        let desktop_policy = read_desktop_memory_policy(&runtime_root);
+        let mut config = MemoryRuntimeConfig::load(&runtime_root);
+        apply_desktop_memory_policy(&mut config, desktop_policy.as_ref());
         let bank_resolver = BankResolverConfig::from_hindsight_config(&config.hindsight);
-        let hindsight = HindsightClient::new(&config.hindsight).ok();
+        let hindsight = maybe_hindsight_client(&config.hindsight);
         Self {
             runtime_root,
             config,
+            desktop_policy,
             bank_resolver,
             hindsight,
         }
@@ -49,11 +59,15 @@ impl MemoryRuntime {
 
     pub fn with_config(runtime_root: impl Into<PathBuf>, config: MemoryRuntimeConfig) -> Self {
         let runtime_root = runtime_root.into();
+        let desktop_policy = read_desktop_memory_policy(&runtime_root);
+        let mut config = config;
+        apply_desktop_memory_policy(&mut config, desktop_policy.as_ref());
         let bank_resolver = BankResolverConfig::from_hindsight_config(&config.hindsight);
-        let hindsight = HindsightClient::new(&config.hindsight).ok();
+        let hindsight = maybe_hindsight_client(&config.hindsight);
         Self {
             runtime_root,
             config,
+            desktop_policy,
             bank_resolver,
             hindsight,
         }
@@ -68,7 +82,9 @@ impl MemoryRuntime {
     }
 
     pub fn store(&self) -> RuntimeStore {
-        RuntimeStore::new(helpers::expand_user_path(&self.config.runtime_store.db_path))
+        RuntimeStore::new(helpers::expand_user_path(
+            &self.config.runtime_store.db_path,
+        ))
     }
 
     pub fn session_summary_store(&self) -> SessionSummaryStore {
@@ -95,6 +111,11 @@ impl MemoryRuntime {
                     let ctx = self.bank_context("main");
                     let bank_id = self.bank_resolver.resolve(&ctx, layer);
                     let _ = client.ensure_bank(&bank_id, layer, language);
+                    if *layer == "mental-models" && self.config.hindsight.default_mental_models {
+                        let _ = reflect_pipeline::ensure_default_mental_models(
+                            client, &bank_id, language,
+                        );
+                    }
                 }
             }
         }
@@ -104,6 +125,20 @@ impl MemoryRuntime {
             "sessionId": session_id,
             "sessionKey": session_key,
         }))
+    }
+
+    pub fn ingest_batch(
+        &self,
+        session_id: &str,
+        session_key: Option<&str>,
+        messages: &[Value],
+    ) -> Result<Value, String> {
+        let store = self.store();
+        store.init()?;
+        for (index, message) in messages.iter().enumerate() {
+            store.append_message(session_id, session_key, index as i64, message)?;
+        }
+        Ok(json!({ "ingestedCount": messages.len() }))
     }
 
     pub fn assemble(
@@ -127,10 +162,32 @@ impl MemoryRuntime {
                     &query,
                     &recall_config,
                 );
-                let durable: Vec<_> = items.iter().filter(|i| i.metadata.get("layer").and_then(|v| v.as_str()) == Some("durable")).cloned().collect();
-                let experience: Vec<_> = items.iter().filter(|i| i.metadata.get("layer").and_then(|v| v.as_str()) == Some("experience")).cloned().collect();
-                let resource: Vec<_> = items.iter().filter(|i| i.metadata.get("layer").and_then(|v| v.as_str()) == Some("resource")).cloned().collect();
-                let mental_models: Vec<_> = items.iter().filter(|i| i.metadata.get("layer").and_then(|v| v.as_str()) == Some("mental-models")).cloned().collect();
+                let durable: Vec<_> = items
+                    .iter()
+                    .filter(|i| i.metadata.get("layer").and_then(|v| v.as_str()) == Some("durable"))
+                    .cloned()
+                    .collect();
+                let experience: Vec<_> = items
+                    .iter()
+                    .filter(|i| {
+                        i.metadata.get("layer").and_then(|v| v.as_str()) == Some("experience")
+                    })
+                    .cloned()
+                    .collect();
+                let resource: Vec<_> = items
+                    .iter()
+                    .filter(|i| {
+                        i.metadata.get("layer").and_then(|v| v.as_str()) == Some("resource")
+                    })
+                    .cloned()
+                    .collect();
+                let mental_models: Vec<_> = items
+                    .iter()
+                    .filter(|i| {
+                        i.metadata.get("layer").and_then(|v| v.as_str()) == Some("mental-models")
+                    })
+                    .cloned()
+                    .collect();
                 (durable, experience, resource, mental_models)
             } else {
                 (vec![], vec![], vec![], vec![])
@@ -204,12 +261,13 @@ impl MemoryRuntime {
             .is_some();
 
         let turn_number = messages.len() as u32;
-        let should_retain = retain_pipeline::should_retain_this_turn(
-            turn_number,
-            retain_config.retain_every_n_turns,
-            has_final_assistant,
-            has_tool_calls,
-        );
+        let should_retain = retain_config.auto_retain
+            && retain_pipeline::should_retain_this_turn(
+                turn_number,
+                retain_config.retain_every_n_turns,
+                has_final_assistant,
+                has_tool_calls,
+            );
 
         let mut result = json!({
             "status": "ok",
@@ -256,10 +314,8 @@ impl MemoryRuntime {
             return Ok(json!({ "status": "skipped", "reason": "hindsight_not_configured" }));
         }
 
-        let reflect_config = ReflectConfig::from_hindsight_config(
-            &self.config.hindsight,
-            &self.config.dreaming,
-        );
+        let reflect_config =
+            ReflectConfig::from_hindsight_config(&self.config.hindsight, &self.config.dreaming);
 
         let ctx = self.bank_context("main");
         let recent_summaries = self.recent_session_summaries(session_id, 5)?;
@@ -273,7 +329,107 @@ impl MemoryRuntime {
         )
     }
 
-    fn recent_session_summaries(&self, session_id: &str, _count: usize) -> Result<Vec<String>, String> {
+    pub async fn compact_session(&self, session_id: &str, force: bool) -> Result<Value, String> {
+        let messages = self.store().list_messages(session_id, 10_000)?;
+        if messages.is_empty() && !force {
+            return Ok(json!({
+                "ok": true,
+                "compacted": false,
+                "reason": "no_messages",
+            }));
+        }
+
+        let transcript = messages
+            .iter()
+            .map(|message| {
+                let role = message
+                    .get("role")
+                    .and_then(Value::as_str)
+                    .unwrap_or("unknown");
+                let content = feedback_guard::extract_text_content(message);
+                format!("{role}: {content}")
+            })
+            .collect::<Vec<_>>()
+            .join("\n\n");
+        let prompt = format!(
+            "Summarize this transcript for future context. Preserve user intent, task state, decisions, blockers, and next actions.\n\n{transcript}"
+        );
+        let run_id = format!("memory-compact-{}", helpers::now_millis());
+        let result = AgentRuntime::new(self.runtime_root.clone())
+            .run_turn(AgentRunRequest {
+                run_id: run_id.clone(),
+                agent_id: "session-summary".to_string(),
+                session_key: session_id.to_string(),
+                inbound: ChannelInboundEnvelope {
+                    channel: "memory".to_string(),
+                    account_id: Some("rust-runtime".to_string()),
+                    from: "memory.compact".to_string(),
+                    to: "agent:session-summary".to_string(),
+                    chat_type: ChannelChatType::Direct,
+                    body: prompt,
+                    raw_body: None,
+                    message_id: Some(format!("{run_id}:input")),
+                    thread_id: Some(session_id.to_string()),
+                    media_urls: Vec::new(),
+                    metadata: BTreeMap::new(),
+                },
+                model: AgentModelSelection {
+                    provider: "configured".to_string(),
+                    model: "configured".to_string(),
+                    reasoning_level: None,
+                },
+                enabled_tools: vec![
+                    "session_summary_file_read".to_string(),
+                    "session_summary_file_edit".to_string(),
+                ],
+                profile: Some(AgentRunProfileRequest {
+                    kind: AgentRunProfileKind::Compaction,
+                    special_agent: Some("session-summary".to_string()),
+                    memory_after_turn: Some(false),
+                }),
+                options: BTreeMap::new(),
+            })
+            .await
+            .map_err(|error| format!("failed to run compaction agent: {error:?}"))?;
+
+        let compacted_through = messages
+            .last()
+            .and_then(|message| {
+                message
+                    .get("id")
+                    .or_else(|| message.get("messageId"))
+                    .and_then(Value::as_str)
+            })
+            .map(str::to_string);
+        let summary_store = self.session_summary_store();
+        summary_store.refresh(session_id, &result.assistant_text)?;
+        summary_store.write_compaction_cursor(
+            session_id,
+            compacted_through.as_deref(),
+            None,
+            None,
+            messages.len(),
+        )?;
+        self.store()
+            .upsert_session_compaction_state(session_id, messages.len() as i64)?;
+
+        Ok(json!({
+            "ok": true,
+            "compacted": true,
+            "result": {
+                "summary": result.assistant_text,
+                "compactedThroughMessageId": compacted_through,
+                "tailStartMessageIndex": messages.len(),
+                "implementation": "rust-native-agent-runtime",
+            }
+        }))
+    }
+
+    fn recent_session_summaries(
+        &self,
+        session_id: &str,
+        _count: usize,
+    ) -> Result<Vec<String>, String> {
         let store = self.session_summary_store();
         let summary = store.read(session_id)?;
         let content = summary
@@ -324,44 +480,95 @@ impl MemoryRuntime {
                     "bankPrefix": self.config.hindsight.bank_prefix,
                     "bankGranularity": self.config.hindsight.bank_granularity,
                     "memoryMode": self.config.hindsight.memory_mode,
+                    "autoRetain": self.config.hindsight.auto_retain,
                     "authConfigured": !self.config.hindsight.api_key.trim().is_empty(),
                 },
                 "dreaming": self.config.dreaming,
                 "sessionSummary": self.config.session_summary,
+                "desktopPolicy": self.desktop_policy.clone(),
             },
             "hindsight": self.hindsight_status(),
         }))
     }
 }
 
+fn maybe_hindsight_client(config: &HindsightConfig) -> Option<HindsightClient> {
+    if !config.enabled || config.base_url.trim().is_empty() {
+        return None;
+    }
+    HindsightClient::new(config).ok()
+}
+
+fn read_desktop_memory_policy(runtime_root: &Path) -> Option<Value> {
+    let path = runtime_root
+        .join("config")
+        .join("desktop-memory-policy.json");
+    let text = std::fs::read_to_string(path).ok()?;
+    serde_json::from_str(&text).ok()
+}
+
+fn apply_desktop_memory_policy(config: &mut MemoryRuntimeConfig, policy: Option<&Value>) {
+    let Some(policy) = policy else {
+        return;
+    };
+    if policy.get("memoryDreamEnabled").and_then(Value::as_bool) == Some(false) {
+        config.dreaming.enabled = false;
+    }
+    let remembers_preferences = policy
+        .get("rememberPreferences")
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    let remembers_project_context = policy
+        .get("rememberProjectContext")
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    if !remembers_preferences && !remembers_project_context {
+        config.hindsight.auto_retain = false;
+    }
+}
+
 impl MemoryRuntimeConfig {
-    pub fn load(_runtime_root: &Path) -> Self {
-        Self::from_value(
-            &read_active_config()
-                .and_then(|c| c.get("memory").cloned())
-                .unwrap_or(Value::Null),
-        )
+    pub fn load(runtime_root: &Path) -> Self {
+        let raw = read_active_config()
+            .and_then(|c| c.get("memory").cloned())
+            .unwrap_or(Value::Null);
+        let mut config = Self::from_value(&raw);
+        let has_runtime_db_path =
+            string_value(raw.get("runtimeStore").unwrap_or(&Value::Null), &["dbPath"]).is_some();
+        if !has_runtime_db_path {
+            config.runtime_store.db_path = runtime_root
+                .join("memory-runtime.db")
+                .to_string_lossy()
+                .to_string();
+        }
+        config
     }
 
     pub fn from_value(raw: &Value) -> Self {
         let object = raw.as_object();
-        let runtime_store_db = string_value(
-            raw.get("runtimeStore").unwrap_or(&Value::Null),
-            &["dbPath"],
-        )
-        .unwrap_or_else(|| "~/.crawclaw/memory-runtime.db".to_string());
+        let runtime_store_db =
+            string_value(raw.get("runtimeStore").unwrap_or(&Value::Null), &["dbPath"])
+                .unwrap_or_else(|| "~/.crawclaw/memory-runtime.db".to_string());
 
-        let hindsight_raw = object.and_then(|o| o.get("hindsight")).unwrap_or(&Value::Null);
+        let hindsight_raw = object
+            .and_then(|o| o.get("hindsight"))
+            .unwrap_or(&Value::Null);
         let hindsight = HindsightConfig::from_value(hindsight_raw);
 
-        let dreaming_raw = object.and_then(|o| o.get("dreaming")).unwrap_or(&Value::Null);
+        let dreaming_raw = object
+            .and_then(|o| o.get("dreaming"))
+            .unwrap_or(&Value::Null);
         let dreaming = DreamingConfig::from_value(dreaming_raw);
 
-        let summary_raw = object.and_then(|o| o.get("sessionSummary")).unwrap_or(&Value::Null);
+        let summary_raw = object
+            .and_then(|o| o.get("sessionSummary"))
+            .unwrap_or(&Value::Null);
         let session_summary = SessionSummaryConfig::from_value(summary_raw);
 
         Self {
-            runtime_store: RuntimeStoreConfig { db_path: runtime_store_db },
+            runtime_store: RuntimeStoreConfig {
+                db_path: runtime_store_db,
+            },
             hindsight,
             dreaming,
             session_summary,
@@ -372,9 +579,8 @@ impl MemoryRuntimeConfig {
 impl HindsightConfig {
     pub fn from_value(raw: &Value) -> Self {
         let defaults = Self::default();
-        let object = raw.as_object();
 
-        let api_key = string_value(raw, &["apiKey", "apiKeyEnv"])
+        let api_key = string_value(raw, &["apiKey"])
             .or_else(|| {
                 string_value(raw, &["apiKeyEnv"])
                     .and_then(|name| std::env::var(name.trim()).ok())
@@ -437,33 +643,83 @@ impl HindsightConfig {
         };
 
         Self {
-            enabled: raw.get("enabled").and_then(Value::as_bool).unwrap_or(defaults.enabled),
+            enabled: raw
+                .get("enabled")
+                .and_then(Value::as_bool)
+                .unwrap_or(defaults.enabled),
             base_url: string_value(raw, &["baseUrl"]).unwrap_or(defaults.base_url),
             api_key,
             bank_prefix: string_value(raw, &["bankPrefix"]).unwrap_or(defaults.bank_prefix),
             bank_granularity,
-            shared_mode: raw.get("sharedMode").and_then(Value::as_bool).unwrap_or(defaults.shared_mode),
+            shared_mode: raw
+                .get("sharedMode")
+                .and_then(Value::as_bool)
+                .unwrap_or(defaults.shared_mode),
             shared_bank_id: string_value(raw, &["sharedBankId"]).unwrap_or(defaults.shared_bank_id),
             memory_mode: string_value(raw, &["memoryMode"]).unwrap_or(defaults.memory_mode),
-            auto_retain: raw.get("autoRetain").and_then(Value::as_bool).unwrap_or(defaults.auto_retain),
+            auto_retain: raw
+                .get("autoRetain")
+                .and_then(Value::as_bool)
+                .unwrap_or(defaults.auto_retain),
             retain_roles,
-            retain_every_n_turns: raw.get("retainEveryNTurns").and_then(Value::as_u64).unwrap_or(defaults.retain_every_n_turns as u64) as u32,
-            retain_overlap_turns: raw.get("retainOverlapTurns").and_then(Value::as_u64).unwrap_or(defaults.retain_overlap_turns as u64) as u32,
-            retain_async: raw.get("retainAsync").and_then(Value::as_bool).unwrap_or(defaults.retain_async),
-            default_budget: string_value(raw, &["defaultBudget"]).unwrap_or(defaults.default_budget),
-            max_tokens: raw.get("maxTokens").and_then(Value::as_u64).unwrap_or(defaults.max_tokens as u64) as u32,
-            recall_context_turns: raw.get("recallContextTurns").and_then(Value::as_u64).unwrap_or(defaults.recall_context_turns as u64) as u32,
-            recall_max_query_chars: raw.get("recallMaxQueryChars").and_then(Value::as_u64).unwrap_or(defaults.recall_max_query_chars as u64) as usize,
+            retain_every_n_turns: raw
+                .get("retainEveryNTurns")
+                .and_then(Value::as_u64)
+                .unwrap_or(defaults.retain_every_n_turns as u64)
+                as u32,
+            retain_overlap_turns: raw
+                .get("retainOverlapTurns")
+                .and_then(Value::as_u64)
+                .unwrap_or(defaults.retain_overlap_turns as u64)
+                as u32,
+            retain_async: raw
+                .get("retainAsync")
+                .and_then(Value::as_bool)
+                .unwrap_or(defaults.retain_async),
+            default_budget: string_value(raw, &["defaultBudget"])
+                .unwrap_or(defaults.default_budget),
+            max_tokens: raw
+                .get("maxTokens")
+                .and_then(Value::as_u64)
+                .unwrap_or(defaults.max_tokens as u64) as u32,
+            recall_context_turns: raw
+                .get("recallContextTurns")
+                .and_then(Value::as_u64)
+                .unwrap_or(defaults.recall_context_turns as u64)
+                as u32,
+            recall_max_query_chars: raw
+                .get("recallMaxQueryChars")
+                .and_then(Value::as_u64)
+                .unwrap_or(defaults.recall_max_query_chars as u64)
+                as usize,
             recall_types,
-            recall_injection_position: string_value(raw, &["recallInjectionPosition"]).unwrap_or(defaults.recall_injection_position),
-            auto_reflect: raw.get("autoReflect").and_then(Value::as_bool).unwrap_or(defaults.auto_reflect),
-            reflect_budget: string_value(raw, &["reflectBudget"]).unwrap_or(defaults.reflect_budget),
-            reflect_max_tokens: raw.get("reflectMaxTokens").and_then(Value::as_u64).unwrap_or(defaults.reflect_max_tokens as u64) as u32,
-            default_mental_models: raw.get("defaultMentalModels").and_then(Value::as_bool).unwrap_or(defaults.default_mental_models),
-            enable_knowledge_tools: raw.get("enableKnowledgeTools").and_then(Value::as_bool).unwrap_or(defaults.enable_knowledge_tools),
+            recall_injection_position: string_value(raw, &["recallInjectionPosition"])
+                .unwrap_or(defaults.recall_injection_position),
+            auto_reflect: raw
+                .get("autoReflect")
+                .and_then(Value::as_bool)
+                .unwrap_or(defaults.auto_reflect),
+            reflect_budget: string_value(raw, &["reflectBudget"])
+                .unwrap_or(defaults.reflect_budget),
+            reflect_max_tokens: raw
+                .get("reflectMaxTokens")
+                .and_then(Value::as_u64)
+                .unwrap_or(defaults.reflect_max_tokens as u64)
+                as u32,
+            default_mental_models: raw
+                .get("defaultMentalModels")
+                .and_then(Value::as_bool)
+                .unwrap_or(defaults.default_mental_models),
+            enable_knowledge_tools: raw
+                .get("enableKnowledgeTools")
+                .and_then(Value::as_bool)
+                .unwrap_or(defaults.enable_knowledge_tools),
             tags_match: string_value(raw, &["tagsMatch"]).unwrap_or(defaults.tags_match),
             tags,
-            timeout_ms: raw.get("timeoutMs").and_then(Value::as_u64).unwrap_or(defaults.timeout_ms),
+            timeout_ms: raw
+                .get("timeoutMs")
+                .and_then(Value::as_u64)
+                .unwrap_or(defaults.timeout_ms),
             language_hints,
         }
     }
@@ -473,11 +729,26 @@ impl DreamingConfig {
     pub fn from_value(raw: &Value) -> Self {
         let defaults = Self::default();
         Self {
-            enabled: raw.get("enabled").and_then(Value::as_bool).unwrap_or(defaults.enabled),
-            min_hours: raw.get("minHours").and_then(Value::as_u64).unwrap_or(defaults.min_hours as u64) as u32,
-            min_sessions: raw.get("minSessions").and_then(Value::as_u64).unwrap_or(defaults.min_sessions as u64) as u32,
-            scan_throttle_ms: raw.get("scanThrottleMs").and_then(Value::as_u64).unwrap_or(defaults.scan_throttle_ms),
-            lock_stale_after_ms: raw.get("lockStaleAfterMs").and_then(Value::as_u64).unwrap_or(defaults.lock_stale_after_ms),
+            enabled: raw
+                .get("enabled")
+                .and_then(Value::as_bool)
+                .unwrap_or(defaults.enabled),
+            min_hours: raw
+                .get("minHours")
+                .and_then(Value::as_u64)
+                .unwrap_or(defaults.min_hours as u64) as u32,
+            min_sessions: raw
+                .get("minSessions")
+                .and_then(Value::as_u64)
+                .unwrap_or(defaults.min_sessions as u64) as u32,
+            scan_throttle_ms: raw
+                .get("scanThrottleMs")
+                .and_then(Value::as_u64)
+                .unwrap_or(defaults.scan_throttle_ms),
+            lock_stale_after_ms: raw
+                .get("lockStaleAfterMs")
+                .and_then(Value::as_u64)
+                .unwrap_or(defaults.lock_stale_after_ms),
         }
     }
 }
@@ -486,12 +757,33 @@ impl SessionSummaryConfig {
     pub fn from_value(raw: &Value) -> Self {
         let defaults = Self::default();
         Self {
-            enabled: raw.get("enabled").and_then(Value::as_bool).unwrap_or(defaults.enabled),
-            min_tokens_to_init: raw.get("minTokensToInit").and_then(Value::as_u64).unwrap_or(defaults.min_tokens_to_init as u64) as u32,
-            min_tokens_between_updates: raw.get("minTokensBetweenUpdates").and_then(Value::as_u64).unwrap_or(defaults.min_tokens_between_updates as u64) as u32,
-            tool_calls_between_updates: raw.get("toolCallsBetweenUpdates").and_then(Value::as_u64).unwrap_or(defaults.tool_calls_between_updates as u64) as u32,
-            max_wait_ms: raw.get("maxWaitMs").and_then(Value::as_u64).unwrap_or(defaults.max_wait_ms),
-            max_turns: raw.get("maxTurns").and_then(Value::as_u64).unwrap_or(defaults.max_turns as u64) as u32,
+            enabled: raw
+                .get("enabled")
+                .and_then(Value::as_bool)
+                .unwrap_or(defaults.enabled),
+            min_tokens_to_init: raw
+                .get("minTokensToInit")
+                .and_then(Value::as_u64)
+                .unwrap_or(defaults.min_tokens_to_init as u64)
+                as u32,
+            min_tokens_between_updates: raw
+                .get("minTokensBetweenUpdates")
+                .and_then(Value::as_u64)
+                .unwrap_or(defaults.min_tokens_between_updates as u64)
+                as u32,
+            tool_calls_between_updates: raw
+                .get("toolCallsBetweenUpdates")
+                .and_then(Value::as_u64)
+                .unwrap_or(defaults.tool_calls_between_updates as u64)
+                as u32,
+            max_wait_ms: raw
+                .get("maxWaitMs")
+                .and_then(Value::as_u64)
+                .unwrap_or(defaults.max_wait_ms),
+            max_turns: raw
+                .get("maxTurns")
+                .and_then(Value::as_u64)
+                .unwrap_or(defaults.max_turns as u64) as u32,
         }
     }
 }
@@ -541,12 +833,7 @@ pub async fn execute_memory_runtime_operation(
                 .and_then(Value::as_array)
                 .cloned()
                 .unwrap_or_default();
-            let store = runtime.store();
-            store.init()?;
-            for (index, message) in messages.iter().enumerate() {
-                store.append_message(&session_id, session_key.as_deref(), index as i64, message)?;
-            }
-            Ok(json!({ "ingestedCount": messages.len() }))
+            runtime.ingest_batch(&session_id, session_key.as_deref(), &messages)
         }
         "memory.assemble" | "memory_assemble" => {
             let session_id = string_value(&input, &["sessionId", "sessionKey"])
@@ -584,6 +871,12 @@ pub async fn execute_memory_runtime_operation(
                 .unwrap_or_else(|| "default".to_string());
             runtime.dream_consolidate(&session_id)
         }
+        "memory.compact" | "memory_compact" => {
+            let session_id = string_value(&input, &["sessionId", "sessionKey"])
+                .unwrap_or_else(|| "default".to_string());
+            let force = input.get("force").and_then(Value::as_bool).unwrap_or(false);
+            runtime.compact_session(&session_id, force).await
+        }
         "memory.status" | "memory_status" => runtime.status(),
         _ => Err(format!("unsupported memory runtime operation: {operation}")),
     }
@@ -610,7 +903,9 @@ mod tests {
             json!({"role": "user", "content": "hello"}),
             json!({"role": "assistant", "content": "hi"}),
         ];
-        let result = runtime.after_turn("session-1", Some("key"), &messages, 0).unwrap();
+        let result = runtime
+            .after_turn("session-1", Some("key"), &messages, 0)
+            .unwrap();
         assert_eq!(result["status"], "ok");
         assert_eq!(result["ingestedCount"], 2);
     }
@@ -620,8 +915,13 @@ mod tests {
         let dir = tempdir().unwrap();
         let runtime = MemoryRuntime::new(dir.path());
         let messages = vec![json!({"role": "user", "content": "hello"})];
-        let result = runtime.assemble("session-1", messages, Some("test query")).unwrap();
-        assert_eq!(result["diagnostics"]["memoryRecall"]["implementation"], "hindsight-native");
+        let result = runtime
+            .assemble("session-1", messages, Some("test query"))
+            .unwrap();
+        assert_eq!(
+            result["diagnostics"]["memoryRecall"]["implementation"],
+            "hindsight-native"
+        );
     }
 
     #[test]

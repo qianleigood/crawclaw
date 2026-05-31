@@ -34,11 +34,7 @@ impl From<&HindsightConfig> for RecallConfig {
     }
 }
 
-pub fn compose_recall_query(
-    user_text: &str,
-    messages: &[Value],
-    config: &RecallConfig,
-) -> String {
+pub fn compose_recall_query(user_text: &str, messages: &[Value], config: &RecallConfig) -> String {
     let mut parts = vec![user_text.to_string()];
 
     let recent_count = (config.recall_context_turns * 2) as usize;
@@ -67,11 +63,14 @@ pub fn truncate_at_sentence_boundary(text: &str, max_chars: usize) -> String {
         return text.to_string();
     }
     let truncated: String = text.chars().take(max_chars).collect();
-    truncated
-        .rfind(|c: char| {
-            c == '。' || c == '！' || c == '？' || c == '.' || c == '!' || c == '?'
+    let end = truncated
+        .char_indices()
+        .filter_map(|(index, c)| {
+            (c == '。' || c == '！' || c == '？' || c == '.' || c == '!' || c == '?')
+                .then_some(index + c.len_utf8())
         })
-        .map(|pos| truncated[..pos + 1].to_string())
+        .last();
+    end.map(|index| truncated[..index].to_string())
         .unwrap_or(truncated)
 }
 
@@ -155,7 +154,11 @@ pub fn parallel_recall(
         }
     }
 
-    all_items.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    all_items.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     all_items.dedup_by(|a, b| a.id == b.id);
 
     let budget = config.max_tokens as usize;

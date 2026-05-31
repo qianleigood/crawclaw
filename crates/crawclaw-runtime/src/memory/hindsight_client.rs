@@ -56,7 +56,6 @@ pub struct HindsightClient {
     base_url: String,
     api_key: String,
     client: Client,
-    timeout: Duration,
 }
 
 impl HindsightClient {
@@ -70,7 +69,6 @@ impl HindsightClient {
             base_url: config.base_url.trim_end_matches('/').to_string(),
             api_key: config.api_key.clone(),
             client,
-            timeout: Duration::from_millis(config.timeout_ms),
         })
     }
 
@@ -78,7 +76,11 @@ impl HindsightClient {
         !self.base_url.is_empty()
     }
 
-    fn auth_request(&self, method: reqwest::Method, url: &str) -> reqwest::blocking::RequestBuilder {
+    fn auth_request(
+        &self,
+        method: reqwest::Method,
+        url: &str,
+    ) -> reqwest::blocking::RequestBuilder {
         let mut req = self.client.request(method, url);
         if !self.api_key.is_empty() {
             req = req.bearer_auth(&self.api_key);
@@ -114,7 +116,11 @@ impl HindsightClient {
         let status = response.status();
         if !status.is_success() {
             let body = response.text().unwrap_or_default();
-            return Err(format!("Retain failed with HTTP {}: {}", status.as_u16(), body));
+            return Err(format!(
+                "Retain failed with HTTP {}: {}",
+                status.as_u16(),
+                body
+            ));
         }
 
         Ok(RetainResponse {
@@ -158,7 +164,11 @@ impl HindsightClient {
         let status = response.status();
         if !status.is_success() {
             let body = response.text().unwrap_or_default();
-            return Err(format!("Recall failed with HTTP {}: {}", status.as_u16(), body));
+            return Err(format!(
+                "Recall failed with HTTP {}: {}",
+                status.as_u16(),
+                body
+            ));
         }
 
         let payload: Value = response
@@ -196,7 +206,11 @@ impl HindsightClient {
         let status = response.status();
         if !status.is_success() {
             let body = response.text().unwrap_or_default();
-            return Err(format!("Reflect failed with HTTP {}: {}", status.as_u16(), body));
+            return Err(format!(
+                "Reflect failed with HTTP {}: {}",
+                status.as_u16(),
+                body
+            ));
         }
 
         let payload: Value = response
@@ -246,18 +260,17 @@ impl HindsightClient {
         let status = response.status();
         if !status.is_success() {
             let body = response.text().unwrap_or_default();
-            return Err(format!("Create bank failed with HTTP {}: {}", status.as_u16(), body));
+            return Err(format!(
+                "Create bank failed with HTTP {}: {}",
+                status.as_u16(),
+                body
+            ));
         }
 
         Ok(())
     }
 
-    pub fn ensure_bank(
-        &self,
-        bank_id: &str,
-        layer: &str,
-        language: &str,
-    ) -> Result<(), String> {
+    pub fn ensure_bank(&self, bank_id: &str, layer: &str, language: &str) -> Result<(), String> {
         let (name, mission) = super::bank_resolver::bank_mission(layer, language);
         let disposition = super::bank_resolver::bank_disposition(layer);
         self.create_bank(bank_id, name, mission, disposition)
@@ -273,7 +286,11 @@ impl HindsightClient {
         let status = response.status();
         if !status.is_success() {
             let body = response.text().unwrap_or_default();
-            return Err(format!("List mental models failed with HTTP {}: {}", status.as_u16(), body));
+            return Err(format!(
+                "List mental models failed with HTTP {}: {}",
+                status.as_u16(),
+                body
+            ));
         }
 
         let payload: Value = response
@@ -318,7 +335,11 @@ impl HindsightClient {
         let status = response.status();
         if !status.is_success() {
             let body = response.text().unwrap_or_default();
-            return Err(format!("Create mental model failed with HTTP {}: {}", status.as_u16(), body));
+            return Err(format!(
+                "Create mental model failed with HTTP {}: {}",
+                status.as_u16(),
+                body
+            ));
         }
 
         Ok(())

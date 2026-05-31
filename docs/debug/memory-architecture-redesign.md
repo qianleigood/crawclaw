@@ -1,10 +1,15 @@
 ---
 title: "Memory Architecture Redesign: Hindsight-Native"
-summary: "Complete redesign of CrawClaw memory to fully leverage Hindsight Retain/Recall/Reflect, Observations, and Mental Models, with first-class Chinese language support"
-status: draft
+summary: "Historical redesign notes for CrawClaw memory and Hindsight Retain/Recall/Reflect integration"
+status: historical
 ---
 
 # 记忆架构重设计：Hindsight 原生
+
+> Historical note: this draft records the pre-migration design baseline and
+> proposed rollout. The current runtime no longer exposes the old local
+> outbox or file-backed durable-memory tool surface described in some sections
+> below.
 
 ## 1. 问题陈述
 
@@ -12,14 +17,14 @@ status: draft
 
 CrawClaw 的记忆系统有六层：
 
-| 层级       | 存储                        | 代码位置                                |
-| ---------- | --------------------------- | --------------------------------------- |
-| 会话消息   | SQLite `runtime.db`         | `RuntimeStore`，`memory.rs:1124`        |
-| 会话摘要   | Markdown 文件               | `SessionSummaryStore`，`memory.rs:1446` |
-| 长期记忆   | Markdown 文件               | `DurableMemoryStore`，`memory.rs:1305`  |
-| 经验记忆   | Hindsight bank + 本地发件箱 | `ExperienceStore`，`memory.rs:1546`     |
-| 梦境整合   | `history.json` 空操作       | `DreamStore`，`memory.rs:1359`          |
-| 上下文归档 | 本地文件                    | 独立子系统                              |
+| 层级       | 存储                        | 代码位置                     |
+| ---------- | --------------------------- | ---------------------------- |
+| 会话消息   | SQLite `runtime.db`         | 旧本地 runtime store         |
+| 会话摘要   | Markdown 文件               | 旧本地 session-summary store |
+| 长期记忆   | Markdown 文件               | 旧 file-backed durable store |
+| 经验记忆   | Hindsight bank + 本地发件箱 | 旧本地 experience outbox     |
+| 梦境整合   | `history.json` 空操作       | 旧本地 dream history         |
+| 上下文归档 | 本地文件                    | 独立子系统                   |
 
 Hindsight 作为 sidecar 集成，但仅用于：
 
@@ -29,7 +34,7 @@ Hindsight 作为 sidecar 集成，但仅用于：
 ### 1.2 七个结构性缺陷
 
 **D1：长期记忆召回仅关键词匹配。**
-`ranked_memory_snippets`（`agent_context.rs:439`）做 `haystack.contains(term)`。
+旧关键词记忆片段逻辑做 `haystack.contains(term)`。
 标题为"项目架构决策"的笔记无法被"为什么选择了微服务"找到。
 
 **D2：Hindsight 提取管线被绕过。**
@@ -56,18 +61,18 @@ Durable memory 只按 `agentId` 隔离。Hindsight banks 硬编码为 `crawclaw:
 
 ## 2. 设计目标
 
-| 编号 | 目标                 | 成功标准                                            |
-| ---- | -------------------- | --------------------------------------------------- |
-| G1   | Hindsight 作为主存储 | 除会话消息和上下文归档外，所有层通过 Hindsight 读写 |
-| G2   | 自动捕获             | 每轮结束后自动 retain，不依赖 agent 决策            |
-| G3   | 自动注入             | 每轮开始前自动注入相关记忆到系统提示词              |
-| G4   | 语义召回             | 用 Hindsight 四路混合检索替代关键词匹配             |
-| G5   | 心智模型             | 梦境整合调用 reflect，预置常用心智模型              |
-| G6   | Observation 优先     | 召回默认用 `types: ["observation"]`，避免重复       |
-| G7   | 中文优先             | 默认配置多语言嵌入/重排序/CJK BM25                  |
-| G8   | 可组合隔离           | Bank ID 由 `(agentId, channel, userId)` 派生        |
-| G9   | 反馈环路防护         | 注入的记忆标签在 retain 前被剥离                    |
-| G10  | 离线降级             | Hindsight 不可用时降级到本地发件箱                  |
+| 编号 | 目标                 | 成功标准                                                      |
+| ---- | -------------------- | ------------------------------------------------------------- |
+| G1   | Hindsight 作为主存储 | 除会话消息、会话摘要和上下文归档外，所有层通过 Hindsight 读写 |
+| G2   | 自动捕获             | 每轮结束后自动 retain，不依赖 agent 决策                      |
+| G3   | 自动注入             | 每轮开始前自动注入相关记忆到系统提示词                        |
+| G4   | 语义召回             | 用 Hindsight 四路混合检索替代关键词匹配                       |
+| G5   | 心智模型             | 梦境整合调用 reflect，预置常用心智模型                        |
+| G6   | Observation 优先     | 召回默认用 `types: ["observation"]`，避免重复                 |
+| G7   | 中文优先             | 默认配置多语言嵌入/重排序/CJK BM25                            |
+| G8   | 可组合隔离           | Bank ID 由 `(agentId, channel, userId)` 派生                  |
+| G9   | 反馈环路防护         | 注入的记忆标签在 retain 前被剥离                              |
+| G10  | 离线降级             | Hindsight 不可用时跳过对应读写，不写本地兼容发件箱            |
 
 ---
 
@@ -115,7 +120,7 @@ Durable memory 只按 `agentId` 隔离。Hindsight banks 硬编码为 `crawclaw:
 |     - 后台提取事实、实体、关系                    |
 |     - 自动整合为 Observation                      |
 |  3. 推进提取游标                                  |
-|  4. 失败时写入本地发件箱                          |
+|  4. 失败时记录 warn 并跳过本次 Hindsight 写入      |
 +--------------------------------------------------+
     |
     v
@@ -348,12 +353,11 @@ Hindsight 的 `retain` 调用后，后台整合引擎自动运行：
 
 #### 5.1.7 降级模式
 
-Hindsight `retain` 失败时：
+Hindsight `retain` 失败时不再写本地兼容发件箱：
 
-1. 写入本地经验发件箱（`ExperienceStore`）
-2. 记录 `warn` 级别日志
-3. 推进提取游标（不重试同一轮次）
-4. 心跳时通过 `sync_experience_outbox` 刷新
+1. 记录 `warn` 级别日志
+2. 跳过本次 Hindsight 写入
+3. 保持会话本地状态可继续运行
 
 ---
 
@@ -586,9 +590,7 @@ async fn dream_consolidate(&self, session_id: &str, config: &DreamingConfig) -> 
         .filter(|m| m.trigger_refresh_after_consolidation)
         .count();
 
-    // 6. 记录历史
-    self.dream_store().run(session_id, &reflection.text)?;
-
+    // 6. 返回反思结果；调用方负责记录状态
     Ok(json!({ "status": "completed", "reflection": reflection.text, "modelsRefreshed": refreshed }))
 }
 ```
@@ -837,16 +839,15 @@ fn expand_bilingual_terms(query: &str) -> String {
 | `memory/retain_pipeline.rs`  | 自动保留管线                                                 |
 | `memory/recall_pipeline.rs`  | 统一召回管线                                                 |
 | `memory/reflect_pipeline.rs` | 梦境 → 反思 → 心智模型                                       |
-| `memory/resource_ingest.rs`  | 文档/代码注入                                                |
 
 ### 8.2 修改文件
 
-| 文件                | 变更                                                                 |
-| ------------------- | -------------------------------------------------------------------- |
-| `memory.rs`         | 重构为模块目录；新增 `backend` 字段；接入新管线                      |
-| `agent_context.rs`  | `backend=hindsight` 时用 Hindsight 召回替代 `ranked_memory_snippets` |
-| `special_agents.rs` | 添加知识工具允许列表                                                 |
-| `core_tools.rs`     | 注册知识工具                                                         |
+| 文件                | 变更                                    |
+| ------------------- | --------------------------------------- |
+| `memory.rs`         | 重构为模块目录；接入 Hindsight 原生管线 |
+| `agent_context.rs`  | 用 Hindsight 召回替代旧关键词记忆片段   |
+| `special_agents.rs` | 添加知识工具允许列表                    |
+| `core_tools.rs`     | 注册知识工具                            |
 
 ### 8.3 模块结构
 
@@ -855,19 +856,15 @@ crates/crawclaw-runtime/src/memory/
   mod.rs                   # 重导出、execute_memory_runtime_operation
   config.rs                # 所有配置结构体
   runtime_store.rs         # SQLite 会话消息
-  durable_store.rs         # Markdown 文件（保留用于 UI 展示）
   session_summary_store.rs # 会话摘要
-  experience_store.rs      # 本地发件箱（离线降级）
-  dream_store.rs           # 梦境历史
   hindsight_client.rs      # Hindsight HTTP 客户端
   bank_resolver.rs         # Bank ID 派生
   feedback_guard.rs        # 记忆标签剥离
   retain_pipeline.rs       # 自动保留
   recall_pipeline.rs       # 统一召回
   reflect_pipeline.rs      # 梦境反思
-  resource_ingest.rs       # 文档注入
   helpers.rs               # 共享工具
-  tests.rs                 # 测试
+  tests                    # 模块内单元测试
 ```
 
 ---
@@ -876,12 +873,12 @@ crates/crawclaw-runtime/src/memory/
 
 ### 9.1 Hindsight 不可用
 
-| 操作         | 行为                                  |
-| ------------ | ------------------------------------- |
-| 保留         | 写入本地发件箱，记录警告，推进游标    |
-| 召回         | 跳过 Hindsight 召回，仅用本地记忆片段 |
-| 反思         | 跳过梦境整合，下一周期重试            |
-| 心智模型刷新 | 跳过                                  |
+| 操作         | 行为                                      |
+| ------------ | ----------------------------------------- |
+| 保留         | 记录警告，跳过本次 Hindsight 写入         |
+| 召回         | 跳过 Hindsight 召回，仅保留本地会话上下文 |
+| 反思         | 跳过梦境整合，下一周期重试                |
+| 心智模型刷新 | 跳过                                      |
 
 ### 9.2 部分失败
 
@@ -914,16 +911,16 @@ for result in [durable, experience, resource, mental_models] {
 
 ### 10.2 集成测试
 
-| 测试                             | 验证                          |
-| -------------------------------- | ----------------------------- |
-| `retain_recall_roundtrip`        | 保留事实 → 召回事实           |
-| `observation_auto_consolidation` | retain 后自动生成 Observation |
-| `mental_model_create_and_query`  | 创建心智模型 → 直接查询       |
-| `mental_model_auto_refresh`      | retain 后心智模型自动刷新     |
-| `reflect_uses_mental_models`     | reflect 优先返回心智模型      |
-| `feedback_loop_prevention`       | 注入记忆不被重新 retain       |
-| `degraded_mode_outbox`           | 失败 retain 写入本地发件箱    |
-| `chinese_recall_quality`         | 中文查询返回中文结果          |
+| 测试                             | 验证                           |
+| -------------------------------- | ------------------------------ |
+| `retain_recall_roundtrip`        | 保留事实 → 召回事实            |
+| `observation_auto_consolidation` | retain 后自动生成 Observation  |
+| `mental_model_create_and_query`  | 创建心智模型 → 直接查询        |
+| `mental_model_auto_refresh`      | retain 后心智模型自动刷新      |
+| `reflect_uses_mental_models`     | reflect 优先返回心智模型       |
+| `feedback_loop_prevention`       | 注入记忆不被重新 retain        |
+| `degraded_mode_no_outbox`        | 失败 retain 不写本地兼容发件箱 |
+| `chinese_recall_quality`         | 中文查询返回中文结果           |
 
 ### 10.3 性能测试
 
@@ -939,50 +936,50 @@ for result in [durable, experience, resource, mental_models] {
 
 ### 阶段 0：基础（1-2 周）
 
-- [ ] 重构 `memory.rs` 为模块目录
-- [ ] 实现 `MemoryBankResolver`
-- [ ] 实现 `HindsightClient`（retain/recall/reflect/mental-models）
-- [ ] 实现 `feedback_guard`
-- [ ] 扩展 `HindsightConfig`（向后兼容）
-- [ ] 单元测试
+- [x] 重构 `memory.rs` 为模块目录
+- [x] 实现 `MemoryBankResolver`
+- [x] 实现 `HindsightClient`（retain/recall/reflect/mental-models）
+- [x] 实现 `feedback_guard`
+- [x] 扩展 `HindsightConfig`（不保留旧兼容配置面）
+- [x] 单元测试
 - 验证：`cargo test -p crawclaw-runtime memory::`
 
 ### 阶段 1：自动保留（1 周）
 
-- [ ] 实现 `retain_pipeline`
-- [ ] 接入 `after_turn` 自动 retain
-- [ ] 反馈环路防护
-- [ ] 离线降级到本地发件箱
+- [x] 实现 `retain_pipeline`
+- [x] 接入 `after_turn` 自动 retain
+- [x] 反馈环路防护
+- [x] 离线降级为跳过本次 Hindsight 写入
 - 验证：`cargo test -p crawclaw-runtime memory::retain`
 
 ### 阶段 2：自动召回（1 周）
 
-- [ ] 实现 `recall_pipeline`
-- [ ] 替代 `assemble()` 和 `ranked_memory_snippets`
-- [ ] Observation 优先召回
-- [ ] 中文查询构建和双语展开
+- [x] 实现 `recall_pipeline`
+- [x] 替代 `assemble()` 和旧关键词记忆片段
+- [x] Observation 优先召回
+- [x] 中文查询构建和双语展开
 - 验证：`cargo test -p crawclaw-runtime memory::recall`
 
 ### 阶段 3：心智模型与反思（1 周）
 
-- [ ] 实现 `reflect_pipeline`
-- [ ] 预置默认心智模型
-- [ ] 梦境 → reflect → 心智模型刷新
+- [x] 实现 `reflect_pipeline`
+- [x] 预置默认心智模型
+- [x] 梦境 → reflect → 心智模型刷新
 - 验证：`cargo test -p crawclaw-runtime memory::reflect`
 
 ### 阶段 4：资源注入与知识工具（1 周）
 
-- [ ] 实现 `resource_ingest`
-- [ ] 注册知识工具
+- [x] 通过 `knowledge_ingest` 实现资源注入
+- [x] 注册知识工具
 - 验证：`cargo test -p crawclaw-runtime memory::tools`
 
 ### 阶段 5：中文优化（与其他阶段并行）
 
-- [ ] `languageHints` 配置
-- [ ] 中文查询截断
-- [ ] 双语术语展开
-- [ ] 中文心智模型默认值
-- [ ] Hindsight 部署文档（bge-m3、pgroonga）
+- [x] `languageHints` 配置
+- [x] 中文查询截断
+- [x] 双语术语展开
+- [x] 中文心智模型默认值
+- [x] Hindsight 部署文档（bge-m3、pgroonga）
 
 ---
 

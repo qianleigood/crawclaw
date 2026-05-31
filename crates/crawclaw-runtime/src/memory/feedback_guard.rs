@@ -78,13 +78,19 @@ mod tests {
     fn preserves_non_memory_content() {
         let msg = json!({"content": "Normal message without any tags"});
         let result = strip_memory_tags(&msg);
-        assert_eq!(result["content"].as_str().unwrap(), "Normal message without any tags");
+        assert_eq!(
+            result["content"].as_str().unwrap(),
+            "Normal message without any tags"
+        );
     }
 
     #[test]
     fn handles_malformed_tags() {
         let msg = json!({"content": "<hindsight_memories>unclosed tag"});
         let result = strip_memory_tags(&msg);
-        assert_eq!(result["content"].as_str().unwrap(), "<hindsight_memories>unclosed tag");
+        assert_eq!(
+            result["content"].as_str().unwrap(),
+            "<hindsight_memories>unclosed tag"
+        );
     }
 }

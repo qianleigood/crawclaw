@@ -252,14 +252,14 @@ Memory is aligned with the current simplified model, but follow-up work remains.
   - Landed:
     - cursor-based incremental window
     - explicit durable write/delete wins
-    - `write_experience_note` no longer suppresses durable extraction
+    - experience knowledge writes no longer suppress durable extraction
     - bidirectional `feedback` guidance
     - task-backed background special agent
     - Action Feed / Context Archive recording
   - Design and background:
     - [`Durable Memory Agent Design`](/debug/memory-extractor-agent)
     - [`Durable Memory Refactor Status`](/debug/claude-memory-refactor)
-- [x] Add agent-scoped routing guidance for `write_experience_note`, matching the
+- [x] Add agent-scoped routing guidance for experience knowledge writes, matching the
       durable-memory guidance quality level.
 - [x] Move maintenance-agent isolation onto `SpecialAgentDefinition`.
   - `durable-memory`, `session-summary`, `dream`, and `experience` now declare

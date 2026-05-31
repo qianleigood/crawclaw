@@ -42,7 +42,7 @@ Durable auto-write 现在是回合结束后的后台维护流：
 - worker 通过 durable extraction cursor 从 runtime store 读取
   model-visible messages
 - 这一回合中的显式 durable writes/deletes 会抑制后台 extraction
-- `write_experience_note` 不会抑制 durable extraction，因为 experience
+- experience knowledge 写入不会抑制 durable extraction，因为 experience
   notes 和 durable collaboration memory 是不同层
 - cursor advancement 只会在该回合已处理或有意跳过后发生
 
@@ -88,7 +88,7 @@ Promotion 是 governance，不是 recall。Promotion candidates 会被标记为
 
 - 直接从通用 `afterTurn` ingestion 调度 durable extraction
 - 把 extraction window 定义成新内存 turn slice 的最后 N 条消息
-- 把 `write_experience_note` 当作抑制 durable extraction 的理由
+- 把 experience knowledge 写入当作抑制 durable extraction 的理由
 - 默认让 subagent sessions 自动写 durable memory
 - 给 durable memory agent 不受限制的 project 或 shell 访问
 - 把完整 `MEMORY.md` 内容塞进 system prompt 作为 durable recall 策略

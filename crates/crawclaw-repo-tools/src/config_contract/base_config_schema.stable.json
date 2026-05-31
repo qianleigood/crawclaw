@@ -7071,140 +7071,136 @@
       "memory": {
         "type": "object",
         "properties": {
-          "notebooklm": {
+          "runtimeStore": {
+            "type": "object",
+            "properties": {
+              "dbPath": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "hindsight": {
             "type": "object",
             "properties": {
               "enabled": {
                 "type": "boolean"
               },
-              "auth": {
-                "type": "object",
-                "properties": {
-                  "profile": {
-                    "type": "string"
-                  },
-                  "cookieFile": {
-                    "type": "string"
-                  },
-                  "statusTtlMs": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "degradedCooldownMs": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "refreshCooldownMs": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "heartbeat": {
-                    "type": "object",
-                    "properties": {
-                      "enabled": {
-                        "type": "boolean"
-                      },
-                      "minIntervalMs": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
-                      },
-                      "maxIntervalMs": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
-                      }
-                    },
-                    "additionalProperties": false
-                  },
-                  "autoLogin": {
-                    "type": "object",
-                    "properties": {
-                      "enabled": {
-                        "type": "boolean"
-                      },
-                      "intervalMs": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
-                      },
-                      "provider": {
-                        "anyOf": [
-                          {
-                            "type": "string",
-                            "const": "nlm_profile"
-                          },
-                          {
-                            "type": "string",
-                            "const": "openclaw_cdp"
-                          }
-                        ]
-                      },
-                      "cdpUrl": {
-                        "type": "string"
-                      }
-                    },
-                    "additionalProperties": false
-                  }
-                },
-                "additionalProperties": false
+              "baseUrl": {
+                "type": "string"
               },
-              "cli": {
+              "apiKey": {
+                "type": "string"
+              },
+              "apiKeyEnv": {
+                "type": "string"
+              },
+              "bankPrefix": {
+                "type": "string"
+              },
+              "bankGranularity": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "sharedMode": {
+                "type": "boolean"
+              },
+              "sharedBankId": {
+                "type": "string"
+              },
+              "memoryMode": {
+                "type": "string"
+              },
+              "autoRetain": {
+                "type": "boolean"
+              },
+              "retainRoles": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "retainEveryNTurns": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "retainOverlapTurns": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "retainAsync": {
+                "type": "boolean"
+              },
+              "defaultBudget": {
+                "type": "string"
+              },
+              "maxTokens": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "recallContextTurns": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "recallMaxQueryChars": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "recallTypes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "recallInjectionPosition": {
+                "type": "string"
+              },
+              "autoReflect": {
+                "type": "boolean"
+              },
+              "reflectBudget": {
+                "type": "string"
+              },
+              "reflectMaxTokens": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "defaultMentalModels": {
+                "type": "boolean"
+              },
+              "enableKnowledgeTools": {
+                "type": "boolean"
+              },
+              "tagsMatch": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "timeoutMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "languageHints": {
                 "type": "object",
                 "properties": {
-                  "enabled": {
+                  "primaryLanguage": {
+                    "type": "string"
+                  },
+                  "bilingualTechnicalTerms": {
                     "type": "boolean"
-                  },
-                  "command": {
-                    "type": "string"
-                  },
-                  "args": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "timeoutMs": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "limit": {
-                    "type": "integer",
-                    "exclusiveMinimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "notebookId": {
-                    "type": "string"
-                  },
-                  "queryInstruction": {
-                    "type": "string"
-                  }
-                },
-                "additionalProperties": false
-              },
-              "write": {
-                "type": "object",
-                "properties": {
-                  "command": {
-                    "type": "string"
-                  },
-                  "args": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "timeoutMs": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "notebookId": {
-                    "type": "string"
                   }
                 },
                 "additionalProperties": false
@@ -7212,103 +7208,64 @@
             },
             "additionalProperties": false
           },
-          "durableExtraction": {
-            "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
-            "additionalProperties": {}
-          },
           "dreaming": {
-            "anyOf": [
-              {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
-                "additionalProperties": {}
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "enabled": {
-                    "type": "boolean"
-                  },
-                  "minHours": {
-                    "type": "number",
-                    "exclusiveMinimum": 0
-                  },
-                  "minSessions": {
-                    "type": "integer",
-                    "exclusiveMinimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "scanThrottleMs": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "lockStaleAfterMs": {
-                    "type": "integer",
-                    "exclusiveMinimum": 0,
-                    "maximum": 9007199254740991
-                  }
-                },
-                "additionalProperties": false
-              }
-            ]
-          },
-          "sessionSummary": {
-            "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
-            "additionalProperties": {}
-          },
-          "contextArchive": {
             "type": "object",
             "properties": {
               "enabled": {
                 "type": "boolean"
               },
-              "mode": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "const": "off"
-                  },
-                  {
-                    "type": "string",
-                    "const": "replay"
-                  },
-                  {
-                    "type": "string",
-                    "const": "full"
-                  }
-                ]
+              "minHours": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
-              "rootDir": {
-                "type": "string"
+              "minSessions": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
               },
-              "compress": {
-                "type": "boolean"
-              },
-              "redactSecrets": {
-                "type": "boolean"
-              },
-              "retentionDays": {
+              "scanThrottleMs": {
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 9007199254740991
               },
-              "maxBlobBytes": {
+              "lockStaleAfterMs": {
                 "type": "integer",
                 "exclusiveMinimum": 0,
                 "maximum": 9007199254740991
+              }
+            },
+            "additionalProperties": false
+          },
+          "sessionSummary": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
               },
-              "maxTotalBytes": {
+              "minTokensToInit": {
                 "type": "integer",
-                "exclusiveMinimum": 0,
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "minTokensBetweenUpdates": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "toolCallsBetweenUpdates": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "maxWaitMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "maxTurns": {
+                "type": "integer",
+                "minimum": 0,
                 "maximum": 9007199254740991
               }
             },
@@ -9382,185 +9339,175 @@
       "help": "Memory backend configuration (global).",
       "tags": ["advanced"]
     },
-    "memory.notebooklm": {
-      "label": "NotebookLM Experience Provider",
-      "help": "Configures NotebookLM for experience memory. NotebookLM is the only prompt-facing experience recall provider; the local store is only a pending outbox.",
+    "memory.runtimeStore": {
+      "label": "Memory Runtime Store",
+      "help": "Local SQLite store for session message cursors, compaction state, and Hindsight operation bookkeeping.",
       "tags": ["storage"]
     },
-    "memory.notebooklm.auth": {
-      "label": "NotebookLM Auth",
-      "help": "NotebookLM authentication lifecycle controls, including the active profile, cookie-file fallback, and explicit refresh behavior used by experience recall and experience-note writes.",
+    "memory.runtimeStore.dbPath": {
+      "label": "Memory Runtime Store Path",
+      "help": "SQLite database path for native memory runtime state. Leave unset to use the active runtime root.",
       "tags": ["storage"]
     },
-    "memory.notebooklm.auth.profile": {
-      "label": "NotebookLM Auth Profile",
-      "help": "NotebookLM profile name used by the local wrapper or CLI integration. Keep this stable unless you intentionally manage multiple NotebookLM identities.",
+    "memory.hindsight": {
+      "label": "Hindsight Memory",
+      "help": "Configures the Hindsight-native memory backend used for recall, retain, reflection, and mental-model tools.",
+      "tags": ["storage", "advanced"]
+    },
+    "memory.hindsight.enabled": {
+      "label": "Hindsight Enabled",
+      "help": "Enables Hindsight recall and writeback. When disabled, memory runtime keeps local session state but skips Hindsight network calls.",
       "tags": ["storage"]
     },
-    "memory.notebooklm.auth.cookieFile": {
-      "label": "NotebookLM Cookie File",
-      "help": "Optional cookie file used as a manual or explicit refresh source when the NotebookLM profile expires. Treat this file as sensitive and store it outside version control.",
+    "memory.hindsight.baseUrl": {
+      "label": "Hindsight Base URL",
+      "help": "HTTP API base URL for Hindsight. Desktop embed mode should point to the local managed Hindsight daemon.",
+      "tags": ["storage", "url-secret"]
+    },
+    "memory.hindsight.apiKey": {
+      "label": "Hindsight API Key",
+      "help": "Optional bearer token for the Hindsight API. Prefer apiKeyEnv for shared configurations.",
+      "tags": ["storage", "auth"]
+    },
+    "memory.hindsight.apiKeyEnv": {
+      "label": "Hindsight API Key Environment Variable",
+      "help": "Environment variable name that contains the Hindsight bearer token.",
+      "tags": ["storage", "auth"]
+    },
+    "memory.hindsight.bankPrefix": {
+      "label": "Hindsight Bank Prefix",
+      "help": "Prefix used when deriving Hindsight bank IDs for durable, experience, resource, and mental-model layers.",
       "tags": ["storage"]
     },
-    "memory.notebooklm.auth.statusTtlMs": {
-      "label": "NotebookLM Auth Status TTL (ms)",
-      "help": "How long a healthy NotebookLM provider status can be reused in memory before CrawClaw probes again. This reduces noisy repeated status checks during active sessions.",
-      "tags": ["storage", "media"]
-    },
-    "memory.notebooklm.auth.degradedCooldownMs": {
-      "label": "NotebookLM Auth Degraded Cooldown (ms)",
-      "help": "Cooldown window after NotebookLM enters a degraded or expired state. During this window CrawClaw reuses the cached degraded status instead of hammering the provider with repeated probes.",
+    "memory.hindsight.bankGranularity": {
+      "label": "Hindsight Bank Granularity",
+      "help": "Bank ID dimensions used by the resolver, such as agent, channel, workspace, project, or language.",
       "tags": ["storage"]
     },
-    "memory.notebooklm.auth.refreshCooldownMs": {
-      "label": "NotebookLM Auth Refresh Cooldown (ms)",
-      "help": "Cooldown window after an explicit NotebookLM refresh failure. This limits repeated refresh attempts until the next eligible recovery window or a forced manual refresh.",
+    "memory.hindsight.sharedMode": {
+      "label": "Hindsight Shared Mode",
+      "help": "Uses one shared Hindsight bank instead of deriving per-context layer banks.",
       "tags": ["storage"]
     },
-    "memory.notebooklm.auth.heartbeat": {
-      "label": "NotebookLM Auth Heartbeat",
-      "help": "Best-effort NotebookLM auth keepalive settings. CrawClaw can run lightweight randomized background status probes so long-idle profile expiry is detected before the next NotebookLM-backed experience query or write.",
-      "tags": ["storage", "automation"]
-    },
-    "memory.notebooklm.auth.heartbeat.enabled": {
-      "label": "NotebookLM Heartbeat Enabled",
-      "help": "Enables a randomized in-process NotebookLM auth heartbeat. Keep this on when NotebookLM is your active experience provider and long idle periods cause auth expiry.",
-      "tags": ["storage", "automation"]
-    },
-    "memory.notebooklm.auth.heartbeat.minIntervalMs": {
-      "label": "NotebookLM Heartbeat Min Interval (ms)",
-      "help": "Lower bound for the randomized NotebookLM auth heartbeat interval in milliseconds. Use a moderate floor to avoid noisy provider probes.",
-      "tags": ["performance", "storage", "automation"]
-    },
-    "memory.notebooklm.auth.heartbeat.maxIntervalMs": {
-      "label": "NotebookLM Heartbeat Max Interval (ms)",
-      "help": "Upper bound for the randomized NotebookLM auth heartbeat interval in milliseconds. Each keepalive run picks a random delay between min and max before the next status probe.",
-      "tags": ["performance", "storage", "automation"]
-    },
-    "memory.notebooklm.auth.autoLogin": {
-      "label": "NotebookLM Auto Login",
-      "help": "Controls the automatic NotebookLM login refresh loop. This uses the managed nlm profile or an OpenClaw CDP browser session to keep NotebookLM available as the prompt-facing experience recall provider.",
+    "memory.hindsight.sharedBankId": {
+      "label": "Hindsight Shared Bank ID",
+      "help": "Shared Hindsight bank ID used when shared mode is enabled.",
       "tags": ["storage"]
     },
-    "memory.notebooklm.auth.autoLogin.enabled": {
-      "label": "NotebookLM Auto Login Enabled",
-      "help": "Enables periodic NotebookLM auto login. When enabled, CrawClaw can reuse the managed nlm browser profile or configured OpenClaw CDP session, then flush pending local experience notes after auth recovers.",
+    "memory.hindsight.memoryMode": {
+      "label": "Hindsight Memory Mode",
+      "help": "Memory assembly strategy for Hindsight recall. The default hybrid mode keeps local session summary and Hindsight recall together.",
+      "tags": ["advanced"]
+    },
+    "memory.hindsight.autoRetain": {
+      "label": "Hindsight Auto Retain",
+      "help": "Automatically retains eligible completed turns to the Hindsight experience layer.",
       "tags": ["storage"]
     },
-    "memory.notebooklm.auth.autoLogin.intervalMs": {
-      "label": "NotebookLM Auto Login Interval (ms)",
-      "help": "Minimum interval in milliseconds between automatic NotebookLM login attempts. The default is once per day.",
+    "memory.hindsight.retainRoles": {
+      "label": "Hindsight Retain Roles",
+      "help": "Message roles eligible for automatic retain payloads.",
+      "tags": ["advanced"]
+    },
+    "memory.hindsight.retainEveryNTurns": {
+      "label": "Hindsight Retain Interval",
+      "help": "Eligible top-level turn interval for automatic retain.",
       "tags": ["performance", "storage"]
     },
-    "memory.notebooklm.auth.autoLogin.provider": {
-      "label": "NotebookLM Auto Login Provider",
-      "help": "Auto login provider. Use \"nlm_profile\" for the managed notebooklm-mcp-cli browser profile, or \"openclaw_cdp\" to ask nlm to authenticate through an OpenClaw-managed browser CDP endpoint.",
+    "memory.hindsight.retainOverlapTurns": {
+      "label": "Hindsight Retain Overlap Turns",
+      "help": "Prior turns included for context when retaining a completed turn.",
+      "tags": ["advanced"]
+    },
+    "memory.hindsight.retainAsync": {
+      "label": "Hindsight Async Retain",
+      "help": "Runs retain work asynchronously when the runtime supports background execution.",
+      "tags": ["performance"]
+    },
+    "memory.hindsight.defaultBudget": {
+      "label": "Hindsight Default Recall Budget",
+      "help": "Default Hindsight recall budget, commonly low, mid, or high.",
+      "tags": ["performance"]
+    },
+    "memory.hindsight.maxTokens": {
+      "label": "Hindsight Max Recall Tokens",
+      "help": "Maximum tokens allocated to injected Hindsight recall snippets.",
+      "tags": ["performance"]
+    },
+    "memory.hindsight.recallContextTurns": {
+      "label": "Hindsight Recall Context Turns",
+      "help": "Recent turn count used to compose the Hindsight recall query.",
+      "tags": ["performance"]
+    },
+    "memory.hindsight.recallMaxQueryChars": {
+      "label": "Hindsight Recall Max Query Characters",
+      "help": "Maximum character count for the generated recall query.",
+      "tags": ["performance"]
+    },
+    "memory.hindsight.recallTypes": {
+      "label": "Hindsight Recall Types",
+      "help": "Hindsight memory types requested during recall.",
+      "tags": ["advanced"]
+    },
+    "memory.hindsight.recallInjectionPosition": {
+      "label": "Hindsight Recall Injection Position",
+      "help": "Where Hindsight recall is injected into model context.",
+      "tags": ["advanced"]
+    },
+    "memory.hindsight.autoReflect": {
+      "label": "Hindsight Auto Reflect",
+      "help": "Enables scheduled reflection over Hindsight memories during dream consolidation.",
       "tags": ["storage"]
     },
-    "memory.notebooklm.auth.autoLogin.cdpUrl": {
-      "label": "NotebookLM Auto Login CDP URL",
-      "help": "CDP endpoint used when autoLogin.provider is openclaw_cdp, for example http://127.0.0.1:18800.",
+    "memory.hindsight.reflectBudget": {
+      "label": "Hindsight Reflect Budget",
+      "help": "Hindsight budget used for reflection calls.",
+      "tags": ["performance"]
+    },
+    "memory.hindsight.reflectMaxTokens": {
+      "label": "Hindsight Reflect Max Tokens",
+      "help": "Maximum tokens for reflection output retained into mental-model banks.",
+      "tags": ["performance"]
+    },
+    "memory.hindsight.defaultMentalModels": {
+      "label": "Hindsight Default Mental Models",
+      "help": "Creates and refreshes default mental-model banks during reflection.",
       "tags": ["storage"]
     },
-    "memory.notebooklm.cli": {
-      "label": "NotebookLM CLI Reader",
-      "help": "Optional NotebookLM CLI adapter used for prompt-facing experience recall. Enable this when the managed notebooklm-mcp-cli runtime or another authenticated `nlm` command is available, and you want CrawClaw to query NotebookLM directly.",
-      "tags": ["storage"]
+    "memory.hindsight.enableKnowledgeTools": {
+      "label": "Hindsight Knowledge Tools",
+      "help": "Exposes Hindsight-backed knowledge_recall, knowledge_reflect, knowledge_ingest, and mental-model tools.",
+      "tags": ["advanced"]
     },
-    "memory.notebooklm.cli.enabled": {
-      "label": "NotebookLM CLI Enabled",
-      "help": "Enables NotebookLM CLI retrieval for prompt-facing experience recall. Keep disabled unless the managed `nlm` runtime, PATH `nlm`, or an explicit wrapper command is authenticated.",
-      "tags": ["storage"]
+    "memory.hindsight.tagsMatch": {
+      "label": "Hindsight Tag Match Mode",
+      "help": "Tag matching mode sent to Hindsight recall.",
+      "tags": ["advanced"]
     },
-    "memory.notebooklm.cli.command": {
-      "label": "NotebookLM CLI Command",
-      "help": "Executable used for NotebookLM CLI retrieval. Leave empty to use CrawClaw's managed notebooklm-mcp-cli `nlm` runtime when installed, then PATH `nlm`; set a local wrapper script only when you need a custom adapter.",
-      "tags": ["storage"]
+    "memory.hindsight.tags": {
+      "label": "Hindsight Tags",
+      "help": "Base tags attached to Hindsight retain and recall operations.",
+      "tags": ["advanced"]
     },
-    "memory.notebooklm.cli.args": {
-      "label": "NotebookLM CLI Arguments",
-      "help": "Argument template passed to the NotebookLM CLI command. Use placeholders like `{query}`, `{limit}`, `{notebookId}`, and `{profile}` so CrawClaw can inject bounded prompt-facing search inputs safely.",
-      "tags": ["storage"]
-    },
-    "memory.notebooklm.cli.timeoutMs": {
-      "label": "NotebookLM CLI Timeout (ms)",
-      "help": "Timeout in milliseconds for each NotebookLM CLI retrieval call. Lower values fail fast when NotebookLM hangs; higher values tolerate slower remote experience queries.",
+    "memory.hindsight.timeoutMs": {
+      "label": "Hindsight Timeout (ms)",
+      "help": "Timeout in milliseconds for Hindsight HTTP calls.",
       "tags": ["performance", "storage"]
     },
-    "memory.notebooklm.cli.limit": {
-      "label": "NotebookLM CLI Result Limit",
-      "help": "Maximum number of NotebookLM experience recall hits requested before reranking and prompt assembly.",
-      "tags": ["performance", "storage"]
+    "memory.hindsight.languageHints": {
+      "label": "Hindsight Language Hints",
+      "help": "Language preferences used for bank seeding and bilingual recall query expansion.",
+      "tags": ["advanced"]
     },
-    "memory.notebooklm.cli.notebookId": {
-      "label": "NotebookLM Notebook ID",
-      "help": "Optional NotebookLM notebook identifier injected into `{notebookId}` placeholders for scoped CLI retrieval. Leave empty when your command performs cross-notebook search without a fixed notebook.",
-      "tags": ["storage"]
+    "memory.hindsight.languageHints.primaryLanguage": {
+      "label": "Hindsight Primary Language",
+      "help": "Primary language hint for bank descriptions and recall behavior, such as auto, zh-CN, or en.",
+      "tags": ["advanced"]
     },
-    "memory.notebooklm.cli.queryInstruction": {
-      "label": "NotebookLM Query Instruction",
-      "help": "Optional prompt instruction prepended to every NotebookLM experience query. Use this to force Chinese answers, shorter card-style summaries, and tighter recall behavior before CrawClaw does local normalization.",
-      "tags": ["storage"]
-    },
-    "memory.notebooklm.write": {
-      "label": "NotebookLM Writeback",
-      "help": "Configures NotebookLM experience writeback. By default CrawClaw uses the managed `nlm source add --text --wait` runtime so written experience is available to NotebookLM queries; set a command only when you need a custom write helper.",
-      "tags": ["storage"]
-    },
-    "memory.notebooklm.write.command": {
-      "label": "NotebookLM Writeback Command",
-      "help": "Optional executable override for NotebookLM experience writeback. Leave empty to use the managed `nlm source add --text --wait` runtime.",
-      "tags": ["storage"]
-    },
-    "memory.notebooklm.write.args": {
-      "label": "NotebookLM Writeback Arguments",
-      "help": "Argument template passed to a custom NotebookLM write command. Ignored by the managed `nlm` write path.",
-      "tags": ["storage"]
-    },
-    "memory.notebooklm.write.timeoutMs": {
-      "label": "NotebookLM Writeback Timeout (ms)",
-      "help": "Timeout in milliseconds for each NotebookLM experience write call. Lower values fail faster when the provider hangs; higher values tolerate slower remote writes.",
-      "tags": ["performance", "storage"]
-    },
-    "memory.notebooklm.write.notebookId": {
-      "label": "NotebookLM Writeback Notebook ID",
-      "help": "Notebook identifier used as the target for experience writes. If omitted, CrawClaw falls back to the read-side notebook id when available.",
-      "tags": ["storage"]
-    },
-    "memory.experience": {
-      "label": "Experience Memory Agent",
-      "help": "Controls the background Experience Agent. It runs after top-level turns, extracts reusable verified experience, writes local pending-outbox entries, and syncs them through the NotebookLM write path when available.",
-      "tags": ["storage"]
-    },
-    "memory.experience.enabled": {
-      "label": "Experience Agent Enabled",
-      "help": "Enables the background Experience Agent. Keep enabled to let CrawClaw automatically retain validated procedures, decisions, failure patterns, workflow patterns, and references after tasks complete.",
-      "tags": ["storage"]
-    },
-    "memory.experience.recentMessageLimit": {
-      "label": "Experience Agent Recent Message Limit",
-      "help": "Maximum number of recent model-visible messages passed into each experience extraction run.",
-      "tags": ["performance", "storage"]
-    },
-    "memory.experience.maxNotesPerTurn": {
-      "label": "Experience Agent Max Notes Per Turn",
-      "help": "Maximum number of experience notes the background agent should create or update for one completed turn.",
-      "tags": ["performance", "storage"]
-    },
-    "memory.experience.minEligibleTurnsBetweenRuns": {
-      "label": "Experience Agent Min Turns Between Runs",
-      "help": "Minimum eligible top-level turns between background experience extraction runs for the same session.",
-      "tags": ["storage"]
-    },
-    "memory.experience.maxConcurrentWorkers": {
-      "label": "Experience Agent Max Concurrent Workers",
-      "help": "Maximum number of in-process experience extraction workers that may run concurrently.",
-      "tags": ["performance", "storage"]
-    },
-    "memory.experience.workerIdleTtlMs": {
-      "label": "Experience Agent Worker Idle TTL (ms)",
-      "help": "How long idle experience workers may remain resident before cleanup.",
-      "tags": ["storage"]
+    "memory.hindsight.languageHints.bilingualTechnicalTerms": {
+      "label": "Hindsight Bilingual Technical Terms",
+      "help": "Expands common Chinese and English technical terms in recall queries for mixed-language projects.",
+      "tags": ["advanced"]
     },
     "auth": {
       "label": "Auth",
