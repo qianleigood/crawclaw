@@ -109,6 +109,29 @@ Gateway → Client:
 
 Side-effecting methods require **idempotency keys** (see schema).
 
+## Runtime events
+
+Agent run events are emitted by the Rust runtime and forwarded by Gateway as
+protocol events. The event payload is the serialized Rust event with the `runId`
+attached when it belongs to a run.
+
+- `agent.contextProjected`: the provider context projection used for the turn,
+  including message counts, token estimates, collapse state, projection reason,
+  and stage flags for capability downgrade, tool-result projection, history
+  compaction, and overflow projection.
+- `agent.providerBlock`: provider text or metadata blocks streamed from the
+  NativeProvider backend.
+- `agent.toolCall`: a tool call started, including call id, tool name, and
+  arguments.
+- `agent.toolProgress`: tool progress or completion status.
+- `agent.toolUseSummary`: compact diagnostic summary after a tool call,
+  including read-only classification, duration, error state, result projection,
+  omitted character count, and persisted output path when one exists.
+- `agent.permissionRequested`: a tool call requires permission before execution.
+- `agent.permissionDecision`: the permission request was approved or denied,
+  including mode, category, and reason.
+- `agent.hookDecision`: a hook allowed, modified, or denied a runtime action.
+
 ## Roles + scopes
 
 ### Roles

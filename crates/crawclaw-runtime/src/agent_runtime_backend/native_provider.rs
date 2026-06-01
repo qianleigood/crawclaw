@@ -236,6 +236,9 @@ async fn execute_native_provider_tool_call_batch(
                 is_error: result.is_error,
             },
         });
+        loop_events.push(AgentLoopEvent::ToolUseSummary {
+            summary: result.tool_use_summary(),
+        });
     }
 
     results
@@ -249,10 +252,31 @@ struct NativeProviderToolExecutionResult {
     tool_name: String,
     content: String,
     is_error: bool,
+    read_only: bool,
+    duration_ms: u64,
+    result_projected: bool,
+    result_persisted: bool,
+    omitted_chars: usize,
+    persisted_path: Option<String>,
     progress_events: Vec<AgentLoopEvent>,
 }
 
 impl NativeProviderToolExecutionResult {
+    fn tool_use_summary(&self) -> ToolUseSummaryEvent {
+        ToolUseSummaryEvent {
+            call_id: self.call_id.clone(),
+            tool_name: self.tool_name.clone(),
+            status: if self.is_error { "failed" } else { "completed" }.to_string(),
+            is_error: self.is_error,
+            read_only: self.read_only,
+            duration_ms: self.duration_ms,
+            result_projected: self.result_projected,
+            result_persisted: self.result_persisted,
+            omitted_chars: self.omitted_chars,
+            persisted_path: self.persisted_path.clone(),
+        }
+    }
+
     fn into_message(self) -> NativeProviderMessage {
         NativeProviderMessage::tool_result(
             self.call_id,
@@ -269,9 +293,16 @@ async fn execute_native_provider_tool_call(
     projection_budget: ToolResultProjectionBudget,
     persistence: Option<(PathBuf, String)>,
 ) -> NativeProviderToolExecutionResult {
+    let started_at = std::time::Instant::now();
     let progress_events = Arc::new(std::sync::Mutex::new(Vec::<AgentLoopEvent>::new()));
+    let mut read_only = false;
+    let mut result_projected = false;
+    let mut result_persisted = false;
+    let mut omitted_chars = 0;
+    let mut persisted_path = None;
     let result = match tools.get(&tool_call.name) {
         Some(tool) => {
+            read_only = tool.is_read_only();
             let call_id = tool_call.id.clone();
             let tool_name = tool_call.name.clone();
             let update_sink = Arc::clone(&progress_events);
@@ -288,7 +319,7 @@ async fn execute_native_provider_tool_call(
                     let content = native_tool_output_summary(&output)
                         .unwrap_or_else(|| "Tool completed without output.".to_string());
                     let content = if let Some((runtime_root, thread_id)) = persistence.as_ref() {
-                        project_tool_result_content_with_persistence(
+                        let projected = project_tool_result_content_with_persistence(
                             &content,
                             projection_budget,
                             ToolResultProjectionPersistence {
@@ -296,10 +327,20 @@ async fn execute_native_provider_tool_call(
                                 thread_id,
                                 tool_use_id: &tool_call.id,
                             },
-                        )
-                        .content
+                        );
+                        result_projected = projected.projected;
+                        result_persisted = projected.persisted_path.is_some();
+                        omitted_chars = projected.omitted_chars;
+                        persisted_path = projected
+                            .persisted_path
+                            .as_ref()
+                            .map(|path| path.to_string_lossy().to_string());
+                        projected.content
                     } else {
-                        project_tool_result_content(&content, projection_budget).content
+                        let projected = project_tool_result_content(&content, projection_budget);
+                        result_projected = projected.projected;
+                        omitted_chars = projected.omitted_chars;
+                        projected.content
                     };
                     (content, output.is_error)
                 })
@@ -325,6 +366,16 @@ async fn execute_native_provider_tool_call(
         tool_name: tool_call.name.clone(),
         content,
         is_error,
+        read_only,
+        duration_ms: started_at
+            .elapsed()
+            .as_millis()
+            .try_into()
+            .unwrap_or(u64::MAX),
+        result_projected,
+        result_persisted,
+        omitted_chars,
+        persisted_path,
         progress_events,
     }
 }
@@ -356,6 +407,9 @@ fn native_tool_update_loop_event(
         return AgentLoopEvent::Hook { event };
     }
     if let Some(event) = native_tool_permission_requested_event(call_id, tool_name, update) {
+        return AgentLoopEvent::ToolExecution { event };
+    }
+    if let Some(event) = native_tool_permission_decision_event(call_id, tool_name, update) {
         return AgentLoopEvent::ToolExecution { event };
     }
     AgentLoopEvent::ToolExecution {
@@ -427,6 +481,60 @@ fn native_tool_permission_requested_event(
     Some(ToolExecutionEvent::PermissionRequested {
         request_id,
         tool_name,
+        reason,
+    })
+}
+
+fn native_tool_permission_decision_event(
+    call_id: &str,
+    tool_name: &str,
+    update: &pi::sdk::ToolUpdate,
+) -> Option<ToolExecutionEvent> {
+    let details = update.details.as_ref()?.as_object()?;
+    if details
+        .get(PERMISSION_UPDATE_EVENT_KEY)
+        .and_then(Value::as_str)
+        != Some(PERMISSION_UPDATE_EVENT_DECISION)
+    {
+        return None;
+    }
+    let request_id = details
+        .get(PERMISSION_UPDATE_REQUEST_ID_KEY)
+        .and_then(Value::as_str)
+        .unwrap_or(call_id)
+        .to_string();
+    let tool_name = details
+        .get(PERMISSION_UPDATE_TOOL_NAME_KEY)
+        .and_then(Value::as_str)
+        .unwrap_or(tool_name)
+        .to_string();
+    let decision = details
+        .get(PERMISSION_UPDATE_DECISION_KEY)
+        .and_then(Value::as_str)
+        .unwrap_or("unknown")
+        .to_string();
+    let mode = details
+        .get(PERMISSION_UPDATE_MODE_KEY)
+        .and_then(Value::as_str)
+        .unwrap_or("workspace")
+        .to_string();
+    let category = details
+        .get(PERMISSION_UPDATE_CATEGORY_KEY)
+        .and_then(Value::as_str)
+        .unwrap_or("unknown")
+        .to_string();
+    let reason = details
+        .get(PERMISSION_UPDATE_REASON_KEY)
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .or_else(|| native_tool_update_summary(update))
+        .unwrap_or_else(|| "permission decision".to_string());
+    Some(ToolExecutionEvent::PermissionDecision {
+        request_id,
+        tool_name,
+        decision,
+        mode,
+        category,
         reason,
     })
 }

@@ -60,9 +60,11 @@ pub(crate) fn build_runtime_model_context(
     });
     deferred_tool_names.sort();
     let mut capability_warnings = Vec::new();
+    let mut capability_projection_applied = false;
     if !budget_basis.supports_tools
         && (!included_tool_schemas.is_empty() || !deferred_tool_names.is_empty())
     {
+        capability_projection_applied = true;
         let mut withheld_tools = included_tool_schemas
             .iter()
             .map(|descriptor| descriptor.name.clone())
@@ -82,6 +84,7 @@ pub(crate) fn build_runtime_model_context(
             .and_then(|model| model.reasoning_level.as_deref())
             .is_some()
     {
+        capability_projection_applied = true;
         capability_warnings.push(
             "Selected model does not support reasoning effort controls; reasoning was disabled for this turn."
                 .to_string(),
@@ -127,6 +130,7 @@ pub(crate) fn build_runtime_model_context(
     let (messages, omitted_image_count) =
         project_images_for_model_capabilities(messages, budget_basis.supports_image_input);
     if omitted_image_count > 0 {
+        capability_projection_applied = true;
         capability_warnings.push(
             "Selected model does not support image input; image blocks were omitted for this turn."
                 .to_string(),
@@ -212,6 +216,12 @@ pub(crate) fn build_runtime_model_context(
         projected_tool_result_count: tool_result_projection.projected_count,
         projected_tool_result_omitted_chars: tool_result_projection.omitted_chars,
         persisted_tool_result_count: tool_result_projection.persisted_count,
+        capability_projection_applied,
+        tool_result_projection_applied: tool_result_projection.projected_count > 0
+            || tool_result_projection.persisted_count > 0
+            || tool_result_projection.omitted_chars > 0,
+        history_compaction_applied: compaction.active,
+        overflow_projection_applied,
         collapse_state: if overflow_projection_applied && overflow_summary_applied {
             "summary-plus-overflow-tail".to_string()
         } else if overflow_projection_applied {

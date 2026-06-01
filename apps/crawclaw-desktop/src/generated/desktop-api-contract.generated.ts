@@ -123,6 +123,10 @@ export interface ConversationContextSummary {
   projectedToolResultCount: number
   projectedToolResultOmittedChars: number
   persistedToolResultCount: number
+  capabilityProjectionApplied: boolean
+  toolResultProjectionApplied: boolean
+  historyCompactionApplied: boolean
+  overflowProjectionApplied: boolean
   projectionReason: string
   provider: string
   model: string

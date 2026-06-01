@@ -77,6 +77,12 @@ function ContextSummaryPanel({ conversation }: { conversation: ConversationState
   ]
     .filter(Boolean)
     .join(' / ')
+  const projectionStages = [
+    summary.capabilityProjectionApplied ? 'capability' : undefined,
+    summary.toolResultProjectionApplied ? 'tool results' : undefined,
+    summary.historyCompactionApplied ? 'compaction' : undefined,
+    summary.overflowProjectionApplied ? 'overflow' : undefined,
+  ].filter(Boolean)
   return (
     <details className="context-summary-panel">
       <summary>
@@ -110,6 +116,7 @@ function ContextSummaryPanel({ conversation }: { conversation: ConversationState
               ? ` · ${summary.persistedToolResultCount} saved`
               : ''}
           </p>
+          <p>stages {projectionStages.join(', ') || 'none'}</p>
           <p>
             {summary.provider}/{summary.model} · window {summary.modelContextWindow} · prompt{' '}
             {summary.effectivePromptBudget} · reserve {summary.outputReserveTokens} · source{' '}

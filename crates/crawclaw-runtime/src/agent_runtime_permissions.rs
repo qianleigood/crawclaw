@@ -2,9 +2,13 @@ use super::*;
 
 pub(super) const PERMISSION_UPDATE_EVENT_KEY: &str = "crawclawEvent";
 pub(super) const PERMISSION_UPDATE_EVENT_REQUESTED: &str = "permissionRequested";
+pub(super) const PERMISSION_UPDATE_EVENT_DECISION: &str = "permissionDecision";
 pub(super) const PERMISSION_UPDATE_REQUEST_ID_KEY: &str = "requestId";
 pub(super) const PERMISSION_UPDATE_TOOL_NAME_KEY: &str = "toolName";
 pub(super) const PERMISSION_UPDATE_REASON_KEY: &str = "reason";
+pub(super) const PERMISSION_UPDATE_DECISION_KEY: &str = "decision";
+pub(super) const PERMISSION_UPDATE_MODE_KEY: &str = "mode";
+pub(super) const PERMISSION_UPDATE_CATEGORY_KEY: &str = "category";
 pub(super) const HOOK_UPDATE_EVENT_KEY: &str = "crawclawEvent";
 pub(super) const HOOK_UPDATE_EVENT_DECISION: &str = "hookDecision";
 pub(super) const HOOK_UPDATE_HOOK_KEY: &str = "hook";
@@ -282,8 +286,13 @@ impl pi::sdk::Tool for PermissionCheckedTool {
             ));
         };
         let request = permission_request(tool_call_id, &tool_name, self.category, &input);
+        let decision_reason = request.detail.clone();
         if let Some(on_update) = on_update.as_ref() {
-            on_update(permission_requested_tool_update(&request));
+            on_update(permission_requested_tool_update(
+                &request,
+                self.policy.mode,
+                self.category,
+            ));
         }
         tracing::info!(
             tool_name = %tool_name,
@@ -292,6 +301,16 @@ impl pi::sdk::Tool for PermissionCheckedTool {
         );
         match requester.request_permission(request).await {
             AgentRuntimePermissionDecision::Approved => {
+                if let Some(on_update) = on_update.as_ref() {
+                    on_update(permission_decision_tool_update(
+                        tool_call_id,
+                        &tool_name,
+                        self.policy.mode,
+                        self.category,
+                        "approved",
+                        &decision_reason,
+                    ));
+                }
                 tracing::info!(
                     tool_name = %tool_name,
                     tool_call_id,
@@ -300,6 +319,16 @@ impl pi::sdk::Tool for PermissionCheckedTool {
                 self.inner.execute(tool_call_id, input, on_update).await
             }
             AgentRuntimePermissionDecision::Denied => {
+                if let Some(on_update) = on_update.as_ref() {
+                    on_update(permission_decision_tool_update(
+                        tool_call_id,
+                        &tool_name,
+                        self.policy.mode,
+                        self.category,
+                        "denied",
+                        &decision_reason,
+                    ));
+                }
                 tracing::info!(
                     tool_name = %tool_name,
                     tool_call_id,
@@ -669,19 +698,78 @@ fn permission_error(tool_name: &str, message: &str) -> pi::sdk::Error {
 
 fn permission_requested_tool_update(
     request: &AgentRuntimePermissionRequest,
+    mode: AgentRuntimePermissionMode,
+    category: AgentRuntimePermissionCategory,
 ) -> pi::sdk::ToolUpdate {
+    permission_tool_update(
+        PERMISSION_UPDATE_EVENT_REQUESTED,
+        &request.tool_call_id,
+        &request.tool_name,
+        mode,
+        category,
+        None,
+        &request.detail,
+        Some(&request.title),
+    )
+}
+
+fn permission_decision_tool_update(
+    request_id: &str,
+    tool_name: &str,
+    mode: AgentRuntimePermissionMode,
+    category: AgentRuntimePermissionCategory,
+    decision: &str,
+    reason: &str,
+) -> pi::sdk::ToolUpdate {
+    permission_tool_update(
+        PERMISSION_UPDATE_EVENT_DECISION,
+        request_id,
+        tool_name,
+        mode,
+        category,
+        Some(decision),
+        reason,
+        None,
+    )
+}
+
+fn permission_tool_update(
+    event: &str,
+    request_id: &str,
+    tool_name: &str,
+    mode: AgentRuntimePermissionMode,
+    category: AgentRuntimePermissionCategory,
+    decision: Option<&str>,
+    reason: &str,
+    title: Option<&str>,
+) -> pi::sdk::ToolUpdate {
+    let mut details = json!({
+        PERMISSION_UPDATE_EVENT_KEY: event,
+        PERMISSION_UPDATE_REQUEST_ID_KEY: request_id,
+        PERMISSION_UPDATE_TOOL_NAME_KEY: tool_name,
+        PERMISSION_UPDATE_REASON_KEY: reason,
+        PERMISSION_UPDATE_MODE_KEY: permission_mode_name(mode),
+        PERMISSION_UPDATE_CATEGORY_KEY: permission_category_name(category),
+    });
+    if let Some(decision) = decision {
+        details[PERMISSION_UPDATE_DECISION_KEY] = json!(decision);
+    }
+    if let Some(title) = title {
+        details["title"] = json!(title);
+    }
     pi::sdk::ToolUpdate {
         content: vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
-            request.detail.clone(),
+            reason.to_string(),
         ))],
-        details: Some(json!({
-            PERMISSION_UPDATE_EVENT_KEY: PERMISSION_UPDATE_EVENT_REQUESTED,
-            PERMISSION_UPDATE_REQUEST_ID_KEY: request.tool_call_id,
-            PERMISSION_UPDATE_TOOL_NAME_KEY: request.tool_name,
-            PERMISSION_UPDATE_REASON_KEY: request.detail,
-            "title": request.title,
-            "category": permission_category_name(request.category),
-        })),
+        details: Some(details),
+    }
+}
+
+fn permission_mode_name(mode: AgentRuntimePermissionMode) -> &'static str {
+    match mode {
+        AgentRuntimePermissionMode::Workspace => "workspace",
+        AgentRuntimePermissionMode::ReadOnly => "readOnly",
+        AgentRuntimePermissionMode::FullAccess => "fullAccess",
     }
 }
 

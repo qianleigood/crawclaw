@@ -219,10 +219,33 @@ pub enum AgentRunEvent {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         message: Option<String>,
     },
+    ToolUseSummary {
+        run_id: String,
+        call_id: String,
+        tool_name: String,
+        status: String,
+        is_error: bool,
+        read_only: bool,
+        duration_ms: u64,
+        result_projected: bool,
+        result_persisted: bool,
+        omitted_chars: usize,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        persisted_path: Option<String>,
+    },
     PermissionRequested {
         run_id: String,
         request_id: String,
         tool_name: String,
+        reason: String,
+    },
+    PermissionDecision {
+        run_id: String,
+        request_id: String,
+        tool_name: String,
+        decision: String,
+        mode: String,
+        category: String,
         reason: String,
     },
     HookDecision {

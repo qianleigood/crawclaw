@@ -123,6 +123,18 @@ requested reasoning level is not sent to the provider. If it only supports text
 input, image blocks are replaced with an omission marker before the provider
 request is built.
 
+`contextSummary.projection` also exposes which projection stages were applied:
+
+- `capabilityProjectionApplied`: tools, reasoning, or image input were withheld
+  because the selected model does not support them.
+- `toolResultProjectionApplied`: large tool results were shortened for the next
+  provider request, and may also have been persisted for recovery.
+- `historyCompactionApplied`: a stored compact summary replaced older
+  transcript messages.
+- `overflowProjectionApplied`: the un-compacted prompt exceeded the effective
+  prompt budget, so CrawClaw added an overflow summary and kept a safe tail for
+  the current run.
+
 The budget strategy is not retuned on every message. Normal turns only run a
 deterministic compile step against the current model, config, and tool schema.
 The strategy is recomputed when one of those inputs changes, or when a context
@@ -153,7 +165,9 @@ tool output on disk. The run
 `contextSummary` includes the projected history token estimate, deferred tool
 count, loaded skill count, memory snippet count, compaction status, projected
 tool result count, persisted tool result count, omitted character count, and a
-human-readable projection reason.
+human-readable projection reason. Runtime event streams emit the same projection
+as `agent.contextProjected`, so Gateway and desktop clients can show the exact
+budget and projection stages without inspecting provider payloads.
 
 When an un-compacted transcript would exceed the prompt budget, CrawClaw keeps a
 safe tail and adds a deterministic "Earlier conversation omitted for context

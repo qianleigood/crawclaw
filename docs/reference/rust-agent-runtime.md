@@ -32,7 +32,12 @@ The Rust runtime owns:
   effective prompt budgets, provider output limits, capability-driven tool or
   reasoning downgrades, large tool result previews, recoverable persisted tool
   outputs, projected history token estimates, deferred tool counts, loaded skill
-  counts, memory snippet counts, and whether session compaction was applied.
+  counts, memory snippet counts, and explicit projection-stage flags for
+  capability downgrade, tool-result projection, history compaction, and overflow
+  projection.
+- Tool execution lifecycle events, including permission requests, permission
+  decisions, progress, completion, and compact tool-use summaries for UI and
+  Gateway observers.
 - Cron `agentTurn` jobs, auto-reply turns, command turns, special-agent runs,
   and memory jobs.
 - Durable memory extraction, experience extraction, dream jobs, session
@@ -96,6 +101,14 @@ channel adapters, tool payload projection, or the agent loop.
 Tool payloads returned by Rust are projected into Gateway and channel-specific
 delivery formats. Channel plugins should call their documented SDK or Gateway
 client surfaces instead of importing agent internals.
+
+Each tool call also produces Rust-owned observability. Permission prompts emit a
+request event before user or policy resolution and a decision event after the
+runtime receives an approval or denial. Completed calls emit a tool-use summary
+with the call id, tool name, status, read-only classification, duration, error
+state, and whether the result was projected or persisted. These events are
+diagnostic surfaces for clients; they do not make Gateway or Desktop own tool
+execution.
 
 ## Memory
 

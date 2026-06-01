@@ -4034,6 +4034,10 @@ esac
     assert_eq!(context_summary["projectedToolResultCount"], 0);
     assert_eq!(context_summary["projectedToolResultOmittedChars"], 0);
     assert_eq!(context_summary["persistedToolResultCount"], 0);
+    assert_eq!(context_summary["capabilityProjectionApplied"], false);
+    assert_eq!(context_summary["toolResultProjectionApplied"], false);
+    assert_eq!(context_summary["historyCompactionApplied"], false);
+    assert_eq!(context_summary["overflowProjectionApplied"], false);
     assert!(context_summary["projectionReason"]
         .as_str()
         .is_some_and(|reason| reason.contains("compact summary not applied")));

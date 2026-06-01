@@ -1007,7 +1007,8 @@ fn model_visible_turn_messages(
                     });
                 completed_tools.push((call_id.clone(), tool_name.clone(), output, *is_error));
             }
-            ToolExecutionEvent::PermissionRequested { .. } => {}
+            ToolExecutionEvent::PermissionRequested { .. }
+            | ToolExecutionEvent::PermissionDecision { .. } => {}
         }
     }
 
@@ -1429,6 +1430,68 @@ mod native_provider_backend_tests {
     }
 
     #[tokio::test]
+    async fn native_provider_tool_execution_emits_tool_use_summary_diagnostics() {
+        let registry = pi::sdk::ToolRegistry::from_tools(vec![Box::new(LargeOutputTool)]);
+        let tool_calls = vec![crawclaw_providers::NativeProviderToolCall {
+            id: "call_large".to_string(),
+            name: "large_output".to_string(),
+            arguments: json!({}),
+        }];
+        let mut loop_events = Vec::new();
+
+        let messages = execute_native_provider_tool_calls(
+            &registry,
+            &tool_calls,
+            &mut loop_events,
+            crate::agent_tool_result_projection::ToolResultProjectionBudget::default(),
+            None,
+        )
+        .await;
+
+        assert_eq!(messages.len(), 1);
+        let completed_index = loop_events
+            .iter()
+            .position(|event| {
+                matches!(
+                    event,
+                    AgentLoopEvent::ToolExecution {
+                        event: ToolExecutionEvent::Completed { call_id, .. }
+                    } if call_id == "call_large"
+                )
+            })
+            .expect("completed event");
+        let summary_index = loop_events
+            .iter()
+            .position(|event| {
+                matches!(
+                    event,
+                    AgentLoopEvent::ToolUseSummary {
+                        summary:
+                            ToolUseSummaryEvent {
+                                call_id,
+                                tool_name,
+                                status,
+                                is_error: false,
+                                read_only: false,
+                                result_projected: true,
+                                result_persisted: false,
+                                omitted_chars,
+                                ..
+                            }
+                    } if call_id == "call_large"
+                        && tool_name == "large_output"
+                        && status == "completed"
+                        && *omitted_chars > 0
+                )
+            })
+            .expect("tool use summary event");
+        assert!(
+            completed_index < summary_index,
+            "summary should be emitted after tool completion"
+        );
+    }
+
+    #[tokio::test]
     async fn native_provider_tool_execution_surfaces_permission_requests() {
         let requester = Arc::new(BackendRecordingPermissionRequester::new(
             AgentRuntimePermissionDecision::Approved,
@@ -1495,6 +1558,86 @@ mod native_provider_backend_tests {
             permission_index < completed_index,
             "permission request should be surfaced before tool completion"
         );
+    }
+
+    #[tokio::test]
+    async fn native_provider_tool_execution_surfaces_permission_decisions() {
+        let requester = Arc::new(BackendRecordingPermissionRequester::new(
+            AgentRuntimePermissionDecision::Approved,
+        ));
+        let registry = apply_permission_policy_to_registry(
+            pi::sdk::ToolRegistry::from_tools(vec![Box::new(PermissionedCommandTool)]),
+            Some(
+                AgentRuntimePermissionPolicy::workspace()
+                    .with_confirm_commands(true)
+                    .with_requester(requester),
+            ),
+        );
+        let tool_calls = vec![crawclaw_providers::NativeProviderToolCall {
+            id: "call_bash".to_string(),
+            name: "bash".to_string(),
+            arguments: json!({ "command": "printf hi" }),
+        }];
+        let mut loop_events = Vec::new();
+
+        let messages = execute_native_provider_tool_calls(
+            &registry,
+            &tool_calls,
+            &mut loop_events,
+            crate::agent_tool_result_projection::ToolResultProjectionBudget::default(),
+            None,
+        )
+        .await;
+
+        assert_eq!(messages.len(), 1);
+        let requested_index = loop_events
+            .iter()
+            .position(|event| {
+                matches!(
+                    event,
+                    AgentLoopEvent::ToolExecution {
+                        event: ToolExecutionEvent::PermissionRequested { request_id, .. }
+                    } if request_id == "call_bash"
+                )
+            })
+            .expect("permission requested event");
+        let decision_index = loop_events
+            .iter()
+            .position(|event| {
+                matches!(
+                    event,
+                    AgentLoopEvent::ToolExecution {
+                        event:
+                            ToolExecutionEvent::PermissionDecision {
+                                request_id,
+                                tool_name,
+                                decision,
+                                mode,
+                                category,
+                                reason,
+                            }
+                    } if request_id == "call_bash"
+                        && tool_name == "bash"
+                        && decision == "approved"
+                        && mode == "workspace"
+                        && category == "command"
+                        && reason.contains("printf hi")
+                )
+            })
+            .expect("permission decision event");
+        let completed_index = loop_events
+            .iter()
+            .position(|event| {
+                matches!(
+                    event,
+                    AgentLoopEvent::ToolExecution {
+                        event: ToolExecutionEvent::Completed { call_id, .. }
+                    } if call_id == "call_bash"
+                )
+            })
+            .expect("completed event");
+        assert!(requested_index < decision_index);
+        assert!(decision_index < completed_index);
     }
 
     #[tokio::test]

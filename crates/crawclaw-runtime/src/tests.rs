@@ -3504,6 +3504,14 @@ async fn agent_runtime_projects_large_tool_results_before_provider_context() {
         summary_json["projection"]["projectedToolResultCount"],
         json!(1)
     );
+    assert_eq!(
+        summary_json["projection"]["toolResultProjectionApplied"],
+        json!(true)
+    );
+    assert_eq!(
+        summary_json["projection"]["capabilityProjectionApplied"],
+        json!(false)
+    );
     assert!(
         summary_json["projection"]["projectedToolResultOmittedChars"]
             .as_u64()
@@ -3833,6 +3841,14 @@ async fn agent_runtime_downgrades_context_for_model_capabilities() {
     assert_eq!(summary_json["budget"]["supportsReasoning"], json!(false));
     assert_eq!(summary_json["budget"]["supportsImageInput"], json!(false));
     assert_eq!(summary_json["budget"]["supportsStreaming"], json!(false));
+    assert_eq!(
+        summary_json["projection"]["capabilityProjectionApplied"],
+        json!(true)
+    );
+    assert_eq!(
+        summary_json["projection"]["toolResultProjectionApplied"],
+        json!(false)
+    );
     assert!(result
         .context_summary
         .warnings
@@ -3948,6 +3964,10 @@ async fn agent_runtime_persists_oversized_tool_results_for_recovery() {
     assert_eq!(
         summary_json["projection"]["persistedToolResultCount"],
         json!(1)
+    );
+    assert_eq!(
+        summary_json["projection"]["toolResultProjectionApplied"],
+        json!(true)
     );
 
     let _ = fs::remove_dir_all(runtime_root);
@@ -4458,6 +4478,13 @@ async fn agent_runtime_context_includes_compacted_summary_for_thread() {
         .expect("send with compacted summary");
 
     assert!(result.context_summary.compaction.active);
+    assert!(result.context_summary.projection.history_compaction_applied);
+    assert!(
+        !result
+            .context_summary
+            .projection
+            .overflow_projection_applied
+    );
     let requests = captured.lock().expect("captured requests");
     let request = requests.first().expect("provider request");
     assert!(request
@@ -4736,6 +4763,14 @@ async fn agent_runtime_overflow_projection_adds_summary_and_tail() {
     assert_eq!(
         summary_json["projection"]["collapseState"],
         json!("summary-plus-overflow-tail")
+    );
+    assert_eq!(
+        summary_json["projection"]["overflowProjectionApplied"],
+        json!(true)
+    );
+    assert_eq!(
+        summary_json["projection"]["historyCompactionApplied"],
+        json!(false)
     );
 
     let _ = fs::remove_dir_all(runtime_root);

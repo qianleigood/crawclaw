@@ -62,6 +62,10 @@ fn conversation_context_summary(summary: AgentRuntimeContextSummary) -> Conversa
         projected_tool_result_count: summary.projection.projected_tool_result_count,
         projected_tool_result_omitted_chars: summary.projection.projected_tool_result_omitted_chars,
         persisted_tool_result_count: summary.projection.persisted_tool_result_count,
+        capability_projection_applied: summary.projection.capability_projection_applied,
+        tool_result_projection_applied: summary.projection.tool_result_projection_applied,
+        history_compaction_applied: summary.projection.history_compaction_applied,
+        overflow_projection_applied: summary.projection.overflow_projection_applied,
         projection_reason: summary.projection.reason,
         provider: summary.budget.provider,
         model: summary.budget.model,
@@ -1492,7 +1496,8 @@ fn conversation_messages_for_loop_events(
                     text,
                 ));
             }
-            ToolExecutionEvent::PermissionRequested { .. } => {}
+            ToolExecutionEvent::PermissionRequested { .. }
+            | ToolExecutionEvent::PermissionDecision { .. } => {}
         }
     }
 
@@ -1538,7 +1543,8 @@ fn emit_desktop_loop_events(state: &GatewayState, thread_id: &str, loop_events: 
                 });
             }
             ToolExecutionEvent::Progress { .. }
-            | ToolExecutionEvent::PermissionRequested { .. } => {}
+            | ToolExecutionEvent::PermissionRequested { .. }
+            | ToolExecutionEvent::PermissionDecision { .. } => {}
         }
     }
 }

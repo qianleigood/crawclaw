@@ -925,8 +925,15 @@ fn agent_run_event_gateway_topic(event: &AgentRunEvent) -> Option<(&'static str,
         AgentRunEvent::ToolProgress { .. } => {
             Some(("agent.toolProgress", serde_json::to_value(event).ok()?))
         }
+        AgentRunEvent::ToolUseSummary { .. } => {
+            Some(("agent.toolUseSummary", serde_json::to_value(event).ok()?))
+        }
         AgentRunEvent::PermissionRequested { .. } => Some((
             "agent.permissionRequested",
+            serde_json::to_value(event).ok()?,
+        )),
+        AgentRunEvent::PermissionDecision { .. } => Some((
+            "agent.permissionDecision",
             serde_json::to_value(event).ok()?,
         )),
         AgentRunEvent::HookDecision { .. } => {
@@ -1609,4 +1616,57 @@ pub(super) fn add_string_to_json_array(
     }
     next.push(Value::String(entry.to_string()));
     set_json_path(value, path, Value::Array(next))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn agent_run_event_gateway_topic_maps_tool_use_summary() {
+        let event = AgentRunEvent::ToolUseSummary {
+            run_id: "run-1".to_string(),
+            call_id: "call-1".to_string(),
+            tool_name: "Read".to_string(),
+            status: "completed".to_string(),
+            is_error: false,
+            read_only: true,
+            duration_ms: 12,
+            result_projected: true,
+            result_persisted: false,
+            omitted_chars: 42,
+            persisted_path: None,
+        };
+
+        let (topic, payload) = agent_run_event_gateway_topic(&event).expect("gateway topic");
+
+        assert_eq!(topic, "agent.toolUseSummary");
+        assert_eq!(payload["type"], "toolUseSummary");
+        assert_eq!(payload["callId"], "call-1");
+        assert_eq!(payload["readOnly"], true);
+        assert_eq!(payload["resultProjected"], true);
+        assert_eq!(payload["omittedChars"], 42);
+    }
+
+    #[test]
+    fn agent_run_event_gateway_topic_maps_permission_decision() {
+        let event = AgentRunEvent::PermissionDecision {
+            run_id: "run-1".to_string(),
+            request_id: "call-1".to_string(),
+            tool_name: "bash".to_string(),
+            decision: "approved".to_string(),
+            mode: "workspace".to_string(),
+            category: "command".to_string(),
+            reason: "Run command: printf hi".to_string(),
+        };
+
+        let (topic, payload) = agent_run_event_gateway_topic(&event).expect("gateway topic");
+
+        assert_eq!(topic, "agent.permissionDecision");
+        assert_eq!(payload["type"], "permissionDecision");
+        assert_eq!(payload["requestId"], "call-1");
+        assert_eq!(payload["decision"], "approved");
+        assert_eq!(payload["mode"], "workspace");
+        assert_eq!(payload["category"], "command");
+    }
 }

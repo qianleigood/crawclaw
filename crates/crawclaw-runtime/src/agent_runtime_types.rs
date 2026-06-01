@@ -53,6 +53,9 @@ pub enum AgentLoopEvent {
     ToolExecution {
         event: ToolExecutionEvent,
     },
+    ToolUseSummary {
+        summary: ToolUseSummaryEvent,
+    },
     Hook {
         event: HookEvent,
     },
@@ -75,6 +78,14 @@ pub enum ToolExecutionEvent {
         tool_name: String,
         reason: String,
     },
+    PermissionDecision {
+        request_id: String,
+        tool_name: String,
+        decision: String,
+        mode: String,
+        category: String,
+        reason: String,
+    },
     Progress {
         call_id: String,
         tool_name: String,
@@ -87,6 +98,22 @@ pub enum ToolExecutionEvent {
         output: Option<String>,
         is_error: bool,
     },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolUseSummaryEvent {
+    pub call_id: String,
+    pub tool_name: String,
+    pub status: String,
+    pub is_error: bool,
+    pub read_only: bool,
+    pub duration_ms: u64,
+    pub result_projected: bool,
+    pub result_persisted: bool,
+    pub omitted_chars: usize,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub persisted_path: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -113,6 +140,10 @@ pub struct ContextProjection {
     pub projected_tool_result_count: usize,
     pub projected_tool_result_omitted_chars: usize,
     pub persisted_tool_result_count: usize,
+    pub capability_projection_applied: bool,
+    pub tool_result_projection_applied: bool,
+    pub history_compaction_applied: bool,
+    pub overflow_projection_applied: bool,
     pub collapse_state: String,
     pub reason: String,
 }

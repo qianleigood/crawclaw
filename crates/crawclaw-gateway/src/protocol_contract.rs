@@ -27,7 +27,9 @@ pub const GATEWAY_PROTOCOL_EVENTS: &[&str] = &[
     "agent.contextProjected",
     "agent.providerBlock",
     "agent.toolProgress",
+    "agent.toolUseSummary",
     "agent.permissionRequested",
+    "agent.permissionDecision",
     "agent.hookDecision",
     "agent.subagentLifecycle",
     "agent.mcpElicitation",
@@ -352,7 +354,9 @@ mod tests {
         assert!(GATEWAY_PROTOCOL_EVENTS.contains(&"cron"));
         assert!(GATEWAY_PROTOCOL_EVENTS.contains(&"agent.contextProjected"));
         assert!(GATEWAY_PROTOCOL_EVENTS.contains(&"agent.providerBlock"));
+        assert!(GATEWAY_PROTOCOL_EVENTS.contains(&"agent.toolUseSummary"));
         assert!(GATEWAY_PROTOCOL_EVENTS.contains(&"agent.permissionRequested"));
+        assert!(GATEWAY_PROTOCOL_EVENTS.contains(&"agent.permissionDecision"));
 
         let methods = GATEWAY_PROTOCOL_METHODS
             .iter()
