@@ -255,22 +255,14 @@ This guide sets up an Azure Linux VM with the Azure CLI, applies Network Securit
   </Step>
 
   <Step title="Install CrawClaw (in the VM shell)">
-    ```bash
-    # Install CrawClaw Desktop from GitHub Releases.
-    bash /tmp/CrawClaw Desktop installer
-    rm -f /tmp/CrawClaw Desktop installer
-    ```
-
-    The installer installs Node LTS and dependencies if not already present, installs CrawClaw, and launches the onboarding wizard. See [Install](/install) for details.
+    Install the current CrawClaw runtime for this host using the supported install flow for your deployment. See [Install](/install) for details.
 
   </Step>
 
   <Step title="Verify the Gateway">
     After onboarding completes:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Most enterprise Azure teams already have GitHub Copilot licenses. If that is your case, we recommend choosing the GitHub Copilot provider in the CrawClaw onboarding wizard. See [GitHub Copilot provider](/providers/github-copilot).
 

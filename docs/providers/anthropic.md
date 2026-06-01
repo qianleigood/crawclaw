@@ -19,13 +19,7 @@ Create your API key in the Anthropic Console.
 
 ### Desktop setup
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# choose: Anthropic API key
-
-# or non-interactive
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### Claude CLI config snippet
 
@@ -203,22 +197,15 @@ claude setup-token
 
 Paste the token into CrawClaw (wizard: **Anthropic token (paste setup-token)**), or run it on the gateway host:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 If you generated the token on a different machine, paste it:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### Desktop setup (setup-token)
 
-```bash
-# Paste a setup-token during setup
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### Config snippet (setup-token)
 

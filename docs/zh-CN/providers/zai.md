@@ -21,19 +21,7 @@ Z.AI 是 **GLM** 模型的 API 平台。它为 GLM 提供 REST API，并使用 A
 
 ## CLI 设置
 
-```bash
-# Coding Plan Global，推荐给 Coding Plan 用户
-crawclaw onboard --auth-choice zai-coding-global
-
-# Coding Plan CN（中国区域），推荐给 Coding Plan 用户
-crawclaw onboard --auth-choice zai-coding-cn
-
-# 通用 API
-crawclaw onboard --auth-choice zai-global
-
-# 通用 API CN（中国区域）
-crawclaw onboard --auth-choice zai-cn
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ## 配置片段
 

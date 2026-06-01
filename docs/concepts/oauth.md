@@ -65,21 +65,15 @@ Decide for yourself whether to use subscription auth, and verify Anthropic's cur
 
 Run `claude setup-token` on any machine, then paste it into CrawClaw:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 If you generated the token elsewhere, paste it manually:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Verify:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Auth exchange patterns
 
@@ -125,10 +119,7 @@ Two patterns:
 
 If you want “personal” and “work” to never interact, use isolated agents (separate sessions + credentials + workspace):
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Then configure auth per-agent (wizard) and route chats to the right agent.
 

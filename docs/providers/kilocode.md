@@ -19,9 +19,7 @@ endpoint and API key. It is OpenAI-compatible, so most OpenAI SDKs work by switc
 
 ## Desktop setup
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Or set the environment variable:
 

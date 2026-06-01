@@ -622,6 +622,9 @@ impl AgentRuntime {
     ) -> Result<AgentRuntimeContextSummary, AgentRuntimeError> {
         let history = self.load_thread_history(thread_id)?;
         let profile = AgentRunProfile::default();
+        let provider_config = self.resolve_provider_config_for_context(options);
+        let budget_basis =
+            resolve_context_budget_basis(&self.runtime_root, provider_config.as_ref());
         Ok(build_runtime_model_context(
             &self.runtime_root,
             thread_id,
@@ -629,6 +632,7 @@ impl AgentRuntime {
             &history,
             options,
             &profile,
+            &budget_basis,
         )
         .context_summary)
     }
@@ -655,6 +659,11 @@ impl AgentRuntime {
         } else {
             profile.limits.max_turns as usize
         };
+        let model_selection = options.model_selection.as_ref();
+        let mut provider_config =
+            ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
+        apply_agent_model_selection(&mut provider_config, model_selection)?;
+        let budget_basis = resolve_context_budget_basis(&self.runtime_root, Some(&provider_config));
         let runtime_context = build_runtime_model_context(
             &self.runtime_root,
             &thread_id,
@@ -662,12 +671,14 @@ impl AgentRuntime {
             &history,
             &options,
             &profile,
+            &budget_basis,
         );
-        let model_selection = options.model_selection.as_ref();
+        let reasoning_level = if runtime_context.context_summary.budget.supports_reasoning {
+            model_selection.and_then(|model| model.reasoning_level.clone())
+        } else {
+            None
+        };
         let provider_send = async {
-            let mut provider_config =
-                ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
-            apply_agent_model_selection(&mut provider_config, model_selection)?;
             let backend_result = self
                 .native_provider_backend
                 .send_message(AgentRuntimeRequest {
@@ -677,8 +688,7 @@ impl AgentRuntime {
                     history: history.clone(),
                     runtime_context: runtime_context.clone(),
                     provider_config,
-                    reasoning_level: model_selection
-                        .and_then(|model| model.reasoning_level.clone()),
+                    reasoning_level: reasoning_level.clone(),
                     timeout_seconds,
                     max_tool_iterations,
                     tool_selection: options.tool_selection.clone(),
@@ -774,6 +784,11 @@ impl AgentRuntime {
         };
         let timeout_seconds = profile.limits.timeout_seconds;
         let max_tool_iterations = profile.limits.max_turns.max(1) as usize;
+        let model_selection = options.model_selection.as_ref();
+        let mut provider_config =
+            ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
+        apply_agent_model_selection(&mut provider_config, model_selection)?;
+        let budget_basis = resolve_context_budget_basis(&self.runtime_root, Some(&provider_config));
         let runtime_context = build_runtime_model_context(
             &self.runtime_root,
             &thread_id,
@@ -781,11 +796,13 @@ impl AgentRuntime {
             &history,
             &options,
             &profile,
+            &budget_basis,
         );
-        let model_selection = options.model_selection.as_ref();
-        let mut provider_config =
-            ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
-        apply_agent_model_selection(&mut provider_config, model_selection)?;
+        let reasoning_level = if runtime_context.context_summary.budget.supports_reasoning {
+            model_selection.and_then(|model| model.reasoning_level.clone())
+        } else {
+            None
+        };
         let backend_result = self
             .native_provider_backend
             .send_message(AgentRuntimeRequest {
@@ -795,7 +812,7 @@ impl AgentRuntime {
                 history,
                 runtime_context: runtime_context.clone(),
                 provider_config,
-                reasoning_level: model_selection.and_then(|model| model.reasoning_level.clone()),
+                reasoning_level,
                 timeout_seconds,
                 max_tool_iterations,
                 tool_selection: options.tool_selection.clone(),
@@ -836,6 +853,17 @@ impl AgentRuntime {
                 "Invalid desktop agent provider config: {error}"
             ))
         })
+    }
+
+    fn resolve_provider_config_for_context(
+        &self,
+        options: &AgentRuntimeSendOptions,
+    ) -> Option<NativeProviderConfig> {
+        let config = self.read_provider_config().ok()?;
+        let mut provider_config =
+            ProviderResolver::resolve_desktop_config(&config, &self.runtime_root).ok()?;
+        apply_agent_model_selection(&mut provider_config, options.model_selection.as_ref()).ok()?;
+        Some(provider_config)
     }
 
     fn load_thread_history(
@@ -1311,8 +1339,14 @@ mod native_provider_backend_tests {
         }];
         let mut loop_events = Vec::new();
 
-        let messages =
-            execute_native_provider_tool_calls(&registry, &tool_calls, &mut loop_events).await;
+        let messages = execute_native_provider_tool_calls(
+            &registry,
+            &tool_calls,
+            &mut loop_events,
+            crate::agent_tool_result_projection::ToolResultProjectionBudget::default(),
+            None,
+        )
+        .await;
 
         assert_eq!(messages.len(), 1);
         let progress_index = loop_events
@@ -1365,8 +1399,14 @@ mod native_provider_backend_tests {
         }];
         let mut loop_events = Vec::new();
 
-        let messages =
-            execute_native_provider_tool_calls(&registry, &tool_calls, &mut loop_events).await;
+        let messages = execute_native_provider_tool_calls(
+            &registry,
+            &tool_calls,
+            &mut loop_events,
+            crate::agent_tool_result_projection::ToolResultProjectionBudget::default(),
+            None,
+        )
+        .await;
 
         assert_eq!(messages.len(), 1);
         let content = &messages[0].content;
@@ -1408,8 +1448,14 @@ mod native_provider_backend_tests {
         }];
         let mut loop_events = Vec::new();
 
-        let messages =
-            execute_native_provider_tool_calls(&registry, &tool_calls, &mut loop_events).await;
+        let messages = execute_native_provider_tool_calls(
+            &registry,
+            &tool_calls,
+            &mut loop_events,
+            crate::agent_tool_result_projection::ToolResultProjectionBudget::default(),
+            None,
+        )
+        .await;
 
         assert_eq!(messages.len(), 1);
         assert_eq!(requester.requests().len(), 1);
@@ -1467,8 +1513,14 @@ mod native_provider_backend_tests {
         }];
         let mut loop_events = Vec::new();
 
-        let messages =
-            execute_native_provider_tool_calls(&registry, &tool_calls, &mut loop_events).await;
+        let messages = execute_native_provider_tool_calls(
+            &registry,
+            &tool_calls,
+            &mut loop_events,
+            crate::agent_tool_result_projection::ToolResultProjectionBudget::default(),
+            None,
+        )
+        .await;
 
         assert_eq!(messages.len(), 1);
         let pre_hook_index = loop_events

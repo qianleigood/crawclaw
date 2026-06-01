@@ -39,11 +39,7 @@ x-i18n:
 
 如果你不确定，在**旧**机器上运行：
 
-```bash
-crawclaw status
-```
-
-在输出中查找 `CRAWCLAW_STATE_DIR` / profile 的提及。如果你运行多个 Gateway 网关，对每个配置文件重复此操作。
+使用 CrawClaw Desktop 或本地 Gateway API 查看 `CRAWCLAW_STATE_DIR` / profile。如果你运行多个 Gateway，对每个配置文件重复此操作。
 
 ### 2）确定你的工作区
 
@@ -76,11 +72,7 @@ crawclaw status
 
 ### 步骤 0 — 备份（旧机器）
 
-在**旧**机器上，首先停止 Gateway 网关，这样文件不会在复制过程中发生变化：
-
-```bash
-crawclaw gateway stop
-```
+在**旧**机器上，首先停止 CrawClaw Desktop 或 Gateway service，这样文件不会在复制过程中发生变化。
 
 （可选但推荐）归档状态目录和工作区：
 
@@ -96,7 +88,7 @@ tar -czf crawclaw-workspace.tgz .crawclaw/workspace
 
 ### 步骤 1 — 在新机器上安装 CrawClaw
 
-在**新**机器上，安装 CLI（如果需要还有 Node）：
+在**新**机器上，安装 CrawClaw Desktop（源码开发时再安装 Node）：
 
 - 参见：[安装](/install)
 
@@ -122,20 +114,13 @@ tar -czf crawclaw-workspace.tgz .crawclaw/workspace
 
 ### 步骤 3 — 运行 Doctor（迁移 + 服务修复）
 
-在**新**机器上：
-
-```bash
-crawclaw doctor
-```
+在**新**机器上，使用 CrawClaw Desktop 或本地 Gateway API 运行 doctor。
 
 Doctor 是"安全可靠"的命令。它修复服务、应用配置迁移，并警告不匹配问题。
 
 然后：
 
-```bash
-crawclaw gateway restart
-crawclaw status
-```
+使用 CrawClaw Desktop 或本地 Gateway API 重启并验证 Gateway。
 
 ## 常见陷阱（以及如何避免）
 
@@ -147,11 +132,7 @@ crawclaw status
 - 渠道丢失/已登出
 - 会话历史为空
 
-修复：使用你迁移的**相同**配置文件/状态目录运行 Gateway 网关/服务，然后重新运行：
-
-```bash
-crawclaw doctor
-```
+修复：使用你迁移的**相同**配置文件/状态目录运行 Gateway 网关/服务，然后通过 CrawClaw Desktop 或本地 Gateway API 重新运行 doctor。
 
 ### 陷阱：只复制 `crawclaw.json`
 
@@ -187,7 +168,7 @@ crawclaw doctor
 
 在新机器上，确认：
 
-- `crawclaw status` 显示 Gateway 网关正在运行
+- CrawClaw Desktop 或本地 Gateway API 显示 Gateway 正在运行
 - 你的渠道仍然连接（例如 Weixin 不需要重新配对）
 - Gateway 客户端能连接并显示现有会话
 - 你的工作区文件（记忆、配置）存在

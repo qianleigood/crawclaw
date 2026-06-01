@@ -22,7 +22,7 @@ CrawClaw 会为每个活动运行创建一份 task-backed 的嵌入式智能体�
 `agents.defaults.workspace`；其他顶层智能体可以覆盖为自己的 workspace。
 一次运行会把解析出来的 agent workspace 作为主要工作目录（`cwd`），用于工具和上下文。
 
-建议：使用 `crawclaw setup` 在缺失时创建 `~/.crawclaw/crawclaw.json` 并初始化工作区文件。
+建议：使用 CrawClaw Desktop 或本地 Gateway API 在缺失时创建 `~/.crawclaw/crawclaw.json` 并初始化工作区文件。
 
 <Note>
 如果你当前关注的是“整个项目的总结构”，而不是单个 agent run 的行为，请先读 [项目整体架构总览](/concepts/project-architecture-overview)。这篇更偏执行内核与会话运行时。
@@ -47,7 +47,7 @@ CrawClaw 会为每个活动运行创建一份 task-backed 的嵌入式智能体�
 
 空文件会被跳过。大文件会被修剪和截断并添加标记，以保持提示词精简（阅读文件获取完整内容）。
 
-如果文件缺失，CrawClaw 会注入一行"文件缺失"标记（`crawclaw setup` 将创建安全的默认模板）。
+如果文件缺失，CrawClaw 会注入一行"文件缺失"标记；CrawClaw Desktop 或本地 Gateway API 会创建安全的默认模板。
 
 `BOOTSTRAP.md` 仅在**全新工作区**（没有其他引导文件存在）时创建。如果你在完成仪式后删除它，后续重启不应重新创建。
 

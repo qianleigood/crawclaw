@@ -148,7 +148,6 @@ Export the variable before starting CrawClaw:
 
 ```bash
 export NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
-# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Do not rely on writing only to `~/.crawclaw/.env` for this variable; Node reads

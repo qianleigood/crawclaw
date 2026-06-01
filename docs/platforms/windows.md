@@ -28,41 +28,32 @@ The Windows matrix uses three support states:
 
 ## Native capability matrix
 
-| Surface                             | Status       | Windows boundary                                                                                                                                            |
-| ----------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Installer                           | `supported`  | `CrawClaw Desktop installer` installs Node 24 by default, accepts Node 25 as an experimental runtime, checks Git/PATH prerequisites, and installs CrawClaw. |
-| CLI                                 | `supported`  | Commands run from PowerShell with Windows-safe argument, path, shell, and process-spawn handling.                                                           |
-| Gateway foreground                  | `supported`  | CrawClaw Desktop or the local Gateway API starts the Gateway directly on the Windows host.                                                                  |
-| Gateway runtime                     | `supported`  | CrawClaw Desktop or the local Gateway API starts the local Rust Gateway directly on the Windows host.                                                       |
-| `exec` and `system.run` tools       | `supported`  | PowerShell 7 is preferred with Windows PowerShell fallback; command shims must avoid unsafe shell fallbacks.                                                |
-| Browser automation                  | `supported`  | Supported after Windows smoke coverage for Chrome/Edge/Brave discovery and the browser runtime.                                                             |
-| Feishu, QQBot, DingTalk, Weixin     | `supported`  | Supported through built-in or bundled channel/plugin paths, with smoke coverage where provider credentials permit.                                          |
-| Common provider plugins             | `supported`  | Provider catalog and transports are Rust-owned; bundled defaults use native runtime resources.                                                              |
-| legacy messaging and Weixin         | `not-native` | Requires a Mac-side legacy messaging or Apple messaging host outside the Windows runtime.                                                                   |
-| Apple skills and macOS-only tooling | `not-native` | Requires an Apple host outside the Windows runtime.                                                                                                         |
+| Surface                             | Status       | Windows boundary                                                                                                   |
+| ----------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Desktop installer                   | `supported`  | GitHub Releases desktop assets install CrawClaw Desktop and the embedded runtime.                                  |
+| CLI                                 | `supported`  | Commands run from PowerShell with Windows-safe argument, path, shell, and process-spawn handling.                  |
+| Gateway foreground                  | `supported`  | CrawClaw Desktop or the local Gateway API starts the Gateway directly on the Windows host.                         |
+| Gateway runtime                     | `supported`  | CrawClaw Desktop or the local Gateway API starts the local Rust Gateway directly on the Windows host.              |
+| `exec` and `system.run` tools       | `supported`  | PowerShell 7 is preferred with Windows PowerShell fallback; command shims must avoid unsafe shell fallbacks.       |
+| Browser automation                  | `supported`  | Supported after Windows smoke coverage for Chrome/Edge/Brave discovery and the browser runtime.                    |
+| Feishu, QQBot, DingTalk, Weixin     | `supported`  | Supported through built-in or bundled channel/plugin paths, with smoke coverage where provider credentials permit. |
+| Common provider plugins             | `supported`  | Provider catalog and transports are Rust-owned; bundled defaults use native runtime resources.                     |
+| legacy messaging and Weixin         | `not-native` | Requires a Mac-side legacy messaging or Apple messaging host outside the Windows runtime.                          |
+| Apple skills and macOS-only tooling | `not-native` | Requires an Apple host outside the Windows runtime.                                                                |
 
 ## Install
 
 Run PowerShell as your normal user:
 
-```powershell
-# Install CrawClaw Desktop from GitHub Releases.
-```
+Install the latest Windows desktop asset from [GitHub Releases](https://github.com/qianleigood/crawclaw/releases).
 
 For a dry run or beta install:
 
-```powershell
-# Install CrawClaw Desktop from GitHub Releases.
-# Install CrawClaw Desktop from GitHub Releases.
-```
+Use the matching release asset or pre-release asset from GitHub Releases.
 
 Verify the install:
 
-```powershell
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Open CrawClaw Desktop and confirm the local Gateway status, or query the local Gateway API if you are automating validation.
 
 Desktop users do not need a global `crawclaw` command. Use CrawClaw Desktop or the local Gateway API for operator actions.
 
@@ -70,18 +61,14 @@ Desktop users do not need a global `crawclaw` command. Use CrawClaw Desktop or t
 
 Run the Gateway in the foreground:
 
-```powershell
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop to start the local Rust Gateway. Source checkout development should use the repository's desktop or Gateway package scripts.
 
 Managed OS startup is not part of the default desktop runtime path. Use
 CrawClaw Desktop or the local Gateway API to start the local Rust Gateway.
 
 For Gateway API-only setups, skip health-gated onboarding:
 
-```powershell
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Call the local Gateway API directly after configuring provider credentials and auth.
 
 ## Compatibility Gate
 
@@ -106,7 +93,7 @@ pnpm desktop:tauri:release-check
 
 Native Windows can be described as first-class when all of these are true:
 
-- `CrawClaw Desktop installer` can install or update CrawClaw without manual Node or Git setup
+- CrawClaw Desktop can install or update CrawClaw without manual Node or Git setup
   on a clean supported Windows 11 machine.
 - the packaged desktop version check works in a fresh PowerShell session without manually
   repairing PATH.

@@ -20,11 +20,7 @@ CrawClaw 支持 Mistral，用于文本/图像模型路由（`mistral/...`）以�
 
 ## CLI 设置
 
-```bash
-crawclaw onboard --auth-choice mistral-api-key
-# or non-interactive
-crawclaw onboard --mistral-api-key "$MISTRAL_API_KEY"
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ## 配置片段（LLM 提供商）
 

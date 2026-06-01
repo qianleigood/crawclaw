@@ -8,9 +8,8 @@ title: "System Prompt"
 
 # System Prompt
 
-CrawClaw builds a custom system prompt for every agent run. The prompt is **CrawClaw-owned** and does not use the pi-coding-agent default prompt.
-
-The prompt is assembled by CrawClaw and injected into each agent run.
+CrawClaw builds a custom system prompt for every agent run. The prompt is
+**CrawClaw-owned** and is assembled by the Rust runtime path.
 
 ## Structure
 
@@ -115,21 +114,11 @@ See [Date & Time](/date-time) for full behavior details.
 
 ## Skills
 
-When eligible skills exist, CrawClaw injects a compact **available skills list**
-(`formatSkillsForPrompt`) that includes the **file path** for each skill. The
-prompt instructs the model to use `read` to load the SKILL.md at the listed
-location (workspace, managed, or bundled). If no skills are eligible, the
-Skills section is omitted.
-
-```
-<available_skills>
-  <skill>
-    <name>...</name>
-    <description>...</description>
-    <location>...</location>
-  </skill>
-</available_skills>
-```
+When eligible skills exist, CrawClaw surfaces up to five relevant skill
+summaries in the Rust runtime context disclosure. Each summary contains the
+skill name and description. Full `SKILL.md` content is only added after the
+model explicitly loads a skill through the runtime skill tool, and loaded skill
+content is capped before it enters context.
 
 This keeps the base prompt small while still enabling targeted skill usage.
 

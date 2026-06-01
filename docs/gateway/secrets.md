@@ -408,8 +408,12 @@ Command paths can opt into supported SecretRef resolution via gateway snapshot R
 
 There are two broad behaviors:
 
-- Strict command paths (for example CrawClaw Desktop or the local Gateway API remote-memory paths and CrawClaw Desktop or the local Gateway API) read from the active snapshot and fail fast when a required SecretRef is unavailable.
-- Read-only command paths (for example CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, and read-only doctor/config repair flows) also prefer the active snapshot, but degrade instead of aborting when a targeted SecretRef is unavailable in that command path.
+- Strict command paths, such as runtime send/auth and remote-memory paths, read
+  from the active snapshot and fail fast when a required SecretRef is unavailable.
+- Read-only command paths, such as CrawClaw Desktop, Gateway API inspection,
+  status-family views, and read-only doctor/config repair flows, also prefer the
+  active snapshot, but degrade instead of aborting when a targeted SecretRef is
+  unavailable in that command path.
 
 Read-only behavior:
 
@@ -427,11 +431,7 @@ Other notes:
 
 Default operator flow:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### `secrets audit`
 
@@ -484,12 +484,7 @@ Helpful modes:
 
 Apply a saved plan:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Exec note:
 

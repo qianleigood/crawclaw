@@ -22,13 +22,7 @@ x-i18n:
 
 按此顺序首先运行这些命令：
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 预期的健康信号：
 
@@ -41,11 +35,7 @@ x-i18n:
 当日志/错误包含以下内容时使用此方案：
 `HTTP 429: rate_limit_error: Extra usage is required for long context requests`。
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 查找：
 
@@ -69,13 +59,7 @@ x-i18n:
 
 如果渠道正常运行但无人响应，请在重新连接任何内容之前检查路由和策略。
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 查找：
 
@@ -99,13 +83,7 @@ x-i18n:
 
 当面向浏览器的客户端无法连接时，请验证 URL、认证模式和 secure context 假设。
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 查找：
 
@@ -137,13 +115,7 @@ x-i18n:
 
 当本地 Gateway 进程无法保持运行或 API 无法访问时使用此方案。
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 查找：
 
@@ -165,13 +137,7 @@ x-i18n:
 
 如果渠道状态已连接但消息流中断，请重点关注策略、权限和渠道特定投递规则。
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 查找：
 
@@ -196,13 +162,7 @@ x-i18n:
 
 如果 cron 或排队的 主会话唤醒未运行或未投递，请先验证调度器状态，然后验证投递目标。
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 查找：
 
@@ -227,10 +187,7 @@ x-i18n:
 
 当浏览器工具操作失败而 Gateway 本身健康时使用此方案。
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 从当前智能体或 Gateway `/tools/invoke` 路径直接检查浏览器工具：
 
@@ -265,12 +222,7 @@ x-i18n:
 
 ### 1) 认证和 URL 覆盖行为已更改
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 需要检查的内容：
 
@@ -284,12 +236,7 @@ x-i18n:
 
 ### 2) 绑定和认证 guardrails 更严格
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 需要检查的内容：
 
@@ -303,12 +250,7 @@ x-i18n:
 
 ### 3) 配对或身份策略已更改
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 需要检查的内容：
 
@@ -316,10 +258,7 @@ x-i18n:
 
 如果检查后服务配置和运行时仍然不一致，请从同一 profile/状态目录重新安装服务元数据：
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 相关：
 

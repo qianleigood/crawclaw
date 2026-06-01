@@ -32,12 +32,7 @@ See also: [Formal Verification (Security Models)](/security/formal-verification)
 
 Run this regularly (especially after changing config or exposing network surfaces):
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 It flags common footguns (Gateway auth exposure, browser control exposure, elevated allowlists, filesystem permissions, permissive exec approvals, and open-channel tool exposure).
 

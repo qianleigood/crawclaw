@@ -1,9 +1,8 @@
 ---
 read_when:
-  - 查找 Linux 节点主机状态
   - 规划平台覆盖范围或贡献
-summary: Linux 支持 + 节点主机状态
-title: Linux
+summary: Linux support status
+title: Linux App
 x-i18n:
   generated_at: "2026-03-16T06:24:30Z"
   model: gpt-5.4
@@ -13,88 +12,33 @@ x-i18n:
   workflow: 15
 ---
 
-# Linux
+# Linux App
 
-Gateway 网关在 Linux 上得到完全支持。**Node 是推荐的运行时**。
-不建议将 Bun 用于 Gateway 网关（存在 Weixin/Feishu bug）。
+本地 Rust Gateway 支持 Linux。TypeScript 和 JavaScript 仍然只用于 desktop renderer，不属于默认 product runtime path。
 
-原生 Linux 节点主机已在规划中。如果你想帮助构建一个，欢迎贡献。
+Linux support 重点覆盖本地 Gateway、native plugins 和 Gateway API clients。
 
 ## 面向初学者的快速路径（VPS）
 
-1. 安装 Node 24（推荐；Node 22 LTS，目前 `22.14+`，为了兼容性仍然可用）
-2. `npm i -g crawclaw@latest`
-3. `crawclaw onboard --install-daemon`
-4. 在你的笔记本电脑上运行：`ssh -N -L 18789:127.0.0.1:18789 <user>@<host>`
-5. 运行 `crawclaw tui`，或让支持的 Gateway 客户端通过 SSH 隧道连接
+1. 安装 Node 24.x（stable）或 Node 25.x（experimental）。
+2. 安装 GitHub Releases 中的 CrawClaw Desktop。
+3. 使用 CrawClaw Desktop 或本地 Gateway API。
+4. 在你的笔记本电脑上运行：`ssh -N -L 18789:127.0.0.1:18789 <user>@<host>`。
+5. 在本地运行 CrawClaw Desktop 或本地 Gateway API，或者让受支持的 Gateway client 通过 SSH tunnel 连接。
 
-分步 VPS 指南：[exe.dev](/install/exe-dev)
+完整 Linux server 指南：[Linux Server](/vps)。分步 VPS 示例：[exe.dev](/install/exe-dev)
 
 ## 安装
 
-- [入门指南](/start/getting-started)
-- [安装与更新](/install/updating)
-- 可选流程：[Bun（实验性）](/install/bun)、[Nix](/install/nix)、[Docker](/install/docker)
+- [Getting Started](/start/getting-started)
+- [Install & updates](/install/updating)
+- 可选流程：[Bun (experimental)](/install/bun)、[Nix](/install/nix)
 
-## Gateway 网关
+## Gateway
 
-- [Gateway 网关运行手册](/gateway)
-- [配置](/gateway/configuration)
+- [Gateway runbook](/gateway)
+- [Configuration](/gateway/configuration)
 
-## Gateway 网关服务安装（CLI）
+## Gateway runtime
 
-使用以下任一方式：
-
-```
-crawclaw onboard --install-daemon
-```
-
-或者：
-
-```
-crawclaw gateway install
-```
-
-或者：
-
-```
-crawclaw configure
-```
-
-出现提示时，选择 **Gateway 服务**。
-
-修复/迁移：
-
-```
-crawclaw doctor
-```
-
-## 系统控制（systemd 用户单元）
-
-CrawClaw 默认安装 systemd **用户**服务。对于共享或始终在线的服务器，请使用 **系统** 服务。完整的单元示例和指导
-请参见 [Gateway 网关运行手册](/gateway)。
-
-最小设置：
-
-创建 `~/.config/systemd/user/crawclaw-gateway[-<profile>].service`：
-
-```
-[Unit]
-Description=CrawClaw Gateway (profile: <profile>, v<version>)
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-ExecStart=/usr/local/bin/crawclaw gateway --port 18789
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=default.target
-```
-
-启用它：
-
-```
-systemctl --user enable --now crawclaw-gateway[-<profile>].service
-```
+使用 CrawClaw Desktop 或本地 Gateway API 作为支持的 runtime owner。旧的 CLI-managed Linux supervisor flow 已从默认 desktop product path 中退役。

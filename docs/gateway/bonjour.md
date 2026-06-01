@@ -40,9 +40,7 @@ Current node clients browse both `local.` and your configured wide‑area domain
 
 ### One-time DNS server setup (gateway host)
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 This installs CoreDNS and configures it to:
 

@@ -41,8 +41,8 @@ Rust crate or the public native boundary instead.
 
 Recommended flow:
 
-- Run the gateway in dev mode:
-  - `pnpm gateway:dev`
+- Run a local gateway in an isolated state directory:
+  - `CRAWCLAW_STATE_DIR="$HOME/.crawclaw-dev" cargo run -q -p crawclaw-gateway -- --bind loopback --port 19001`
 - Trigger the agent through CrawClaw Desktop or the local Gateway API.
 
 For tool call behavior, prompt for a `read` or `exec` action so you can see tool streaming and payload handling.

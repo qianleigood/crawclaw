@@ -1,10 +1,10 @@
 ---
 read_when:
-  - 运行或配置 CLI 新手引导
+  - 运行或配置 desktop onboarding
   - 设置一台新机器
-sidebarTitle: "Onboarding: CLI"
-summary: CLI 新手引导：用于 Gateway 网关、工作区、渠道和 Skills 的引导式设置
-title: CLI 新手引导
+sidebarTitle: "Desktop Onboarding"
+summary: Desktop onboarding：用于 Gateway、workspace、channels、models 和 skills 的设置
+title: Desktop Onboarding
 x-i18n:
   generated_at: "2026-03-16T06:28:38Z"
   model: gpt-5.4
@@ -14,119 +14,49 @@ x-i18n:
   workflow: 15
 ---
 
-# CLI 新手引导
+# Desktop Onboarding
 
-CLI 新手引导是在 macOS、
-Linux 或 Windows 上设置 CrawClaw 的**推荐**方式。
-它可在一次引导式流程中配置本地 Gateway 网关或远程 Gateway 网关连接，以及渠道、Skills
-和工作区默认值。
+CrawClaw Desktop 是当前支持的 Apple-platform 设置界面。使用 app 配置 auth、本地 Gateway state、workspace defaults、channels、plugins、skills、logs 和 diagnostics。
 
-```bash
-crawclaw onboard
-```
+公共 `crawclaw` 命令已退役。自动化应直接调用本地 Gateway API。
 
-<Info>
-最快的首次聊天方式：运行 `crawclaw tui`（无需设置渠道）。文档：[TUI](/cli/tui)。
-</Info>
+## QuickStart 与 Advanced
 
-若要稍后重新配置：
-
-```bash
-crawclaw configure
-crawclaw agents add <name>
-```
-
-<Note>
-`--json` 并不意味着非交互模式。对于脚本，请使用 `--non-interactive`。
-</Note>
-
-<Tip>
-CLI 新手引导包含一个 web search 步骤，你可以选择一个提供商
-（Perplexity、Brave、Gemini、Grok 或 Kimi），并粘贴你的 API 密钥，以便智能体
-可以使用 `web_search`。你也可以稍后通过
-`crawclaw configure --section web` 进行配置。文档：[Web 工具](/tools/web)。
-</Tip>
-
-## 快速开始与高级模式
-
-新手引导开始时会让你选择**快速开始**（默认值）或**高级模式**（完全控制）。
+Onboarding 从 **QuickStart** 开始以提供安全的本地默认值；需要明确控制时使用 **Advanced**。
 
 <Tabs>
-  <Tab title="快速开始（默认值）">
-    - 本地网关（loopback）
-    - 默认工作区（或现有工作区）
-    - Gateway 网关端口 **18789**
-    - Gateway 网关认证 **Token**（即使在 loopback 上也会自动生成）
-    - 新本地设置的默认工具策略：`tools.profile: "coding"`（会保留现有显式配置文件）
-    - 私信隔离默认值：本地新手引导会在未设置时写入 `session.dmScope: "per-channel-peer"`。详情见：[CLI 设置参考](/start/wizard-cli-reference#outputs-and-internals)
-    - Tailscale 暴露 **关闭**
-    - Feishu + Weixin 私信默认使用 **allowlist**（系统会提示你输入电话号码）
+  <Tab title="QuickStart">
+    - Local Gateway on loopback
+    - Desktop-managed random port
+    - Desktop-managed token auth
+    - Workspace under `~/.crawclaw`
+    - Bundled Rust runtime and native plugins
   </Tab>
-  <Tab title="高级模式（完全控制）">
-    - 暴露每一个步骤（模式、工作区、Gateway 网关、渠道、守护进程、Skills）。
+  <Tab title="Advanced">
+    - Explicit workspace, model, channel, plugin, and memory settings
+    - Gateway API automation for repeatable setup
+    - Direct config review before applying sensitive changes
   </Tab>
 </Tabs>
 
-## 新手引导会配置什么
+## Onboarding 会配置什么
 
-**本地模式（默认）**会引导你完成以下步骤：
+1. **Model/Auth** — 选择受支持的 provider/auth flow 和默认模型。
+2. **Workspace** — 选择 agent files 和 bootstrap state 的位置。
+3. **Gateway** — 启动并监控 embedded Rust Gateway。
+4. **Channels** — 连接支持的 messaging surfaces。
+5. **Output and presentation** — 设置 reply visibility 和 streaming defaults。
+6. **Memory / Experience** — 启用本地 capture、recall 和 maintenance flows。
+7. **Skills and plugins** — 启用 bundled skills 和 desktop-supported plugins。
+8. **Health check** — 验证本地 Gateway 和 runtime 已就绪。
 
-1. **模型/认证** —— 选择任意受支持的提供商/认证流程（API 密钥、OAuth 或 setup-token），包括自定义提供商
-   （兼容 OpenAI、兼容 Anthropic，或未知自动检测）。选择一个默认模型。
-   安全说明：如果这个智能体将运行工具或处理 webhook/hooks 内容，请优先选择当前可用的最强最新一代模型，并保持严格的工具策略。较弱/较旧的层级更容易被 prompt 注入。
-   对于非交互式运行，`--secret-input-mode ref` 会在认证配置文件中存储基于环境变量的引用，而不是明文 API 密钥值。
-   在非交互式 `ref` 模式下，必须设置提供商环境变量；如果传入内联密钥标志但缺少该环境变量，则会快速失败。
-   在交互式运行中，选择 secret reference 模式后，你可以指向环境变量或已配置的 provider ref（`file` 或 `exec`），并在保存前进行快速预检校验。
-2. **工作区** —— 智能体文件的位置（默认 `~/.crawclaw/workspace`）。会植入引导文件。
-3. **Gateway 网关** —— 端口、绑定地址、认证模式、Tailscale 暴露。
-   在交互式 token 模式中，你可以选择默认的明文 token 存储，或选择启用 SecretRef。
-   非交互式 token SecretRef 路径：`--gateway-token-ref-env <ENV_VAR>`。
-4. **渠道** —— Weixin、Feishu、QQBot、Feishu、Feishu、Feishu、Weixin 或 Weixin。
-5. **输出与展示** —— 选择默认回复预设（`quiet`、`balanced`、`operator`），控制 streaming 和过程可见性。
-6. **Memory / Knowledge** —— 决定是否启用 Hindsight knowledge recall；如果已启用，onboarding 会在接近结束时展示记忆状态。
-7. **守护进程** —— 安装 LaunchAgent（macOS）、systemd 用户单元（Linux）或 Windows 每用户启动模式。
-   如果 token 认证需要 token，且 `gateway.auth.token` 由 SecretRef 管理，守护进程安装会验证它，但不会将已解析的 token 持久化到监督服务的环境元数据中。
-   如果 token 认证需要 token，而已配置的 token SecretRef 无法解析，守护进程安装会被阻止，并提供可执行的指导。
-   如果同时配置了 `gateway.auth.token` 和 `gateway.auth.password`，而 `gateway.auth.mode` 未设置，守护进程安装会被阻止，直到显式设置 mode。
-8. **健康检查** —— 启动 Gateway 网关并验证其正在运行。
-9. **Skills** —— 安装推荐的 Skills 和可选依赖项。
+## 稍后重新配置
 
-<Note>
-重新运行新手引导**不会**清除任何内容，除非你显式选择 **Reset**（或传入 `--reset`）。
-CLI `--reset` 默认会重置配置、凭证和会话；如需包含工作区，请使用 `--reset-scope full`。
-如果配置无效或包含旧版键，新手引导会先要求你运行 `crawclaw doctor`。
-</Note>
-
-**远程模式**只会配置本地客户端以连接到其他地方的 Gateway 网关。
-它**不会**在远程主机上安装或更改任何内容。
-
-## 添加另一个智能体
-
-使用 `crawclaw agents add <name>` 创建一个单独的智能体，它拥有自己的工作区、
-会话和认证配置文件。不带 `--workspace` 运行会启动新手引导。
-
-它会设置：
-
-- `agents.list[].name`
-- `agents.list[].workspace`
-- `agents.list[].agentDir`
-
-说明：
-
-- 默认工作区遵循 `~/.crawclaw/workspace-<agentId>`。
-- 添加 `bindings` 以路由入站消息（新手引导可以完成这项操作）。
-- 非交互式标志：`--model`、`--agent-dir`、`--bind`、`--non-interactive`。
-
-## 完整参考
-
-有关详细的分步骤拆解和配置输出，请参见
-[CLI 设置参考](/start/wizard-cli-reference)。
-有关非交互式示例，请参见 [CLI 自动化](/start/wizard-cli-automation)。
-有关更深入的技术参考（包括 RPC 细节），请参见
-[新手引导参考](/reference/wizard)。
+常规更改使用 CrawClaw Desktop settings。自动化、config patching、status、health、sessions 和 plugin operations 使用 Gateway API。
 
 ## 相关文档
 
-- CLI 命令参考：[`crawclaw onboard`](/cli/onboard)
-- 新手引导概览：[Onboarding Overview](/start/onboarding-overview)
-- 智能体首次运行仪式：[智能体引导](/start/bootstrapping)
+- [Onboarding overview](/start/onboarding-overview)
+- [Desktop install](/install/desktop)
+- [Gateway protocol](/gateway/protocol)
+- [Gateway troubleshooting](/gateway/troubleshooting)

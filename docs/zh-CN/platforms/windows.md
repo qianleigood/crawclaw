@@ -29,67 +29,38 @@ Windows 矩阵使用三种支持状态：
 
 ## 原生能力矩阵
 
-| Surface                             | Status      | Windows boundary                                                                              |
-| ----------------------------------- | ----------- | --------------------------------------------------------------------------------------------- |
-| Installer                           | `supported` | `install.ps1` 默认安装 Node 24，接受 Node 22.14+，检查 Git/PATH 前提，并安装 CrawClaw。       |
-| CLI                                 | `supported` | 命令从 PowerShell 运行，并处理 Windows 安全的参数、路径、shell 和进程启动。                   |
-| Gateway foreground                  | `supported` | `crawclaw gateway run` 直接在 Windows 主机上启动 Gateway 网关。                               |
-| Gateway service                     | `supported` | 每用户登录服务：允许时使用 Scheduled Task；任务创建被拒绝时回退到 Startup 文件夹。            |
-| `exec` and `system.run` tools       | `supported` | 优先使用 PowerShell 7，并回退到 Windows PowerShell；命令 shim 必须避免不安全的 shell 回退。   |
-| Browser automation                  | `supported` | 在 Windows smoke 覆盖 Chrome/Edge/Brave 发现和浏览器运行时后支持。                            |
-| Docker sandbox                      | `supported` | 在 Windows drive-path、Docker Desktop bind 和 sandbox 安全门禁通过后支持。                    |
-| Feishu, QQBot, DingTalk, Matrix     | `supported` | 通过内置或捆绑 channel/plugin 路径支持；在 provider 凭据允许时提供 smoke 覆盖。               |
-| Common provider plugins             | `supported` | 基于 Node 的 provider 通过捆绑插件运行时和安装期依赖设置加载。                                |
-| Weixin and Weixin                   | `bridged`   | 通过 Mac server 或 Apple host 桥接；Windows 运行 Gateway/client 侧，而不是 Apple 本地消息栈。 |
-| Apple skills and macOS-only tooling | `bridged`   | 通过 Mac 或 headless 节点桥接，由该主机持有 Apple 本地运行时和权限。                          |
+| Surface                             | Status       | Windows boundary                                                                                |
+| ----------------------------------- | ------------ | ----------------------------------------------------------------------------------------------- |
+| Desktop installer                   | `supported`  | GitHub Releases desktop assets 安装 CrawClaw Desktop 和 embedded runtime。                      |
+| CLI                                 | `supported`  | PowerShell 中的命令需要保持 Windows-safe 参数、路径、shell 和进程启动行为。                     |
+| Gateway foreground                  | `supported`  | CrawClaw Desktop 或本地 Gateway API 直接在 Windows 主机上启动 Gateway。                         |
+| Gateway runtime                     | `supported`  | CrawClaw Desktop 或本地 Gateway API 启动本地 Rust Gateway。                                     |
+| `exec` and `system.run` tools       | `supported`  | 优先使用 PowerShell 7，并回退到 Windows PowerShell；命令 shim 必须避免不安全的 shell fallback。 |
+| Browser automation                  | `supported`  | Windows smoke 覆盖 Chrome/Edge/Brave discovery 和 browser runtime 后支持。                      |
+| Feishu, QQBot, DingTalk, Weixin     | `supported`  | 通过内置或捆绑 channel/plugin 路径支持；在 provider 凭据允许时提供 smoke coverage。             |
+| Common provider plugins             | `supported`  | Provider catalog 和 transports 由 Rust 拥有；bundled defaults 使用 native runtime resources。   |
+| legacy messaging and Weixin         | `not-native` | 需要 Windows runtime 之外的 Mac-side legacy messaging 或 Apple messaging host。                 |
+| Apple skills and macOS-only tooling | `not-native` | 需要 Windows runtime 之外的 Apple host。                                                        |
 
 ## 安装
 
-以普通用户身份运行 PowerShell：
-
-```powershell
-iwr -useb https://crawclaw.ai/install.ps1 | iex
-```
-
-Dry run 或 beta 安装：
-
-```powershell
-& ([scriptblock]::Create((iwr -useb https://crawclaw.ai/install.ps1))) -DryRun
-& ([scriptblock]::Create((iwr -useb https://crawclaw.ai/install.ps1))) -Tag beta
-```
+以普通用户身份安装 [GitHub Releases](https://github.com/qianleigood/crawclaw/releases) 中最新的 Windows desktop asset。
 
 验证安装：
 
-```powershell
-crawclaw --version
-crawclaw doctor --non-interactive
-crawclaw plugins list --json
-```
+打开 CrawClaw Desktop 并确认本地 Gateway 状态；自动化验证时，调用本地 Gateway API。
 
-如果新终端中的 PowerShell 找不到 `crawclaw`，参阅 [Node.js troubleshooting](/install/node#troubleshooting)。
+Desktop 用户不需要全局 `crawclaw` 命令。操作入口是 CrawClaw Desktop 或本地 Gateway API。
 
 ## Gateway 网关参考
 
-前台运行 Gateway 网关：
+前台运行 Gateway：
 
-```powershell
-crawclaw gateway run
-```
+使用 CrawClaw Desktop 启动本地 Rust Gateway。Source checkout development 应使用仓库的 desktop 或 Gateway package scripts。
 
-安装受管启动：
+Managed OS startup 不属于默认 desktop runtime 路径。使用 CrawClaw Desktop 或本地 Gateway API 启动本地 Rust Gateway。
 
-```powershell
-crawclaw gateway install
-crawclaw gateway status --json
-```
-
-如果 Scheduled Task 创建被拒绝，CrawClaw 会回退到每用户 Startup 文件夹登录项，并立即启动 Gateway 网关。这是每用户登录服务，不是在任何用户登录前运行的机器服务。Scheduled Tasks 仍然是首选，因为它们提供更好的 supervisor 状态和重启可见性。
-
-仅 CLI 设置可跳过带健康门禁的新手引导：
-
-```powershell
-crawclaw onboard --non-interactive --skip-health
-```
+Gateway API-only 设置应在配置 provider credentials 和 auth 后直接调用本地 Gateway API。
 
 ## 兼容性门禁
 
@@ -112,12 +83,12 @@ pnpm test:parallels:npm-update
 
 当以下条件全部成立时，才应将原生 Windows 描述为 first-class：
 
-- `install.ps1` 可以在干净且受支持的 Windows 11 机器上安装或更新 CrawClaw，无需手动设置 Node 或 Git。
-- `crawclaw --version` 可在新的 PowerShell 会话中运行，无需手动修复 PATH。
-- `crawclaw doctor --non-interactive` 没有 blocking errors。
-- `crawclaw onboard --non-interactive --install-daemon` 可为本地 Gateway 设置完成。
-- `crawclaw gateway status --deep --require-rpc` 报告 Gateway 可达。
-- `crawclaw agent --local --agent main --message "Reply OK only." --json` 可完成第一个本地 turn。
+- CrawClaw Desktop 可以在干净且受支持的 Windows 11 机器上安装或更新 CrawClaw，无需手动设置 Node 或 Git。
+- packaged desktop version check 可在新的 PowerShell 会话中运行，无需手动修复 PATH。
+- CrawClaw Desktop 或本地 Gateway API 没有 blocking errors。
+- CrawClaw Desktop 或本地 Gateway API 完成本地 Gateway 设置。
+- CrawClaw Desktop 或本地 Gateway API 报告 Gateway 可达。
+- CrawClaw Desktop 或本地 Gateway API 完成第一个本地 turn。
 - 浏览器运行时检查要么通过，要么返回清晰、可执行的修复说明。
 - 声明 Windows 支持的 provider 和 channel 插件会在 install 或 postinstall 期间安装其运行时依赖，而不是在第一次用户请求时懒安装。
 - 从已发布的 `latest` package 升级到当前 package 成功。
@@ -126,9 +97,8 @@ pnpm test:parallels:npm-update
 ## 当前边界
 
 - Gateway 自动启动是每用户登录模式。若要在任何 Windows 用户登录前运行，需要由管理员安装 Windows Service，这是后续阶段。
-- Docker sandbox 支持依赖 Docker Desktop 或其他可工作的 Windows Docker engine，并需要通过 Windows path 和 sandbox security checks。
 - 部分插件可能需要 provider 凭据、原生二进制、浏览器安装，或 CrawClaw package 外的运行时依赖。
-- Apple 本地集成需要 Apple 设备或桥接主机，属于 `bridged`，不是原生 Windows 能力。
+- Apple 本地集成需要 Apple 设备或桥接主机，不属于原生 Windows 能力。
 - 在本文档的门禁在 CI、nightly 和 release validation 中为绿之前，不应把原生 Windows 支持描述为完整 Windows parity。
 
 ## Gateway 网关
@@ -136,31 +106,9 @@ pnpm test:parallels:npm-update
 - [Gateway runbook](/gateway)
 - [Configuration](/gateway/configuration)
 
-## Gateway 服务安装（CLI）
+## Gateway runtime
 
-```
-crawclaw onboard --install-daemon
-```
-
-或：
-
-```
-crawclaw gateway install
-```
-
-或：
-
-```
-crawclaw configure
-```
-
-出现提示时，选择 **Gateway service**。
-
-修复/迁移：
-
-```
-crawclaw doctor
-```
+使用 CrawClaw Desktop 或本地 Gateway API。旧的 CLI-managed Scheduled OS task 和 login-item 路径已从默认 desktop product path 中退役。
 
 ## Windows 节点主机
 

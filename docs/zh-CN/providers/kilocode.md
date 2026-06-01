@@ -25,9 +25,7 @@ Kilo Gateway 提供一个**统一 API**，可通过单一
 
 ## CLI 设置
 
-```bash
-crawclaw onboard --kilocode-api-key <key>
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 或者设置环境变量：
 

@@ -62,19 +62,11 @@ Gateway 网关可以托管**一个智能体**（默认）或**多个智能体**�
 
 ## 智能体助手
 
-使用智能体向导添加新的隔离智能体：
-
-```bash
-crawclaw agents add work
-```
+使用 CrawClaw Desktop 或本地 Gateway API 添加新的隔离智能体。
 
 然后添加 `bindings`（或让向导完成）来路由入站消息。
 
-验证：
-
-```bash
-crawclaw agents list --bindings
-```
+验证时，使用 CrawClaw Desktop 或本地 Gateway API 查看 agent 列表和 bindings。
 
 ## 多个智能体 = 多个人、多种人格
 
@@ -211,7 +203,7 @@ crawclaw agents list --bindings
 
 - [智能体运行时](/concepts/agent)
 - [会话管理](/concepts/session)
-- [Models CLI](/concepts/models)
+- [模型](/concepts/models)
 - [项目整体架构总览](/concepts/project-architecture-overview)
 
 ## 示例：Weixin 日常聊天 + Feishu 深度工作

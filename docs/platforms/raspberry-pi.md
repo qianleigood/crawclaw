@@ -111,9 +111,7 @@ sudo sysctl -p
 
 ### Option A: Standard Install (Recommended)
 
-```bash
-# Install CrawClaw Desktop from GitHub Releases.
-```
+Use the supported install flow for the Linux ARM build you want to run. If you need a hackable runtime, use the source checkout path below.
 
 ### Option B: Hackable Install (For tinkering)
 
@@ -129,9 +127,7 @@ The hackable install gives you direct access to logs and code — useful for deb
 
 ## 7) Run Onboarding
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Follow the wizard:
 
@@ -143,9 +139,6 @@ Follow the wizard:
 ## 8) Verify Installation
 
 ```bash
-# Check status
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
 # Check service
 sudo systemctl status crawclaw
 

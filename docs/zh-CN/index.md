@@ -38,28 +38,27 @@ x-i18n:
 
 <Columns>
   <Card title="入门指南" href="/start/getting-started" icon="rocket">
-    安装 CrawClaw 并在几分钟内启动 Gateway 网关。
+    安装 CrawClaw Desktop 并启动本地 Gateway。
   </Card>
-  <Card title="运行新手引导" href="/start/wizard" icon="sparkles">
-    通过 `crawclaw onboard` 和配对流程进行引导式设置。
+  <Card title="Desktop 设置" href="/install/desktop" icon="sparkles">
+    通过 desktop UI 配置模型、plugins、日志和诊断。
   </Card>
-  <Card title="终端界面" href="/cli/tui" icon="terminal">
-    使用本地 TUI 连接 Gateway 网关并开始聊天。
+  <Card title="Gateway API" href="/gateway/protocol" icon="terminal">
+    自动化客户端通过本地 Gateway API 连接。
   </Card>
 </Columns>
 
-CrawClaw 通过单个 Gateway 网关进程将聊天应用连接到 Pi 等编程智能体。它为 CrawClaw 助手提供支持，并支持本地或远程部署。
+CrawClaw 通过单个 Gateway 网关进程将聊天应用、插件和自动化客户端连接到 Rust agent runtime。它为 CrawClaw 助手提供支持，并支持本地或远程部署。
 
 ## 工作原理
 
 ```mermaid
 flowchart LR
-  A["Chat apps + plugins"] --> B["Gateway"]
-  B --> C["Pi agent"]
-  B --> D["CLI"]
-  B --> E["TUI"]
-  B --> F["Browser-origin clients"]
-  B --> G["Node integrations"]
+  A["CrawClaw Desktop"] --> B["Local Gateway API"]
+  C["Chat apps + plugins"] --> B
+  D["Automation clients"] --> B
+  B --> E["Agent runtime"]
+  E --> F["Tools, models, memory"]
 ```
 
 Gateway 网关是会话、路由和渠道连接的唯一事实来源。
@@ -80,7 +79,7 @@ Gateway 网关是会话、路由和渠道连接的唯一事实来源。
     发送和接收图片、音频和文档。
   </Card>
   <Card title="终端界面" icon="terminal">
-    使用 TUI 进行本地聊天、会话和审批。
+    在 CrawClaw Desktop 中进行本地聊天、会话和审批。
   </Card>
   <Card title="节点模式" icon="smartphone">
     配对节点与无头主机，支持 Canvas 与远程命令。
@@ -91,20 +90,13 @@ Gateway 网关是会话、路由和渠道连接的唯一事实来源。
 
 <Steps>
   <Step title="安装 CrawClaw">
-    ```bash
-    npm install -g crawclaw@latest
-    ```
+    从 [GitHub Releases](https://github.com/qianleigood/crawclaw/releases) 安装 CrawClaw Desktop。
   </Step>
-  <Step title="新手引导并安装服务">
-    ```bash
-    crawclaw onboard --install-daemon
-    ```
+  <Step title="打开 CrawClaw Desktop">
+    Desktop 会准备 `~/.crawclaw`、stage embedded Rust runtime，并启动本地 Gateway。
   </Step>
-  <Step title="启动 Gateway 网关并开始聊天">
-    ```bash
-    crawclaw onboard --install-daemon
-    crawclaw tui
-    ```
+  <Step title="配置模型并开始聊天">
+    使用 Desktop Settings 配置模型 providers 和 plugins，然后在 Agent 页面发送消息。
   </Step>
 </Steps>
 
@@ -112,16 +104,16 @@ Gateway 网关是会话、路由和渠道连接的唯一事实来源。
 
 ## 本地与远程访问
 
-Gateway 网关启动后，可通过本地终端或远程访问方式使用它。
+Gateway 网关启动后，可通过 CrawClaw Desktop、本地 Gateway API 或远程访问方式使用它。
 
-- 本地终端：`crawclaw tui`
+- 本地：CrawClaw Desktop 和本地 Gateway API
 - 远程访问：[远程访问](/gateway/remote) 和 [Tailscale](/gateway/tailscale)
 
 ## 配置（可选）
 
 配置文件位于 `~/.crawclaw/crawclaw.json`。
 
-- 如果你**不做任何修改**，CrawClaw 将使用内置的 Pi 二进制文件以 RPC 模式运行，并按发送者创建独立会话。
+- 如果你**不做任何修改**，CrawClaw 使用 Rust AgentRuntime 和 NativeProvider 路径，并按发送者创建独立会话。
 - 如果你想要限制访问，可以从 `channels.weixin.allowFrom` 和（针对群组的）提及规则开始配置。
 
 示例：

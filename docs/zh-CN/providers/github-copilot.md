@@ -1,7 +1,7 @@
 ---
 read_when:
   - 你想使用 GitHub Copilot 作为模型提供商
-  - 你需要了解 `crawclaw models auth login-github-copilot` 流程
+  - 你需要了解 GitHub Copilot device flow
 summary: 使用设备流从 CrawClaw 登录 GitHub Copilot
 title: GitHub Copilot
 x-i18n:
@@ -33,24 +33,17 @@ GitHub Copilot 是 GitHub 的 AI 编程助手。它为你的 GitHub 账户和订
 
 ## CLI 设置
 
-```bash
-crawclaw models auth login-github-copilot
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 系统会提示你访问一个 URL 并输入一次性代码。请保持终端打开直到流程完成。
 
 ### 可选参数
 
-```bash
-crawclaw models auth login-github-copilot --profile-id github-copilot:work
-crawclaw models auth login-github-copilot --yes
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ## 设置默认模型
 
-```bash
-crawclaw models set github-copilot/gpt-4o
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ### 配置片段
 

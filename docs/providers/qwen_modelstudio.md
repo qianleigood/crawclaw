@@ -21,23 +21,11 @@ and third-party models hosted on the platform. Two billing plans are supported:
 
 ### Standard (pay-as-you-go)
 
-```bash
-# China endpoint
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Global/Intl endpoint
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### Coding Plan (subscription)
 
-```bash
-# China endpoint
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Global/Intl endpoint
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 After onboarding, set a default model:
 

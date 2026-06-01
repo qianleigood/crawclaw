@@ -14,15 +14,7 @@ If you only have 2 minutes, use this page as a triage front door.
 
 Run this exact ladder in order:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Good output in one line:
 
@@ -92,13 +84,7 @@ flowchart TD
 
 <AccordionGroup>
   <Accordion title="No replies">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Good output looks like:
 
@@ -122,13 +108,7 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Browser client will not connect">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Good output looks like:
 
@@ -149,13 +129,7 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Gateway will not start or service installed but not running">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Good output looks like:
 
@@ -178,13 +152,7 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Channel connects but messages do not flow">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Good output looks like:
 
@@ -206,14 +174,7 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Cron or main-session wake did not fire or deliver">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Good output looks like:
 
@@ -236,12 +197,7 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Exec suddenly asks for approval">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     What changed:
 
@@ -253,12 +209,7 @@ flowchart TD
 
     Restore current default no-approval behavior:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Safer alternatives:
 
@@ -279,12 +230,7 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Browser tool fails">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     From the current agent or Gateway `/tools/invoke` path, run the `browser` tool
     with `{ "action": "status", "profile": "crawclaw" }`.

@@ -14,38 +14,24 @@ Keep CrawClaw up to date.
 
 The fastest way to update is through CrawClaw Desktop. It fetches the latest application bundle and restarts the embedded Gateway when needed.
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 To switch channels or target a specific version:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 See [Auto-updater](#auto-updater) for channel semantics.
 
 ## Alternative: re-run the installer
 
-```bash
-# Install CrawClaw Desktop from GitHub Releases.
-```
+Install the current CrawClaw Desktop release asset from [GitHub Releases](https://github.com/qianleigood/crawclaw/releases).
 
 CrawClaw Desktop owns the supported update and onboarding path. Source installer
 flags for the retired public CLI onboarding flow are no longer documented.
 
 ## Alternative: manual npm or pnpm
 
-```bash
-# Install CrawClaw Desktop from GitHub Releases.
-```
-
-```bash
-# Install CrawClaw Desktop from GitHub Releases.
-```
+Legacy global npm/pnpm installs should migrate to the desktop package. Remove the old global package after the desktop app is installed.
 
 ## Auto-updater
 
@@ -79,23 +65,17 @@ The gateway also logs an update hint on startup (disable with `update.checkOnSta
 
 ### Run doctor
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Migrates config, audits DM policies, and checks gateway health. Details: [Doctor](/gateway/doctor)
 
 ### Restart the gateway
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### Verify
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 </Steps>
 
@@ -103,11 +83,7 @@ Migrates config, audits DM policies, and checks gateway health. Details: [Doctor
 
 ### Pin a version (npm)
 
-```bash
-Install the matching CrawClaw Desktop release asset
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Download the CrawClaw Desktop release asset for the version you want to run.
 
 Tip: `npm view crawclaw version` shows the current published version.
 
@@ -117,8 +93,9 @@ Tip: `npm view crawclaw version` shows the current published version.
 git fetch origin
 git checkout "$(git rev-list -n 1 --before=\"2026-01-01\" origin/main)"
 pnpm install && pnpm build
-# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
+
+Start CrawClaw Desktop from that checkout, or run the local Gateway API target from the same source tree.
 
 To return to latest: `git checkout main && git pull`.
 

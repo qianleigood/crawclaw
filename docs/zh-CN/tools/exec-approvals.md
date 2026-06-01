@@ -130,7 +130,7 @@ macOS 节点主机在本地执行审批并运行命令。
 目标选择器可选择 **Gateway**（本地审批）或 **Node**。节点必须通告 `system.execApprovals.get/set`（节点主机或无头节点主机）。
 如果节点尚未通告执行审批，请直接编辑其本地的 `~/.crawclaw/exec-approvals.json`。
 
-CLI：`crawclaw approvals` 支持 gateway 或 node 编辑（参见 [Approvals CLI](/cli/approvals)）。
+CrawClaw Desktop 或本地 Gateway API 支持本地和 Gateway 侧编辑。
 
 ## 审批流程
 

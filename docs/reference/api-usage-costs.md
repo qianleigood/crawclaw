@@ -24,9 +24,9 @@ CrawClaw features that can generate provider usage or paid API calls.
 - `/usage full` appends a usage footer to every reply, including **estimated cost** (API-key only).
 - `/usage tokens` shows tokens only; OAuth flows hide dollar cost.
 
-**CLI usage windows (provider quotas)**
+**Provider usage windows**
 
-- CrawClaw Desktop or the local Gateway API and CrawClaw Desktop or the local Gateway API show provider **usage windows**
+- CrawClaw Desktop and the local Gateway API show provider **usage windows**
   (quota snapshots, not per-message costs).
 
 See [Token use & costs](/reference/token-use) for details and examples.

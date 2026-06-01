@@ -1,10 +1,10 @@
 ---
 read_when:
-  - 选择一种新手引导路径
+  - 选择支持的设置路径
   - 设置新环境
 sidebarTitle: Onboarding Overview
-summary: CrawClaw 新手引导选项与流程概览
-title: 新手引导概览
+summary: CrawClaw Desktop onboarding 和 Gateway API 设置概览
+title: Onboarding Overview
 x-i18n:
   generated_at: "2026-03-16T06:27:56Z"
   model: gpt-5.4
@@ -14,48 +14,37 @@ x-i18n:
   workflow: 15
 ---
 
-# 新手引导概览
+# Onboarding Overview
 
-CrawClaw 使用 CLI 新手引导来配置认证、Gateway 网关和可选渠道，
-适用于当前支持的主机环境。
+CrawClaw onboarding 现在从 Apple 平台上的 **CrawClaw Desktop** 开始。Desktop app 拥有 model auth、workspace defaults、Gateway lifecycle、plugins、channels、diagnostics 和 local runtime state。
 
-## 选择你的新手引导路径
+自动化和 headless 集成应使用本地 Gateway API，而不是公共 `crawclaw` 命令。
 
-- 适用于 macOS、Linux 和 Windows 的 **CLI 新手引导**。
+## 应该使用哪条路径？
 
-## CLI 新手引导
+| Path             | Best for                                          |
+| ---------------- | ------------------------------------------------- |
+| CrawClaw Desktop | Normal setup, settings, model auth, plugins, logs |
+| Gateway API      | Local automation and integration control planes   |
+| Config files     | Reviewable advanced changes under `~/.crawclaw`   |
 
-在终端中运行新手引导：
+## Onboarding 会配置什么
 
-```bash
-crawclaw onboard
-```
+Desktop setup 会配置：
 
-当你希望完全控制 Gateway 网关、工作区、
-渠道和 Skills 时，请使用 CLI 新手引导。文档：
+1. **Model provider and auth** — 为选定 provider 配置 API key、OAuth 或 setup token。
+2. **Workspace** — agent files、bootstrap templates 和 memory 的目录。
+3. **Gateway** — loopback bind、auth mode、local runtime state 和 health。
+4. **Channels** — desktop Gateway 暴露的受支持 message channels。
+5. **Plugins and tools** — bundled Rust-native plugins 和 managed native tool runtimes。
+6. **Memory and experience** — local capture、recall 和 maintenance settings。
 
-- [CLI 新手引导](/start/wizard)
-- [`crawclaw onboard` 命令](/cli/onboard)
+## 自动化
 
-无论你走哪条 onboarding 路径，当前主流程都会覆盖：
+脚本化设置、config patching、status、health、session 和 plugin operations 使用 Gateway API。Desktop 和自动化共享同一个本地 Gateway control plane，因此行为保持一致。
 
-1. **模型提供商与认证**
-2. **工作区**
-3. **Gateway 网关**
-4. **渠道**（可选）
-5. **输出与展示**（默认回复可见性与 streaming 预设）
-6. **Memory / Knowledge**（可选的 Hindsight knowledge recall）
-7. **守护进程**（可选）
+相关文档：
 
-## 自定义提供商
-
-如果你需要一个未列出的端点，包括那些
-公开标准 OpenAI 或 Anthropic API 的托管提供商，请在
-在 CLI 新手引导中选择 **Custom Provider**。系统会要求你：
-
-- 选择兼容 OpenAI、兼容 Anthropic，或 **Unknown**（自动检测）。
-- 输入基础 URL 和 API 密钥（如果提供商需要）。
-- 提供模型 ID 和可选别名。
-- 选择一个 Endpoint ID，以便多个自定义端点可以共存。
-
-如需详细步骤，请按照上面的 CLI 新手引导文档操作。
+- [Desktop install](/install/desktop)
+- [Gateway protocol](/gateway/protocol)
+- [Gateway troubleshooting](/gateway/troubleshooting)

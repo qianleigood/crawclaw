@@ -4033,9 +4033,23 @@ esac
     assert_eq!(context_summary["projectedHistoryEstimatedTokens"], 0);
     assert_eq!(context_summary["projectedToolResultCount"], 0);
     assert_eq!(context_summary["projectedToolResultOmittedChars"], 0);
+    assert_eq!(context_summary["persistedToolResultCount"], 0);
     assert!(context_summary["projectionReason"]
         .as_str()
         .is_some_and(|reason| reason.contains("compact summary not applied")));
+    assert_eq!(context_summary["provider"], "openai-compatible");
+    assert_eq!(context_summary["model"], "gpt-5.5");
+    assert!(context_summary["modelContextWindow"]
+        .as_u64()
+        .is_some_and(|value| value > 0));
+    assert!(context_summary["effectivePromptBudget"]
+        .as_u64()
+        .is_some_and(|value| value > 0));
+    assert!(context_summary["budgetSource"].as_str().is_some());
+    assert_eq!(context_summary["supportsTools"], true);
+    assert_eq!(context_summary["supportsReasoning"], true);
+    assert_eq!(context_summary["supportsImageInput"], true);
+    assert_eq!(context_summary["supportsStreaming"], true);
     assert_eq!(context_summary["budgetState"], "within-budget");
     assert_eq!(context_summary["overflowRetryEnabled"], false);
     assert_eq!(context_summary["compactionActive"], false);

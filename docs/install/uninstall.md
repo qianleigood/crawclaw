@@ -17,30 +17,19 @@ Two paths:
 
 Recommended: use the built-in uninstaller:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
-Non-interactive (automation / npx):
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-npx -y CrawClaw Desktop or the local Gateway API
-```
+Non-interactive automation should call the local Gateway API. If that API is not reachable, use the manual steps below.
 
 Manual steps (same result):
 
 1. Stop CrawClaw Desktop and any manual Gateway process:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 2. Remove any legacy OS startup entry:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 3. Delete state + config:
 
@@ -102,10 +91,9 @@ If you used a profile, delete the matching task name and `~\.crawclaw-<profile>\
 
 ## Normal install vs source checkout
 
-### Normal install (CrawClaw Desktop installer / npm / pnpm / bun)
+### Normal install (CrawClaw Desktop / npm / pnpm / bun)
 
-If you used `https://crawclaw.ai/CrawClaw Desktop installer` or `CrawClaw Desktop installer`, the CLI was installed with `install CrawClaw Desktop from GitHub Releases`.
-Remove it with `npm rm -g crawclaw` (or `pnpm remove -g` / `bun remove -g` if you installed that way).
+If you installed an older global `crawclaw` package, remove it with `npm rm -g crawclaw` (or `pnpm remove -g` / `bun remove -g` if you installed that way).
 
 ### Source checkout (git clone)
 

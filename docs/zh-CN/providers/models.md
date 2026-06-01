@@ -20,7 +20,7 @@ CrawClaw 可以使用许多 LLM 提供商。选择一个，完成身份验证，
 
 ## 快速开始（两步）
 
-1. 使用该提供商进行身份验证（通常通过 `crawclaw onboard`）。
+1. 使用 CrawClaw Desktop 或本地 Gateway API 为该提供商完成身份验证。
 2. 设置默认模型：
 
 ```json5

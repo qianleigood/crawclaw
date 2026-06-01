@@ -24,22 +24,11 @@ If these are shared, you will hit config races and port conflicts.
 
 Profiles auto-scope `CRAWCLAW_STATE_DIR` + `CRAWCLAW_CONFIG_PATH` and suffix service names.
 
-```bash
-# main
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# rescue
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Per-profile services:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Rescue-bot guide
 
@@ -56,23 +45,7 @@ Port spacing: leave at least 20 ports between base ports so the derived browser/
 
 ### How to install (rescue bot)
 
-```bash
-# Main bot (existing or fresh, without --profile param)
-# Runs on port 18789 + Chrome CDC/Canvas/... Ports
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Rescue bot (isolated profile + ports)
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Notes:
-# - workspace name will be postfixed with -rescue per default
-# - Port should be at least 18789 + 20 Ports,
-#   better choose completely different base port, like 19789,
-# - rest of the onboarding is the same as normal
-
-# To install the service (if not happened automatically during setup)
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Port mapping (derived)
 
@@ -95,17 +68,13 @@ If you override any of these in config or env, you must keep them unique per ins
 ```bash
 CRAWCLAW_CONFIG_PATH=~/.crawclaw/main.json \
 CRAWCLAW_STATE_DIR=~/.crawclaw-main \
-# Use CrawClaw Desktop or the local Gateway API for this operation.
+cargo run -q -p crawclaw-gateway -- --bind loopback --port 18789
 
 CRAWCLAW_CONFIG_PATH=~/.crawclaw/rescue.json \
 CRAWCLAW_STATE_DIR=~/.crawclaw-rescue \
-# Use CrawClaw Desktop or the local Gateway API for this operation.
+cargo run -q -p crawclaw-gateway -- --bind loopback --port 18790
 ```
 
 ## Quick checks
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.

@@ -1,10 +1,10 @@
 ---
 read_when:
-  - オンボーディングウィザードの実行または設定時
+  - desktop onboarding の実行または設定時
   - 新しいマシンのセットアップ時
-sidebarTitle: Wizard (CLI)
-summary: CLIオンボーディングウィザード：Gateway、ワークスペース、チャンネル、Skillsの対話式セットアップ
-title: オンボーディングウィザード（CLI）
+sidebarTitle: Desktop Onboarding
+summary: Gateway、workspace、channels、models、skills の Desktop onboarding
+title: Desktop Onboarding
 x-i18n:
   generated_at: "2026-02-08T17:15:18Z"
   model: claude-opus-4-5
@@ -14,63 +14,49 @@ x-i18n:
   workflow: 15
 ---
 
-# オンボーディングウィザード（CLI）
+# Desktop Onboarding
 
-CLIオンボーディングウィザードは、macOS、Linux、ネイティブWindowsでCrawClawをセットアップする際の推奨パスです。ローカルGatewayまたはリモートGateway接続に加えて、ワークスペースのデフォルト設定、チャンネル、Skillsを構成します。
+CrawClaw Desktop は、現在サポートされている Apple-platform のセットアップ画面です。app で auth、local Gateway state、workspace defaults、channels、plugins、skills、logs、diagnostics を設定します。
 
-```bash
-crawclaw onboard
-```
+公開 `crawclaw` command は retired です。自動化はローカル Gateway API を直接呼び出してください。
 
-<Info>
-最速で初回チャットを開始する方法：`crawclaw agent --message "hello"` を実行します（チャンネル設定は不要）。
-</Info>
+## QuickStart と Advanced
 
-## クイックスタート vs 詳細設定
-
-ウィザードは**クイックスタート**（デフォルト設定）と**詳細設定**（完全な制御）のどちらかを選択して開始します。
+Onboarding は安全なローカル既定値の **QuickStart** から始まります。明示的に制御したい場合は **Advanced** を使います。
 
 <Tabs>
-  <Tab title="クイックスタート（デフォルト設定）">
-    - loopback上のローカルGateway
-    - 既存のワークスペースまたはデフォルトワークスペース
-    - Gatewayポート `18789`
-    - Gateway認証トークンは自動生成（loopback上でも生成されます）
-    - Tailscale公開はオフ
-    - FeishuとWeixinのDMはデフォルトで許可リスト（電話番号の入力を求められる場合があります）
+  <Tab title="QuickStart">
+    - Local Gateway on loopback
+    - Desktop-managed random port
+    - Desktop-managed token auth
+    - Workspace under `~/.crawclaw`
+    - Bundled Rust runtime and native plugins
   </Tab>
-  <Tab title="詳細設定（完全な制御）">
-    - モード、ワークスペース、Gateway、チャンネル、デーモン、Skillsの完全なプロンプトフローを表示
+  <Tab title="Advanced">
+    - Explicit workspace, model, channel, plugin, and memory settings
+    - Gateway API automation for repeatable setup
+    - Direct config review before applying sensitive changes
   </Tab>
 </Tabs>
 
-## CLIオンボーディングの詳細
+## onboarding が設定するもの
 
-<Columns>
-  <Card title="CLIリファレンス" href="/start/wizard-cli-reference">
-    ローカルおよびリモートフローの完全な説明、認証とモデルマトリックス、設定出力、ウィザードRPCの動作。
-  </Card>
-  <Card title="自動化とスクリプト" href="/start/wizard-cli-automation">
-    非対話式オンボーディングのレシピと自動化された `agents add` の例。
-  </Card>
-</Columns>
+1. **Model/Auth** — 対応 provider/auth flow と default model を選択します。
+2. **Workspace** — agent files と bootstrap state の場所を選択します。
+3. **Gateway** — embedded Rust Gateway を起動し監視します。
+4. **Channels** — 対応 messaging surfaces を接続します。
+5. **Output and presentation** — reply visibility と streaming defaults を設定します。
+6. **Memory / Experience** — local capture、recall、maintenance flows を有効にします。
+7. **Skills and plugins** — bundled skills と desktop-supported plugins を有効にします。
+8. **Health check** — local Gateway と runtime の準備完了を確認します。
 
-## よく使うフォローアップコマンド
+## 後から再設定
 
-```bash
-crawclaw configure
-crawclaw agents add <name>
-```
-
-<Note>
-`--json` は非対話モードを意味しません。スクリプトでは `--non-interactive` を使用してください。
-</Note>
-
-<Tip>
-推奨：エージェントが `web_search` を使用できるように、バンドルされた SearXNG provider を有効にしてください（`web_fetch` もキーなしで動作します）。最も簡単な方法：CrawClaw Desktop または local Gateway API で Web Search を有効にします。ドキュメント：[Web Search](/tools/web)。
-</Tip>
+通常の変更は CrawClaw Desktop settings を使います。automation、config patching、status、health、sessions、plugin operations は Gateway API を使います。
 
 ## 関連ドキュメント
 
-- CLIコマンドリファレンス：[`crawclaw onboard`](/cli/onboard)
-- エージェント初回起動の手順：[エージェントブートストラップ](/start/bootstrapping)
+- [Onboarding overview](/start/onboarding-overview)
+- [Desktop install](/install/desktop)
+- [Gateway protocol](/gateway/protocol)
+- [Gateway troubleshooting](/gateway/troubleshooting)

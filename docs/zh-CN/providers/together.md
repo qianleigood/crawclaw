@@ -24,9 +24,7 @@ x-i18n:
 
 1. 设置 API 密钥（推荐：为 Gateway 网关存储它）：
 
-```bash
-crawclaw onboard --auth-choice together-api-key
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 2. 设置默认模型：
 
@@ -42,12 +40,7 @@ crawclaw onboard --auth-choice together-api-key
 
 ## 非交互式示例
 
-```bash
-crawclaw onboard --non-interactive \
-  --mode local \
-  --auth-choice together-api-key \
-  --together-api-key "$TOGETHER_API_KEY"
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 这会将 `together/moonshotai/Kimi-K2.5` 设置为默认模型。
 

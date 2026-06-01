@@ -20,6 +20,7 @@ pub mod sdk;
 pub mod special_agents;
 
 mod agent_context;
+mod agent_context_budget;
 mod agent_loop_events;
 mod agent_prompts;
 mod agent_provider_bridge;
@@ -30,6 +31,7 @@ mod agent_tool_result_projection;
 mod desktop_runtime_stores;
 mod runtime_tool_catalog;
 use self::agent_context::*;
+use self::agent_context_budget::*;
 use self::agent_loop_events::*;
 use self::agent_provider_bridge::*;
 pub use self::agent_runtime_backend::*;

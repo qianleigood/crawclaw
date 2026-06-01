@@ -2,60 +2,58 @@
 read_when:
   - 编辑系统提示词文本、工具列表或时间/心跳部分
   - 更改工作区引导或 Skills 注入行为
-summary: CrawClaw 系统提示词包含的内容及其组装方式
+summary: CrawClaw 系统提示词的内容及其组装方式
 title: 系统提示词
 x-i18n:
-  generated_at: "2026-02-03T07:46:58Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: bef4b2674ba0414ce28fd08a4c3ead0e0ebe989e7df3c88ca8a0b2abfec2a50b
+  generated_at: "2026-06-01T16:10:29Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 1db82f54566e4d0ef048491d0be1bf13009c68a44ea9f0e8bfebddde4bf7c27e
   source_path: concepts/system-prompt.md
   workflow: 15
 ---
 
 # 系统提示词
 
-CrawClaw 为每次智能体运行构建自定义系统提示词。该提示词由 **CrawClaw 拥有**，不使用 pi-coding-agent 默认提示词。
-
-该提示词由 CrawClaw 组装并注入到每次智能体运行中。
+CrawClaw 为每次智能体运行构建自定义系统提示词。该提示词由 **CrawClaw 所有**，由 Rust 运行时路径组装。
 
 ## 结构
 
-该提示词设计紧凑，使用固定部分：
+提示词故意保持紧凑并使用固定部分：
 
-- **Tooling**：当前工具列表 + 简短描述。
-- **Safety**：简短的防护提醒，避免追求权力的行为或绕过监督。
-- **Skills**（如果可用）：告诉模型如何按需加载 Skill 指令。
-- **CrawClaw Self-Update**：如何运行 `config.apply` 和 `update.run`。
-- **Workspace**：工作目录（`agents.defaults.workspace`）。
-- **Documentation**：CrawClaw 文档的本地路径（仓库或 npm 包）以及何时阅读它们。
-- **Workspace Files (injected)**：表示下方包含引导文件。
-- **Sandbox**（启用时）：表示沙箱隔离运行时、沙箱路径，以及是否可用提权执行。
-- **Current Date & Time**：用户本地时间、时区和时间格式。
-- **Reply Tags**：支持的提供商的可选回复标签语法。
-- **Heartbeats**：当唤醒运行提供 heartbeat prompt 时，包含事件驱动的主会话唤醒提示词和确认行为。
-- **Runtime**：主机、操作系统、node、模型、仓库根目录（检测到时）、思考级别（一行）。
-- **Reasoning**：当前可见性级别 + /reasoning 切换提示。
-
-系统提示词中的安全防护是建议性的。它们指导模型行为但不强制执行策略。使用工具策略、执行审批、沙箱隔离和渠道允许列表进行硬性执行；运维人员可以按设计禁用这些。
+- **工具**：当前工具列表 + 简短描述。
+- **安全**：简短的防护栏提醒，避免寻求权力行为或绕过监督。
+- **Skills**（当可用时）：告知模型如何按需加载 skill 指令。
+- **CrawClaw 自我更新**：如何运行 `config.apply` 和 `update.run`。
+- **工作区**：工作目录（`agents.defaults.workspace`）。
+- **文档**：CrawClaw 文档的本地路径（仓库或 npm 包）以及何时阅读它们。
+- **工作区文件（已注入）**：表示引导文件已包含在下方。
+- **当前日期和时间**：用户本地时间、时区和时间格式。
+- **回复标签**：支持提供商的可选回复标签语法。
+- **心跳**：事件驱动的主会话唤醒提示和确认行为，当唤醒运行提供心跳提示时。
+- **运行时**：主机、操作系统、节点、模型、仓库根目录（当检测到时）、思考层级（一行）。
+- **推理**：当前可见性级别 + `/reasoning` 切换提示。
 
 ## 提示词模式
 
-CrawClaw 可以为子智能体渲染更小的系统提示词。运行时为每次运行设置一个 `promptMode`（不是面向用户的配置）：
+CrawClaw 可以为子智能体渲染更小的系统提示词。运行时为每次运行设置 `promptMode`（非用户面向配置）：
 
 - `full`（默认）：包含上述所有部分。
-- `minimal`：用于子智能体；省略 **Skills**、**Memory Recall**、**CrawClaw Self-Update**、**Model Aliases**、**User Identity**、**Reply Tags**、**Messaging**、**Silent Replies** 和旧版 **Heartbeats**。Tooling、**Safety**、Workspace、Sandbox、Current Date & Time（已知时）、Runtime 和注入的上下文仍然可用。
-- `none`：仅返回基本身份行。
+- `minimal`：用于子智能体；省略 **Skills**、**Memory Recall**、**CrawClaw
+  自我更新**、**模型别名**、**用户身份**、**回复标签**、
+  **消息**、**静默回复**和旧版**心跳**。工具、**安全**、上下文保持可用。
+- `none`：仅返回基础身份行。
 
-当 `promptMode=minimal` 时，额外注入的提示词标记为 **Subagent Context** 而不是 **Group Chat Context**。
+当 `promptMode=minimal` 时，额外的注入提示标记为 **Subagent
+Context**（子智能体上下文）而非 **Group Chat Context**（群聊上下文）。
 
 ## 工作区引导注入
 
-引导文件被修剪后附加在 **Project Context** 下。现在普通对话默认只注入一个规范工作区说明文件，避免根目录多份 md 长期挤占上下文：
+引导文件被裁剪并附加在 **Project Context**（项目上下文）下，以便模型看到单个规范的工作区指令文件，而无需显式读取：
 
 - `AGENTS.md`
 
-以下文件不再在普通聊天轮次中默认注入：
+CrawClaw 在普通聊天轮次中不再默认注入这些文件：
 
 - `SOUL.md`
 - `TOOLS.md`
@@ -65,47 +63,44 @@ CrawClaw 可以为子智能体渲染更小的系统提示词。运行时为每�
 - `BOOTSTRAP.md`
 - `MEMORY.md` / `memory.md`
 
-这样默认 bootstrap 只保留单文件，和当前 memory runtime 的职责边界保持一致，不再依赖多份根目录记忆/配置 md 堆上下文。
+这将默认引导集保持为单个文件，并避免每轮在 persona、启动、工具说明、身份、事件唤醒或内存文件上消耗提示词预算。
 
-> **注意：** `memory/*.md` 每日文件不会自动注入。Durable memory recall 会在 prompt assembly 期间选择有界的相关笔记，而不是每轮都把整个 memory 目录塞进上下文。
+> **注意：** `memory/*.md` 每日文件**不会**自动注入。持久记忆召回在提示词组装期间选择有界限的相关笔记，而不是每轮在整个 memory 目录上燃烧上下文。
 
-大文件会带截断标记被截断。每个文件的最大大小由 `agents.defaults.bootstrapMaxChars` 控制（默认：20000）。总注入内容由 `agents.defaults.bootstrapTotalMaxChars` 控制（默认：150000）。缺失的文件会注入一个简短的缺失文件标记。
+大文件会被截断并添加标记。每个文件的最大大小由 `agents.defaults.bootstrapMaxChars` 控制（默认：20000）。所有文件注入的引导内容总量由 `agents.defaults.bootstrapTotalMaxChars` 限制（默认：150000）。缺失文件会注入一个简短的缺失文件标记。当发生截断时，CrawClaw 可以在 Project Context 中注入警告块；通过 `agents.defaults.bootstrapPromptTruncationWarning` 控制此行为（`off`、`once`、`always`；默认：`once`）。
 
-子智能体和 cron 也沿用同样的单文件 bootstrap：`AGENTS.md`。
+子智能体和 cron 会话也保持相同的单文件引导：`AGENTS.md`。
 
-内部钩子可以通过 `agent:bootstrap` 拦截此步骤，在确实需要时再扩展或替换默认注入文件。
+内部钩子可以通过 `agent:bootstrap` 拦截此步骤，以便在工作流真正需要比默认单文件引导更多内容时修改或替换注入的引导文件。
 
-要检查每个注入文件贡献了多少（原始 vs 注入、截断，加上工具 schema 开销），使用 `/context list` 或 `/context detail`。参见[上下文](/concepts/context)。
+要检查每个注入文件的贡献量（原始 vs 注入、截断，加上工具 schema 开销），请使用 `/context list` 或 `/context detail`。请参阅 [Context](/concepts/context)。
+
+## 提示词排序和动态上下文
+
+CrawClaw 在动态系统上下文之前渲染稳定的系统提示词部分。这使得长期存在的提示词前缀更易于缓存，同时仍以相同请求中的系统可见指令形式发送记忆召回、钩子上下文和其他每轮 `system_context` 部分。
+
+动态记忆上下文附加在基础系统提示词之后。该上下文可能每轮都变化，因为持久记忆、经验召回、钩子和路由诊断是查询相关的。将其保留在稳定前缀之后可以避免仅仅因为召回结果变化而使整个提示词前缀失效。
 
 ## 时间处理
 
-当用户时区已知时，系统提示词包含专用的 **Current Date & Time** 部分。为保持提示词缓存稳定，它现在只包含**时区**（没有动态时钟或时间格式）。
+当用户时区已知时，系统提示词包含专用的 **Current Date & Time**（当前日期和时间）部分。为了保持提示词缓存稳定，现在仅包含**时区**（无动态时钟或时间格式）。
 
-当智能体需要当前时间时使用 `session_status`；状态卡片包含时间戳行。
+当智能体需要当前时间时，使用 `session_status`；状态卡片包含时间戳行。
 
 配置方式：
 
 - `agents.defaults.userTimezone`
 - `agents.defaults.timeFormat`（`auto` | `12` | `24`）
 
-完整行为详情参见[日期和时间](/date-time)。
+请参阅 [Date & Time](/date-time) 了解完整行为详情。
 
 ## Skills
 
-当存在符合条件的 Skills 时，CrawClaw 注入一个紧凑的**可用 Skills 列表**（`formatSkillsForPrompt`），其中包含每个 Skill 的**文件路径**。提示词指示模型使用 `read` 加载列出位置（工作区、托管或内置）的 SKILL.md。如果没有符合条件的 Skills，则省略 Skills 部分。
+当存在符合条件的 skills 时，CrawClaw 在 Rust 运行时上下文披露中最多显示五个相关 skill 摘要。每个摘要包含 skill 名称和描述。完整的 `SKILL.md` 内容仅在模型通过运行时 skill 工具显式加载 skill 后添加，且加载的 skill 内容在进入上下文之前有上限。
 
-```
-<available_skills>
-  <skill>
-    <name>...</name>
-    <description>...</description>
-    <location>...</location>
-  </skill>
-</available_skills>
-```
-
-这使基础提示词保持小巧，同时仍然支持有针对性的 Skill 使用。
+这保持了基础提示词的小体积，同时仍能实现有针对性的 skill 使用。
 
 ## 文档
 
-如果可用，系统提示词包含一个 **Documentation** 部分，指向本地 CrawClaw 文档目录（仓库工作区中的 `docs/` 或打包的 npm 包文档），并注明公共镜像、源仓库、社区 QQBot 和 ClawHub (https://clawhub.com) 用于 Skills 发现。提示词指示模型首先查阅本地文档了解 CrawClaw 行为、命令、配置或架构，并尽可能自己运行 `crawclaw status`（仅在无法访问时询问用户）。
+当可用时，系统提示词包含一个 **Documentation**（文档）部分，指向本地 CrawClaw 文档目录（仓库工作区中的 `docs/` 或捆绑的 npm 包文档），并注明公开镜像、源码仓库、社区 community chat 和
+ClawHub（[https://clawhub.com](https://clawhub.com)）以供 skills 发现。提示词指示模型首先查阅本地文档以了解 CrawClaw 行为、命令、配置或架构，并在可能时自己运行 CrawClaw Desktop 或本地 Gateway 网关 API（仅在无法访问时询问用户）。

@@ -32,11 +32,7 @@ CrawClaw 有两个日志"界面"：
 
 文件格式是每行一个 JSON 对象。
 
-Browser client 的 Logs 标签页通过 Gateway 网关（`logs.tail`）尾随此文件。CLI 也可以这样做：
-
-```bash
-crawclaw logs --follow
-```
+CrawClaw Desktop 的 Logs 标签页通过 Gateway API（`logs.tail`）tail 这个文件。自动化场景也可以调用同一个 Gateway API。
 
 **Verbose 与日志级别**
 
@@ -46,7 +42,7 @@ crawclaw logs --follow
 
 ## 控制台捕获
 
-CLI 捕获 `console.log/info/warn/error/debug/trace` 并将它们写入文件日志，同时仍打印到 stdout/stderr。
+Gateway runtime 捕获 `console.log/info/warn/error/debug/trace` 并将它们写入文件日志，同时仍打印到 process stdout/stderr。
 
 你可以独立调整控制台详细程度：
 
@@ -75,7 +71,7 @@ Gateway 网关以两种模式打印 WebSocket 协议日志：
 
 ### WS 日志样式
 
-`crawclaw gateway` 支持每个 Gateway 网关的样式切换：
+CrawClaw Desktop 或本地 Gateway API 支持 per-gateway style switch：
 
 - `--ws-log auto`（默认）：普通模式已优化；详细模式使用紧凑输出
 - `--ws-log compact`：详细时使用紧凑输出（配对的请求/响应）
@@ -84,16 +80,7 @@ Gateway 网关以两种模式打印 WebSocket 协议日志：
 
 示例：
 
-```bash
-# 优化的（仅错误/慢调用）
-crawclaw gateway
-
-# 显示所有 WS 流量（配对）
-crawclaw gateway --verbose --ws-log compact
-
-# 显示所有 WS 流量（完整元数据）
-crawclaw gateway --verbose --ws-log full
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ## 控制台格式化（子系统日志）
 

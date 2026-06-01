@@ -1746,7 +1746,6 @@ CrawClaw uses the built-in model catalog. Add custom providers via `models.provi
 ```
 
 - Use `authHeader: true` + `headers` for custom auth needs.
-- Override agent config root with `CRAWCLAW_AGENT_DIR` (or `PI_CODING_AGENT_DIR`, a legacy environment variable alias).
 - Merge precedence for matching provider IDs:
   - Non-empty agent `models.json` `baseUrl` values win.
   - Non-empty agent `apiKey` values win only when that provider is not SecretRef-managed in current config/auth-profile context.
@@ -1831,7 +1830,7 @@ Use `cerebras/zai-glm-4.7` for Cerebras; `zai/glm-4.7` for Z.AI direct.
 }
 ```
 
-Set `OPENCODE_API_KEY` (or `OPENCODE_ZEN_API_KEY`). Use `opencode/...` refs for the Zen catalog or `opencode-go/...` refs for the Go catalog. Shortcut: CrawClaw Desktop or the local Gateway API or CrawClaw Desktop or the local Gateway API.
+Set `OPENCODE_API_KEY` (or `OPENCODE_ZEN_API_KEY`). Use `opencode/...` refs for the Zen catalog or `opencode-go/...` refs for the Go catalog. Configure through CrawClaw Desktop or the local Gateway API.
 
 </Accordion>
 
@@ -1848,7 +1847,7 @@ Set `OPENCODE_API_KEY` (or `OPENCODE_ZEN_API_KEY`). Use `opencode/...` refs for 
 }
 ```
 
-Set `ZAI_API_KEY`. `z.ai/*` and `z-ai/*` are accepted aliases. Shortcut: CrawClaw Desktop or the local Gateway API.
+Set `ZAI_API_KEY`. `z.ai/*` and `z-ai/*` are accepted aliases. Configure through CrawClaw Desktop or the local Gateway API.
 
 - General endpoint: `https://api.z.ai/api/paas/v4`
 - Coding endpoint (default): `https://api.z.ai/api/coding/paas/v4`
@@ -1909,7 +1908,7 @@ For the China endpoint: `baseUrl: "https://api.moonshot.cn/v1"` or CrawClaw Desk
 }
 ```
 
-Anthropic-compatible, built-in provider. Shortcut: CrawClaw Desktop or the local Gateway API.
+Anthropic-compatible, built-in provider. Configure through CrawClaw Desktop or the local Gateway API.
 
 </Accordion>
 
@@ -1948,7 +1947,7 @@ Anthropic-compatible, built-in provider. Shortcut: CrawClaw Desktop or the local
 }
 ```
 
-Base URL should omit `/v1` (Anthropic client appends it). Shortcut: CrawClaw Desktop or the local Gateway API.
+Base URL should omit `/v1` (Anthropic client appends it). Configure through CrawClaw Desktop or the local Gateway API.
 
 </Accordion>
 
@@ -1988,7 +1987,7 @@ Base URL should omit `/v1` (Anthropic client appends it). Shortcut: CrawClaw Des
 }
 ```
 
-Set `MINIMAX_API_KEY`. Shortcut: CrawClaw Desktop or the local Gateway API.
+Set `MINIMAX_API_KEY`. Configure through CrawClaw Desktop or the local Gateway API.
 The model catalog now defaults to M2.7 only.
 
 </Accordion>
@@ -2211,10 +2210,10 @@ Run multiple gateways on one host with unique ports and state dirs:
 ```bash
 CRAWCLAW_CONFIG_PATH=~/.crawclaw/a.json \
 CRAWCLAW_STATE_DIR=~/.crawclaw-a \
-# Use CrawClaw Desktop or the local Gateway API for this operation.
+cargo run -q -p crawclaw-gateway -- --bind loopback --port 18789
 ```
 
-Convenience flags: `--dev` (uses `~/.crawclaw-dev` + port `19001`), `--profile <name>` (uses `~/.crawclaw-<name>`).
+For local development, set `CRAWCLAW_STATE_DIR` and `--port` explicitly for each instance.
 
 See [Multiple Gateways](/gateway/multiple-gateways).
 
@@ -2358,7 +2357,7 @@ Auth: `Authorization: Bearer <token>` or `x-crawclaw-token: <token>`.
 
 Writes a unicast DNS-SD zone under `~/.crawclaw/dns/`. For cross-network discovery, pair with a DNS server (CoreDNS recommended) + Tailscale split DNS.
 
-Setup: CrawClaw Desktop or the local Gateway API.
+Setup: use CrawClaw Desktop or the local Gateway API.
 
 ---
 

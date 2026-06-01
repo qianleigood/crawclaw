@@ -52,6 +52,18 @@ Use `models.providers` in config for custom providers:
 The Rust schema validates the provider entry shape, SecretRef handling,
 transport adapter enum, and model entry fields.
 
+`contextWindow` and `maxTokens` are used by the Rust runtime when it compiles
+the next provider context. The selected provider/model is resolved before
+context assembly, then CrawClaw subtracts output reserve, provider overhead, and
+active tool schema estimates to compute the effective prompt budget.
+
+Provider model capabilities should be declared as model metadata instead of
+hardcoded in core paths. `reasoning: false` disables reasoning effort controls
+for that model, `input: ["text"]` causes image blocks to be omitted, and
+`compat.supportsTools: false` withholds tool schemas for a turn. The same model
+metadata also drives desktop `contextSummary` capability fields so users can see
+why a request was downgraded.
+
 Provider transport strings are config contract values only. The runtime parses
 them into a typed transport enum and dispatches through Rust transport adapters,
 so new built-in providers should extend the registry and adapter table instead

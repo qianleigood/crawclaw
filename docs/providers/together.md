@@ -18,9 +18,7 @@ The [Together AI](https://together.ai) provides access to leading open-source mo
 
 1. Set the API key (recommended: store it for the Gateway):
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 2. Set a default model:
 
@@ -36,9 +34,7 @@ The [Together AI](https://together.ai) provides access to leading open-source mo
 
 ## Non-interactive example
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 This will set `together/moonshotai/Kimi-K2.5` as the default model.
 

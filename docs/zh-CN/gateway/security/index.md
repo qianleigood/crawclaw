@@ -472,7 +472,7 @@ Doctor 可以为你生成一个：`crawclaw doctor --generate-gateway-token`。
 
 - 保持工具摘要脱敏开启（`logging.redactSensitive: "tools"`；默认）。
 - 通过 `logging.redactPatterns` 为你的环境添加自定义模式（令牌、主机名、内部 URL）。
-- 共享诊断信息时，优先使用 `crawclaw status --all`（可粘贴，秘密已脱敏）而不是原始日志。
+- 共享诊断信息时，优先使用 CrawClaw Desktop 或本地 Gateway API 生成的脱敏诊断报告，而不是原始日志。
 - 如果你不需要长期保留，清理旧的会话记录和日志文件。
 
 详情：[日志记录](/gateway/logging)
@@ -698,7 +698,7 @@ Doctor 可以为你生成一个：`crawclaw doctor --generate-gateway-token`。
 
 ### 遏制
 
-1. **停止它：** 终止你的 `crawclaw gateway` 进程。
+1. **停止它：** 终止 Gateway 网关进程。
 2. **关闭暴露：** 设置 `gateway.bind: "loopback"`（或禁用 Tailscale Funnel/Serve）直到你了解发生了什么。
 3. **冻结访问：** 将有风险的私信/群组切换到 `dmPolicy: "disabled"` / 要求提及，并移除你可能有的 `"*"` 允许所有条目。
 

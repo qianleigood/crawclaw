@@ -120,6 +120,22 @@
       "destination": "/concepts/context"
     },
     {
+      "source": "/pi",
+      "destination": "/reference/rust-agent-runtime"
+    },
+    {
+      "source": "/zh-CN/pi",
+      "destination": "/zh-CN/reference/rust-agent-runtime"
+    },
+    {
+      "source": "/pi-dev",
+      "destination": "/reference/agent-runtime-development"
+    },
+    {
+      "source": "/zh-CN/pi-dev",
+      "destination": "/zh-CN/reference/agent-runtime-development"
+    },
+    {
       "source": "/compaction",
       "destination": "/concepts/compaction"
     },
@@ -1086,7 +1102,7 @@
               {
                 "group": "Technical reference",
                 "pages": [
-                  "pi",
+                  "reference/rust-agent-runtime",
                   "reference/n8n-workflow-architecture",
                   "reference/token-use",
                   "reference/secretref-credential-surface",
@@ -1150,7 +1166,7 @@
               },
               {
                 "group": "Developer setup",
-                "pages": ["start/setup", "pi-dev"]
+                "pages": ["start/setup", "reference/agent-runtime-development"]
               },
               {
                 "group": "Contributing",
@@ -1246,7 +1262,7 @@
               {
                 "group": "基础",
                 "pages": [
-                  "zh-CN/pi",
+                  "zh-CN/reference/rust-agent-runtime",
                   "zh-CN/concepts/architecture",
                   "zh-CN/concepts/agent",
                   "zh-CN/concepts/agent-loop",
@@ -1549,7 +1565,7 @@
               },
               {
                 "group": "开发者设置",
-                "pages": ["zh-CN/start/setup", "zh-CN/pi-dev"]
+                "pages": ["zh-CN/start/setup", "zh-CN/reference/agent-runtime-development"]
               },
               {
                 "group": "文档元信息",

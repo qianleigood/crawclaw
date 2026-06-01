@@ -139,27 +139,19 @@ plugins should use the Rust-native channel plugin contract.
 
 **External plugins:** publish to [ClawHub](/tools/clawhub) or npm, then install:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 CrawClaw tries ClawHub first and falls back to npm automatically. You can also
 force a specific source:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 **In-repo plugins:** place under the bundled plugin workspace tree and they are automatically
 discovered during build.
 
 **Users can browse and install:**
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 <Info>
   For npm-sourced installs, CrawClaw Desktop or the local Gateway API runs

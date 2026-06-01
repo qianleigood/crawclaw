@@ -27,9 +27,7 @@ x-i18n:
 
 1. 设置 API key（推荐：为 Gateway 网关持久保存它）：
 
-```bash
-crawclaw onboard --auth-choice ai-gateway-api-key
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 2. 设置默认模型：
 
@@ -45,12 +43,7 @@ crawclaw onboard --auth-choice ai-gateway-api-key
 
 ## 非交互式示例
 
-```bash
-crawclaw onboard --non-interactive \
-  --mode local \
-  --auth-choice ai-gateway-api-key \
-  --ai-gateway-api-key "$AI_GATEWAY_API_KEY"
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ## 环境说明
 

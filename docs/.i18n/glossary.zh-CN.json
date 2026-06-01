@@ -12,6 +12,14 @@
     "target": "Desktop"
   },
   {
+    "source": "Desktop install",
+    "target": "Desktop 安装"
+  },
+  {
+    "source": "Desktop Onboarding",
+    "target": "Desktop 新手引导"
+  },
+  {
     "source": "Windows",
     "target": "Windows"
   },
@@ -30,6 +38,14 @@
   {
     "source": "Gateway protocol schemas",
     "target": "Gateway 协议 schemas"
+  },
+  {
+    "source": "Gateway protocol",
+    "target": "Gateway 协议"
+  },
+  {
+    "source": "Gateway troubleshooting",
+    "target": "Gateway 故障排除"
   },
   {
     "source": "TypeBox helper schemas",
@@ -70,6 +86,10 @@
   {
     "source": "Getting started",
     "target": "入门指南"
+  },
+  {
+    "source": "Onboarding overview",
+    "target": "新手引导概览"
   },
   {
     "source": "Quick start",

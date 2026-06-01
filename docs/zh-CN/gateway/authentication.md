@@ -32,12 +32,13 @@ CrawClaw 支持模型提供商使用 OAuth 和 API key。对于始终在线的 G
 订阅 setup-token 认证。
 
 1. 在你的提供商控制台中创建一个 API key。
-2. 将它放在 **Gateway 网关主机** 上（运行 `crawclaw gateway` 的机器）。
+2. 将它放在 **Gateway 网关主机** 上（运行 CrawClaw Desktop 或本地 Gateway API 的机器）。
 
 ```bash
 export <PROVIDER>_API_KEY="..."
-crawclaw models status
 ```
+
+导出变量后重启 CrawClaw Desktop 或 Gateway 进程，让 runtime 读取新的环境变量。
 
 3. 如果 Gateway 通过 systemd/launchd 运行，建议将 key 放入
    `~/.crawclaw/.env`，这样守护进程就可以读取它：
@@ -50,13 +51,10 @@ EOF
 
 然后重启守护进程（或重启你的 Gateway 网关进程）并重新检查：
 
-```bash
-crawclaw models status
-crawclaw doctor
-```
+使用 CrawClaw Desktop 进行交互式检查，或调用本地 Gateway API 进行自动化检查。
 
 如果你不想自己管理环境变量，设置向导可以为守护进程使用场景存储
-API key：`crawclaw onboard`。
+API key：CrawClaw Desktop 或本地 Gateway API。
 
 有关环境继承（`env.shellEnv`、
 `~/.crawclaw/.env`、systemd/launchd）的详细信息，请参阅 [Help](/help)。
@@ -70,17 +68,9 @@ API key：`crawclaw onboard`。
 claude setup-token
 ```
 
-然后将它粘贴到 CrawClaw 中：
+然后通过 CrawClaw Desktop 或本地 Gateway API 将它粘贴到 CrawClaw 中。
 
-```bash
-crawclaw models auth setup-token --provider anthropic
-```
-
-如果 token 是在另一台机器上创建的，请手动粘贴：
-
-```bash
-crawclaw models auth paste-token --provider anthropic
-```
+如果 token 是在另一台机器上创建的，也使用 Desktop 或 Gateway API 手动粘贴。
 
 如果你看到类似这样的 Anthropic 错误：
 
@@ -96,35 +86,22 @@ Claude Code 之外的某些订阅用法。只有在你认为相关策略风险�
 并请你自行核实 Anthropic 当前的条款。
 </Warning>
 
-手动输入 token（任意提供商；会写入 `auth-profiles.json` + 更新配置）：
-
-```bash
-crawclaw models auth paste-token --provider anthropic
-crawclaw models auth paste-token --provider openrouter
-```
+手动输入 token（任意提供商；会写入 `auth-profiles.json` + 更新配置）：使用 CrawClaw Desktop 或本地 Gateway API。
 
 静态凭证也支持凭证配置文件引用：
 
 - `api_key` 凭证可以使用 `keyRef: { source, provider, id }`
 - `token` 凭证可以使用 `tokenRef: { source, provider, id }`
 
-适合自动化的检查（已过期/缺失时退出码为 `1`，即将过期时为 `2`）：
+适合自动化的检查：使用 CrawClaw Desktop 或本地 Gateway API 读取 provider/auth 状态。
 
-```bash
-crawclaw models status --check
-```
-
-可选的运维脚本（systemd/Termux）记录在这里：
-[/automation/auth-monitoring](/automation/auth-monitoring)
+可选的运维脚本（systemd/Termux）记录在这里：[Auth monitoring scripts](/help/scripts#auth-monitoring-scripts)。
 
 > `claude setup-token` 需要交互式 TTY。
 
 ## 检查模型认证状态
 
-```bash
-crawclaw models status
-crawclaw doctor
-```
+使用 CrawClaw Desktop 或本地 Gateway API 检查模型认证状态和 doctor 诊断。
 
 ## API key 轮换行为（Gateway 网关）
 
@@ -150,17 +127,11 @@ crawclaw doctor
 
 使用 `/model`（或 `/model list`）查看紧凑选择器；使用 `/model status` 查看完整视图（候选项 + 下一个凭证配置文件，以及在已配置时显示提供商端点详情）。
 
-### 每个智能体（CLI 覆盖）
+### 每个智能体
 
 为智能体设置显式的凭证配置文件顺序覆盖（存储在该智能体的 `auth-profiles.json` 中）：
 
-```bash
-crawclaw models auth order get --provider anthropic
-crawclaw models auth order set --provider anthropic anthropic:default
-crawclaw models auth order clear --provider anthropic
-```
-
-使用 `--agent <id>` 指定特定智能体；省略它则使用已配置的默认智能体。
+使用 CrawClaw Desktop 或本地 Gateway API。选择目标 agent 时使用对应 agent id；未指定时使用已配置的默认 agent。
 
 ## 故障排除
 
@@ -169,14 +140,11 @@ crawclaw models auth order clear --provider anthropic
 如果缺少 Anthropic token 配置文件，请在
 **Gateway 网关主机** 上运行 `claude setup-token`，然后重新检查：
 
-```bash
-crawclaw models status
-```
+使用 CrawClaw Desktop 或本地 Gateway API 重新检查。
 
 ### Token 即将过期/已过期
 
-运行 `crawclaw models status` 以确认哪个配置文件即将过期。如果该配置文件
-缺失，请重新运行 `claude setup-token` 并再次粘贴 token。
+使用 CrawClaw Desktop 或本地 Gateway API 确认哪个配置文件即将过期。如果该配置文件缺失，请重新运行 `claude setup-token` 并再次粘贴 token。
 
 ## 要求
 

@@ -85,11 +85,9 @@ sudo journalctl -u crawclaw -f
 
 # 重启 Gateway 网关
 sudo systemctl restart crawclaw
-
-# 提供商登录（以 crawclaw 用户运行）
-sudo -i -u crawclaw
-crawclaw channels login
 ```
+
+提供商设置通过 CrawClaw Desktop 或本地 Gateway API 以 `crawclaw` 服务账户完成。
 
 ## 安全架构
 
@@ -192,12 +190,7 @@ sudo -u crawclaw ./scripts/sandbox-setup.sh
 
 ### 提供商登录失败
 
-确保你以 `crawclaw` 用户运行：
-
-```bash
-sudo -i -u crawclaw
-crawclaw channels login
-```
+确保你通过 CrawClaw Desktop 或本地 Gateway API 以 `crawclaw` 服务账户完成 provider/channel 设置。
 
 ## 高级配置
 

@@ -32,23 +32,13 @@ Use this page for day-1 startup and day-2 operations of the local Rust Gateway r
 <Steps>
   <Step title="Start the Gateway">
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# debug/trace mirrored to stdio
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# force-kill listener on selected port, then start
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
   </Step>
 
   <Step title="Verify service health">
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Healthy baseline: `Runtime: running` and `RPC probe: ok`.
 
@@ -56,9 +46,7 @@ Healthy baseline: `Runtime: running` and `RPC probe: ok`.
 
   <Step title="Validate channel readiness">
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
   </Step>
 </Steps>
@@ -110,17 +98,7 @@ All of these run on the main Gateway port and use the same trusted operator auth
 
 ## Operator command set
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Remote access
 
@@ -170,11 +148,7 @@ See: [Multiple gateways](/gateway/multiple-gateways).
 
 ### Dev profile quick path
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Defaults include isolated state/config and base gateway port `19001`.
 
@@ -201,11 +175,7 @@ See full protocol docs: [Gateway Protocol](/gateway/protocol).
 
 ### Readiness
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### Gap recovery
 

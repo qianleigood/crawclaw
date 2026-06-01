@@ -20,9 +20,7 @@ Ollama is a local LLM runtime that makes it easy to run open-source models on yo
 
 The fastest way to set up Ollama is through onboarding:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Select **Ollama** from the provider list. Onboarding will:
 
@@ -34,15 +32,11 @@ Select **Ollama** from the provider list. Onboarding will:
 
 Non-interactive mode is also supported:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Optionally specify a custom base URL or model:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### Manual setup
 
@@ -66,9 +60,7 @@ ollama signin
 
 4. Run onboarding and choose `Ollama`:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 - `Local`: local models only
 - `Cloud + Local`: local models plus cloud models
@@ -84,17 +76,13 @@ CrawClaw currently suggests:
 ```bash
 # Set environment variable
 export OLLAMA_API_KEY="ollama-local"
-
-# Or configure in your config file
-# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
+
+Or configure the provider through CrawClaw Desktop or the local Gateway API.
 
 6. Inspect or switch models:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 7. Or set the default in config:
 
@@ -116,8 +104,9 @@ To see what models are available:
 
 ```bash
 ollama list
-# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
+
+Then add the model through CrawClaw Desktop, the local Gateway API, or config.
 
 To add a new model, simply pull it with Ollama:
 

@@ -57,9 +57,7 @@ export VENICE_API_KEY="vapi_xxxxxxxxxxxx"
 
 **Option B: Interactive Setup (Recommended)**
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 This will:
 
@@ -70,15 +68,11 @@ This will:
 
 **Option C: Non-interactive**
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### 3. Verify Setup
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Model Selection
 
@@ -91,16 +85,11 @@ After setup, CrawClaw shows all available Venice models. Pick based on your need
 
 Change your default model anytime:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 List all available models:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Configure via CrawClaw Desktop or the local Gateway API
 
@@ -206,22 +195,7 @@ Venice uses a credit-based system. Check [venice.ai/pricing](https://venice.ai/p
 
 ## Usage Examples
 
-```bash
-# Use the default private model
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Use Claude Opus via Venice (anonymized)
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Use uncensored model
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Use vision model with image
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Use coding model
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Troubleshooting
 
@@ -229,7 +203,6 @@ Venice uses a credit-based system. Check [venice.ai/pricing](https://venice.ai/p
 
 ```bash
 echo $VENICE_API_KEY
-# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Ensure the key starts with `vapi_`.

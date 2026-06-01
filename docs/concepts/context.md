@@ -89,9 +89,16 @@ Everything the model receives counts, including:
 ## Effective context budget
 
 CrawClaw does not treat the advertised context window as fully available for
-prompt text. For each run it resolves an effective model window from provider
-or model metadata, `models.providers.*.models[].contextWindow`, and the global
-`agents.defaults.contextTokens` cap.
+prompt text. For each run it resolves the current provider and model before
+building provider context. The model window is resolved in this order:
+
+1. `models.providers.<provider>.models[].contextWindow` and `maxTokens`.
+2. Bundled provider model limit metadata.
+3. A conservative fallback window.
+
+`agents.defaults.contextTokens` is an optional cap on the resolved model window.
+When that cap is omitted, a 200k or 1M-window model is not reduced to the
+fallback 128k window.
 
 That window is split into a stable input budget:
 
@@ -101,6 +108,20 @@ That window is split into a stable input budget:
 - Tool schema reserve: estimated size of the active tool definitions.
 - Usable input: the remaining budget for system prompt sections, structured
   context, and the current user prompt.
+
+The runtime surfaces the decision in `contextSummary.budget`, including
+`provider`, `model`, `modelContextWindow`, `resolvedContextWindow`,
+`maxPromptTokens`, `outputReserveTokens`, `providerOverheadTokens`,
+`toolSchemaTokens`, capability flags, and `budgetSource`. The same
+`outputReserveTokens` value is sent to the native provider transport as the
+request output limit when that transport supports an equivalent field.
+
+Model capabilities also affect the compiled context. If the selected model does
+not support tool calling, CrawClaw withholds tool schemas and reports the tools
+as deferred for that turn. If it does not support reasoning effort controls, the
+requested reasoning level is not sent to the provider. If it only supports text
+input, image blocks are replaced with an omission marker before the provider
+request is built.
 
 The budget strategy is not retuned on every message. Normal turns only run a
 deterministic compile step against the current model, config, and tool schema.
@@ -121,12 +142,23 @@ memory and experience recall. This still has hard caps, so large-window models
 do not cause CrawClaw to send unlimited context.
 
 Provider turns also project large tool results before they enter the next model
-request. The provider sees a preview plus an explicit omission reason, while the
-session transcript keeps the original tool output on disk. The run
+request. The per-result threshold scales with the effective prompt budget and
+keeps hard minimum and maximum bounds, so small-window models avoid oversized
+tool results while large-window models can retain more useful output. The
+provider sees a preview plus an explicit omission reason. Very large tool
+results are also persisted under the runtime session storage and the provider
+preview includes the saved path, so a later turn can recover the full output
+without keeping it in prompt context. The session transcript keeps the original
+tool output on disk. The run
 `contextSummary` includes the projected history token estimate, deferred tool
 count, loaded skill count, memory snippet count, compaction status, projected
-tool result count, omitted character count, and a human-readable projection
-reason.
+tool result count, persisted tool result count, omitted character count, and a
+human-readable projection reason.
+
+When an un-compacted transcript would exceed the prompt budget, CrawClaw keeps a
+safe tail and adds a deterministic "Earlier conversation omitted for context
+budget" summary section. This is separate from session compaction; it protects a
+single provider turn without rewriting the stored transcript.
 
 ## How CrawClaw builds the system prompt
 

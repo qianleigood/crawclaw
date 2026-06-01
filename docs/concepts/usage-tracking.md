@@ -18,8 +18,8 @@ title: "Usage Tracking"
 - `/status` in chats: emoji‑rich status card with session tokens + estimated cost (API key only). Provider usage shows for the **current model provider** when available.
 - `/usage off|tokens|full` in chats: per-response usage footer (OAuth shows tokens only).
 - `/usage cost` in chats: local cost summary aggregated from CrawClaw session logs.
-- CLI: CrawClaw Desktop or the local Gateway API prints a full per-provider breakdown.
-- CLI: CrawClaw Desktop or the local Gateway API prints the same usage snapshot alongside provider config (use `--no-usage` to skip).
+- CrawClaw Desktop and the local Gateway API expose the full per-provider usage breakdown.
+- Model/provider status surfaces include the same usage snapshot alongside provider config when available.
 - macOS menu bar: “Usage” section under Context (only if available).
 
 ## Providers + credentials

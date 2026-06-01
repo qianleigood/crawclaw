@@ -250,6 +250,7 @@ pub struct NativeProviderRequestOptions {
     pub tools: Vec<NativeProviderTool>,
     pub reasoning_level: Option<String>,
     pub system_prompt: Option<String>,
+    pub max_output_tokens: Option<usize>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -899,7 +900,7 @@ fn anthropic_messages_request(
     )?;
     let mut body = json!({
         "model": required(&config.model, "model")?,
-        "max_tokens": 1024,
+        "max_tokens": options.max_output_tokens.unwrap_or(1024),
         "messages": native_messages_for_anthropic(messages),
     });
     if let Some(system_prompt) = normalized_system_prompt(options) {
@@ -1730,6 +1731,9 @@ fn apply_openai_responses_options(body: &mut Value, options: &NativeProviderRequ
     if options.stream {
         body["stream"] = Value::Bool(true);
     }
+    if let Some(max_output_tokens) = positive_max_output_tokens(options) {
+        body["max_output_tokens"] = json!(max_output_tokens);
+    }
     if let Some(level) = options.reasoning_level.as_deref() {
         if body
             .get("model")
@@ -1752,6 +1756,9 @@ fn is_openai_responses_reasoning_model(model_id: &str) -> bool {
 }
 
 fn apply_chat_completions_options(body: &mut Value, options: &NativeProviderRequestOptions) {
+    if let Some(max_output_tokens) = positive_max_output_tokens(options) {
+        body["max_tokens"] = json!(max_output_tokens);
+    }
     if !options.tools.is_empty() {
         body["tools"] = Value::Array(options.tools.iter().map(openai_chat_tool).collect());
         body["tool_choice"] = Value::String("auto".to_string());
@@ -1769,6 +1776,14 @@ fn apply_anthropic_options(body: &mut Value, options: &NativeProviderRequestOpti
 }
 
 fn apply_google_options(body: &mut Value, options: &NativeProviderRequestOptions) {
+    if let Some(max_output_tokens) = positive_max_output_tokens(options) {
+        let generation_config = body
+            .as_object_mut()
+            .expect("google request body object")
+            .entry("generationConfig")
+            .or_insert_with(|| json!({}));
+        generation_config["maxOutputTokens"] = json!(max_output_tokens);
+    }
     if !options.tools.is_empty() {
         body["tools"] = json!([{
             "functionDeclarations": options.tools.iter().map(google_tool).collect::<Vec<_>>()
@@ -1777,17 +1792,37 @@ fn apply_google_options(body: &mut Value, options: &NativeProviderRequestOptions
 }
 
 fn apply_ollama_options(body: &mut Value, options: &NativeProviderRequestOptions) {
+    if let Some(max_output_tokens) = positive_max_output_tokens(options) {
+        let ollama_options = body
+            .as_object_mut()
+            .expect("ollama request body object")
+            .entry("options")
+            .or_insert_with(|| json!({}));
+        ollama_options["num_predict"] = json!(max_output_tokens);
+    }
     if !options.tools.is_empty() {
         body["tools"] = Value::Array(options.tools.iter().map(openai_chat_tool).collect());
     }
 }
 
 fn apply_bedrock_options(body: &mut Value, options: &NativeProviderRequestOptions) {
+    if let Some(max_output_tokens) = positive_max_output_tokens(options) {
+        let inference_config = body
+            .as_object_mut()
+            .expect("bedrock request body object")
+            .entry("inferenceConfig")
+            .or_insert_with(|| json!({}));
+        inference_config["maxTokens"] = json!(max_output_tokens);
+    }
     if !options.tools.is_empty() {
         body["toolConfig"] = json!({
             "tools": options.tools.iter().map(bedrock_tool).collect::<Vec<_>>()
         });
     }
+}
+
+fn positive_max_output_tokens(options: &NativeProviderRequestOptions) -> Option<usize> {
+    options.max_output_tokens.filter(|value| *value > 0)
 }
 
 fn openai_responses_tool(tool: &NativeProviderTool) -> Value {

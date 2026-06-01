@@ -33,8 +33,8 @@ or VM and keep sensitive paths out of that environment.
 }
 ```
 
-CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, or CrawClaw Desktop or the local Gateway API will create the
-workspace and seed the bootstrap files if they are missing.
+CrawClaw Desktop and the local Gateway API create the workspace and seed the
+bootstrap files if they are missing.
 aliases that resolve outside the source workspace are ignored.
 
 If you already manage the workspace files yourself, you can disable bootstrap

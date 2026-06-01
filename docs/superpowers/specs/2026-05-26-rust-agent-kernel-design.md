@@ -439,7 +439,7 @@ clone. The shipped contract focuses on equivalent runtime behavior:
 
 - `AgentRunResult` includes the actual `contextSummary` used by the provider call.
 - Runtime events include `contextProjected` and `providerBlock` so gateway and desktop clients can follow the agent loop without raw provider payload inspection.
-- Pi agent backend loop events are converted into the same runtime event stream for provider blocks, tool calls, tool progress, and completed tool execution.
+- Rust agent backend loop events are converted into the same runtime event stream for provider blocks, tool calls, tool progress, and completed tool execution.
 - `AgentRuntimeContextSummary` includes an agent definition id, projection counts, budget state, loaded skills, memory snippets, activated tools, warnings, and stable compaction cursors.
 - Normal, BTW, and sub-agent turns receive Rust-owned prompt catalog entries. Special agents continue to use their typed definitions.
 - `ToolExecutionRuntime` and `execute_rust_core_tool_for_profile` enforce the same special-only tool guard while allowing matching special-agent profiles to execute memory/session-summary tools.

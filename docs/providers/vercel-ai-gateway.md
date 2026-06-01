@@ -20,9 +20,7 @@ The [Vercel AI Gateway](https://vercel.com/ai-gateway) provides a unified API to
 
 1. Set the API key (recommended: store it for the Gateway):
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 2. Set a default model:
 
@@ -38,9 +36,7 @@ The [Vercel AI Gateway](https://vercel.com/ai-gateway) provides a unified API to
 
 ## Non-interactive example
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Environment note
 

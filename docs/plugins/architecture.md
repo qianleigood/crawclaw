@@ -623,10 +623,9 @@ Why:
 
 - Runtime account resolution is the runtime path. It is allowed to assume credentials
   are fully materialized and can fail fast when required secrets are missing.
-- Read-only command paths such as CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API,
-  CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, and doctor/config
-  repair flows should not need to materialize runtime credentials just to
-  describe configuration.
+- Read-only surfaces such as CrawClaw Desktop, Gateway API inspection,
+  status-family views, and doctor/config repair flows should not need to
+  materialize runtime credentials just to describe configuration.
 
 Recommended `inspectAccount(...)` behavior:
 

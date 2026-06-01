@@ -105,12 +105,7 @@ tailscale status
 
 ## 5) 安装 CrawClaw
 
-```bash
-curl -fsSL https://crawclaw.ai/install.sh | bash
-source ~/.bashrc
-```
-
-当提示"How do you want to hatch your bot?"时，选择 **"Do this later"**。
+安装你要在该 host 上运行的 CrawClaw runtime，然后通过 CrawClaw Desktop 或本地 Gateway API 验证 Gateway 状态。
 
 > 注意：如果你遇到 ARM 原生构建问题，在使用 Homebrew 之前先从系统包开始（例如 `sudo apt install -y build-essential`）。
 
@@ -118,27 +113,15 @@ source ~/.bashrc
 
 使用令牌认证作为默认值。它是可预测的，避免需要任何"不安全认证"的Gateway 客户端 标志。
 
+通过 CrawClaw Desktop 或本地 Gateway API 配置 `gateway.bind: "loopback"`、`gateway.auth.mode: "token"` 和 `gateway.tailscale.mode: "serve"`，然后重启：
+
 ```bash
-# 在 VM 上保持 Gateway 网关私有
-crawclaw config set gateway.bind loopback
-
-# 要求 Gateway 网关 + Gateway 客户端 的认证
-crawclaw config set gateway.auth.mode token
-crawclaw doctor --generate-gateway-token
-
-# 通过 Tailscale Serve 暴露（HTTPS + tailnet 访问）
-crawclaw config set gateway.tailscale.mode serve
-crawclaw config set gateway.trustedProxies '["127.0.0.1"]'
-
 systemctl --user restart crawclaw-gateway
 ```
 
 ## 7) 验证
 
 ```bash
-# 检查版本
-crawclaw --version
-
 # 检查守护进程状态
 systemctl --user status crawclaw-gateway
 
@@ -256,8 +239,6 @@ sudo tailscale up --ssh --hostname=crawclaw --reset
 ### Gateway 网关无法启动
 
 ```bash
-crawclaw gateway status
-crawclaw doctor --non-interactive
 journalctl --user -u crawclaw-gateway -n 50
 ```
 

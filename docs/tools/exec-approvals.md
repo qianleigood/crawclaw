@@ -14,7 +14,7 @@ Effective policy is the **stricter** of `tools.exec.*` and approvals defaults; i
 Host exec also uses the local approvals state on that machine. A host-local
 `ask: "always"` in `~/.crawclaw/exec-approvals.json` keeps prompting even if
 session or config defaults request `ask: "on-miss"`.
-Use CrawClaw Desktop or the local Gateway API or CrawClaw Desktop or the local Gateway API to inspect the requested
+Use CrawClaw Desktop or the local Gateway API to inspect the requested
 policy, host policy sources, and the effective result.
 
 If no approval UI is available, any request that requires a prompt is
@@ -100,26 +100,19 @@ or `deny`.
 
 Persistent gateway-host "never prompt" setup:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Then set the host approvals file to match:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
+```json5
 {
   version: 1,
   defaults: {
     security: "full",
     ask: "off",
-    askFallback: "full"
-  }
+    askFallback: "full",
+  },
 }
-EOF
 ```
 
 Session-only shortcut:

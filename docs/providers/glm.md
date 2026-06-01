@@ -13,19 +13,7 @@ models are accessed via the `zai` provider and model IDs like `zai/glm-5`.
 
 ## Desktop setup
 
-```bash
-# Coding Plan Global, recommended for Coding Plan users
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Coding Plan CN (China region), recommended for Coding Plan users
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# General API
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# General API CN (China region)
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Config snippet
 

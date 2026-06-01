@@ -25,12 +25,6 @@ x-i18n:
 
 使用 [Model Studio](/providers/modelstudio) 获取官方支持的 Qwen 模型访问（Qwen 3.5 Plus、GLM-4.7、Kimi K2.5、MiniMax M2.5 等）。
 
-```bash
-# 全球端点
-crawclaw onboard --auth-choice modelstudio-api-key
-
-# 中国端点
-crawclaw onboard --auth-choice modelstudio-api-key-cn
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 完整设置详情请参见 [Model Studio](/providers/modelstudio)。

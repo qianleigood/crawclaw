@@ -21,37 +21,23 @@ x-i18n:
 
 最快的更新方式是通过 CrawClaw Desktop。它会获取最新的应用包并在需要时重启嵌入式 Gateway。
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 要切换渠道或指定特定版本：
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 请参阅[自动更新程序](#auto-updater)了解渠道语义。
 
 ## 备选：重新运行安装程序
 
-```bash
-# Install CrawClaw Desktop from GitHub Releases.
-```
+从 [GitHub Releases](https://github.com/qianleigood/crawclaw/releases) 安装当前 CrawClaw Desktop release asset。
 
 CrawClaw Desktop 负责支持的更新和入门引导流程。已弃用的公共 CLI 入门引导流程的源代码安装程序标志不再提供文档。
 
 ## 备选：手动 npm 或 pnpm
 
-```bash
-# Install CrawClaw Desktop from GitHub Releases.
-```
-
-```bash
-# Install CrawClaw Desktop from GitHub Releases.
-```
+旧的全局 npm/pnpm 安装应迁移到 desktop package。安装桌面应用后再移除旧的全局包。
 
 ## 自动更新程序
 
@@ -85,23 +71,17 @@ Gateway 还会在启动时记录更新提示（使用 `update.checkOnStart: fals
 
 ### 运行 Doctor
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 迁移配置、审计私信策略并检查 Gateway 健康状态。详情：[Doctor](/gateway/doctor)
 
 ### 重启 Gateway
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 ### 验证
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 </Steps>
 
@@ -109,11 +89,7 @@ Gateway 还会在启动时记录更新提示（使用 `update.checkOnStart: fals
 
 ### 固定版本（npm）
 
-```bash
-Install the matching CrawClaw Desktop release asset
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+安装你要运行版本对应的 CrawClaw Desktop release asset。
 
 提示：`npm view crawclaw version` 显示当前发布的版本。
 
@@ -123,8 +99,9 @@ Install the matching CrawClaw Desktop release asset
 git fetch origin
 git checkout "$(git rev-list -n 1 --before=\"2026-01-01\" origin/main)"
 pnpm install && pnpm build
-# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
+
+从该 checkout 启动 CrawClaw Desktop，或从同一源码树运行本地 Gateway API target。
 
 返回最新版本：`git checkout main && git pull`。
 

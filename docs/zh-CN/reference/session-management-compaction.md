@@ -178,9 +178,9 @@ CrawClaw 有意**不**"修复"记录；Gateway 网关使用 `SessionManager` 来
 
 ---
 
-## 自动压缩何时发生（Pi 运行时）
+## 自动压缩何时发生（Rust 运行时）
 
-在嵌入式 Pi 智能体中，自动压缩在两种情况下触发：
+在 Rust agent runtime 中，自动压缩在两种情况下触发：
 
 1. **溢出恢复**：模型返回上下文溢出错误 → 压缩 → 重试。
 2. **阈值维护**：在成功的回合后，当：
@@ -192,13 +192,13 @@ CrawClaw 有意**不**"修复"记录；Gateway 网关使用 `SessionManager` 来
 - `contextWindow` 是模型的上下文窗口
 - `reserveTokens` 是为提示 + 下一个模型输出保留的空间
 
-这些是 Pi 运行时语义（CrawClaw 消费事件，但 Pi 决定何时压缩）。
+这些是 Rust runtime 语义；CrawClaw 在 runtime context assembly 中应用有效的压缩设置。
 
 ---
 
 ## 压缩设置（`reserveTokens`、`keepRecentTokens`）
 
-Pi 的压缩设置位于 Pi 设置中：
+CrawClaw 的压缩设置位于 agent 默认配置中：
 
 ```json5
 {
@@ -228,8 +228,8 @@ CrawClaw 还为嵌入式运行强制执行安全下限：
 你可以通过以下方式观察压缩和会话状态：
 
 - `/status`（在任何聊天会话中）
-- `crawclaw status`（CLI）
-- `crawclaw sessions` / `sessions --json`
+- CrawClaw Desktop
+- 本地 Gateway API 的会话接口
 - 详细模式：`🧹 Auto-compaction complete` + 压缩计数
 
 ---
@@ -254,7 +254,7 @@ CrawClaw 支持用于后台任务的"静默"回合，用户不应该看到中间
 CrawClaw 使用**预阈值刷新**方法：
 
 1. 监控会话上下文使用情况。
-2. 当它越过"软阈值"（低于 Pi 的压缩阈值）时，向智能体运行一个静默的"现在写入记忆"指令。
+2. 当它越过"软阈值"（低于 runtime 压缩阈值）时，向智能体运行一个静默的"现在写入记忆"指令。
 3. 使用 `NO_REPLY` 以便用户看不到任何内容。
 
 配置（`agents.defaults.compaction.memoryFlush`）：
@@ -268,18 +268,18 @@ CrawClaw 使用**预阈值刷新**方法：
 
 - 默认的提示/系统提示包含 `NO_REPLY` 提示以抑制投递。
 - 刷新每个压缩周期运行一次（在 `sessions.json` 中跟踪）。
-- 刷新仅对嵌入式 Pi 会话运行（CLI 后端跳过它）。
+- 刷新对 Rust agent session 运行。
 - 当会话工作空间是只读时（`workspaceAccess: "ro"` 或 `"none"`），刷新会被跳过。
 - 参见[记忆](/concepts/memory)了解工作空间文件布局和写入模式。
 
-Pi 还在扩展 API 中公开了 `session_before_compact` 钩子，但 CrawClaw 的刷新逻辑目前位于 Gateway 网关端。
+旧的 TypeScript `session_before_compact` plugin hook 已不属于生产路径；刷新逻辑由 Rust runtime 拥有。
 
 ---
 
 ## 故障排除检查清单
 
 - 会话键错误？从 [/concepts/session](/concepts/session) 开始，并在 `/status` 中确认 `sessionKey`。
-- 存储 vs 记录不匹配？从 `crawclaw status` 确认 Gateway 网关主机和存储路径。
+- 存储 vs 记录不匹配？从 CrawClaw Desktop 或本地 Gateway API 确认 Gateway 网关主机和存储路径。
 - 压缩过于频繁？检查：
   - 模型上下文窗口（太小）
   - 压缩设置（`reserveTokens` 对于模型窗口来说太高会导致更早的压缩）

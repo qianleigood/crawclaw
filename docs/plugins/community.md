@@ -13,9 +13,7 @@ channels, tools, providers, or other capabilities. They are built and maintained
 by the community, published on [ClawHub](/tools/clawhub) or npm, and
 installable with a single command.
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 CrawClaw checks ClawHub first and falls back to npm automatically.
 
@@ -30,9 +28,7 @@ commands for resume, planning, review, model selection, compaction, and more.
 - **npm:** `crawclaw-codex-app-server`
 - **repo:** [github.com/pwrdrvr/crawclaw-codex-app-server](https://github.com/pwrdrvr/crawclaw-codex-app-server)
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### Lossless Claw (LCM)
 
@@ -43,9 +39,7 @@ while reducing token usage.
 - **npm:** `@martian-engineering/lossless-claw`
 - **repo:** [github.com/Martian-Engineering/lossless-claw](https://github.com/Martian-Engineering/lossless-claw)
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### Opik
 
@@ -55,9 +49,7 @@ cost, tokens, errors, and more.
 - **npm:** `@opik/opik-crawclaw`
 - **repo:** [github.com/comet-ml/opik-crawclaw](https://github.com/comet-ml/opik-crawclaw)
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### QQbot
 
@@ -68,9 +60,7 @@ and files.
 - **npm:** `@tencent-connect/crawclaw-qqbot`
 - **repo:** [github.com/tencent-connect/crawclaw-qqbot](https://github.com/tencent-connect/crawclaw-qqbot)
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### wecom
 
@@ -82,9 +72,7 @@ formatting, built-in access control, and document/meeting/messaging skills.
 - **npm:** `@wecom/wecom-crawclaw-plugin`
 - **repo:** [github.com/WecomTeam/wecom-crawclaw-plugin](https://github.com/WecomTeam/wecom-crawclaw-plugin)
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Submit your plugin
 

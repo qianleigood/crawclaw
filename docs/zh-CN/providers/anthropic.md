@@ -25,13 +25,7 @@ Anthropic 构建了 **Claude** 模型家族，并通过 API 提供访问。
 
 ### CLI 设置
 
-```bash
-crawclaw onboard
-# choose: Anthropic API key
-
-# or non-interactive
-crawclaw onboard --anthropic-api-key "$ANTHROPIC_API_KEY"
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ### 配置片段
 
@@ -206,28 +200,19 @@ claude setup-token
 
 将该令牌粘贴到 CrawClaw 中（向导：**Anthropic token（粘贴 setup-token）**），或在 Gateway 网关主机上运行：
 
-```bash
-crawclaw models auth setup-token --provider anthropic
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 如果你是在另一台机器上生成该令牌，请粘贴它：
 
-```bash
-crawclaw models auth paste-token --provider anthropic
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ### CLI 设置（setup-token）
 
-```bash
-# Paste a setup-token during setup
-crawclaw onboard --auth-choice setup-token
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 Claude CLI 迁移不再通过旧的 onboarding alias 触发。请改用：
 
-```bash
-crawclaw models auth login --provider anthropic --method cli --set-default
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ### 配置片段（setup-token）
 
@@ -239,7 +224,7 @@ crawclaw models auth login --provider anthropic --method cli --set-default
 
 ## 说明
 
-- 使用 `claude setup-token` 生成 setup-token 并粘贴它，或者在 Gateway 网关主机上运行 `crawclaw models auth setup-token`。
+- 使用 `claude setup-token` 生成 setup-token，并通过 CrawClaw Desktop 或本地 Gateway API 粘贴到 Gateway 网关主机。
 - 如果你在 Claude 订阅上看到 “OAuth token refresh failed …”，请使用 setup-token 重新进行身份验证。请参见 [/gateway/troubleshooting#oauth-token-refresh-failed-anthropic-claude-subscription](/gateway/troubleshooting#oauth-token-refresh-failed-anthropic-claude-subscription)。
 - 身份验证详情和复用规则见 [/concepts/oauth](/concepts/oauth)。
 
@@ -249,23 +234,21 @@ crawclaw models auth login --provider anthropic --method cli --set-default
 
 - Claude 订阅身份验证可能会过期或被撤销。请重新运行 `claude setup-token`，
   并将其粘贴到 **Gateway 网关主机** 上。
-- 如果 Claude CLI 登录位于另一台机器上，请在 Gateway 网关主机上使用
-  `crawclaw models auth paste-token --provider anthropic`。
+- 如果 Claude CLI 登录位于另一台机器上，请通过 CrawClaw Desktop 或本地 Gateway API 在 Gateway 网关主机上粘贴 token。
 
 **No API key found for provider "anthropic"**
 
 - 身份验证是**按智能体**区分的。新智能体不会继承主智能体的密钥。
-- 请为该智能体重新运行新手引导，或在
-  Gateway 网关主机上粘贴 setup-token / API 密钥，然后使用 `crawclaw models status` 验证。
+- 请为该智能体重新配置 provider，或在 Gateway 网关主机上粘贴 setup-token / API 密钥，然后通过 CrawClaw Desktop 或本地 Gateway API 验证。
 
 **No credentials found for profile `anthropic:default`**
 
-- 运行 `crawclaw models status` 查看当前活动的 auth profile。
+- 通过 CrawClaw Desktop 或本地 Gateway API 查看当前活动的 auth profile。
 - 重新运行新手引导，或为该配置档案粘贴 setup-token / API 密钥。
 
 **No available auth profile (all in cooldown/unavailable)**
 
-- 检查 `crawclaw models status --json` 中的 `auth.unusableProfiles`。
+- 检查本地 Gateway API 返回的 `auth.unusableProfiles`。
 - 添加另一个 Anthropic 配置档案，或等待冷却结束。
 
 更多信息：[/gateway/troubleshooting](/gateway/troubleshooting) 和 [/help/faq](/help/faq)。

@@ -29,23 +29,13 @@ title: "Gateway Runbook"
 <Steps>
   <Step title="Start the Gateway">
 
-```bash
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-# debug/trace mirrored to stdio
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-# force-kill listener on selected port, then start
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
   </Step>
 
   <Step title="Verify service health">
 
-```bash
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 健康基线：`Runtime: running` 和 `RPC probe: ok`。
 
@@ -53,9 +43,7 @@ title: "Gateway Runbook"
 
   <Step title="Validate channel readiness">
 
-```bash
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
   </Step>
 </Steps>
@@ -105,17 +93,7 @@ Planning note:
 
 ## Operator command set
 
-```bash
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 ## Remote access
 
@@ -163,11 +141,7 @@ CRAWCLAW_CONFIG_PATH=~/.crawclaw/b.json CRAWCLAW_STATE_DIR=~/.crawclaw-b <start 
 
 ### Dev profile quick path
 
-```bash
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 默认包含隔离的 state/config 和 base gateway port `19001`。
 
@@ -194,11 +168,7 @@ Agent runs 分两阶段：
 
 ### Readiness
 
-```bash
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 ### Gap recovery
 

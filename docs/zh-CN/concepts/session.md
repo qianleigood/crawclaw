@@ -152,9 +152,8 @@ CrawClaw 将**每个智能体的一个直接聊天会话**视为主会话。直�
 
 ## 检查
 
-- `crawclaw status` — 显示存储路径和最近的会话。
-- `crawclaw sessions --json` — 导出每个条目（使用 `--active <minutes>` 过滤）。
-- `crawclaw gateway call sessions.list --params '{}'` — 从运行中的 Gateway 网关获取会话（使用 `--url`/`--token` 进行远程 Gateway 网关访问）。
+- CrawClaw Desktop — 显示存储路径和最近的会话。
+- 本地 Gateway API — 从运行中的 Gateway 网关获取会话（远程 Gateway 网关访问需要显式 URL 和 token/password）。
 - 在聊天中单独发送 `/status` 消息可查看智能体是否可达、会话上下文使用了多少、当前的思考/详细模式开关，以及你的 Weixin Web 凭证上次刷新时间（有助于发现重新链接需求）。
 - 发送 `/context list` 或 `/context detail` 查看系统提示中的内容和注入的工作区文件（以及最大的上下文贡献者）。
 - 单独发送 `/stop` 消息可中止当前运行、清除该会话的排队后续操作，并停止从中生成的任何子智能体运行（回复包含已停止的数量）。

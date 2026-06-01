@@ -16,9 +16,9 @@ Export the key once, then run onboarding and set an NVIDIA model:
 
 ```bash
 export NVIDIA_API_KEY="nvapi-..."
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
+
+Then use CrawClaw Desktop or the local Gateway API to select the NVIDIA model.
 
 If you still pass `--token`, remember it lands in shell history and `ps` output; prefer the env var when possible.
 

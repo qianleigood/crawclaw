@@ -28,10 +28,11 @@ The Rust runtime owns:
   NativeProvider transport calls.
 - Session binding, transcript writes, run ids, event projection, usage metadata,
   and abort or timeout handling.
-- Context budget projection before provider calls, including large tool result
-  previews, projected history token estimates, deferred tool counts, loaded
-  skill counts, memory snippet counts, and whether session compaction was
-  applied.
+- Context budget projection before provider calls, including model-aware
+  effective prompt budgets, provider output limits, capability-driven tool or
+  reasoning downgrades, large tool result previews, recoverable persisted tool
+  outputs, projected history token estimates, deferred tool counts, loaded skill
+  counts, memory snippet counts, and whether session compaction was applied.
 - Cron `agentTurn` jobs, auto-reply turns, command turns, special-agent runs,
   and memory jobs.
 - Durable memory extraction, experience extraction, dream jobs, session

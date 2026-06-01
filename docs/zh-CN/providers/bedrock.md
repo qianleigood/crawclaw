@@ -15,9 +15,10 @@ x-i18n:
 
 # Amazon Bedrock
 
-CrawClaw 可以通过 pi‑ai 的 **Bedrock Converse** 流式提供商使用 **Amazon Bedrock** 模型。Bedrock 认证使用 **AWS SDK 默认凭证链**，而非 API 密钥。
+CrawClaw 可以通过 Rust NativeProvider 的 **Bedrock Converse** transport 使用
+**Amazon Bedrock** 模型。Bedrock 认证使用 **AWS SDK 默认凭证链**，而非 API 密钥。
 
-## pi‑ai 支持的功能
+## NativeProvider 支持的功能
 
 - 提供商：`amazon-bedrock`
 - API：`bedrock-converse-stream`
@@ -147,18 +148,13 @@ aws ec2 associate-iam-instance-profile \
   --instance-id i-xxxxx \
   --iam-instance-profile Name=EC2-Bedrock-Access
 
-# 3. 在 EC2 实例上启用发现功能
-crawclaw config set models.bedrockDiscovery.enabled true
-crawclaw config set models.bedrockDiscovery.region us-east-1
-
-# 4. 设置解决方法所需的环境变量
+# 3. 设置 AWS profile 环境变量
 echo 'export AWS_PROFILE=default' >> ~/.bashrc
 echo 'export AWS_REGION=us-east-1' >> ~/.bashrc
 source ~/.bashrc
-
-# 5. 验证模型已被发现
-crawclaw models list
 ```
+
+然后通过 CrawClaw Desktop 或本地 Gateway API 启用 Bedrock discovery 并验证模型列表。
 
 ## 注意事项
 

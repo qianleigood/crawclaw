@@ -47,11 +47,7 @@ MiniMax 在 M2.5 中重点强调了以下改进：
 
 启用内置 OAuth 插件并完成认证：
 
-```bash
-crawclaw plugins enable minimax  # 如果已加载则跳过。
-crawclaw gateway restart  # 如果 gateway 已在运行，则重启
-crawclaw onboard --auth-choice minimax-portal
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 系统会提示你选择一个端点：
 
@@ -64,10 +60,9 @@ crawclaw onboard --auth-choice minimax-portal
 
 **最适合：** 使用与 Anthropic 兼容 API 的托管 MiniMax。
 
-通过 CLI 配置：
+通过 CrawClaw Desktop 或本地 Gateway API 配置：
 
-- 运行 `crawclaw configure`
-- 选择 **Model/auth**
+- 打开模型/provider 设置
 - 选择 **MiniMax M2.5**
 
 ```json5
@@ -169,14 +164,13 @@ crawclaw onboard --auth-choice minimax-portal
 }
 ```
 
-## 通过 `crawclaw configure` 配置
+## 通过 Desktop 配置
 
-使用交互式配置向导设置 MiniMax，而无需编辑 JSON：
+使用交互式设置界面配置 MiniMax，而无需编辑 JSON：
 
-1. 运行 `crawclaw configure`。
-2. 选择 **Model/auth**。
-3. 选择 **MiniMax M2.5**。
-4. 在提示时选择你的默认模型。
+1. 打开 CrawClaw Desktop 的模型/provider 设置。
+2. 选择 **MiniMax M2.5**。
+3. 在提示时选择你的默认模型。
 
 ## 配置选项
 
@@ -195,7 +189,7 @@ crawclaw onboard --auth-choice minimax-portal
 - 如果你需要精确成本跟踪，请更新 `models.json` 中的定价值。
 - MiniMax Coding Plan 推荐链接（九折）：[https://platform.minimax.io/subscribe/coding-plan?code=DbXJTRClnb&source=link](https://platform.minimax.io/subscribe/coding-plan?code=DbXJTRClnb&source=link)
 - 关于提供商规则，请参阅 [/concepts/model-providers](/concepts/model-providers)。
-- 使用 `crawclaw models list` 和 `crawclaw models set minimax/MiniMax-M2.5` 进行切换。
+- 使用 CrawClaw Desktop 或本地 Gateway API 查看和切换模型。
 
 ## 故障排除
 
@@ -206,7 +200,7 @@ crawclaw onboard --auth-choice minimax-portal
 **2026.1.12** 中（在撰写本文时尚未发布）。修复方法：
 
 - 升级到 **2026.1.12**（或从源码运行 `main`），然后重启 gateway。
-- 运行 `crawclaw configure` 并选择 **MiniMax M2.5**，或者
+- 通过 CrawClaw Desktop 或本地 Gateway API 选择 **MiniMax M2.5**，或者
 - 手动添加 `models.providers.minimax` 配置块，或者
 - 设置 `MINIMAX_API_KEY`（或 MiniMax 凭证配置文件），以便注入该提供商。
 
@@ -217,6 +211,4 @@ crawclaw onboard --auth-choice minimax-portal
 
 然后使用以下命令重新检查：
 
-```bash
-crawclaw models list
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。

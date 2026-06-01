@@ -1,21 +1,21 @@
 ---
 read_when:
-  - 在 CrawClaw 中处理 Pi 集成代码或测试时
-  - 运行 Pi 专用的代码规范检查、类型检查和实时测试流程时
-summary: Pi 集成的开发工作流：构建、测试和实时验证
-title: Pi 开发工作流
+  - 在 CrawClaw 中处理 Rust agent runtime 代码或测试时
+  - 运行 runtime 代码规范检查、类型检查和实时测试流程时
+summary: Rust agent runtime 的开发工作流：构建、测试和实时验证
+title: Agent Runtime 开发工作流
 x-i18n:
   generated_at: "2026-03-29T04:06:57Z"
   model: gpt-5.4
   provider: openai
   source_hash: 7be1c0f9ecf4315115b2e8188f7472eebba2a8424296661184a02bf5ad6e90c5
-  source_path: pi-dev.md
+  source_path: reference/agent-runtime-development.md
   workflow: 15
 ---
 
-# Pi 开发工作流
+# Agent Runtime 开发工作流
 
-本指南总结了在 CrawClaw 中处理 Pi 集成时的一套合理工作流。
+本指南总结了在 CrawClaw 中处理 Rust agent runtime 时的一套合理工作流。
 
 ## 类型检查与代码规范检查
 
@@ -46,8 +46,8 @@ pnpm test
 
 推荐流程：
 
-- 以开发模式运行 Gateway 网关：
-  - `pnpm gateway:dev`
+- 在隔离状态目录中运行本地 Gateway 网关：
+  - `CRAWCLAW_STATE_DIR="$HOME/.crawclaw-dev" cargo run -q -p crawclaw-gateway -- --bind loopback --port 19001`
 - 通过 CrawClaw Desktop 或本地 Gateway API 触发 agent。
 
 对于工具调用行为，请提示执行 `read` 或 `exec` 操作，这样你就可以看到工具的流式传输和负载处理。

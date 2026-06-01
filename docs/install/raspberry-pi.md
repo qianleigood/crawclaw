@@ -78,15 +78,11 @@ Run a persistent, always-on CrawClaw Gateway on a Raspberry Pi. Since the Pi is 
   </Step>
 
   <Step title="Install CrawClaw">
-    ```bash
-    # Install CrawClaw Desktop from GitHub Releases.
-    ```
+    Install the Linux/ARM-compatible CrawClaw package or build from the source checkout for your Raspberry Pi OS.
   </Step>
 
   <Step title="Run onboarding">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Follow the wizard. API keys are recommended over OAuth for headless devices. Feishu is the easiest channel to start with.
 
@@ -94,7 +90,6 @@ Run a persistent, always-on CrawClaw Gateway on a Raspberry Pi. Since the Pi is 
 
   <Step title="Verify">
     ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
     sudo systemctl status crawclaw
     journalctl -u crawclaw -f
     ```

@@ -32,7 +32,7 @@ Custom profiles use `~/.crawclaw-<profile>/` or a path set via `CRAWCLAW_STATE_D
     On the **old** machine, stop the gateway so files are not changing mid-copy, then archive:
 
     ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Stop CrawClaw Desktop or the Gateway service first.
     cd ~
     tar -czf crawclaw-state.tgz .crawclaw
     ```
@@ -61,11 +61,7 @@ Custom profiles use `~/.crawclaw-<profile>/` or a path set via `CRAWCLAW_STATE_D
   <Step title="Run doctor and verify">
     On the new machine, run [Doctor](/gateway/doctor) to apply config migrations and repair services:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
   </Step>
 </Steps>

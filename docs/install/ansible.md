@@ -37,7 +37,7 @@ The [crawclaw-ansible](https://github.com/qianleigood/crawclaw-ansible) repo is 
 One-command install:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/qianleigood/crawclaw-ansible/main/CrawClaw Desktop installer | bash
+curl -fsSL https://raw.githubusercontent.com/qianleigood/crawclaw-ansible/main/install.sh | bash
 ```
 
 ## What Gets Installed
@@ -66,9 +66,7 @@ The Ansible playbook installs and configures:
   </Step>
   <Step title="Connect messaging providers">
     Log in to Weixin, Feishu, community chat, or native channel:
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
   </Step>
   <Step title="Verify the installation">
     ```bash
@@ -92,11 +90,9 @@ sudo journalctl -u crawclaw -f
 
 # Restart gateway
 sudo systemctl restart crawclaw
-
-# Provider login (run as crawclaw user)
-sudo -i -u crawclaw
-# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
+
+Run provider setup as the `crawclaw` user through CrawClaw Desktop or the local Gateway API so secrets are stored for the service account.
 
 ## Security Architecture
 
@@ -181,7 +177,7 @@ This is idempotent and safe to run multiple times.
     # Test manual start
     sudo -i -u crawclaw
     cd ~/crawclaw
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    cargo run -q -p crawclaw-gateway -- --bind loopback --port 18789
     ```
 
   </Accordion>
@@ -189,8 +185,8 @@ This is idempotent and safe to run multiple times.
     Make sure you are running as the `crawclaw` user:
     ```bash
     sudo -i -u crawclaw
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
+    Then retry provider setup through CrawClaw Desktop or the local Gateway API.
   </Accordion>
 </AccordionGroup>
 

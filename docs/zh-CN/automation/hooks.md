@@ -26,19 +26,7 @@ CrawClaw 中有两种钩子：
 
 ## 快速开始
 
-```bash
-# List available hooks
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Enable a hook
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Check hook status
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Get detailed information
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 ## 事件类型
 
@@ -209,20 +197,7 @@ CrawClaw 不再附带 TypeScript 捆绑钩子处理器。旧的
 
 ## Gateway API 参考
 
-```bash
-# List all hooks (add --eligible, --verbose, or --json)
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Show detailed info about a hook
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Show eligibility summary
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Enable/disable
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 ## 最佳实践
 
@@ -239,16 +214,13 @@ CrawClaw 不再附带 TypeScript 捆绑钩子处理器。旧的
 # Verify directory structure
 ls -la ~/.crawclaw/hooks/my-hook/
 # Should show: HOOK.md, handler.ts
-
-# List all discovered hooks
-# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
+
+使用 CrawClaw Desktop 或本地 Gateway API 检查已发现的钩子列表。
 
 ### 钩子不符合条件
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 检查是否缺少二进制文件（PATH）、环境变量、配置值或操作系统兼容性。
 

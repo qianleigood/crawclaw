@@ -81,14 +81,14 @@ ssh -N -L 18789:127.0.0.1:18789 user@host
 
 隧道建立后：
 
-- `crawclaw health` 和 `crawclaw status --deep` 现在通过 `ws://127.0.0.1:18789` 访问远程 Gateway 网关。
-- `crawclaw gateway {status,health,send,agent,call}` 在需要时也可以通过 `--url` 指定转发的 URL。
+- CrawClaw Desktop 和本地自动化客户端可以通过 `ws://127.0.0.1:18789` 访问远程 Gateway 网关。
+- Gateway API 客户端可以在需要时指向转发后的 URL。
 
 注意：将 `18789` 替换为你配置的 `gateway.port`（或 `--port`/`CRAWCLAW_GATEWAY_PORT`）。
 
-## CLI 远程默认值
+## 远程默认值
 
-你可以持久化远程目标，以便 CLI 命令默认使用它：
+你可以持久化远程目标，以便 Desktop 和 Gateway API 操作默认使用它：
 
 ```json5
 {

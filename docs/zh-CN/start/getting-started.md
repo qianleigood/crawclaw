@@ -1,8 +1,8 @@
 ---
 read_when:
-  - 从零开始进行首次设置
-  - 你想用最快的路径开始可用聊天
-summary: 在几分钟内安装 CrawClaw 并开始你的第一次聊天。
+  - 从零开始首次设置
+  - 你想用最快路径获得可用的 desktop chat
+summary: 安装 CrawClaw Desktop 并启动本地 Gateway。
 title: 入门指南
 x-i18n:
   generated_at: "2026-03-16T06:27:55Z"
@@ -15,130 +15,53 @@ x-i18n:
 
 # 入门指南
 
-目标：以最少的设置，从零开始到完成第一次可用聊天。
+安装 CrawClaw Desktop，并在桌面 UI 中完成设置。完成后，你会拥有本地 Rust Gateway、已配置的模型认证，以及一个可用的 desktop chat session。
 
-<Info>
-最快的聊天方式：运行 `crawclaw tui`（无需先设置渠道），在
-<Tooltip headline="Gateway host" tip="运行 CrawClaw Gateway 网关服务的机器。">网关主机</Tooltip>
-上打开本地终端界面。
-文档：[TUI](/cli/tui)。
-</Info>
+## 你需要准备
 
-## 前置条件
+- **macOS**，用于当前支持的 Apple-platform desktop app
+- **模型 provider 账号或 API key**，例如 Anthropic、OpenAI、Google 或其他支持的 provider
 
-- 推荐使用 Node 24（Node 22 LTS，目前为 `22.14+`，仍因兼容性而受支持）
-
-<Tip>
-如果你不确定，请使用 `node --version` 检查你的 Node 版本。
-</Tip>
-
-## 快速设置（CLI）
+## 快速设置
 
 <Steps>
-  <Step title="安装 CrawClaw（推荐）">
-    <Tabs>
-      <Tab title="macOS/Linux">
-        ```bash
-        curl -fsSL https://crawclaw.ai/install.sh | bash
-        ```
-        <img
-  src="/assets/install-script.svg"
-  alt="安装脚本流程"
-  className="rounded-lg"
-/>
-      </Tab>
-      <Tab title="Windows（PowerShell）">
-        ```powershell
-        iwr -useb https://crawclaw.ai/install.ps1 | iex
-        ```
-      </Tab>
-    </Tabs>
-
-    <Note>
-    其他安装方式和要求： [Install](/install)。
-    </Note>
-
+  <Step title="安装 CrawClaw Desktop">
+    从 [GitHub Releases](https://github.com/qianleigood/crawclaw/releases) 下载最新 desktop asset。
   </Step>
-  <Step title="运行新手引导">
-    ```bash
-    crawclaw onboard --install-daemon
-    ```
-
-    新手引导会配置认证、Gateway 网关设置和可选渠道。
-    详情请参见 [CLI 新手引导](/start/wizard)。
-
+  <Step title="打开 desktop app">
+    CrawClaw Desktop 会准备 `~/.crawclaw`、stage embedded Rust runtime、启动本地 Gateway，并打开设置 UI。
   </Step>
-  <Step title="检查 Gateway 网关">
-    如果你已安装服务，它应该已经在运行：
-
-    ```bash
-    crawclaw gateway status
-    ```
-
+  <Step title="配置模型和 plugins">
+    在 desktop Settings 中配置模型 providers、plugin 启用状态、本地 runtime 状态、日志和诊断。
   </Step>
-  <Step title="打开本地界面">
-    ```bash
-    crawclaw tui
-    ```
+  <Step title="发送第一条消息">
+    在 CrawClaw Desktop 的 Agent 页面发送消息。自动化客户端可以通过本地 Gateway API 连接。
   </Step>
 </Steps>
 
-<Check>
-如果 `crawclaw tui` 能正常进入，你的 Gateway 网关就已准备就绪，可以使用。
-</Check>
-
-## 可选检查和附加内容
-
-<AccordionGroup>
-  <Accordion title="在前台运行 Gateway 网关">
-    适合快速测试或故障排除。
-
-    ```bash
-    crawclaw gateway --port 18789
-    ```
-
-  </Accordion>
-  <Accordion title="发送一条测试消息">
-    需要已配置的渠道。
-
-    ```bash
-    crawclaw message send --target +15555550123 --message "Hello from CrawClaw"
-    ```
-
-  </Accordion>
-</AccordionGroup>
-
-## 常用环境变量
-
-如果你将 CrawClaw 作为服务账户运行，或想使用自定义配置/状态位置：
-
-- `CRAWCLAW_HOME` 设置用于内部路径解析的主目录。
-- `CRAWCLAW_STATE_DIR` 覆盖状态目录。
-- `CRAWCLAW_CONFIG_PATH` 覆盖配置文件路径。
-
-旧版 `CRAWCLAW_*` 别名在迁移期间仍可用。
-
-完整的环境变量参考： [环境变量](/help/environment)。
-
-## 深入了解
+## 下一步
 
 <Columns>
-  <Card title="CLI 新手引导" href="/start/wizard">
-    完整的 CLI 新手引导参考和高级选项。
+  <Card title="Desktop install" href="/install/desktop" icon="monitor">
+    了解 app 打包、启动和本地存储的内容。
   </Card>
-  <Card title="CLI 设置参考" href="/start/wizard-cli-reference">
-    查看非交互模式、输出和步骤细节。
+  <Card title="连接 channel" href="/channels" icon="message-square">
+    Weixin、Feishu、QQ Bot、DingTalk 和 ESP32。
+  </Card>
+  <Card title="Pairing 和安全" href="/channels/pairing" icon="shield">
+    控制谁可以给你的 agent 发消息。
+  </Card>
+  <Card title="Gateway API" href="/gateway/protocol" icon="waypoints">
+    面向自动化和集成的本地 control-plane protocol。
   </Card>
 </Columns>
 
-## 你将获得什么
+<Accordion title="高级：环境变量">
+  如果你以 service account 运行 CrawClaw，或想使用自定义路径：
 
-- 一个正在运行的 Gateway 网关
-- 已配置好的认证
-- `crawclaw tui` 访问能力或一个已连接的渠道
+- `CRAWCLAW_HOME` — 内部路径解析使用的 home directory
+- `CRAWCLAW_STATE_DIR` — 覆盖 state directory
+- `CRAWCLAW_CONFIG_PATH` — 覆盖 config file path
 
-## 后续步骤
-
-- 私信安全和批准：[Pairing](/channels/pairing)
-- 连接更多渠道：[Channels](/channels)
-- 高级工作流和源码安装：[Setup](/start/setup)
+完整参考：[Environment variables](/help/environment)。
+</Accordion>

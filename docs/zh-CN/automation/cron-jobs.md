@@ -307,118 +307,23 @@ Feishu 通过 `message_thread_id` 支持论坛主题。对于定时任务投递�
 - `cron.enabled: false`（配置）
 - `CRAWCLAW_SKIP_CRON=1`（环境变量）
 
-## CLI 快速开始
+## 操作方式
 
-一次性提醒（UTC ISO，成功后自动删除）：
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 自动化管理 cron job。
 
-```bash
-crawclaw cron add \
-  --name "Send reminder" \
-  --at "2026-01-12T18:00:00Z" \
-  --session main \
-  --system-event "Reminder: submit expense report." \
-  --wake now \
-  --delete-after-run
-```
+常见操作包括：
 
-一次性提醒（主会话，立即唤醒）：
-
-```bash
-crawclaw cron add \
-  --name "Calendar check" \
-  --at "20m" \
-  --session main \
-  --system-event "Next main-session wake: check calendar." \
-  --wake now
-```
-
-周期性隔离任务（投递到 Weixin）：
-
-```bash
-crawclaw cron add \
-  --name "Morning status" \
-  --cron "0 7 * * *" \
-  --tz "America/Los_Angeles" \
-  --session isolated \
-  --message "Summarize inbox + calendar for today." \
-  --announce \
-  --channel weixin \
-  --to "+15551234567"
-```
-
-周期性隔离任务（投递到 Feishu 主题）：
-
-```bash
-crawclaw cron add \
-  --name "Nightly summary (topic)" \
-  --cron "0 22 * * *" \
-  --tz "America/Los_Angeles" \
-  --session isolated \
-  --message "Summarize today; send to the nightly topic." \
-  --announce \
-  --channel feishu \
-  --to "-1001234567890:topic:123"
-```
-
-带模型和思维覆盖的隔离任务：
-
-```bash
-crawclaw cron add \
-  --name "Deep analysis" \
-  --cron "0 6 * * 1" \
-  --tz "America/Los_Angeles" \
-  --session isolated \
-  --message "Weekly deep analysis of project progress." \
-  --model "opus" \
-  --thinking high \
-  --announce \
-  --channel weixin \
-  --to "+15551234567"
-```
-
-智能体选择（多智能体配置）：
-
-```bash
-# 将任务绑定到智能体 "ops"（如果该智能体不存在则回退到默认智能体）
-crawclaw cron add --name "Ops sweep" --cron "0 6 * * *" --session isolated --message "Check ops queue" --agent ops
-
-# 切换或清除现有任务的智能体
-crawclaw cron edit <jobId> --agent ops
-crawclaw cron edit <jobId> --clear-agent
-```
-
-手动运行（调试）：
-
-```bash
-crawclaw cron run <jobId> --force
-```
-
-编辑现有任务（补丁字段）：
-
-```bash
-crawclaw cron edit <jobId> \
-  --message "Updated prompt" \
-  --model "opus" \
-  --thinking low
-```
-
-运行历史：
-
-```bash
-crawclaw cron runs --id <jobId> --limit 50
-```
-
-不创建任务直接发送系统事件：
-
-```bash
-crawclaw system event --mode now --text "Next main-session wake: check battery."
-```
+- 创建一次性提醒（`schedule.kind = "at"`），成功后可自动删除。
+- 创建周期性隔离任务（cron 表达式 + timezone）。
+- 配置投递目标（channel/to）或保持无外部投递。
+- 绑定目标 agent、模型和 thinking 覆盖。
+- 手动强制运行、查看运行历史、更新或删除任务。
 
 ## Gateway网关 API 接口
 
 - `cron.list`、`cron.status`、`cron.add`、`cron.update`、`cron.remove`
 - `cron.run`（强制或到期）、`cron.runs`
-  如需不创建任务直接发送系统事件，请使用 [`crawclaw system event`](/cli/system)。
+  如需不创建任务直接发送系统事件，请使用 Gateway API 的系统事件接口。
 
 ## 故障排除
 

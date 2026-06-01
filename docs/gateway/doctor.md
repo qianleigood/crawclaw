@@ -13,37 +13,25 @@ config/state, checks health, and provides actionable repair steps.
 
 ## Quick start
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### Headless / automation
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Apply recommended repairs without prompting (repairs + restarts where safe).
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Apply aggressive repairs too (overwrites custom runtime config).
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Legacy state migrations run automatically when detected.
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Review legacy startup entries manually if an older install left one behind.
 
@@ -298,14 +286,15 @@ Doctor checks whether tab completion is installed for the current shell
 (zsh, bash, fish, or PowerShell):
 
 - If the shell profile uses a slow dynamic completion pattern
-  (`source <(CrawClaw Desktop or the local Gateway API...)`), doctor upgrades it to the faster
+  (`source <(... completion command ...)`), doctor upgrades it to the faster
   cached file variant.
 - If completion is configured in the profile but the cache file is missing,
   doctor regenerates the cache automatically.
 - If no completion is configured at all, doctor prompts to install it
   (interactive mode only; skipped with `--non-interactive`).
 
-Run CrawClaw Desktop or the local Gateway API to regenerate the cache manually.
+Use CrawClaw Desktop or the local Gateway API repair surface to regenerate the
+cache manually.
 
 ### 12) Gateway auth checks (local token)
 

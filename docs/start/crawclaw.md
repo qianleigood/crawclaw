@@ -45,15 +45,11 @@ If you link your personal Weixin to CrawClaw, every message to you becomes “ag
 
 1. Pair Weixin Web (shows QR; scan with the assistant phone):
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 2. Start the Gateway (leave it running):
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 3. Put a minimal config in `~/.crawclaw/crawclaw.json`:
 
@@ -86,9 +82,7 @@ Default runtime bootstrap injection is intentionally narrow:
 
 Tip: treat this folder like CrawClaw’s “memory” and make it a git repo (ideally private) so your `AGENTS.md` + memory files are backed up. If git is installed, brand-new workspaces are auto-initialized.
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Full workspace layout + backup guide: [Agent workspace](/concepts/agent-workspace)
 Memory workflow: [Memory](/concepts/memory)
@@ -199,12 +193,7 @@ That means generated images/files outside the workspace can now send when your f
 
 ## Operations checklist
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Logs live under `/tmp/crawclaw/` (default: `crawclaw-YYYY-MM-DD.log`).
 

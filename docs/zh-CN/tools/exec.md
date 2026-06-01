@@ -76,24 +76,17 @@ x-i18n:
 - `host=sandbox`：在容器内运行 `sh -lc`（登录 shell），因此 `/etc/profile` 可能会重置 `PATH`。CrawClaw 在 profile 加载后通过内部环境变量将 `env.PATH` 添加到前面（无 shell 插值）；`tools.exec.pathPrepend` 在此也适用。
 - `host=node`：只有你传递的未被阻止的 env 覆盖会发送到节点。主机执行时会拒绝 `env.PATH` 覆盖。无头节点主机仅在 `PATH` 添加到节点主机 PATH 前面时才接受（不允许替换）。macOS 节点完全丢弃 `PATH` 覆盖。
 
-按智能体绑定节点（在配置中使用智能体列表索引）：
-
-```bash
-crawclaw config get agents.list
-crawclaw config set agents.list[0].tools.exec.node "node-id-or-name"
-```
-
-也可以通过配置项 `exec.node` 或 `tools.exec.node` 完成相同的绑定。
+如需按智能体绑定远程执行节点，请在 CrawClaw Desktop 或本地 Gateway API 中更新该智能体的 `exec.node` 或 `tools.exec.node` 配置。
 
 ## 会话覆盖（`/exec`）
 
-使用 `/exec` 为 `host`、`security`、`ask` 和 `node` 设置**每会话**默认值。
+使用 `/exec` 为 `host`、`security` 和 `ask` 设置**每会话**默认值。
 不带参数发送 `/exec` 可显示当前值。
 
 示例：
 
 ```
-/exec host=gateway security=allowlist ask=on-miss node=mac-1
+/exec host=auto security=allowlist ask=on-miss
 ```
 
 ## 授权模型

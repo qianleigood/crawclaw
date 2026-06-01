@@ -1,8 +1,8 @@
 ---
 read_when:
   - 你想在 CrawClaw 中使用 OpenAI 模型
-  - 你想使用 Codex 订阅身份验证而不是 API 密钥
-summary: 在 CrawClaw 中通过 API 密钥或 Codex 订阅使用 OpenAI
+  - 你想了解 OpenAI API key 设置
+summary: 在 CrawClaw 中通过 API key 使用 OpenAI
 title: OpenAI
 x-i18n:
   generated_at: "2026-03-16T06:26:45Z"
@@ -15,22 +15,17 @@ x-i18n:
 
 # OpenAI
 
-OpenAI 为 GPT 模型提供开发者 API。Codex 支持**ChatGPT 登录**以进行订阅
-访问，也支持**API 密钥**登录以进行按使用量计费的访问。Codex cloud 需要 ChatGPT 登录。
-OpenAI 明确支持在 CrawClaw 这样的外部工具/工作流中使用订阅 OAuth。
+OpenAI 为 GPT 模型提供开发者 API。CrawClaw 的内置 OpenAI 设置使用 API
+key；旧的内置 Codex OAuth 登录辅助流程已经从产品 runtime 边界移除。
 
 ## 选项 A：OpenAI API 密钥（OpenAI Platform）
 
 **最适合：** 直接 API 访问和按使用量计费。
 从 OpenAI 控制台获取你的 API 密钥。
 
-### CLI 设置
+### Desktop 设置
 
-```bash
-crawclaw onboard --auth-choice openai-api-key
-# or non-interactive
-crawclaw onboard --openai-api-key "$OPENAI_API_KEY"
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 ### 配置片段
 
@@ -46,24 +41,13 @@ OpenAI API 用法的模型。CrawClaw 会通过 `openai/*` Responses 路径转�
 CrawClaw 会有意隐藏过时的 `openai/gpt-5.3-codex-spark` 条目，
 因为直接 OpenAI API 调用会在实际流量中拒绝它。
 
-CrawClaw **不会**在直接 OpenAI
-API 路径上暴露 `openai/gpt-5.3-codex-spark`。`pi-ai` 仍然为该模型提供内置条目，但当前实际 OpenAI API
-请求会拒绝它。在 CrawClaw 中，Spark 被视为仅限 Codex。
+CrawClaw **不会**在直接 OpenAI API 路径上暴露
+`openai/gpt-5.3-codex-spark`，因为当前实际 OpenAI API 请求会拒绝它。在
+CrawClaw 中，Spark 被视为仅限 Codex。
 
 ## 选项 B：OpenAI Code（Codex）订阅
 
-**最适合：** 使用 ChatGPT/Codex 订阅访问，而不是 API 密钥。
-Codex cloud 需要 ChatGPT 登录，而 Codex CLI 支持 ChatGPT 或 API 密钥登录。
-
-### CLI 设置（Codex OAuth）
-
-```bash
-# Run Codex OAuth in the wizard
-crawclaw onboard --auth-choice openai-codex
-
-# Or run OAuth directly
-crawclaw models auth login --provider openai-codex
-```
+`openai-codex/*` 模型族仍保留在模型目录中，供已有兼容 token profile 或外部工具的用户使用，但 CrawClaw 不再启动内置 JavaScript Codex OAuth 流程。
 
 ### 配置片段（Codex 订阅）
 
@@ -73,8 +57,8 @@ crawclaw models auth login --provider openai-codex
 }
 ```
 
-OpenAI 当前的 Codex 文档将 `gpt-5.4` 列为当前 Codex 模型。CrawClaw
-会将其映射为 `openai-codex/gpt-5.4`，用于 ChatGPT/Codex OAuth。
+OpenAI 当前的 Codex 文档将 `gpt-5.4` 列为当前 Codex 模型。当兼容的 Codex
+auth 已经可用时，CrawClaw 会将其映射为 `openai-codex/gpt-5.4`。
 
 如果你的 Codex 账户有权使用 Codex Spark，CrawClaw 也支持：
 
@@ -83,14 +67,15 @@ OpenAI 当前的 Codex 文档将 `gpt-5.4` 列为当前 Codex 模型。CrawClaw
 CrawClaw 将 Codex Spark 视为仅限 Codex。它不会暴露直接的
 `openai/gpt-5.3-codex-spark` API 密钥路径。
 
-当 `pi-ai`
-发现 `openai-codex/gpt-5.3-codex-spark` 时，CrawClaw 也会保留它。请将其视为依赖 entitlement 且处于实验阶段：Codex Spark 与 GPT-5.4 `/fast` 分开，是否可用取决于已登录的 Codex /
+CrawClaw 在兼容 Codex auth 和目录元数据暴露
+`openai-codex/gpt-5.3-codex-spark` 时会保留它。请将其视为依赖 entitlement
+且处于实验阶段：Codex Spark 与 GPT-5.4 `/fast` 分开，是否可用取决于已登录的 Codex /
 ChatGPT 账户。
 
 ### 默认传输
 
-CrawClaw 使用 `pi-ai` 进行模型流式传输。对于 `openai/*` 和
-`openai-codex/*`，默认传输都是 `"auto"`（优先 WebSocket，然后回退到 SSE）。
+CrawClaw 使用 Rust NativeProvider transport 进行模型流式传输。对于
+`openai/*` 和 `openai-codex/*`，默认传输都是 `"auto"`（优先 WebSocket，然后回退到 SSE）。
 
 你可以设置 `agents.defaults.models.<provider/model>.params.transport`：
 

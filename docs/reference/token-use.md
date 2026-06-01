@@ -67,8 +67,7 @@ Use these in chat:
 Other surfaces:
 
 - **Web clients:** `/status` + `/usage` are supported.
-- **CLI:** CrawClaw Desktop or the local Gateway API and CrawClaw Desktop or the local Gateway API show
-  provider quota windows (not per-response costs).
+- **Desktop and Gateway API:** show provider quota windows (not per-response costs).
 
 ## Cost estimation (when shown)
 

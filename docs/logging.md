@@ -58,17 +58,13 @@ In JSON mode, Gateway log streaming emits `type`-tagged objects:
 
 If the Gateway is unreachable, the CLI prints a short hint to run:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### Channel-only logs
 
 To filter channel activity (Weixin/Feishu/etc), use:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Log formats
 

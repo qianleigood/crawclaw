@@ -45,17 +45,15 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
     curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
     apt install -y nodejs
 
-    # Install CrawClaw
-    # Install CrawClaw Desktop from GitHub Releases.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Install the supported CrawClaw Gateway/Desktop release for this host, or build from source.
     ```
+
+    Then use CrawClaw Desktop or the local Gateway API to verify the Gateway status.
 
   </Step>
 
   <Step title="Run onboarding">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     The wizard walks you through model auth, channel setup, gateway token generation, and daemon installation (systemd).
 
@@ -73,7 +71,6 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
 
   <Step title="Verify the gateway">
     ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
     systemctl --user status crawclaw-gateway.service
     journalctl --user -u crawclaw-gateway.service -f
     ```
@@ -94,20 +91,17 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
     **Option B: Tailscale Serve**
 
     ```bash
-    curl -fsSL https://tailscale.com/CrawClaw Desktop installer | sh
+    curl -fsSL https://tailscale.com/install.sh | sh
     tailscale up
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
+
+    Configure `gateway.bind: "loopback"` and `gateway.tailscale.mode: "serve"` through CrawClaw Desktop or the local Gateway API.
 
     Then connect a supported gateway client to `https://<magicdns>/` from any device on your tailnet.
 
     **Option C: Tailnet bind (no Serve)**
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Then connect a supported gateway client to `http://<tailscale-ip>:18789` (token required).
 

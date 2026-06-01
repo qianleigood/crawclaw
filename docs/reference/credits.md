@@ -14,7 +14,7 @@ CrawClaw = CLAW + TARDIS, because every space lobster needs a time and space mac
 ## Credits
 
 - **Peter Steinberger** ([@steipete](https://x.com/steipete)) - Creator, lobster whisperer
-- **Mario Zechner** ([@badlogicc](https://x.com/badlogicgames)) - Pi creator, security pen tester
+- **Mario Zechner** ([@badlogicc](https://x.com/badlogicgames)) - security pen tester
 - **Clawd** - The space lobster who demanded a better name
 
 ## Core contributors

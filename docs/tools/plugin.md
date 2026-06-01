@@ -18,27 +18,16 @@ with CrawClaw), others are **external** (published on npm by the community).
 
 <Steps>
   <Step title="See what is loaded">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
   </Step>
 
   <Step title="Install a plugin">
-    ```bash
-    # From npm
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-
-    # From a local directory or archive
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
   </Step>
 
   <Step title="Restart the Gateway">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Then configure under `plugins.entries.\<id\>.config` in your config file.
 
@@ -183,24 +172,7 @@ Some categories are exclusive (only one active at a time):
 
 ## Gateway API reference
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 `--dangerously-force-unsafe-install` is a break-glass override for false
 positives from the built-in dangerous-code scanner. It allows installs to
@@ -212,7 +184,7 @@ installs use the matching `dangerouslyForceUnsafeInstall` request override
 instead, while CrawClaw Desktop or the local Gateway API remains the separate ClawHub skill
 download/install flow.
 
-See [CrawClaw Desktop or the local Gateway API Gateway API reference](/tools/plugin) for full details.
+See the [Gateway API reference](/tools/plugin) for full details.
 
 ## Plugin API overview
 

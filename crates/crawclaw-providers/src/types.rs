@@ -159,6 +159,15 @@ pub struct BundledProviderModelChoices {
     pub models: &'static [&'static str],
 }
 
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BundledProviderModelLimit {
+    pub provider: &'static str,
+    pub model: &'static str,
+    pub context_window: usize,
+    pub max_tokens: usize,
+}
+
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct BundledProviderAuthChoice {

@@ -24,9 +24,7 @@ JS-heavy sites or authenticated pages, use the [Web Browser](/tools/browser).
     installs you do not need an API key or a separately managed service.
   </Step>
   <Step title="Optional configuration">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
   </Step>
   <Step title="Use it">
     ```javascript

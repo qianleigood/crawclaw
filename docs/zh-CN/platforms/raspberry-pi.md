@@ -118,9 +118,7 @@ sudo sysctl -p
 
 ### 选项 A：标准安装（推荐）
 
-```bash
-curl -fsSL https://crawclaw.ai/install.sh | bash
-```
+使用你要运行的 Linux ARM build 所支持的安装流程。需要可修改 runtime 时，使用下面的 source checkout 路径。
 
 ### 选项 B：可修改安装（适合折腾）
 
@@ -136,9 +134,7 @@ npm link
 
 ## 7）运行新手引导
 
-```bash
-crawclaw onboard --install-daemon
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 按向导完成设置：
 
@@ -150,9 +146,6 @@ crawclaw onboard --install-daemon
 ## 8）验证安装
 
 ```bash
-# 检查状态
-crawclaw status
-
 # 检查服务
 sudo systemctl status crawclaw
 

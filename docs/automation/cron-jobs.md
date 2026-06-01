@@ -13,16 +13,7 @@ Cron is the Gateway's built-in scheduler. It persists jobs, wakes the agent at t
 
 ## Quick start
 
-```bash
-# Add a one-shot reminder
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Check your jobs
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# See run history
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## How cron works
 
@@ -75,21 +66,15 @@ Use `--announce --channel feishu --to "-1001234567890"` for channel delivery. Fo
 
 One-shot reminder (main session):
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Recurring isolated job with delivery:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Isolated job with model and thinking override:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Webhooks
 
@@ -162,9 +147,7 @@ Wire Gmail inbox triggers to CrawClaw via Google PubSub.
 
 ### Wizard setup (recommended)
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 This writes `hooks.gmail` config, enables the Gmail preset, and uses Tailscale Funnel for the push endpoint.
 
@@ -217,29 +200,7 @@ gog gmail watch start \
 
 ## Managing jobs
 
-```bash
-# List all jobs
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Edit a job
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Force run a job now
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Run only if due
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# View run history
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Delete a job
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Agent selection (multi-agent setups)
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Configuration
 
@@ -276,16 +237,7 @@ Disable cron: `cron.enabled: false` or `CRAWCLAW_SKIP_CRON=1`.
 
 ### Command ladder
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### Cron not firing
 

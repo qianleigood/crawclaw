@@ -34,9 +34,7 @@ supported token environment variables before starting the desktop app or gateway
 
 ## Set a default model
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### Config snippet
 

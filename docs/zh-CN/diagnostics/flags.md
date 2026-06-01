@@ -89,7 +89,7 @@ rg "feishu http error" /tmp/crawclaw/crawclaw-*.log
 tail -f /tmp/crawclaw/crawclaw-$(date +%F).log | rg "feishu http error"
 ```
 
-对于远程 Gateway 网关，你也可以使用 `crawclaw logs --follow`（参见 [/cli/logs](/cli/logs)）。
+对于远程 Gateway 网关，也可以通过 CrawClaw Desktop 日志视图或本地 Gateway API 跟踪日志。
 
 ## 注意事项
 

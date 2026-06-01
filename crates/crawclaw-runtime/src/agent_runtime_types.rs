@@ -112,6 +112,7 @@ pub struct ContextProjection {
     pub compaction_active: bool,
     pub projected_tool_result_count: usize,
     pub projected_tool_result_omitted_chars: usize,
+    pub persisted_tool_result_count: usize,
     pub collapse_state: String,
     pub reason: String,
 }
@@ -121,6 +122,18 @@ pub struct ContextProjection {
 pub struct ContextBudgetReport {
     pub estimated_tokens: usize,
     pub max_prompt_tokens: usize,
+    pub provider: String,
+    pub model: String,
+    pub model_context_window: usize,
+    pub resolved_context_window: usize,
+    pub output_reserve_tokens: usize,
+    pub provider_overhead_tokens: usize,
+    pub tool_schema_tokens: usize,
+    pub budget_source: String,
+    pub supports_tools: bool,
+    pub supports_reasoning: bool,
+    pub supports_image_input: bool,
+    pub supports_streaming: bool,
     pub state: String,
     pub overflow_retry_enabled: bool,
 }

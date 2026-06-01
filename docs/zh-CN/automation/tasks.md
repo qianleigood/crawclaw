@@ -39,26 +39,7 @@ x-i18n:
 
 ## 快速开始
 
-```bash
-# 列出所有任务（最新优先）
-# 使用 CrawClaw Desktop 或本地 Gateway API 进行此操作。
-
-# 按运行时类型或状态筛选
-# 使用 CrawClaw Desktop 或本地 Gateway API 进行此操作。
-# 使用 CrawClaw Desktop 或本地 Gateway API 进行此操作。
-
-# 显示特定任务的详情（通过 ID、运行 ID 或会话密钥）
-# 使用 CrawClaw Desktop 或本地 Gateway API 进行此操作。
-
-# 取消正在运行的任务（终止子会话）
-# 使用 CrawClaw Desktop 或本地 Gateway API 进行此操作。
-
-# 更改任务的通知策略
-# 使用 CrawClaw Desktop 或本地 Gateway API 进行此操作。
-
-# 运行健康审计
-# 使用 CrawClaw Desktop 或本地 Gateway API 进行此操作。
-```
+使用 CrawClaw Desktop 查看任务；自动化场景调用本地 Gateway API。
 
 ## 什么会创建任务
 
@@ -127,47 +108,35 @@ stateDiagram-v2
 
 在任务运行期间更改策略：
 
-```bash
-# 使用 CrawClaw Desktop 或本地 Gateway API 进行此操作。
-```
+使用 CrawClaw Desktop 或本地 Gateway API 在任务运行期间更改策略。
 
 ## Gateway API 参考
 
 ### `tasks list`
 
-```bash
-# 使用 CrawClaw Desktop 或本地 Gateway API 进行此操作。
-```
+使用 CrawClaw Desktop 或本地 Gateway API 列出任务。
 
 输出列：任务 ID、类型、状态、投递、运行 ID、子会话、摘要。
 
 ### `tasks show`
 
-```bash
-# 使用 CrawClaw Desktop 或本地 Gateway API 进行此操作。
-```
+使用 CrawClaw Desktop 或本地 Gateway API 查看任务详情。
 
 查找令牌接受任务 ID、运行 ID 或会话密钥。显示完整记录，包括时间、投递状态、错误和终端摘要。
 
 ### `tasks cancel`
 
-```bash
-# 使用 CrawClaw Desktop 或本地 Gateway API 进行此操作。
-```
+使用 CrawClaw Desktop 或本地 Gateway API 取消任务。
 
 对于 ACP 和子智能体任务，这会终止子会话。状态转换为 `cancelled` 并发送投递通知。
 
 ### `tasks notify`
 
-```bash
-# 使用 CrawClaw Desktop 或本地 Gateway API 进行此操作。
-```
+使用 CrawClaw Desktop 或本地 Gateway API 调整通知策略。
 
 ### `tasks audit`
 
-```bash
-# 使用 CrawClaw Desktop 或本地 Gateway API 进行此操作。
-```
+使用 CrawClaw Desktop 或本地 Gateway API 运行任务审计。
 
 显示操作问题。当检测到问题时，问题也会在 CrawClaw Desktop 或本地 Gateway API 中呈现。
 

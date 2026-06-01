@@ -94,17 +94,7 @@ No writes are committed for an invalid plan.
 
 ## Operator checks
 
-```bash
-# Validate plan without writes
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Then apply for real
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# For exec-containing plans, opt in explicitly in both modes
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 If apply fails with an invalid target path message, regenerate the plan with CrawClaw Desktop or the local Gateway API or fix the target path to a supported shape above.
 

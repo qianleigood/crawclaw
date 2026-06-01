@@ -36,26 +36,7 @@ CLI agent commands do.
 
 ## Quick start
 
-```bash
-# List all tasks (newest first)
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Filter by runtime or status
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Show details for a specific task (by ID, run ID, or session key)
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Cancel a running task (kills the child session)
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Change notification policy for a task
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Run a health audit
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## What creates a task
 
@@ -125,47 +106,35 @@ Control how much you hear about each task:
 
 Change the policy while a task is running:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Gateway API reference
 
 ### `tasks list`
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Output columns: Task ID, Kind, Status, Delivery, Run ID, Child Session, Summary.
 
 ### `tasks show`
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 The lookup token accepts a task ID, run ID, or session key. Shows the full record including timing, delivery state, error, and terminal summary.
 
 ### `tasks cancel`
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 For ACP and subagent tasks, this kills the child session. Status transitions to `cancelled` and a delivery notification is sent.
 
 ### `tasks notify`
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### `tasks audit`
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Surfaces operational issues. Findings also appear in CrawClaw Desktop or the local Gateway API when issues are detected.
 

@@ -33,9 +33,7 @@ Qianfan 是 Baidu 的 MaaS 平台，提供一个**统一 API**，可通过单个
 
 ## CLI 设置
 
-```bash
-crawclaw onboard --auth-choice qianfan-api-key
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ## 相关文档
 

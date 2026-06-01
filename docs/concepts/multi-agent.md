@@ -56,17 +56,13 @@ If you do nothing, CrawClaw runs a single agent:
 
 Use the agent wizard to add a new isolated agent:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Then add `bindings` (or let the wizard do it) to route inbound messages.
 
 Verify with:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Quick start
 
@@ -75,10 +71,7 @@ Verify with:
 
 Use the wizard or create workspaces manually:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Each agent gets its own workspace with `SOUL.md`, `AGENTS.md`, and optional `USER.md`, plus a dedicated `agentDir` and session store under `~/.crawclaw/agents/<agentId>`.
 
@@ -92,9 +85,7 @@ Create one account per agent on your preferred channels:
 - Feishu: one bot per agent via BotFather, copy each token.
 - Weixin: link each phone number per account.
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 See channel guides: [QQBot](/channels/index), [Feishu](/channels/index), [Weixin](/channels/index).
 
@@ -108,11 +99,7 @@ Add agents under `agents.list`, channel accounts under `channels.<channel>.accou
 
   <Step title="Restart and verify">
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
   </Step>
 </Steps>
@@ -311,10 +298,7 @@ Notes:
 
 Link each account before starting the gateway:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 `~/.crawclaw/crawclaw.json` (JSON5):
 

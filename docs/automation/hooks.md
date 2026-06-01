@@ -19,19 +19,7 @@ Hooks can also be bundled inside plugins. CrawClaw Desktop or the local Gateway 
 
 ## Quick start
 
-```bash
-# List available hooks
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Enable a hook
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Check hook status
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Get detailed information
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Event types
 
@@ -206,20 +194,7 @@ The legacy `hooks.internal.handlers` array config format has been removed. Use m
 
 ## Gateway API reference
 
-```bash
-# List all hooks (add --eligible, --verbose, or --json)
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Show detailed info about a hook
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Show eligibility summary
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Enable/disable
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Best practices
 
@@ -236,16 +211,13 @@ The legacy `hooks.internal.handlers` array config format has been removed. Use m
 # Verify directory structure
 ls -la ~/.crawclaw/hooks/my-hook/
 # Should show: HOOK.md, handler.ts
-
-# List all discovered hooks
-# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
+
+Use CrawClaw Desktop or the local Gateway API to inspect the discovered hook list.
 
 ### Hook not eligible
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Check for missing binaries (PATH), environment variables, config values, or OS compatibility.
 

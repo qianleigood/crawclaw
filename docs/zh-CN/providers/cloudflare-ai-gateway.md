@@ -28,9 +28,7 @@ Cloudflare AI Gateway 位于提供商 API 前方，让你能够添加分析、�
 
 1. 设置提供商 API key 和 Gateway 详细信息：
 
-```bash
-crawclaw onboard --auth-choice cloudflare-ai-gateway-api-key
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 2. 设置默认模型：
 
@@ -46,14 +44,7 @@ crawclaw onboard --auth-choice cloudflare-ai-gateway-api-key
 
 ## 非交互式示例
 
-```bash
-crawclaw onboard --non-interactive \
-  --mode local \
-  --auth-choice cloudflare-ai-gateway-api-key \
-  --cloudflare-ai-gateway-account-id "your-account-id" \
-  --cloudflare-ai-gateway-gateway-id "your-gateway-id" \
-  --cloudflare-ai-gateway-api-key "$CLOUDFLARE_AI_GATEWAY_API_KEY"
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ## 已认证的 Gateway
 

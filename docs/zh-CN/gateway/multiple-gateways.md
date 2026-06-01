@@ -61,25 +61,9 @@ crawclaw --profile rescue gateway install
 
 端口间距：基础端口之间至少保留 20 个端口，以确保派生的 browser/canvas/CDP 端口永不冲突。
 
-### 如何安装（救援机器人）
+### 如何运行（救援实例）
 
-```bash
-# Main bot（现有或全新，不带 --profile 参数）
-# 运行在端口 18789 + Chrome CDC/Canvas/... 端口
-crawclaw onboard
-crawclaw gateway install
-
-# Rescue bot（隔离的配置档案 + 端口）
-crawclaw --profile rescue onboard
-# 说明：
-# - 工作区名称默认会追加 -rescue 后缀
-# - 端口至少应为 18789 + 20 个端口，
-#   最好选择完全不同的基础端口，例如 19789，
-# - 其余新手引导与正常情况相同
-
-# 安装服务（如果设置期间未自动完成）
-crawclaw --profile rescue gateway install
-```
+使用 CrawClaw Desktop 或本地 Gateway API 配置 main instance 和 rescue instance。每个 instance 都需要独立的 config path、state dir 和 gateway port。
 
 ## 端口映射（派生）
 
@@ -102,17 +86,13 @@ crawclaw --profile rescue gateway install
 ```bash
 CRAWCLAW_CONFIG_PATH=~/.crawclaw/main.json \
 CRAWCLAW_STATE_DIR=~/.crawclaw-main \
-crawclaw gateway --port 18789
+cargo run -q -p crawclaw-gateway -- --bind loopback --port 18789
 
 CRAWCLAW_CONFIG_PATH=~/.crawclaw/rescue.json \
 CRAWCLAW_STATE_DIR=~/.crawclaw-rescue \
-crawclaw gateway --port 19001
+cargo run -q -p crawclaw-gateway -- --bind loopback --port 18790
 ```
 
 ## 快速检查
 
-```bash
-crawclaw --profile main status
-crawclaw --profile rescue status
-crawclaw --profile rescue browser status
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。

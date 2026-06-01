@@ -20,9 +20,7 @@ Gemini Grounding.
 
 1. Set the API key:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 2. Set a default model:
 
@@ -38,9 +36,7 @@ Gemini Grounding.
 
 ## Non-interactive example
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Capabilities
 

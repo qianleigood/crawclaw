@@ -85,7 +85,7 @@ CrawClaw picks that up as `<workspace>/skills` on the next session.
 - `skills.entries.*.env` and `skills.entries.*.apiKey` inject secrets into the **host** process
 - For a broader threat model and checklists, see [Security](/gateway/security).
 
-## Format (AgentSkills + Pi-compatible)
+## Format (AgentSkills-compatible)
 
 `SKILL.md` must include at least:
 
@@ -99,7 +99,7 @@ description: Generate or edit images via a provider-backed image workflow
 Notes:
 
 - We follow the AgentSkills spec for layout/intent.
-- The parser used by the embedded agent supports **single-line** frontmatter keys only.
+- The Rust agent runtime supports **single-line** frontmatter keys only.
 - `metadata` should be a **single-line JSON object**.
 - Use `{baseDir}` in instructions to reference the skill folder path.
 - Optional frontmatter keys:
@@ -321,21 +321,13 @@ By default, CrawClaw watches skill folders and bumps the skills snapshot when `S
 
 ## Token impact (skills list)
 
-When skills are eligible, CrawClaw injects a compact XML list of available skills into the system prompt (via `formatSkillsForPrompt` in `pi-coding-agent`). The cost is deterministic:
+When skills are eligible, CrawClaw surfaces up to five relevant skill summaries
+in the Rust runtime context disclosure. The prompt cost is the text cost of the
+surfaced skill names and descriptions plus the small disclosure wrapper.
 
-- **Base overhead (only when ≥1 skill):** 195 characters.
-- **Per skill:** 97 characters + the length of the XML-escaped `<name>`, `<description>`, and `<location>` values.
-
-Formula (characters):
-
-```
-total = 195 + Σ (97 + len(name_escaped) + len(description_escaped) + len(location_escaped))
-```
-
-Notes:
-
-- XML escaping expands `& < > " '` into entities (`&amp;`, `&lt;`, etc.), increasing length.
-- Token counts vary by model tokenizer. A rough OpenAI-style estimate is ~4 chars/token, so **97 chars ≈ 24 tokens** per skill plus your actual field lengths.
+Full `SKILL.md` content is not injected by default. It enters context only after
+the model loads a skill through the runtime skill tool, and each loaded skill is
+capped before projection.
 
 ## Managed skills lifecycle
 

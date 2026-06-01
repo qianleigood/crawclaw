@@ -27,9 +27,7 @@ Ollama 是一个本地 LLM 运行时，可以让你轻松在自己的机器上�
 
 通过设置向导配置 Ollama 是最快的方法：
 
-```bash
-crawclaw onboard
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 从提供商列表中选择 **Ollama**。向导将会：
 
@@ -41,21 +39,11 @@ crawclaw onboard
 
 也支持非交互模式：
 
-```bash
-crawclaw onboard --non-interactive \
-  --auth-choice ollama \
-  --accept-risk
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 也可以选择指定自定义 base URL 或模型：
 
-```bash
-crawclaw onboard --non-interactive \
-  --auth-choice ollama \
-  --custom-base-url "http://ollama-host:11434" \
-  --custom-model-id "qwen3.5:27b" \
-  --accept-risk
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ### 手动设置
 
@@ -79,9 +67,7 @@ ollama signin
 
 4. 运行新手引导并选择 `Ollama`：
 
-```bash
-crawclaw onboard
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 - `Local`：仅本地模型
 - `Cloud + Local`：本地模型加云端模型
@@ -97,17 +83,13 @@ CrawClaw 当前建议：
 ```bash
 # 设置环境变量
 export OLLAMA_API_KEY="ollama-local"
-
-# 或在配置文件中设置
-crawclaw config set models.providers.ollama.apiKey "ollama-local"
 ```
+
+也可以通过 CrawClaw Desktop 或本地 Gateway API 配置 provider。
 
 6. 查看或切换模型：
 
-```bash
-crawclaw models list
-crawclaw models set ollama/glm-4.7-flash
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 7. 或者在配置中设置默认值：
 
@@ -137,7 +119,6 @@ crawclaw models set ollama/glm-4.7-flash
 
 ```bash
 ollama list
-crawclaw models list
 ```
 
 添加新模型时，只需通过 Ollama 拉取它：

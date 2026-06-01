@@ -39,9 +39,7 @@ export SGLANG_API_KEY="sglang-local"
 
 3. 运行新手引导并选择 `SGLang`，或直接设置模型：
 
-```bash
-crawclaw onboard
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ```json5
 {

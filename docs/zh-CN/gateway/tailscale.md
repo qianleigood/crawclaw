@@ -86,10 +86,7 @@ CrawClaw 仅在请求从 loopback 到达并带有 Tailscale 的 `x-forwarded-for
 
 ## CLI 示例
 
-```bash
-crawclaw gateway --tailscale serve
-crawclaw gateway --tailscale funnel --auth password
-```
+使用 CrawClaw Desktop 或本地 Gateway API 启用 Tailscale Serve/Funnel，并按需配置 token 或 password 认证。
 
 ## 注意事项
 

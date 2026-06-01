@@ -27,11 +27,7 @@ OpenCode Go 是 [OpenCode](/providers/opencode) 中的 Go 目录。
 
 ## CLI 设置
 
-```bash
-crawclaw onboard --auth-choice opencode-go
-# 或非交互式
-crawclaw onboard --opencode-go-api-key "$OPENCODE_API_KEY"
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ## 配置片段
 

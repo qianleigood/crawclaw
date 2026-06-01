@@ -1,6 +1,9 @@
 use super::*;
 
-use crate::agent_tool_result_projection::{project_tool_result_content, ToolResultProjectionStats};
+use crate::agent_tool_result_projection::{
+    project_tool_result_content_with_persistence, ToolResultProjectionBudget,
+    ToolResultProjectionPersistence, ToolResultProjectionStats,
+};
 
 const ALWAYS_LOAD_TOOLS: &[&str] = &[
     "tool_search",
@@ -14,8 +17,6 @@ const MAX_SURFACED_SKILLS: usize = 5;
 const MAX_MEMORY_SNIPPETS: usize = 3;
 const MAX_MEMORY_SNIPPET_CHARS: usize = 360;
 const MAX_LOADED_SKILL_CHARS: usize = 12_000;
-const DEFAULT_CONTEXT_WINDOW_TOKENS: usize = 128_000;
-const DEFAULT_OUTPUT_RESERVE_TOKENS: usize = 16_384;
 const CONTEXT_NEAR_LIMIT_PERCENT: usize = 85;
 
 #[derive(Clone, Debug)]
@@ -33,6 +34,7 @@ pub(crate) fn build_runtime_model_context(
     history: &[AgentRuntimeMessage],
     options: &AgentRuntimeSendOptions,
     profile: &AgentRunProfile,
+    budget_basis: &ContextBudgetBasis,
 ) -> RuntimeModelContext {
     let tool_descriptors = tool_descriptors_for_context(runtime_root, options, profile);
     let selected_deferred_tools = read_tool_activation_state(runtime_root);
@@ -57,6 +59,36 @@ pub(crate) fn build_runtime_model_context(
             .unwrap_or(ALWAYS_LOAD_TOOLS.len())
     });
     deferred_tool_names.sort();
+    let mut capability_warnings = Vec::new();
+    if !budget_basis.supports_tools
+        && (!included_tool_schemas.is_empty() || !deferred_tool_names.is_empty())
+    {
+        let mut withheld_tools = included_tool_schemas
+            .iter()
+            .map(|descriptor| descriptor.name.clone())
+            .collect::<BTreeSet<_>>();
+        withheld_tools.extend(deferred_tool_names.iter().cloned());
+        included_tool_schemas.clear();
+        deferred_tool_names = withheld_tools.into_iter().collect();
+        capability_warnings.push(
+            "Selected model does not support tool calling; tool schemas were withheld for this turn."
+                .to_string(),
+        );
+    }
+    if !budget_basis.supports_reasoning
+        && options
+            .model_selection
+            .as_ref()
+            .and_then(|model| model.reasoning_level.as_deref())
+            .is_some()
+    {
+        capability_warnings.push(
+            "Selected model does not support reasoning effort controls; reasoning was disabled for this turn."
+                .to_string(),
+        );
+    }
+    let tool_schema_tokens = estimate_tool_schema_tokens(&included_tool_schemas);
+    let effective_budget = budget_basis.with_tool_schema_tokens(tool_schema_tokens);
 
     let surfaced_skills = match profile.skill_policy {
         SkillPolicy::Default => ranked_skill_summaries(runtime_root, user_text, options),
@@ -92,8 +124,21 @@ pub(crate) fn build_runtime_model_context(
         AgentRuntimeMessageRole::User,
         user_text,
     ));
+    let (messages, omitted_image_count) =
+        project_images_for_model_capabilities(messages, budget_basis.supports_image_input);
+    if omitted_image_count > 0 {
+        capability_warnings.push(
+            "Selected model does not support image input; image blocks were omitted for this turn."
+                .to_string(),
+        );
+    }
     let messages = ensure_tool_result_pairing(messages);
-    let (messages, tool_result_projection) = project_tool_results_for_context(messages);
+    let (messages, tool_result_projection) = project_tool_results_for_context(
+        runtime_root,
+        thread_id,
+        messages,
+        effective_budget.tool_result_projection_budget(),
+    );
     let mut system_sections = Vec::new();
     if let Some(system_prompt) = options
         .system_prompt
@@ -134,14 +179,20 @@ pub(crate) fn build_runtime_model_context(
         &memory_snippets,
     ));
 
-    let max_prompt_tokens = max_prompt_tokens_for_runtime(runtime_root);
-    let (messages, overflow_projection_applied) = project_messages_for_context_budget(
+    let max_prompt_tokens = effective_budget.max_prompt_tokens;
+    let overflow_projection = project_messages_for_context_budget(
         system_sections.as_slice(),
         messages,
         &surfaced_skills,
         &memory_snippets,
         max_prompt_tokens,
     );
+    let overflow_projection_applied = overflow_projection.applied;
+    let overflow_summary_applied = overflow_projection.summary_section.is_some();
+    if let Some(section) = overflow_projection.summary_section {
+        system_sections.push(section);
+    }
+    let messages = overflow_projection.messages;
     let estimated_tokens = estimate_context_tokens(
         &system_sections,
         &messages,
@@ -160,7 +211,10 @@ pub(crate) fn build_runtime_model_context(
         compaction_active: compaction.active,
         projected_tool_result_count: tool_result_projection.projected_count,
         projected_tool_result_omitted_chars: tool_result_projection.omitted_chars,
-        collapse_state: if overflow_projection_applied {
+        persisted_tool_result_count: tool_result_projection.persisted_count,
+        collapse_state: if overflow_projection_applied && overflow_summary_applied {
+            "summary-plus-overflow-tail".to_string()
+        } else if overflow_projection_applied {
             "overflow-tail".to_string()
         } else if compaction.active {
             "summary-plus-tail".to_string()
@@ -176,6 +230,18 @@ pub(crate) fn build_runtime_model_context(
     let budget = ContextBudgetReport {
         estimated_tokens,
         max_prompt_tokens,
+        provider: effective_budget.provider.clone(),
+        model: effective_budget.model.clone(),
+        model_context_window: effective_budget.model_context_window,
+        resolved_context_window: effective_budget.resolved_context_window,
+        output_reserve_tokens: effective_budget.output_reserve_tokens,
+        provider_overhead_tokens: effective_budget.provider_overhead_tokens,
+        tool_schema_tokens: effective_budget.tool_schema_tokens,
+        budget_source: effective_budget.source.clone(),
+        supports_tools: effective_budget.supports_tools,
+        supports_reasoning: effective_budget.supports_reasoning,
+        supports_image_input: effective_budget.supports_image_input,
+        supports_streaming: effective_budget.supports_streaming,
         state: context_budget_state(
             estimated_tokens,
             max_prompt_tokens,
@@ -186,6 +252,7 @@ pub(crate) fn build_runtime_model_context(
             || estimated_tokens >= near_limit_tokens(max_prompt_tokens),
     };
     let mut warnings = profile.warnings.clone();
+    warnings.extend(capability_warnings);
     if overflow_projection_applied {
         warnings.push(
             "Context exceeded the estimated prompt budget; older messages were projected out for this turn."
@@ -571,13 +638,18 @@ fn project_messages_for_context_budget(
     surfaced_skills: &[AgentRuntimeSkillSummary],
     memory_snippets: &[String],
     max_prompt_tokens: usize,
-) -> (Vec<AgentRuntimeMessage>, bool) {
+) -> MessageOverflowProjection {
     if estimate_context_tokens(system_sections, &messages, surfaced_skills, memory_snippets)
         <= max_prompt_tokens
     {
-        return (messages, false);
+        return MessageOverflowProjection {
+            messages,
+            applied: false,
+            summary_section: None,
+        };
     }
     let mut desired_start = 1;
+    let mut fallback_without_summary = None;
     while desired_start < messages.len() {
         let tail_start = safe_tail_start_index(&messages, desired_start);
         let candidate = messages
@@ -585,6 +657,22 @@ fn project_messages_for_context_budget(
             .skip(tail_start.min(messages.len()))
             .cloned()
             .collect::<Vec<_>>();
+        let summary_section = overflow_summary_system_section(&messages[..tail_start]);
+        let mut candidate_system_sections = system_sections.to_vec();
+        candidate_system_sections.push(summary_section.clone());
+        if estimate_context_tokens(
+            &candidate_system_sections,
+            &candidate,
+            surfaced_skills,
+            memory_snippets,
+        ) <= max_prompt_tokens
+        {
+            return MessageOverflowProjection {
+                messages: candidate,
+                applied: true,
+                summary_section: Some(summary_section),
+            };
+        }
         if estimate_context_tokens(
             system_sections,
             &candidate,
@@ -592,18 +680,114 @@ fn project_messages_for_context_budget(
             memory_snippets,
         ) <= max_prompt_tokens
         {
-            return (candidate, true);
+            fallback_without_summary.get_or_insert_with(|| candidate.clone());
         }
         desired_start = tail_start.max(desired_start).saturating_add(1);
     }
-    (
-        messages
-            .last()
-            .cloned()
-            .map(|message| vec![message])
-            .unwrap_or_default(),
-        true,
-    )
+    if let Some(messages) = fallback_without_summary {
+        return MessageOverflowProjection {
+            messages,
+            applied: true,
+            summary_section: None,
+        };
+    }
+    let candidate = messages
+        .last()
+        .cloned()
+        .map(|message| vec![message])
+        .unwrap_or_default();
+    MessageOverflowProjection {
+        messages: candidate,
+        applied: true,
+        summary_section: None,
+    }
+}
+
+#[derive(Clone, Debug)]
+struct MessageOverflowProjection {
+    messages: Vec<AgentRuntimeMessage>,
+    applied: bool,
+    summary_section: Option<String>,
+}
+
+fn overflow_summary_system_section(messages: &[AgentRuntimeMessage]) -> String {
+    const MAX_SUMMARY_MESSAGES: usize = 8;
+    let mut lines = vec![format!(
+        "Earlier conversation omitted for context budget ({} messages).",
+        messages.len()
+    )];
+    for message in messages.iter().take(MAX_SUMMARY_MESSAGES) {
+        lines.push(format!(
+            "- {}: {}",
+            message_role_label(message.role),
+            compact_summary_snippet(&message.content, 240)
+        ));
+    }
+    if messages.len() > MAX_SUMMARY_MESSAGES {
+        lines.push(format!(
+            "- ... {} additional messages omitted.",
+            messages.len().saturating_sub(MAX_SUMMARY_MESSAGES)
+        ));
+    }
+    lines.join("\n")
+}
+
+fn message_role_label(role: AgentRuntimeMessageRole) -> &'static str {
+    match role {
+        AgentRuntimeMessageRole::User => "user",
+        AgentRuntimeMessageRole::Assistant => "assistant",
+    }
+}
+
+fn compact_summary_snippet(content: &str, max_chars: usize) -> String {
+    let compacted = content.split_whitespace().collect::<Vec<_>>().join(" ");
+    let snippet = compacted.chars().take(max_chars).collect::<String>();
+    if compacted.chars().count() > snippet.chars().count() {
+        format!("{snippet}...")
+    } else {
+        snippet
+    }
+}
+
+fn project_images_for_model_capabilities(
+    messages: Vec<AgentRuntimeMessage>,
+    supports_image_input: bool,
+) -> (Vec<AgentRuntimeMessage>, usize) {
+    if supports_image_input {
+        return (messages, 0);
+    }
+    let replacement =
+        "Image input omitted because the selected model does not support image input.";
+    let mut omitted_count = 0;
+    let messages = messages
+        .into_iter()
+        .map(|mut message| {
+            let mut message_omitted_count = 0;
+            message.blocks = message
+                .blocks
+                .into_iter()
+                .map(|block| match block {
+                    AgentRuntimeMessageBlock::Image { .. } => {
+                        message_omitted_count += 1;
+                        AgentRuntimeMessageBlock::Text {
+                            text: replacement.to_string(),
+                        }
+                    }
+                    other => other,
+                })
+                .collect();
+            if message_omitted_count > 0 && !message.content.contains(replacement) {
+                if message.content.trim().is_empty() {
+                    message.content = replacement.to_string();
+                } else {
+                    message.content = format!("{}\n\n{replacement}", message.content);
+                }
+            }
+            omitted_count += message_omitted_count;
+            message
+        })
+        .collect();
+    (messages, omitted_count)
 }
 
 fn ensure_tool_result_pairing(messages: Vec<AgentRuntimeMessage>) -> Vec<AgentRuntimeMessage> {
@@ -639,7 +823,10 @@ fn ensure_tool_result_pairing(messages: Vec<AgentRuntimeMessage>) -> Vec<AgentRu
 }
 
 fn project_tool_results_for_context(
+    runtime_root: &Path,
+    thread_id: &str,
     messages: Vec<AgentRuntimeMessage>,
+    projection_budget: ToolResultProjectionBudget,
 ) -> (Vec<AgentRuntimeMessage>, ToolResultProjectionStats) {
     let mut stats = ToolResultProjectionStats::default();
     let messages = messages
@@ -656,10 +843,21 @@ fn project_tool_results_for_context(
                         content,
                         is_error,
                     } => {
-                        let projection = project_tool_result_content(&content);
+                        let projection = project_tool_result_content_with_persistence(
+                            &content,
+                            projection_budget,
+                            ToolResultProjectionPersistence {
+                                runtime_root,
+                                thread_id,
+                                tool_use_id: &tool_use_id,
+                            },
+                        );
                         if projection.projected {
                             stats.projected_count += 1;
                             stats.omitted_chars += projection.omitted_chars;
+                            if projection.persisted_path.is_some() {
+                                stats.persisted_count += 1;
+                            }
                             replacements.push((content, projection.content.clone()));
                         }
                         AgentRuntimeMessageBlock::ToolResult {
@@ -729,51 +927,6 @@ fn missing_tool_results_after_message(
         .into_iter()
         .filter(|(tool_use_id, _)| !next_result_ids.contains(tool_use_id))
         .collect()
-}
-
-fn max_prompt_tokens_for_runtime(runtime_root: &Path) -> usize {
-    let settings = context_budget_settings(runtime_root);
-    settings
-        .context_window_tokens
-        .saturating_sub(settings.reserve_tokens)
-        .max(1)
-}
-
-#[derive(Clone, Copy)]
-struct ContextBudgetSettings {
-    context_window_tokens: usize,
-    reserve_tokens: usize,
-}
-
-fn context_budget_settings(runtime_root: &Path) -> ContextBudgetSettings {
-    let mut settings = ContextBudgetSettings {
-        context_window_tokens: DEFAULT_CONTEXT_WINDOW_TOKENS,
-        reserve_tokens: DEFAULT_OUTPUT_RESERVE_TOKENS,
-    };
-    let path = runtime_root.join("config").join("crawclaw.json");
-    let Ok(raw) = fs::read_to_string(path) else {
-        return settings;
-    };
-    let Ok(value) = serde_json::from_str::<Value>(&raw) else {
-        return settings;
-    };
-    if let Some(context_tokens) = positive_usize_at(&value, "/agents/defaults/contextTokens") {
-        settings.context_window_tokens = context_tokens;
-    }
-    if let Some(reserve_tokens) =
-        positive_usize_at(&value, "/agents/defaults/compaction/reserveTokens")
-    {
-        settings.reserve_tokens = reserve_tokens;
-    }
-    settings
-}
-
-fn positive_usize_at(value: &Value, pointer: &str) -> Option<usize> {
-    value
-        .pointer(pointer)
-        .and_then(Value::as_u64)
-        .and_then(|value| usize::try_from(value).ok())
-        .filter(|value| *value > 0)
 }
 
 fn near_limit_tokens(max_prompt_tokens: usize) -> usize {
@@ -997,8 +1150,18 @@ fn context_system_section(
         .collect::<Vec<_>>()
         .join("\n");
     let memory = memory_snippets.join("\n");
+    let deferred_instruction = if included_tool_schemas
+        .iter()
+        .any(|descriptor| descriptor.name == "tool_search")
+    {
+        "Use tool_search to activate deferred tools before using them."
+    } else if deferred_tool_names.is_empty() {
+        "No deferred tools for this turn."
+    } else {
+        "Deferred tools are unavailable this turn."
+    };
     format!(
-        "Context disclosure:\n- Included tools: {included_tools}\n- Deferred tool count: {}\n- Use tool_search to activate deferred tools before using them.\n- Skill summaries surfaced this turn:\n{}\n- Relevant memory snippets:\n{}",
+        "Context disclosure:\n- Included tools: {included_tools}\n- Deferred tool count: {}\n- {deferred_instruction}\n- Skill summaries surfaced this turn:\n{}\n- Relevant memory snippets:\n{}",
         deferred_tool_names.len(),
         if surfaced.is_empty() { "(none)" } else { &surfaced },
         if memory.is_empty() { "(none)" } else { &memory },

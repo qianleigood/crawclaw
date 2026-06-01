@@ -14,41 +14,31 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 
 1. **Quick status (first check)**
 
-   ```bash
-   # Use CrawClaw Desktop or the local Gateway API for this operation.
-   ```
+   Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
    Fast local summary: OS + update, Gateway runtime reachability, agents/sessions, provider config + runtime issues (when gateway is reachable).
 
 2. **Pasteable report (safe to share)**
 
-   ```bash
-   # Use CrawClaw Desktop or the local Gateway API for this operation.
-   ```
+   Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
    Read-only diagnosis with log tail (tokens redacted).
 
 3. **Gateway runtime + port state**
 
-   ```bash
-   # Use CrawClaw Desktop or the local Gateway API for this operation.
-   ```
+   Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
    Shows local runtime vs RPC reachability, the probe target URL, and which config is active.
 
 4. **Deep probes**
 
-   ```bash
-   # Use CrawClaw Desktop or the local Gateway API for this operation.
-   ```
+   Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
    Runs gateway health checks + provider probes (requires a reachable gateway). See [Health](/gateway/health).
 
 5. **Tail the latest log**
 
-   ```bash
-   # Use CrawClaw Desktop or the local Gateway API for this operation.
-   ```
+   Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
    If RPC is down, fall back to:
 
@@ -60,18 +50,13 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 
 6. **Run the doctor (repairs)**
 
-   ```bash
-   # Use CrawClaw Desktop or the local Gateway API for this operation.
-   ```
+   Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
    Repairs/migrates config/state + runs health checks. See [Doctor](/gateway/doctor).
 
 7. **Gateway snapshot**
 
-   ```bash
-   # Use CrawClaw Desktop or the local Gateway API for this operation.
-   # Use CrawClaw Desktop or the local Gateway API for this operation.
-   ```
+   Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
    Asks the running gateway for a full snapshot (WS-only). See [Health](/gateway/health).
 
@@ -87,16 +72,9 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     - **OpenAI Codex**: [https://openai.com/codex/](https://openai.com/codex/)
 
     These tools can read the repo, run commands, inspect logs, and help fix your machine-level
-    setup (PATH, services, permissions, auth files). Give them the **full source checkout** via
-    the hackable (git) install:
-
-    ```bash
-    # Install CrawClaw Desktop from GitHub Releases.
-    ```
-
-    This installs CrawClaw **from a git checkout**, so the agent can read the code + docs and
-    reason about the exact version you are running. You can always switch back to stable later
-    by re-running the installer without `--install-method git`.
+    setup (PATH, services, permissions, auth files). Install CrawClaw Desktop from
+    [GitHub Releases](https://github.com/qianleigood/crawclaw/releases), or clone the source checkout
+    if you want the agent to reason against the exact code and docs you are running.
 
     Tip: ask the agent to **plan and supervise** the fix (step-by-step), then execute only the
     necessary commands. That keeps changes small and easier to audit.
@@ -107,11 +85,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 
     Start with these commands (share outputs when asking for help):
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     What they do:
 
@@ -218,23 +192,15 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 
     1. Restart the Gateway:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     2. Check status + auth:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     3. If it still hangs, run:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     If the Gateway is remote, ensure the tunnel/Tailscale connection is up and that the UI
     is pointed at the right Gateway. See [Remote access](/gateway/remote).
@@ -306,15 +272,8 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     **Beta** is the npm dist-tag `beta` (may match `latest` after promotion).
     **Dev** is the moving head of `main` (git); when published, it uses the npm dist-tag `dev`.
 
-    One-liners (macOS/Linux):
-
-    ```bash
-    # Install CrawClaw Desktop from GitHub Releases.
-    ```
-
-    ```bash
-    # Install CrawClaw Desktop from GitHub Releases.
-    ```
+    Install CrawClaw Desktop from [GitHub Releases](https://github.com/qianleigood/crawclaw/releases)
+    and choose the matching stable, beta, or dev release asset.
 
     Windows installer (PowerShell):
     [GitHub Releases](https://github.com/qianleigood/crawclaw/releases)
@@ -328,19 +287,14 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 
     1. **Dev channel (git checkout):**
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     This switches to the `main` branch and updates from source.
 
-    2. **Hackable install (from the installer site):**
+    2. **Source checkout:**
 
-    ```bash
-    # Install CrawClaw Desktop from GitHub Releases.
-    ```
-
-    That gives you a local repo you can edit, then update via git.
+    Clone the repository locally when you want editable source and docs, then build through the
+    repo's documented development commands.
 
     If you prefer a clean clone manually, use:
 
@@ -368,32 +322,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   </Accordion>
 
   <Accordion title="Installer stuck? How do I get more feedback?">
-    Re-run the installer with **verbose output**:
-
-    ```bash
-    # Install CrawClaw Desktop from GitHub Releases.
-    ```
-
-    Beta install with verbose:
-
-    ```bash
-    # Install CrawClaw Desktop from GitHub Releases.
-    ```
-
-    For a hackable (git) install:
-
-    ```bash
-    # Install CrawClaw Desktop from GitHub Releases.
-    ```
-
-    Windows (PowerShell) equivalent:
-
-    ```powershell
-    # CrawClaw Desktop installer has no dedicated -Verbose flag yet.
-    Set-PSDebug -Trace 1
-    # Install CrawClaw Desktop from GitHub Releases.
-    Set-PSDebug -Trace 0
-    ```
+    Download the current desktop asset from [GitHub Releases](https://github.com/qianleigood/crawclaw/releases) and inspect the platform installer output. For source checkouts, run `pnpm install` and `pnpm build` directly so package-manager errors are visible.
 
     More options: [Install](/install) and [Desktop](/install/desktop).
 
@@ -440,11 +369,9 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
     ```
 
-    Then restart the Gateway and retry your command:
+Then restart the Gateway and retry your command:
 
-    ```powershell
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+Use CrawClaw Desktop to restart the local Gateway, or restart the Gateway process that owns your local API session.
 
     If you still reproduce this on latest CrawClaw, track/report it in:
 
@@ -456,9 +383,8 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     Use the **hackable (git) install** so you have the full source and docs locally, then ask
     your bot (or Claude/Codex) _from that folder_ so it can read the repo and answer precisely.
 
-    ```bash
-    # Install CrawClaw Desktop from GitHub Releases.
-    ```
+    Install CrawClaw Desktop from [GitHub Releases](https://github.com/qianleigood/crawclaw/releases),
+    or clone the source checkout when you need local code and docs for precise debugging.
 
     More detail: [Install](/install) and [Desktop](/install/desktop).
 
@@ -504,10 +430,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 
     If you must automate from an agent:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Docs: [Update](/install/updating), [Updating](/install/updating).
 
@@ -717,23 +640,19 @@ for usage/billing and raise limits as needed.
     From npm to git:
 
     ```bash
-    git clone https://github.com/qianleigood/crawclaw.git
-    cd crawclaw
-    pnpm install
-    pnpm build
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+
+git clone https://github.com/qianleigood/crawclaw.git
+cd crawclaw
+pnpm install
+pnpm build
+
+````
+
+Start CrawClaw Desktop from that checkout, or run the local Gateway API target from the same source tree.
 
     From git to npm:
 
-    ```bash
-
-    # Install CrawClaw Desktop from GitHub Releases.
-
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Doctor still checks config and state after the move; remove any old startup entries manually if they predate the desktop runtime.
 
@@ -950,10 +869,7 @@ for usage/billing and raise limits as needed.
 
     Debug:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Docs: [Cron jobs](/automation/cron-jobs), [Automation & Tasks](/automation).
 
@@ -963,11 +879,7 @@ for usage/billing and raise limits as needed.
     Use native CrawClaw Desktop or the local Gateway API commands or drop skills into your workspace. The macOS Skills UI isn't available on Linux.
     Browse skills at [https://clawhub.com](https://clawhub.com).
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Install the separate `clawhub` CLI only if you want to publish or sync your own skills.
 
@@ -1037,10 +949,7 @@ for usage/billing and raise limits as needed.
 
     Install skills:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Native installs land in the active workspace `skills/` directory. For shared skills across agents, place them in `~/.crawclaw/skills/<name>/SKILL.md`. Some skills expect binaries installed via Homebrew; on Linux that means Linuxbrew (see the Homebrew Linux FAQ entry above). See [Skills](/tools/skills) and [ClawHub](/tools/clawhub).
 
@@ -1465,9 +1374,7 @@ for usage/billing and raise limits as needed.
 
     Example pattern (run from a machine that can reach the target Gateway):
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Tip: add a guardrail so the two bots do not loop endlessly (mention-only, channel
     allowlists, or a "do not reply to bot messages" rule).
@@ -1529,9 +1436,7 @@ for usage/billing and raise limits as needed.
 
     If you want browser-facing access without SSH, use Tailscale Serve on the VPS:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     This keeps the gateway bound to loopback and exposes HTTPS via Tailscale. See [Tailscale](/gateway/tailscale).
 
@@ -1547,10 +1452,7 @@ for usage/billing and raise limits as needed.
        It can tunnel the Gateway port and connect to the Gateway.
     3. **Approve the device** on the gateway:
 
-       ```bash
-       # Use CrawClaw Desktop or the local Gateway API for this operation.
-       # Use CrawClaw Desktop or the local Gateway API for this operation.
-       ```
+       Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Docs: [Gateway protocol](/gateway/protocol), [Discovery](/gateway/discovery), [Remote gateway](/gateway/remote).
 
@@ -1625,9 +1527,7 @@ for usage/billing and raise limits as needed.
 
     Then restart the gateway and recheck:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Copilot tokens are read from `COPILOT_GITHUB_TOKEN` (also `GH_TOKEN` / `GITHUB_TOKEN`).
     See [/concepts/model-providers](/concepts/model-providers) and [/environment](/help/environment).
@@ -1688,21 +1588,15 @@ for usage/billing and raise limits as needed.
   <Accordion title="How do I completely reset CrawClaw but keep it installed?">
     Use the reset command:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Non-interactive full reset:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Then re-run setup:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Notes:
 
@@ -1754,8 +1648,8 @@ for usage/billing and raise limits as needed.
     sending them.
 
     Use CrawClaw Desktop or the local Gateway API for the latest main-session wake
-    diagnostic event, then inspect CrawClaw Desktop or the local Gateway API and CrawClaw Desktop or the local Gateway API
-    for scheduled jobs.
+    diagnostic event, then inspect the cron and background-task views for
+    scheduled jobs.
 
     Docs: [Heartbeat](/gateway/heartbeat), [Cron jobs](/automation/cron-jobs).
 
@@ -1783,18 +1677,14 @@ for usage/billing and raise limits as needed.
   <Accordion title="How do I get the JID of a Weixin group?">
     Option 1 (fastest): tail logs and send a test message in the group:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Look for `chatId` (or `from`) ending in `@g.us`, like:
     `1234567890-1234567890@g.us`.
 
     Option 2 (if already configured/allowlisted): list groups from config:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Docs: [Weixin](/channels/index), [Directory](/channels/pairing), [Logs](/gateway/logging).
 
@@ -1916,7 +1806,7 @@ for usage/billing and raise limits as needed.
 
     - `Cloud + Local` gives you Ollama Cloud models plus your local Ollama models
     - cloud models such as `kimi-k2.5:cloud` do not need a local pull
-    - for manual switching, use CrawClaw Desktop or the local Gateway API and CrawClaw Desktop or the local Gateway API
+    - for manual switching, use CrawClaw Desktop or the local Gateway API
 
     Security note: smaller or heavily quantized models are more vulnerable to prompt
     injection. We strongly recommend **large models** for any bot that can use tools.
@@ -2016,9 +1906,7 @@ for usage/billing and raise limits as needed.
        `minimax/MiniMax-M2.7-highspeed`.
     4. Run:
 
-       ```bash
-       # Use CrawClaw Desktop or the local Gateway API for this operation.
-       ```
+       Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
        and pick from the list (or `/model list` in chat).
 
@@ -2190,9 +2078,7 @@ for usage/billing and raise limits as needed.
       - Put `ANTHROPIC_API_KEY` in `~/.crawclaw/.env` on the **gateway host**.
       - Clear any pinned order that forces a missing profile:
 
-        ```bash
-        # Use CrawClaw Desktop or the local Gateway API for this operation.
-        ```
+        Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     - **Confirm you're running commands on the gateway host**
       - In remote mode, auth profiles live on the gateway machine, not your laptop.
@@ -2287,9 +2173,7 @@ Because process state and API reachability are different checks. The RPC probe c
 
     Fix:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Run that from the same `--profile` / environment you want the service to use.
 
@@ -2399,7 +2283,8 @@ Because process state and API reachability are different checks. The RPC probe c
 
     If you're using a remote Gateway client, the URL should look like:
 
-    ```
+    ```text
+    ws://gateway-host:18789
     ```
 
     Protocol details: [Gateway protocol](/gateway/protocol).
@@ -2421,9 +2306,7 @@ Because process state and API reachability are different checks. The RPC probe c
 
     Fastest log tail:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Gateway runtime logs:
 
@@ -2442,18 +2325,13 @@ Because process state and API reachability are different checks. The RPC probe c
   </Accordion>
 
   <Accordion title="I closed my terminal on Windows - how do I restart CrawClaw?">
-    The supported Windows path is native Windows. Open PowerShell and run:
+The supported Windows path is native Windows. Open PowerShell and run:
 
-    ```powershell
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+Use CrawClaw Desktop to restart the local Rust Gateway.
 
-    If you run it manually (no service), use:
+If you run it manually (no service), use:
 
-    ```powershell
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+Run the Gateway from the same source checkout or package install you used to start it originally.
 
     Docs: [Windows](/platforms/windows), [Gateway runbook](/gateway).
 
@@ -2462,12 +2340,7 @@ Because process state and API reachability are different checks. The RPC probe c
   <Accordion title="The Gateway is up but replies never arrive. What should I check?">
     Start with a quick health sweep:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Common causes:
 
@@ -2492,9 +2365,7 @@ Because process state and API reachability are different checks. The RPC probe c
 
     Then tail logs:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Docs: [Remote access](/gateway/remote), [Troubleshooting](/gateway/troubleshooting).
 
@@ -2503,10 +2374,7 @@ Because process state and API reachability are different checks. The RPC probe c
   <Accordion title="Feishu setMyCommands fails. What should I check?">
     Start with logs and channel status:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Then match the error:
 
@@ -2522,11 +2390,7 @@ Because process state and API reachability are different checks. The RPC probe c
   <Accordion title="Desktop client shows no output. What should I check?">
     First confirm the Gateway is reachable and the agent can run:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Use CrawClaw Desktop or the local Gateway API to see the current state. If you expect replies in a chat
     channel, make sure delivery is enabled (`/deliver on`).
@@ -2538,19 +2402,14 @@ Because process state and API reachability are different checks. The RPC probe c
   <Accordion title="How do I completely stop then start the Gateway?">
     If you installed the service:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     This stops/starts the **supervised service** (launchd on macOS, systemd on Linux).
     Use this when the Gateway runs in the background as a daemon.
 
     If you're running in the foreground, stop with Ctrl-C, then:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Docs: [Gateway runbook](/gateway).
 
@@ -2654,9 +2513,7 @@ Because process state and API reachability are different checks. The RPC probe c
 
     Check pending requests:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     If you want immediate access, allowlist your sender id or set `dmPolicy: "open"`
     for that account.
@@ -2668,15 +2525,11 @@ Because process state and API reachability are different checks. The RPC probe c
 
     Approve pairing with:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     List pending requests:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Wizard phone number prompt: it's used to set your **allowlist/owner** so your own DMs are permitted. It's not used for auto-sending. If you run on your personal Weixin number, use that number and enable `channels.weixin.selfChatMode`.
 
@@ -2713,13 +2566,12 @@ Because process state and API reachability are different checks. The RPC probe c
     stop action
     stop current action
     stop run
-    stop current run
-    stop agent
-    stop the agent
-    stop crawclaw
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    stop don't do anything
-    stop do not do anything
+stop current run
+stop agent
+stop the agent
+stop crawclaw
+stop don't do anything
+stop do not do anything
     stop doing anything
     please stop
     stop please
@@ -2792,3 +2644,4 @@ Because process state and API reachability are different checks. The RPC probe c
 ---
 
 Still stuck? Ask in [QQBot](https://qqbot.com/invite/clawd) or open a [GitHub discussion](https://github.com/qianleigood/crawclaw/discussions).
+````

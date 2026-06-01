@@ -76,19 +76,13 @@ apt update && apt upgrade -y
 # 安装 Node.js 24
 curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
 apt install -y nodejs
-
-# 安装 CrawClaw
-curl -fsSL https://crawclaw.ai/install.sh | bash
-
-# 验证
-crawclaw --version
 ```
+
+安装你要在该 host 上运行的 CrawClaw runtime，然后通过 CrawClaw Desktop 或本地 Gateway API 验证 Gateway 状态。
 
 ## 4）运行新手引导
 
-```bash
-crawclaw onboard --install-daemon
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 向导会带你完成以下设置：
 
@@ -100,9 +94,6 @@ crawclaw onboard --install-daemon
 ## 5）验证 Gateway 网关
 
 ```bash
-# 检查状态
-crawclaw status
-
 # 检查服务
 systemctl --user status crawclaw-gateway.service
 
@@ -129,11 +120,9 @@ ssh -L 18789:localhost:18789 root@YOUR_DROPLET_IP
 # 在 droplet 上
 curl -fsSL https://tailscale.com/install.sh | sh
 tailscale up
-
-# 将 Gateway 网关配置为使用 Tailscale Serve
-crawclaw config set gateway.tailscale.mode serve
-crawclaw gateway restart
 ```
+
+通过 CrawClaw Desktop 或本地 Gateway API 配置 `gateway.bind: "loopback"` 和 `gateway.tailscale.mode: "serve"`。
 
 打开：`https://<magicdns>/`
 
@@ -144,10 +133,7 @@ crawclaw gateway restart
 
 **选项 C：绑定到 tailnet（不使用 Serve）**
 
-```bash
-crawclaw config set gateway.bind tailnet
-crawclaw gateway restart
-```
+使用 CrawClaw Desktop 或本地 Gateway API 将 `gateway.bind` 设置为 `tailnet`，然后重启 Gateway。
 
 打开：`http://<tailscale-ip>:18789`（需要 token）。
 
@@ -155,17 +141,11 @@ crawclaw gateway restart
 
 ### Feishu
 
-```bash
-crawclaw pairing list feishu
-crawclaw pairing approve feishu <CODE>
-```
+使用 CrawClaw Desktop 或本地 Gateway API 查看并批准 Feishu pairing 请求。
 
 ### Weixin
 
-```bash
-crawclaw channels login weixin
-# 扫描 QR 码
-```
+使用 CrawClaw Desktop 配置 Weixin channel，并按 UI 提示完成登录。
 
 其他提供商请参阅 [Channels](/channels)。
 
@@ -241,8 +221,6 @@ Oracle Cloud 提供 **Always Free** ARM 实例，性能显著强于这里列出�
 ### Gateway 网关无法启动
 
 ```bash
-crawclaw gateway status
-crawclaw doctor --non-interactive
 journalctl -u crawclaw --no-pager -n 50
 ```
 

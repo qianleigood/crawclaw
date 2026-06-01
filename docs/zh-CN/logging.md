@@ -43,13 +43,9 @@ CrawClaw 在两个地方记录日志：
 
 ## 如何读取日志
 
-### CLI：实时跟踪（推荐）
+### 实时跟踪（推荐）
 
-使用 CLI 通过 RPC 跟踪 Gateway 网关日志文件：
-
-```bash
-crawclaw logs --follow
-```
+使用 CrawClaw Desktop 或本地 Gateway API 通过 RPC 跟踪 Gateway 网关日志文件。
 
 输出模式：
 
@@ -66,29 +62,17 @@ crawclaw logs --follow
 - `notice`：截断/轮转提示
 - `raw`：未解析的日志行
 
-如果 Gateway 网关无法访问，CLI 会打印一个简短提示运行：
-
-```bash
-crawclaw doctor
-```
+如果 Gateway 网关无法访问，请使用 CrawClaw Desktop 的诊断界面或本地 Gateway API 的 doctor 流程。
 
 ### 日志尾随
 
-`logs.tail` RPC 和 `crawclaw logs --follow` 跟踪相同的文件。
-
-### 仅渠道日志
-
-要过滤渠道活动（Weixin/Feishu 等），使用：
-
-```bash
-crawclaw channels logs --channel weixin
-```
+`logs.tail` RPC 和 Desktop 日志视图跟踪相同的文件。
 
 ## 日志格式
 
 ### 文件日志（JSONL）
 
-日志文件中的每一行都是一个 JSON 对象。CLI 和Gateway 客户端 解析这些条目以渲染结构化输出（时间、级别、子系统、消息）。
+日志文件中的每一行都是一个 JSON 对象。Desktop 和 Gateway API 客户端会解析这些条目以渲染结构化输出（时间、级别、子系统、消息）。
 
 ### 控制台输出
 

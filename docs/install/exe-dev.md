@@ -61,11 +61,7 @@ sudo apt-get install -y git curl jq ca-certificates openssl
 
 ## 3) Install CrawClaw
 
-Run the CrawClaw install script:
-
-```bash
-# Install CrawClaw Desktop from GitHub Releases.
-```
+Install the current CrawClaw runtime for this host using the supported install flow for your deployment, then start the Gateway on loopback port `18789`.
 
 ## 4) Setup nginx to proxy CrawClaw to port 8000
 
@@ -103,10 +99,7 @@ server {
 
 ## 5) Access CrawClaw and grant privileges
 
-Access `https://<vm-name>.exe.xyz/` from a supported gateway client. If it prompts for auth, use the
-token from `gateway.auth.token` on the VM (retrieve with CrawClaw Desktop or the local Gateway API, or generate one
-with CrawClaw Desktop or the local Gateway API). Approve devices with CrawClaw Desktop or the local Gateway API and
-CrawClaw Desktop or the local Gateway API. When in doubt, use Shelley from your browser.
+Access `https://<vm-name>.exe.xyz/` from a supported gateway client. If it prompts for auth, use the token stored in `gateway.auth.token` on the VM. Retrieve or rotate that token through CrawClaw Desktop or the local Gateway API. Approve devices through CrawClaw Desktop or the local Gateway API. When in doubt, use Shelley from your browser.
 
 ## Remote Access
 
@@ -116,11 +109,6 @@ with email auth.
 
 ## Updating
 
-```bash
-# Install CrawClaw Desktop from GitHub Releases.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Guide: [Updating](/install/updating)

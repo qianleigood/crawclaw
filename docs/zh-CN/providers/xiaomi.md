@@ -31,11 +31,7 @@ OpenAI 兼容端点，并通过 API key 认证。请在
 
 ## CLI 设置
 
-```bash
-crawclaw onboard --auth-choice xiaomi-api-key
-# 或非交互式
-crawclaw onboard --auth-choice xiaomi-api-key --xiaomi-api-key "$XIAOMI_API_KEY"
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ## 配置片段
 

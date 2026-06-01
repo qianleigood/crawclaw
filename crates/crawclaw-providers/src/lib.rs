@@ -132,6 +132,16 @@ pub fn bundled_provider_model_choices_for(provider: &str) -> Vec<String> {
         .unwrap_or_default()
 }
 
+pub fn bundled_provider_model_limit_for(
+    provider: &str,
+    model: &str,
+) -> Option<BundledProviderModelLimit> {
+    BUNDLED_PROVIDER_MODEL_LIMITS
+        .iter()
+        .copied()
+        .find(|entry| entry.provider == provider && entry.model == model)
+}
+
 pub fn provider_config_schema() -> Value {
     json!({
         "version": "rust-provider-config-v1",

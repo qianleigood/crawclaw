@@ -88,10 +88,7 @@ In `mode: "warn"`, CrawClaw reports potential evictions but does not mutate the 
 
 Run maintenance on demand:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ---
 
@@ -291,7 +288,7 @@ erase critical context.
 CrawClaw uses the **pre-threshold flush** approach:
 
 1. Monitor session context usage.
-2. When it crosses a “soft threshold” (below Pi’s compaction threshold), run a silent
+2. When it crosses a “soft threshold” (below the runtime compaction threshold), run a silent
    “write memory now” directive to the agent.
 3. Use `NO_REPLY` so the user sees nothing.
 

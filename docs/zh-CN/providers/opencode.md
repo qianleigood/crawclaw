@@ -28,17 +28,11 @@ OpenCode 在 CrawClaw 中提供两个托管目录：
 
 ### Zen 目录
 
-```bash
-crawclaw onboard --auth-choice opencode-zen
-crawclaw onboard --opencode-zen-api-key "$OPENCODE_API_KEY"
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ### Go 目录
 
-```bash
-crawclaw onboard --auth-choice opencode-go
-crawclaw onboard --opencode-go-api-key "$OPENCODE_API_KEY"
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ## 配置片段
 

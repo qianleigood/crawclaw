@@ -16,36 +16,19 @@ programmatic delivery.
 
 <Steps>
   <Step title="Run a simple agent turn">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     This sends the message through the Gateway and prints the reply.
 
   </Step>
 
   <Step title="Target a specific agent or session">
-    ```bash
-    # Target a specific agent
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-
-    # Target a phone number (derives session key)
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-
-    # Reuse an existing session
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
   </Step>
 
   <Step title="Deliver the reply to a channel">
-    ```bash
-    # Deliver to Weixin (default channel)
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-
-    # Deliver to DingTalk
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
   </Step>
 </Steps>
@@ -81,16 +64,7 @@ programmatic delivery.
 
 ## Examples
 
-```bash
-# Simple turn with JSON output
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Turn with thinking level
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Deliver to a different channel than the session
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Related
 

@@ -1,59 +1,60 @@
 ---
 read_when:
-  - 添加或修改智能体 CLI 入口点
-summary: 直接 `crawclaw agent` CLI 运行（带可选投递）
+  - 你想从脚本或自动化触发 agent run
+  - 你需要把 agent reply 投递回聊天渠道
+summary: 通过 CrawClaw Desktop 或本地 Gateway API 触发 agent turn 并可选投递回复
 title: Agent Send
-x-i18n:
-  generated_at: "2026-02-03T07:54:52Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: a84d6a304333eebe155da2bf24cf5fc0482022a0a48ab34aa1465cd6e667022d
-  source_path: tools/agent-send.md
-  workflow: 15
 ---
 
-# `crawclaw agent`（直接智能体运行）
+# Agent Send
 
-`crawclaw agent` 运行单个智能体回合，无需入站聊天消息。
-默认情况下它**通过 Gateway 网关**运行；添加 `--local` 以强制在当前机器上使用嵌入式运行时。
+CrawClaw Desktop 或本地 Gateway API 可以在没有入站聊天消息的情况下运行单个 agent turn。它适用于脚本化 workflow、测试和程序化投递。
+
+## 快速开始
+
+<Steps>
+  <Step title="运行一个简单 agent turn">
+    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 自动化执行。
+
+    请求会通过 Gateway 运行并返回回复。
+
+  </Step>
+
+  <Step title="指定 agent 或 session">
+    使用 Desktop 或 Gateway API 传入目标 agent id、session id 或投递目标。
+  </Step>
+
+  <Step title="投递回复到渠道">
+    使用 Desktop 或 Gateway API 配置 channel、reply target 和 account 覆盖。
+  </Step>
+</Steps>
+
+## 常用参数
+
+| 参数           | 说明                     |
+| -------------- | ------------------------ |
+| `message`      | 要发送的消息             |
+| `to`           | 用目标派生 session key   |
+| `agent`        | 目标 agent id            |
+| `sessionId`    | 复用已有 session         |
+| `deliver`      | 是否把回复投递到聊天渠道 |
+| `channel`      | 投递渠道                 |
+| `replyTo`      | 投递目标覆盖             |
+| `replyChannel` | 投递渠道覆盖             |
+| `replyAccount` | 投递账号覆盖             |
+| `thinking`     | thinking level           |
+| `verbose`      | verbose level            |
+| `timeout`      | agent timeout            |
 
 ## 行为
 
-- 必需：`--message <text>`
-- 会话选择：
-  - `--to <dest>` 派生会话键（群组/频道目标保持隔离；直接聊天折叠到 `main`），**或**
-  - `--session-id <id>` 通过 ID 重用现有会话，**或**
-  - `--agent <id>` 直接定位已配置的智能体（使用该智能体的 `main` 会话键）
-- 运行与正常入站回复相同的嵌入式智能体运行时。
-- 思考/详细标志持久化到会话存储中。
-- 输出：
-  - 默认：打印回复文本（加上 `MEDIA:<url>` 行）
-  - `--json`：打印结构化负载 + 元数据
-- 可选使用 `--deliver` + `--channel` 将回复投递回渠道（目标格式与 `crawclaw message --target` 匹配）。
-- 使用 `--reply-channel`/`--reply-to`/`--reply-account` 覆盖投递而不更改会话。
+- 默认通过 Gateway 运行。
+- 会话选择由 `to`、`agent` 或 `sessionId` 决定。
+- thinking 和 verbose 会持久化到 session store。
+- 返回值可为普通文本或结构化 payload，具体取决于调用的 Gateway API。
 
-如果 Gateway 网关不可达，CLI 会**回退**到嵌入式本地运行。
+## 相关页面
 
-## 示例
-
-```bash
-crawclaw agent --to +15555550123 --message "status update"
-crawclaw agent --agent ops --message "Summarize logs"
-crawclaw agent --session-id 1234 --message "Summarize inbox" --thinking medium
-crawclaw agent --to +15555550123 --message "Trace logs" --verbose on --json
-crawclaw agent --to +15555550123 --message "Summon reply" --deliver
-crawclaw agent --agent ops --message "Generate report" --deliver --reply-channel ddingtalk --reply-to "#reports"
-```
-
-## 标志
-
-- `--local`：本地运行（需要你的 shell 中有模型提供商 API 密钥）
-- `--deliver`：将回复发送到所选渠道
-- `--channel`：投递渠道（`weixin|feishu|qqbot|feishu|ddingtalk|feishu|weixin`，默认：`weixin`）
-- `--reply-to`：投递目标覆盖
-- `--reply-channel`：投递渠道覆盖
-- `--reply-account`：投递账户 ID 覆盖
-- `--thinking <off|minimal|low|medium|high|xhigh>`：持久化思考级别（仅限 GPT-5.2 + Codex 模型）
-- `--verbose <on|full|off>`：持久化详细级别
-- `--timeout <seconds>`：覆盖智能体超时
-- `--json`：输出结构化 JSON
+- [Gateway API](/gateway)
+- [Slash commands](/tools/slash-commands)
+- [Multi-Agent Routing](/concepts/multi-agent)

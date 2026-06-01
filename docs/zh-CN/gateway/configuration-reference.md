@@ -2061,7 +2061,7 @@ Talk 模式的默认值（macOS；旧版移动端运行时曾有单独的兼容�
 
 ## 自定义提供商和 base URL
 
-CrawClaw 使用 pi-coding-agent 模型目录。可通过配置中的 `models.providers` 或 `~/.crawclaw/agents/<agentId>/agent/models.json` 添加自定义提供商。
+CrawClaw 使用内置模型目录。可通过配置中的 `models.providers` 或 `~/.crawclaw/agents/<agentId>/agent/models.json` 添加自定义提供商。
 
 ```json5
 {
@@ -2090,7 +2090,6 @@ CrawClaw 使用 pi-coding-agent 模型目录。可通过配置中的 `models.pro
 ```
 
 - 对自定义认证需求可使用 `authHeader: true` + `headers`。
-- 使用 `CRAWCLAW_AGENT_DIR`（或 `PI_CODING_AGENT_DIR`）覆盖智能体配置根目录。
 - 对匹配的 provider ID，合并优先级如下：
   - 非空的智能体 `models.json` `baseUrl` 优先。
   - 非空的智能体 `apiKey` 仅在该提供商未由当前配置/auth-profile 上下文中的 SecretRef 管理时优先。
@@ -2175,7 +2174,7 @@ CrawClaw 使用 pi-coding-agent 模型目录。可通过配置中的 `models.pro
 }
 ```
 
-设置 `OPENCODE_API_KEY`（或 `OPENCODE_ZEN_API_KEY`）。Zen 目录使用 `opencode/...` 引用，Go 目录使用 `opencode-go/...` 引用。快捷方式：`crawclaw onboard --auth-choice opencode-zen` 或 `crawclaw onboard --auth-choice opencode-go`。
+设置 `OPENCODE_API_KEY`（或 `OPENCODE_ZEN_API_KEY`）。Zen 目录使用 `opencode/...` 引用，Go 目录使用 `opencode-go/...` 引用。设置：使用 CrawClaw Desktop 或本地 Gateway API。
 
 </Accordion>
 
@@ -2192,7 +2191,7 @@ CrawClaw 使用 pi-coding-agent 模型目录。可通过配置中的 `models.pro
 }
 ```
 
-设置 `ZAI_API_KEY`。`z.ai/*` 和 `z-ai/*` 都是可接受的别名。快捷方式：`crawclaw onboard --auth-choice zai-api-key`。
+设置 `ZAI_API_KEY`。`z.ai/*` 和 `z-ai/*` 都是可接受的别名。设置：使用 CrawClaw Desktop 或本地 Gateway API。
 
 - 通用端点：`https://api.z.ai/api/paas/v4`
 - 编码端点（默认）：`https://api.z.ai/api/coding/paas/v4`
@@ -2235,7 +2234,7 @@ CrawClaw 使用 pi-coding-agent 模型目录。可通过配置中的 `models.pro
 }
 ```
 
-中国端点可使用：`baseUrl: "https://api.moonshot.cn/v1"` 或 `crawclaw onboard --auth-choice moonshot-api-key-cn`。
+中国端点可使用：`baseUrl: "https://api.moonshot.cn/v1"`，或通过 CrawClaw Desktop / 本地 Gateway API 配置 Moonshot API key。
 
 </Accordion>
 
@@ -2253,7 +2252,7 @@ CrawClaw 使用 pi-coding-agent 模型目录。可通过配置中的 `models.pro
 }
 ```
 
-兼容 Anthropic 的内置提供商。快捷方式：`crawclaw onboard --auth-choice kimi-code-api-key`。
+兼容 Anthropic 的内置提供商。设置：使用 CrawClaw Desktop 或本地 Gateway API。
 
 </Accordion>
 
@@ -2292,7 +2291,7 @@ CrawClaw 使用 pi-coding-agent 模型目录。可通过配置中的 `models.pro
 }
 ```
 
-Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。快捷方式：`crawclaw onboard --auth-choice synthetic-api-key`。
+Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使用 CrawClaw Desktop 或本地 Gateway API。
 
 </Accordion>
 
@@ -2332,7 +2331,7 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。快捷方式�
 }
 ```
 
-设置 `MINIMAX_API_KEY`。快捷方式：`crawclaw onboard --auth-choice minimax-api`。
+设置 `MINIMAX_API_KEY`。设置：使用 CrawClaw Desktop 或本地 Gateway API。
 
 </Accordion>
 
@@ -2404,7 +2403,7 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。快捷方式�
 - `plugins.entries.<id>.env`：插件作用域环境变量映射。
 - `plugins.entries.<id>.hooks.allowPromptInjection`：为 `false` 时，核心会阻止该插件通过 `before_prompt_build` 修改 prompt。适用于原生插件 hook 以及受支持 bundle 提供的 hook 目录。
 - `plugins.entries.<id>.config`：插件定义的配置对象（如有可用原生 CrawClaw 插件 schema，则会校验）。
-- 已启用的 Claude bundle 插件也可以从 `settings.json` 提供嵌入式 Pi 默认值；CrawClaw 会将其作为净化后的智能体设置应用，而不是作为原始 CrawClaw 配置补丁。
+- 已启用的 Claude bundle 插件也可以从 `settings.json` 提供智能体默认值；CrawClaw 会将其作为净化后的智能体设置应用，而不是作为原始 CrawClaw 配置补丁。
 - `plugins.installs`：由 CLI 管理的安装元数据，供 `crawclaw plugins update` 使用。
   - 包括 `source`、`spec`、`sourcePath`、`installPath`、`version`、`resolvedName`、`resolvedVersion`、`resolvedSpec`、`integrity`、`shasum`、`resolvedAt`、`installedAt`。
   - 请将 `plugins.installs.*` 视为托管状态；优先使用 CLI 命令，而不是手动编辑。
@@ -2568,20 +2567,6 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。快捷方式�
   - `gateway.http.endpoints.responses.images.urlAllowlist`
 - 可选的响应加固 header：
   - `gateway.http.securityHeaders.strictTransportSecurity`（仅对你控制的 HTTPS origin 设置；见 [Trusted Proxy Auth](/gateway/trusted-proxy-auth#tls-termination-and-hsts)）
-
-### 多实例隔离
-
-使用不同端口和状态目录，在一台主机上运行多个网关：
-
-```bash
-CRAWCLAW_CONFIG_PATH=~/.crawclaw/a.json \
-CRAWCLAW_STATE_DIR=~/.crawclaw-a \
-crawclaw gateway --port 19001
-```
-
-便捷标志：`--dev`（使用 `~/.crawclaw-dev` + 端口 `19001`）、`--profile <name>`（使用 `~/.crawclaw-<name>`）。
-
-见 [Multiple Gateways](/gateway/multiple-gateways)。
 
 ---
 

@@ -65,9 +65,8 @@ CrawClaw 在每次运行时组装自己的系统提示词。它包括：
 
 其他界面：
 
-- **TUI/Web TUI：** 支持 `/status` + `/usage`。
-- **CLI：** `crawclaw status --usage` 和 `crawclaw channels list` 显示
-  提供商配额窗口（不是每响应成本）。
+- **Web 客户端：** 支持 `/status` + `/usage`。
+- **Desktop 和 Gateway API：** 显示提供商配额窗口（不是每响应成本）。
 
 ## 成本估算（显示时）
 

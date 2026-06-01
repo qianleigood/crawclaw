@@ -38,28 +38,27 @@ x-i18n:
 
 <Columns>
   <Card title="はじめに" href="/start/getting-started" icon="rocket">
-    CrawClawをインストールし、数分でGatewayを起動できます。
+    CrawClaw Desktop をインストールし、ローカル Gateway を起動します。
   </Card>
-  <Card title="ウィザードを実行" href="/start/wizard" icon="sparkles">
-    `crawclaw onboard`とペアリングフローによるガイド付きセットアップ。
+  <Card title="Desktop 設定" href="/install/desktop" icon="sparkles">
+    desktop UI で models、plugins、logs、diagnostics を設定します。
   </Card>
-  <Card title="CLI Agent" href="/cli" icon="terminal">
-    ローカルCLIでGatewayに接続してチャットを開始します。
+  <Card title="Gateway API" href="/gateway/protocol" icon="terminal">
+    自動化クライアントはローカル Gateway API 経由で接続します。
   </Card>
 </Columns>
 
-CrawClawは、単一のGatewayプロセスを通じてチャットアプリをPiのようなコーディングエージェントに接続します。CrawClawアシスタントを駆動し、ローカルまたはリモートのセットアップをサポートします。
+CrawClawは、単一のGatewayプロセスを通じてチャットアプリ、プラグイン、自動化クライアントをRust agent runtimeに接続します。CrawClawアシスタントを駆動し、ローカルまたはリモートのセットアップをサポートします。
 
 ## 仕組み
 
 ```mermaid
 flowchart LR
-  A["チャットアプリ + プラグイン"] --> B["Gateway"]
-  B --> C["Piエージェント"]
-  B --> D["CLI"]
-  B --> E["CLI clients"]
-  B --> F["Browser-origin clients"]
-  B --> G["Node integrations"]
+  A["CrawClaw Desktop"] --> B["Local Gateway API"]
+  C["チャットアプリ + プラグイン"] --> B
+  D["Automation clients"] --> B
+  B --> E["Agent runtime"]
+  E --> F["Tools, models, memory"]
 ```
 
 Gatewayは、セッション、ルーティング、チャネル接続の信頼できる唯一の情報源です。
@@ -80,7 +79,7 @@ Gatewayは、セッション、ルーティング、チャネル接続の信頼�
     画像、音声、ドキュメントの送受信。
   </Card>
   <Card title="Terminal UI" icon="terminal">
-    ローカルTUIでチャット、セッション、承認を操作します。
+    CrawClaw Desktop で chat、sessions、approvals を操作します。
   </Card>
   <Card title="ノード連携" icon="smartphone">
     ノードとヘッドレスホストをペアリングします。
@@ -91,20 +90,13 @@ Gatewayは、セッション、ルーティング、チャネル接続の信頼�
 
 <Steps>
   <Step title="CrawClawをインストール">
-    ```bash
-    npm install -g crawclaw@latest
-    ```
+    [GitHub Releases](https://github.com/qianleigood/crawclaw/releases) から CrawClaw Desktop をインストールします。
   </Step>
   <Step title="CrawClaw Desktopを起動">
-    ```bash
-    # Open CrawClaw Desktop
-    ```
+    Desktop は `~/.crawclaw` を準備し、embedded Rust runtime を stage し、ローカル Gateway を起動します。
   </Step>
-  <Step title="WeixinをペアリングしてGatewayを起動">
-    ```bash
-    crawclaw channels login
-    crawclaw gateway --port 18789
-    ```
+  <Step title="モデルを設定してチャットを開始">
+    Desktop Settings で model providers と plugins を設定し、Agent ページでメッセージを送信します。
   </Step>
 </Steps>
 
@@ -112,16 +104,16 @@ Gatewayは、セッション、ルーティング、チャネル接続の信頼�
 
 ## ローカルとリモートアクセス
 
-Gateway起動後は、ローカル端末またはリモートアクセス経路から利用します。
+Gateway起動後は、CrawClaw Desktop、ローカル Gateway API、またはリモートアクセス経路から利用します。
 
-- ローカル端末: `crawclaw agent --message "hello"`
+- ローカル: CrawClaw Desktop とローカル Gateway API
 - リモートアクセス: [リモートアクセス](/gateway/remote) および [Tailscale](/gateway/tailscale)
 
 ## 設定（オプション）
 
 設定は`~/.crawclaw/crawclaw.json`にあります。
 
-- **何もしなければ**、CrawClawはバンドルされたPiバイナリをRPCモードで使用し、送信者ごとのセッションを作成します。
+- **何もしなければ**、CrawClawはRust agent runtimeとNativeProvider経路を使用し、送信者ごとのセッションを作成します。
 - 制限を設けたい場合は、`channels.weixin.allowFrom`と（グループの場合）メンションルールから始めてください。
 
 例：

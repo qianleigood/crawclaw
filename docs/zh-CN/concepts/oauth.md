@@ -1,164 +1,101 @@
 ---
 read_when:
   - 你想端到端了解 CrawClaw OAuth
-  - 你遇到了令牌失效/登出问题
-  - 你想使用 setup-token 或 OAuth 认证流程
-  - 你想使用多个账户或配置文件路由
-summary: CrawClaw 中的 OAuth：令牌交换、存储和多账户模式
+  - 你遇到了 token 失效或登出问题
+  - 你想使用 setup-token 或 OAuth auth flow
+  - 你想使用多个账户或 profile routing
+summary: CrawClaw 中的 OAuth：token exchange、storage 和多账户模式
 title: OAuth
-x-i18n:
-  generated_at: "2026-03-16T06:22:05Z"
-  model: gpt-5.4
-  provider: openai
-  source_hash: 976668c3e02ee50500fcaaa585a89af718398dc41988318ec3a583c2d5449df3
-  source_path: concepts/oauth.md
-  workflow: 15
 ---
 
 # OAuth
 
-CrawClaw 通过 OAuth 支持提供商提供的“订阅认证”，适用于支持此方式的提供商（尤其是 **OpenAI Codex（ChatGPT OAuth）**）。对于 Anthropic 订阅，请使用 **setup-token** 流程。过去有些用户在 Claude Code 之外使用 Anthropic 订阅时曾受限，因此这应视为用户自行选择承担的风险，你应自行核实 Anthropic 当前的政策。OpenAI Codex OAuth 明确支持在 CrawClaw 这样的外部工具中使用。本页说明：
+CrawClaw 仍能理解 OAuth 形态的 auth profile 存储记录，但旧的捆绑 JavaScript provider login 和 refresh helper 已移除。Anthropic 订阅用户请使用 **setup-token** 流程，或在 Gateway 主机上复用本地 **Claude CLI** 登录。Anthropic 过去曾限制 Claude Code 之外的订阅使用，因此请自行核实当前条款并承担选择风险。
 
-对于生产环境中的 Anthropic，相比订阅 setup-token 认证，API 密钥认证是更安全、也更推荐的路径。
+生产环境中的 Anthropic 推荐使用 API key，它比订阅 setup-token 更可预测。
 
-- OAuth **令牌交换** 如何工作（PKCE）
-- 令牌**存储**在哪里（以及为什么）
-- 如何处理**多个账户**（配置文件 + 按会话覆盖）
+CrawClaw provider setup 现在优先使用 API key、setup token 和 env-backed token；只有 provider 提供 Rust/native auth flow 时才使用 provider 原生流程。
 
-CrawClaw 也支持自带 OAuth 或 API 密钥流程的**提供商插件**。运行方式如下：
+## Token sink 为什么存在
 
-```bash
-crawclaw models auth login --provider <id>
-```
-
-## 令牌汇点（为什么需要它）
-
-OAuth 提供商通常会在登录/刷新流程中签发一个**新的刷新令牌**。某些提供商（或 OAuth 客户端）会在为同一用户/应用签发新令牌时使旧的刷新令牌失效。
+OAuth provider 通常会在 login/refresh flow 中签发新的 refresh token。有些 provider 或 OAuth client 会在同一用户/app 签发新 token 时使旧 refresh token 失效。
 
 实际症状：
 
-- 你同时通过 CrawClaw _和_ Claude Code / Codex CLI 登录 → 之后其中一个会随机“被登出”
+- 你同时通过 CrawClaw 和 Claude Code / Codex CLI 登录，之后其中一个随机“被登出”。
 
-为减少这种情况，CrawClaw 将 `auth-profiles.json` 视为一个**令牌汇点**：
+为减少这种情况，CrawClaw 把 `auth-profiles.json` 当作 token sink：
 
-- 运行时从**同一个地方**读取凭证
-- 我们可以保留多个配置文件，并进行确定性路由
+- runtime 从同一个地方读取凭据。
+- 多个 profile 可以保留，并被确定性路由。
 
-## 存储（令牌存放位置）
+## Storage
 
-密钥按**每个智能体**存储：
+secret 按 agent 存储：
 
-- 认证配置文件（OAuth + API 密钥 + 可选的值级引用）：`~/.crawclaw/agents/<agentId>/agent/auth-profiles.json`
-- 旧版兼容文件：`~/.crawclaw/agents/<agentId>/agent/auth.json`
-  （发现静态 `api_key` 条目时会进行清理）
+- Auth profiles（OAuth + API keys + 可选 value-level refs）：`~/.crawclaw/agents/<agentId>/agent/auth-profiles.json`
+- 旧兼容文件：`~/.crawclaw/agents/<agentId>/agent/auth.json`（发现静态 `api_key` 条目时会 scrub）
 
-仅用于旧版导入的文件（仍受支持，但不是主存储）：
+旧导入文件仍支持，但不是主存储：
 
-- `~/.crawclaw/credentials/oauth.json`（首次使用时会导入到 `auth-profiles.json`）
+- `~/.crawclaw/credentials/oauth.json`（首次使用时导入到 `auth-profiles.json`）
 
-以上所有位置也都遵循 `$CRAWCLAW_STATE_DIR`（状态目录覆盖）。完整参考：[/gateway/configuration](/gateway/configuration#auth-storage-oauth--api-keys)
+以上路径都遵循 `$CRAWCLAW_STATE_DIR`。完整参考见 [/gateway/configuration](/gateway/configuration-reference#auth-storage)。
 
-有关静态密钥引用和运行时快照激活行为，请参见 [Secrets Management](/gateway/secrets)。
+静态 secret refs 和 runtime snapshot activation 见 [Secrets Management](/gateway/secrets)。
 
-## Anthropic setup-token（订阅认证）
+## Anthropic setup-token
 
 <Warning>
-Anthropic setup-token 支持是技术兼容性，并非策略保证。
-Anthropic 过去曾阻止过某些在 Claude Code 之外的订阅使用。
-是否使用订阅认证由你自行决定，并请核实 Anthropic 当前的条款。
+Anthropic setup-token 支持是技术兼容，不是政策保证。Anthropic 过去曾阻止 Claude Code 之外的部分订阅使用。请自行判断是否接受该风险，并核实当前条款。
 </Warning>
 
-在任意机器上运行 `claude setup-token`，然后将其粘贴到 CrawClaw 中：
+在任意机器上运行：
 
 ```bash
-crawclaw models auth setup-token --provider anthropic
+claude setup-token
 ```
 
-如果你是在其他地方生成的令牌，可手动粘贴：
+然后通过 CrawClaw Desktop 或本地 Gateway API 粘贴到 CrawClaw。该 token 会存为 token auth profile，不自动刷新。
 
-```bash
-crawclaw models auth paste-token --provider anthropic
-```
+## 已移除的捆绑 provider OAuth flows
 
-验证：
+旧的捆绑 JavaScript OpenAI Codex、Google Gemini CLI、MiniMax 和 GitHub Copilot login helper 已移除。已有 OAuth/token profile 仍可能存在于 auth-profile storage 中，但 CrawClaw 不再启动这些 provider-specific JS browser/device flows。
 
-```bash
-crawclaw models status
-```
+## Expiry
 
-## OAuth 交换（登录如何工作）
+Profile 会存储 `expires` 时间戳。
 
-CrawClaw 的交互式登录流程在 `@mariozechner/pi-ai` 中实现，并接入到各类向导/命令中。
+- `expires` 仍在未来时，runtime 使用已存访问 token。
+- 过期或无效时，该 profile 会被视为不可用，需要重新认证。
 
-### Anthropic setup-token
+CrawClaw Desktop 不再运行旧的捆绑 JavaScript OAuth refresh code。请使用 provider 原生 setup path、setup-token flow 或 API key path 替换过期凭据。
 
-流程形态：
+## Multiple accounts 和 routing
 
-1. 运行 `claude setup-token`
-2. 将令牌粘贴到 CrawClaw
-3. 存储为令牌认证配置文件（不刷新）
+推荐两种模式：
 
-向导路径为 `crawclaw onboard` → 认证选择 `setup-token`（Anthropic）。
+### 1. 分离 agent
 
-### OpenAI Codex（ChatGPT OAuth）
+如果希望个人和工作完全隔离，请使用独立 agent：独立 session、credential 和 workspace。通过 CrawClaw Desktop 或本地 Gateway API 创建 agent，然后分别配置 auth 并把聊天路由到对应 agent。
 
-OpenAI Codex OAuth 明确支持在 Codex CLI 之外使用，包括 CrawClaw 工作流。
+### 2. 单 agent 多 profile
 
-流程形态（PKCE）：
+`auth-profiles.json` 支持同一 provider 下多个 profile ID。
 
-1. 生成 PKCE verifier/challenge 和随机 `state`
-2. 打开 `https://auth.openai.com/oauth/authorize?...`
-3. 尝试在 `http://127.0.0.1:1455/auth/callback` 捕获回调
-4. 如果回调无法绑定（或你是在远程/无头环境中），则粘贴重定向 URL/code
-5. 在 `https://auth.openai.com/oauth/token` 交换令牌
-6. 从访问令牌中提取 `accountId` 并存储 `{ access, refresh, expires, accountId }`
+选择 profile 的方式：
 
-向导路径为 `crawclaw onboard` → 认证选择 `openai-codex`。
+- 通过配置排序（`auth.order`）全局选择。
+- 通过 `/model ...@<profileId>` 在单个会话中选择。
 
-## 刷新和过期
-
-配置文件会存储一个 `expires` 时间戳。
-
-在运行时：
-
-- 如果 `expires` 尚未到期 → 使用已存储的访问令牌
-- 如果已过期 → 在文件锁下刷新，并覆盖已存储的凭证
-
-刷新流程是自动的；通常你不需要手动管理令牌。
-
-## 多个账户（配置文件）+ 路由
-
-有两种模式：
-
-### 1）推荐：分离的智能体
-
-如果你希望“个人”和“工作”永不交叉，请使用隔离的智能体（独立的会话 + 凭证 + 工作区）：
-
-```bash
-crawclaw agents add work
-crawclaw agents add personal
-```
-
-然后按智能体配置认证（使用向导），并将聊天路由到正确的智能体。
-
-### 2）高级：单个智能体中的多个配置文件
-
-`auth-profiles.json` 支持同一提供商下的多个配置文件 ID。
-
-选择使用哪个配置文件：
-
-- 通过配置排序全局选择（`auth.order`）
-- 通过 `/model ...@<profileId>` 按会话选择
-
-示例（会话覆盖）：
+示例：
 
 - `/model Opus@anthropic:work`
 
-查看现有配置文件 ID 的方法：
+查看已有 profile ID：使用 CrawClaw Desktop 或本地 Gateway API。
 
-- `crawclaw channels list --json`（显示 `auth[]`）
+## 相关页面
 
-相关文档：
-
-- [/concepts/model-failover](/concepts/model-failover)（轮换 + 冷却规则）
-- [/tools/slash-commands](/tools/slash-commands)（命令入口）
+- [Authentication](/gateway/authentication)
+- [Secrets](/gateway/secrets)
+- [Configuration Reference](/gateway/configuration-reference#auth-storage)

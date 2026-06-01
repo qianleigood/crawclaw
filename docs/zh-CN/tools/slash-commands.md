@@ -141,7 +141,7 @@ x-i18n:
   - 带参数时，后面的文本会成为 review focus，例如：`/review check plugin SDK boundary coverage`。
   - review 会话按策略是只读的：只保留验证类工具，并且不能递归再次启动 review。
   - `/review` 是唯一的用户可见 review 入口；内部 `review_task` tool flow 不作为公开 slash command 暴露。
-- 要获取完整的提供商使用量分解，使用 `crawclaw status --usage`。
+- 要获取完整的提供商使用量分解，请使用 CrawClaw Desktop 或本地 Gateway API。
 - `/allowlist add|remove` 需要 `commands.config=true` 并遵循渠道 `configWrites`。
 - `/plugins install <spec>` 接受与 `crawclaw plugins install` 相同的 plugin spec。
 - `/usage` 控制每响应使用量页脚；`/usage cost` 从 CrawClaw 会话日志打印本地成本摘要。

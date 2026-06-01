@@ -392,6 +392,23 @@ fn bundled_provider_descriptors_are_rust_authoritative() {
     for (provider, prefixes) in SCOPED_PROVIDER_MODEL_PREFIXES {
         assert_provider_models_match_prefix(provider, prefixes);
     }
+
+    for limit in BUNDLED_PROVIDER_MODEL_LIMITS {
+        assert!(
+            limit.context_window >= limit.max_tokens,
+            "model limit for {}/{} must not reserve more output than the full window",
+            limit.provider,
+            limit.model
+        );
+        assert!(
+            BUNDLED_PROVIDER_MODEL_CHOICES.iter().any(|choices| {
+                choices.provider == limit.provider && choices.models.contains(&limit.model)
+            }),
+            "model limit {}/{} must refer to a bundled model choice",
+            limit.provider,
+            limit.model
+        );
+    }
 }
 
 const AGGREGATING_PROVIDER_MODEL_CHOICE_PROVIDERS: &[&str] = &[
@@ -941,8 +958,7 @@ fn builds_streaming_tool_and_multimodal_requests_for_native_transports() {
             &NativeProviderRequestOptions {
                 stream: true,
                 tools: vec![tool.clone()],
-                reasoning_level: None,
-                system_prompt: None,
+                ..NativeProviderRequestOptions::default()
             },
         )
         .unwrap_or_else(|error| panic!("{provider} request should build: {error}"));
@@ -1108,6 +1124,81 @@ fn builds_native_http_requests_for_all_phase_three_provider_families() {
             "{provider} should include the user message"
         );
     }
+}
+
+#[test]
+fn native_provider_requests_apply_dynamic_max_output_tokens() {
+    let options = NativeProviderRequestOptions {
+        max_output_tokens: Some(2048),
+        ..NativeProviderRequestOptions::default()
+    };
+    let config = |provider: &str, model: &str| NativeProviderConfig {
+        provider: provider.to_string(),
+        base_url: Some(format!("https://example.test/{provider}")),
+        api_key: Some("secret".to_string()),
+        model: Some(model.to_string()),
+        api: None,
+        api_version: Some("2025-04-01-preview".to_string()),
+    };
+
+    let anthropic = build_native_provider_conversation_request_with_options(
+        &config("anthropic", "sonnet-4.6"),
+        &[NativeProviderMessage::user("hello")],
+        &options,
+    )
+    .expect("anthropic request");
+    assert_eq!(anthropic.body["max_tokens"], json!(2048));
+
+    let openai = build_native_provider_conversation_request_with_options(
+        &config("openai", "gpt-5.4"),
+        &[NativeProviderMessage::user("hello")],
+        &options,
+    )
+    .expect("openai responses request");
+    assert_eq!(openai.body["max_output_tokens"], json!(2048));
+
+    let azure = build_native_provider_conversation_request_with_options(
+        &config("azure-openai", "gpt-5.4"),
+        &[NativeProviderMessage::user("hello")],
+        &options,
+    )
+    .expect("azure openai request");
+    assert_eq!(azure.body["max_output_tokens"], json!(2048));
+
+    let chat = build_native_provider_conversation_request_with_options(
+        &config("openai-compatible", "model-a"),
+        &[NativeProviderMessage::user("hello")],
+        &options,
+    )
+    .expect("chat completions request");
+    assert_eq!(chat.body["max_tokens"], json!(2048));
+
+    let google = build_native_provider_conversation_request_with_options(
+        &config("google", "gemini-3-pro-preview"),
+        &[NativeProviderMessage::user("hello")],
+        &options,
+    )
+    .expect("google request");
+    assert_eq!(
+        google.body["generationConfig"]["maxOutputTokens"],
+        json!(2048)
+    );
+
+    let ollama = build_native_provider_conversation_request_with_options(
+        &config("ollama", "glm-4.7-flash"),
+        &[NativeProviderMessage::user("hello")],
+        &options,
+    )
+    .expect("ollama request");
+    assert_eq!(ollama.body["options"]["num_predict"], json!(2048));
+
+    let bedrock = build_native_provider_conversation_request_with_options(
+        &config("bedrock", "anthropic.claude-test"),
+        &[NativeProviderMessage::user("hello")],
+        &options,
+    )
+    .expect("bedrock request");
+    assert_eq!(bedrock.body["inferenceConfig"]["maxTokens"], json!(2048));
 }
 
 #[test]
@@ -1473,8 +1564,7 @@ async fn streams_openai_compatible_tool_multimodal_request_to_mocked_provider() 
         &NativeProviderRequestOptions {
             stream: true,
             tools: vec![tool],
-            reasoning_level: None,
-            system_prompt: None,
+            ..NativeProviderRequestOptions::default()
         },
     )
     .await

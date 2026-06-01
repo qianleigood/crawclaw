@@ -1,8 +1,8 @@
 ---
 read_when:
   - ゼロからの初回セットアップ
-  - 動作するチャットへの最短ルートを知りたい
-summary: CrawClawをインストールし、数分で最初のチャットを実行しましょう。
+  - 動作する desktop chat への最短ルートを知りたい
+summary: CrawClaw Desktop をインストールし、ローカル Gateway を起動します。
 title: はじめに
 x-i18n:
   generated_at: "2026-02-08T17:15:16Z"
@@ -15,110 +15,53 @@ x-i18n:
 
 # はじめに
 
-目標：ゼロから最小限のセットアップで最初の動作するチャットを実現する。
+CrawClaw Desktop をインストールし、desktop UI でセットアップを完了します。完了すると、ローカル Rust Gateway、設定済みのモデル認証、動作する desktop chat session が利用できます。
 
-<Info>
-最速のチャット方法：`crawclaw agent --message "hello"`を実行します（チャンネル設定は不要）。
-</Info>
+## 必要なもの
 
-## 前提条件
+- **macOS**。現在サポートされている Apple-platform desktop app 用です。
+- **モデル provider のアカウントまたは API key**。Anthropic、OpenAI、Google、またはその他の対応 provider を使います。
 
-- Node 22以降
-
-<Tip>
-不明な場合は`node --version`でNodeのバージョンを確認してください。
-</Tip>
-
-## クイックセットアップ（CLI）
+## クイックセットアップ
 
 <Steps>
-  <Step title="CrawClawをインストール（推奨）">
-    <Tabs>
-      <Tab title="macOS/Linux">
-        ```bash
-        curl -fsSL https://crawclaw.ai/install.sh | bash
-        ```
-      </Tab>
-      <Tab title="Windows (PowerShell)">
-        ```powershell
-        iwr -useb https://crawclaw.ai/install.ps1 | iex
-        ```
-      </Tab>
-    </Tabs>
-
-    <Note>
-    その他のインストール方法と要件：[インストール](/install)。
-    </Note>
-
+  <Step title="CrawClaw Desktop をインストール">
+    [GitHub Releases](https://github.com/qianleigood/crawclaw/releases) から最新の desktop asset をダウンロードします。
   </Step>
-  <Step title="オンボーディングウィザードを実行">
-    ```bash
-    # Open CrawClaw Desktop
-    ```
-
-    ウィザードは認証、Gateway設定、およびオプションのチャンネルを構成します。
-    詳細は[オンボーディングウィザード](/start/wizard)を参照してください。
-
+  <Step title="desktop app を開く">
+    CrawClaw Desktop は `~/.crawclaw` を準備し、embedded Rust runtime を stage し、ローカル Gateway を起動して setup UI を開きます。
   </Step>
-  <Step title="Gatewayを確認">
-    サービスをインストールした場合、すでに実行されているはずです：
-
-    ```bash
-    crawclaw gateway status
-    ```
-
+  <Step title="モデルと plugins を設定">
+    desktop Settings で model providers、plugin enablement、local runtime status、logs、diagnostics を設定します。
   </Step>
-  <Step title="ローカルUIを開く">
-    ```bash
-    crawclaw agent --message "hello"
-    ```
+  <Step title="最初のメッセージを送信">
+    CrawClaw Desktop の Agent ページを使います。自動化クライアントはローカル Gateway API 経由で接続できます。
   </Step>
 </Steps>
 
-<Check>
-CLI agent コマンドが応答するか、Webクライアントが接続できれば、Gatewayは使用可能です。
-</Check>
-
-## オプションの確認と追加機能
-
-<AccordionGroup>
-  <Accordion title="Gatewayをフォアグラウンドで実行">
-    クイックテストやトラブルシューティングに便利です。
-
-    ```bash
-    crawclaw gateway --port 18789
-    ```
-
-  </Accordion>
-  <Accordion title="テストメッセージを送信">
-    構成済みのチャンネルが必要です。
-
-    ```bash
-    crawclaw message send --target +15555550123 --message "Hello from CrawClaw"
-    ```
-
-  </Accordion>
-</AccordionGroup>
-
-## さらに詳しく
+## 次に読むもの
 
 <Columns>
-  <Card title="オンボーディングウィザード（詳細）" href="/start/wizard">
-    完全なCLIウィザードリファレンスと高度なオプション。
+  <Card title="Desktop install" href="/install/desktop" icon="monitor">
+    app が bundle、起動、ローカル保存する内容。
   </Card>
-  <Card title="CLIセットアップリファレンス" href="/start/wizard-cli-reference">
-    非対話モード、出力、各ステップの詳細を確認します。
+  <Card title="チャンネル接続" href="/channels" icon="message-square">
+    Weixin、Feishu、QQ Bot、DingTalk、ESP32。
+  </Card>
+  <Card title="Pairing と安全性" href="/channels/pairing" icon="shield">
+    agent にメッセージを送れる相手を制御します。
+  </Card>
+  <Card title="Gateway API" href="/gateway/protocol" icon="waypoints">
+    自動化と統合向けのローカル control-plane protocol。
   </Card>
 </Columns>
 
-## 完了後の状態
+<Accordion title="Advanced: environment variables">
+  service account で CrawClaw を実行する場合、またはカスタム path を使う場合:
 
-- 実行中のGateway
-- 構成済みの認証
-- CLI agent コマンドへのアクセスまたは接続済みのチャンネル
+- `CRAWCLAW_HOME` — internal path resolution 用の home directory
+- `CRAWCLAW_STATE_DIR` — state directory を上書き
+- `CRAWCLAW_CONFIG_PATH` — config file path を上書き
 
-## 次のステップ
-
-- DMの安全性と承認：[ペアリング](/channels/pairing)
-- さらにチャンネルを接続：[チャンネル](/channels)
-- 高度なワークフローとソースからのビルド：[セットアップ](/start/setup)
+完全なリファレンス: [Environment variables](/help/environment)。
+</Accordion>

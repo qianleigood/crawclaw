@@ -115,7 +115,7 @@ Use the interactive config wizard to set MiniMax without editing JSON:
 - Update pricing values in `models.json` if you need exact cost tracking.
 - Referral link for MiniMax Coding Plan (10% off): [https://platform.minimax.io/subscribe/coding-plan?code=DbXJTRClnb&source=link](https://platform.minimax.io/subscribe/coding-plan?code=DbXJTRClnb&source=link)
 - See [/concepts/model-providers](/concepts/model-providers) for provider rules.
-- Use CrawClaw Desktop or the local Gateway API and CrawClaw Desktop or the local Gateway API to switch.
+- Use CrawClaw Desktop or the local Gateway API to switch models.
 
 ## Troubleshooting
 
@@ -137,6 +137,4 @@ Make sure the model id is **case‑sensitive**:
 
 Then recheck with:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.

@@ -143,12 +143,9 @@ ssh youruser@192.168.64.X
 
 在 VM 内：
 
-```bash
-npm install -g crawclaw@latest
-crawclaw onboard --install-daemon
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
-按照新手引导提示设置你的模型提供商（Anthropic、OpenAI 等）。
+按照设置流程配置你的模型提供商（Anthropic、OpenAI 等）。
 
 ---
 
@@ -178,9 +175,7 @@ nano ~/.crawclaw/crawclaw.json
 
 然后登录 Weixin（扫描 QR 码）：
 
-```bash
-crawclaw channels login
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 ---
 
@@ -197,9 +192,7 @@ VM 会在后台运行。CrawClaw 的守护进程会保持 Gateway 网关持续�
 
 检查状态：
 
-```bash
-ssh youruser@192.168.64.X "crawclaw status"
-```
+通过 VM 访问路径使用 CrawClaw Desktop 或本地 Gateway API。
 
 ---
 
@@ -267,12 +260,12 @@ lume run crawclaw --no-display
 
 ## 故障排除
 
-| 问题                   | 解决方案                                                          |
-| ---------------------- | ----------------------------------------------------------------- |
-| 无法通过 SSH 连接到 VM | 检查 VM 的“系统设置”中是否已启用“远程登录”                        |
-| 未显示 VM IP           | 等待 VM 完全启动后，再次运行 `lume get crawclaw`                  |
-| 找不到 `lume` 命令     | 将 `~/.local/bin` 添加到你的 PATH                                 |
-| 无法扫描 Weixin QR 码  | 运行 `crawclaw channels login` 时，确保你登录的是 VM 而不是宿主机 |
+| 问题                   | 解决方案                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| 无法通过 SSH 连接到 VM | 检查 VM 的“系统设置”中是否已启用“远程登录”                                          |
+| 未显示 VM IP           | 等待 VM 完全启动后，再次运行 `lume get crawclaw`                                    |
+| 找不到 `lume` 命令     | 将 `~/.local/bin` 添加到你的 PATH                                                   |
+| 无法扫描 Weixin QR 码  | 通过 CrawClaw Desktop 或本地 Gateway API 登录渠道时，确保你登录的是 VM 而不是宿主机 |
 
 ---
 

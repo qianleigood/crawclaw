@@ -60,16 +60,7 @@ Gateway API 的 task-flow 取消会在流程上设置一个持久取消意图。
 
 ## Desktop 和 Gateway API 操作
 
-```bash
-# List active and recent flows
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Show details for a specific flow
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Cancel a running flow and its active tasks
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 | 命令     | 描述                               |
 | -------- | ---------------------------------- |

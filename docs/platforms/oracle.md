@@ -82,7 +82,7 @@ sudo loginctl enable-linger ubuntu
 ## 4) Install Tailscale
 
 ```bash
-curl -fsSL https://tailscale.com/CrawClaw Desktop installer | sh
+curl -fsSL https://tailscale.com/install.sh | sh
 sudo tailscale up --ssh --hostname=crawclaw
 ```
 
@@ -98,10 +98,7 @@ tailscale status
 
 ## 5) Install CrawClaw
 
-```bash
-# Install CrawClaw Desktop from GitHub Releases.
-source ~/.bashrc
-```
+Install the supported CrawClaw Gateway/Desktop release for this host, or build from source. Reload your shell after installation if the setup changes PATH.
 
 When prompted "How do you want to hatch your bot?", select **"Do this later"**.
 
@@ -111,27 +108,15 @@ When prompted "How do you want to hatch your bot?", select **"Do this later"**.
 
 Use token auth as the default. It’s predictable and avoids needing any insecure browser-client auth flags.
 
+Configure `gateway.bind: "loopback"`, `gateway.auth.mode: "token"`, and `gateway.tailscale.mode: "serve"` through CrawClaw Desktop or the local Gateway API, then restart:
+
 ```bash
-# Keep the Gateway private on the VM
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Require auth for the Gateway and browser clients
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Expose over Tailscale Serve (HTTPS + tailnet access)
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
 systemctl --user restart crawclaw-gateway
 ```
 
 ## 7) Verify
 
 ```bash
-# Check version
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
 # Check daemon status
 systemctl --user status crawclaw-gateway
 
@@ -249,8 +234,6 @@ sudo tailscale up --ssh --hostname=crawclaw --reset
 ### Gateway will not start
 
 ```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
 journalctl --user -u crawclaw-gateway -n 50
 ```
 

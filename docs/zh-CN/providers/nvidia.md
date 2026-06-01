@@ -17,15 +17,15 @@ x-i18n:
 
 NVIDIA 在 `https://integrate.api.nvidia.com/v1` 提供一个与 OpenAI 兼容的 API，用于 Nemotron 和 NeMo 模型。请使用来自 [NVIDIA NGC](https://catalog.ngc.nvidia.com/) 的 API key 进行认证。
 
-## CLI 设置
+## Desktop 设置
 
-先导出 key，然后运行新手引导并设置一个 NVIDIA 模型：
+先导出 key：
 
 ```bash
 export NVIDIA_API_KEY="nvapi-..."
-crawclaw onboard --auth-choice skip
-crawclaw models set nvidia/nvidia/llama-3.1-nemotron-70b-instruct
 ```
+
+然后通过 CrawClaw Desktop 或本地 Gateway API 选择 NVIDIA 模型。
 
 如果你仍然使用 `--token`，请记住它会出现在 shell 历史记录和 `ps` 输出中；如果可能，优先使用环境变量。
 

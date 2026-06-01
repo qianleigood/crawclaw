@@ -159,7 +159,21 @@ export interface ConversationContextSummary {
   projectedHistoryEstimatedTokens: number
   projectedToolResultCount: number
   projectedToolResultOmittedChars: number
+  persistedToolResultCount: number
   projectionReason: string
+  provider: string
+  model: string
+  modelContextWindow: number
+  resolvedContextWindow: number
+  effectivePromptBudget: number
+  outputReserveTokens: number
+  providerOverheadTokens: number
+  toolSchemaTokens: number
+  budgetSource: string
+  supportsTools: boolean
+  supportsReasoning: boolean
+  supportsImageInput: boolean
+  supportsStreaming: boolean
   budgetState: string
   overflowRetryEnabled: boolean
   includedTools: string[]

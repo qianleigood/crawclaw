@@ -19,11 +19,7 @@ Get your API key from the OpenAI dashboard.
 
 ### Desktop setup
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# or non-interactive
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### Config snippet
 

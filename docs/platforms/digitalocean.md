@@ -69,18 +69,14 @@ apt update && apt upgrade -y
 curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
 apt install -y nodejs
 
-# Install CrawClaw
-# Install CrawClaw Desktop from GitHub Releases.
-
-# Verify
-# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Install the supported CrawClaw Gateway/Desktop release for this host, or build from source.
 ```
+
+Then use CrawClaw Desktop or the local Gateway API to verify the Gateway status.
 
 ## 4) Run Onboarding
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 The wizard will walk you through:
 
@@ -92,9 +88,6 @@ The wizard will walk you through:
 ## 5) Verify the Gateway
 
 ```bash
-# Check status
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
 # Check service
 systemctl --user status crawclaw-gateway.service
 
@@ -119,13 +112,11 @@ ssh -L 18789:localhost:18789 root@YOUR_DROPLET_IP
 
 ```bash
 # On the droplet
-curl -fsSL https://tailscale.com/CrawClaw Desktop installer | sh
+curl -fsSL https://tailscale.com/install.sh | sh
 tailscale up
-
-# Configure Gateway to use Tailscale Serve
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
+
+Configure `gateway.bind: "loopback"` and `gateway.tailscale.mode: "serve"` through CrawClaw Desktop or the local Gateway API.
 
 Open: `https://<magicdns>/`
 
@@ -136,10 +127,7 @@ Notes:
 
 **Option C: Tailnet bind (no Serve)**
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Open: `http://<tailscale-ip>:18789` (token required).
 
@@ -147,17 +135,11 @@ Open: `http://<tailscale-ip>:18789` (token required).
 
 ### Feishu
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### Weixin
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Scan QR code
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 See [Channels](/channels) for other providers.
 
@@ -233,8 +215,6 @@ For the full setup guide, see [Oracle Cloud](/platforms/oracle). For signup tips
 ### Gateway will not start
 
 ```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
 journalctl -u crawclaw --no-pager -n 50
 ```
 

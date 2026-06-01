@@ -12,39 +12,27 @@ CrawClaw Desktop 或 local Gateway API 是 CrawClaw 的修复 + 迁移工具。�
 
 ## 快速开始
 
-```bash
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 ### 无头/自动化
 
-```bash
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 无需提示接受默认值（包括适用时的重启/服务修复步骤）。
 
-```bash
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 无需提示应用推荐的修复（安全时进行修复 + 重启）。
 
-```bash
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 也应用激进修复（覆盖自定义 runtime config）。
 
-```bash
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 检测到时自动运行遗留状态迁移。
 
-```bash
-# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 如果旧安装留下启动项，请手动检查 legacy startup entries。
 
@@ -131,7 +119,7 @@ Doctor warnings 还包括 multi-account channels 的 account-default guidance：
 ### 2b）OpenCode provider overrides
 
 如果你手动添加了 `models.providers.opencode`、`opencode-zen` 或 `opencode-go`，
-它会覆盖来自 `@mariozechner/pi-ai` 的内置 OpenCode catalog。这可能会把模型强制路由到错误 API，
+它会覆盖来自 Rust provider registry 的内置 OpenCode catalog。这可能会把模型强制路由到错误 API，
 或把成本清零。Doctor 会发出警告，方便你移除覆盖并恢复 per-model API routing + costs。
 
 ### 2c）Browser migration cleanup
@@ -238,11 +226,11 @@ Doctor 检查 workspace bootstrap files（例如 `AGENTS.md`、`CLAUDE.md` 或�
 
 Doctor 检查当前 shell（zsh、bash、fish 或 PowerShell）是否已安装 tab completion：
 
-- 如果 shell profile 使用慢速 dynamic completion pattern（`source <(CrawClaw Desktop or the local Gateway API...)`），doctor 会升级到更快的 cached file variant。
+- 如果 shell profile 使用慢速 dynamic completion pattern（`source <(... completion command ...)`），doctor 会升级到更快的 cached file variant。
 - 如果 completion 已在 profile 中配置但 cache file 缺失，doctor 会自动 regenerate cache。
 - 如果完全没有配置 completion，doctor 会提示安装（仅 interactive mode；`--non-interactive` 下跳过）。
 
-手动 regenerate cache 时，运行 CrawClaw Desktop 或 local Gateway API。
+手动 regenerate cache 时，使用 CrawClaw Desktop 或 local Gateway API 的 repair surface。
 
 ### 12）Gateway auth checks（local token）
 

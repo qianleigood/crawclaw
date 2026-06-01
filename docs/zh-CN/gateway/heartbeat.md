@@ -20,7 +20,7 @@ x-i18n:
 `HEARTBEAT.md`，空闲时回复 `HEARTBEAT_OK`，并可选地把提醒投递到聊天目标。
 
 这种周期性 agent 轮询现在不再默认配置。新的自动化不要再使用旧 heartbeat
-配置。基于时间的检查请使用 [Scheduled Tasks](/automation/cron-jobs)，事件驱动的主会话唤醒请使用 [system events](/cli/system)。
+配置。基于时间的检查请使用 [Scheduled Tasks](/automation/cron-jobs)，事件驱动的主会话唤醒请使用 Gateway API system events。
 
 ## 变化
 
@@ -30,14 +30,14 @@ x-i18n:
 - 运行时 `system heartbeat enable` 和 `system heartbeat disable` 控制已移除。
 - 自动周期性检查不再要求 `HEARTBEAT.md`。已有文件可以继续作为工作区里的普通笔记保留，但新的自动化应放在 cron jobs、hooks 或 standing orders 中。
 - 新流程不应把 `HEARTBEAT_OK` 当作自动化契约。
-- `crawclaw system main-session-wake last` 用来读取最近一次 main-session wake 诊断事件。
+- `system.mainSessionWake.last` 用来读取最近一次 main-session wake 诊断事件。
 
 ## 改用这些机制
 
 | 需求                           | 使用                                           |
 | ------------------------------ | ---------------------------------------------- |
 | 每 N 分钟或在固定时间运行检查  | [Scheduled Tasks](/automation/cron-jobs)       |
-| 系统事件后在主会话中运行       | [`crawclaw system event`](/cli/system)         |
+| 系统事件后在主会话中运行       | Gateway API `system-event`                     |
 | 响应生命周期、hooks 或外部事件 | [Hooks](/automation/hooks)                     |
 | 让长期指令保持在上下文中       | [Standing Orders](/automation/standing-orders) |
 | 跟踪分离工作和完成状态         | [Background Tasks](/automation/tasks)          |
@@ -48,7 +48,7 @@ x-i18n:
 
 剩余诊断名称使用 `main-session-wake`，不再使用旧版 heartbeat 模块名。请把这些名称视为只读诊断入口，而不是自动化模型。
 
-- `crawclaw system main-session-wake last` 读取最近一次诊断事件。它不会启用调度。
+- `system.mainSessionWake.last` 读取最近一次诊断事件。它不会启用调度。
 - `last-main-session-wake` 和 `system.mainSessionWake.last` RPC 方法是只读诊断方法。
 - `next-heartbeat` 不再是有效的 wake-mode 值。事件驱动的主会话唤醒请使用 `now`。
 
@@ -66,14 +66,13 @@ x-i18n:
 
 1. 从配置中移除 `agents.defaults.heartbeat.every`、单智能体 heartbeat cadence 设置和 `activeHours`。
 2. 将计划性检查迁移到 [Scheduled Tasks](/automation/cron-jobs)。
-3. 将事件驱动的 follow-up 迁移到 [`crawclaw system event`](/cli/system) 或 hooks。
+3. 将事件驱动的 follow-up 迁移到 Gateway API `system-event` 或 hooks。
 4. 保留 `web.heartbeatSeconds` 这类渠道 keepalive 设置。
-5. 只把 `crawclaw system main-session-wake last --json` 用作诊断。
+5. 只把 `system.mainSessionWake.last` 用作诊断。
 
 ## 相关内容
 
 - [Automation & Tasks](/automation)
 - [Scheduled Tasks](/automation/cron-jobs)
 - [Background Tasks](/automation/tasks)
-- [System CLI](/cli/system)
 - [Weixin](/channels/index)

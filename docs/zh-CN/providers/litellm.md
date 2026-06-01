@@ -28,9 +28,7 @@ x-i18n:
 
 ### 通过新手引导
 
-```bash
-crawclaw onboard --auth-choice litellm-api-key
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ### 手动设置
 

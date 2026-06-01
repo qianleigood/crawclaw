@@ -48,11 +48,7 @@ Honcho registers tools that the agent can use during conversation:
 
 Install the plugin and run setup:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 The setup command prompts for your API credentials, writes the config, and
 optionally migrates existing workspace memory files.
@@ -124,12 +120,7 @@ the plugin service.
 
 ## Desktop and Gateway API actions
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Further reading
 

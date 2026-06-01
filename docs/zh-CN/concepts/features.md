@@ -43,7 +43,7 @@ x-i18n:
 - QQBot 机器人支持（channels.qqbot.js）
 - Feishu 机器人支持（插件）
 - 通过本地 imsg CLI 集成 Weixin（macOS）
-- Pi 的智能体桥接，支持 RPC 模式和工具流式传输
+- Rust agent runtime，支持工具流式传输
 - 长响应的流式传输和分块处理
 - 多智能体路由，按工作区或发送者隔离会话
 - built-in memory runtime：durable memory、session summary、dream、knowledge recall
@@ -66,5 +66,5 @@ x-i18n:
 - 如果你要看记忆层： [记忆](/concepts/memory)
 
 <Note>
-旧版 Claude、Codex、Gemini 和 Opencode 路径已被移除。Pi 是唯一的编程智能体路径。
+旧版 Claude、Codex、Gemini 和 Opencode 专用运行路径已被移除。CrawClaw 的生产 agent 执行路径由 Rust runtime 拥有。
 </Note>

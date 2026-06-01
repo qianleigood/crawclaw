@@ -64,9 +64,7 @@ export VENICE_API_KEY="vapi_xxxxxxxxxxxx"
 
 **选项 B：交互式设置（推荐）**
 
-```bash
-crawclaw onboard --auth-choice venice-api-key
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 这将会：
 
@@ -77,17 +75,11 @@ crawclaw onboard --auth-choice venice-api-key
 
 **选项 C：非交互式**
 
-```bash
-crawclaw onboard --non-interactive \
-  --auth-choice venice-api-key \
-  --venice-api-key "vapi_xxxxxxxxxxxx"
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 ### 3. 验证设置
 
-```bash
-crawclaw agent --model venice/kimi-k2-5 --message "Hello, are you working?"
-```
+使用 CrawClaw Desktop 或本地 Gateway API 验证 `venice/kimi-k2-5` 是否可用。
 
 ## 模型选择
 
@@ -100,22 +92,17 @@ crawclaw agent --model venice/kimi-k2-5 --message "Hello, are you working?"
 
 你可以随时更改默认模型：
 
-```bash
-crawclaw models set venice/kimi-k2-5
-crawclaw models set venice/claude-opus-4-6
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 列出所有可用模型：
 
-```bash
-crawclaw models list | grep venice
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
-## 通过 `crawclaw configure` 配置
+## 通过 Desktop 配置
 
-1. 运行 `crawclaw configure`
-2. 选择 **Model/auth**
-3. 选择 **Venice AI**
+1. 打开 CrawClaw Desktop 的模型/provider 设置。
+2. 选择 **Venice AI**。
+3. 自动化场景调用本地 Gateway API。
 
 ## 我应该使用哪个模型？
 
@@ -215,22 +202,13 @@ Venice 使用基于积分的系统。当前费率请查看 [venice.ai/pricing](h
 
 ## 使用示例
 
-```bash
-# 使用默认私密模型
-crawclaw agent --model venice/kimi-k2-5 --message "Quick health check"
+通过 CrawClaw Desktop 或本地 Gateway API 选择不同 Venice 模型：
 
-# 通过 Venice 使用 Claude Opus（匿名）
-crawclaw agent --model venice/claude-opus-4-6 --message "Summarize this task"
-
-# 使用未审查模型
-crawclaw agent --model venice/venice-uncensored --message "Draft options"
-
-# 使用带图像的视觉模型
-crawclaw agent --model venice/qwen3-vl-235b-a22b --message "Review attached image"
-
-# 使用编码模型
-crawclaw agent --model venice/qwen3-coder-480b-a35b-instruct --message "Refactor this function"
-```
+- `venice/kimi-k2-5`：默认私密模型。
+- `venice/claude-opus-4-6`：通过 Venice 使用匿名化 Claude Opus 路径。
+- `venice/venice-uncensored`：未审查模型。
+- `venice/qwen3-vl-235b-a22b`：视觉模型。
+- `venice/qwen3-coder-480b-a35b-instruct`：编码模型。
 
 ## 故障排除
 
@@ -238,14 +216,13 @@ crawclaw agent --model venice/qwen3-coder-480b-a35b-instruct --message "Refactor
 
 ```bash
 echo $VENICE_API_KEY
-crawclaw models list | grep venice
 ```
 
 请确保该密钥以 `vapi_` 开头。
 
 ### 模型不可用
 
-Venice 模型目录会动态更新。运行 `crawclaw models list` 以查看当前可用的模型。某些模型可能暂时离线。
+Venice 模型目录会动态更新。使用 CrawClaw Desktop 或本地 Gateway API 查看当前可用模型。某些模型可能暂时离线。
 
 ### 连接问题
 

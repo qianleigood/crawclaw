@@ -85,9 +85,7 @@ Agent: Reads standing orders → executes steps → reports results
 
 The cron job prompt should reference the standing order rather than duplicating it:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Examples
 

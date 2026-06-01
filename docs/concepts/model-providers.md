@@ -1,5 +1,5 @@
 ---
-summary: "Model provider overview with example configs + CLI flows"
+summary: "Model provider overview with example configs and setup surfaces"
 read_when:
   - You need a provider-by-provider model setup reference
   - You want example configs or desktop setup guidance for model providers
@@ -15,7 +15,8 @@ For model selection rules, see [/concepts/models](/concepts/models).
 
 - Model refs use `provider/model` (example: `opencode/claude-opus-4-6`).
 - If you set `agents.defaults.models`, it becomes the allowlist.
-- CLI helpers: CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API.
+- Setup surfaces: use CrawClaw Desktop for interactive model/auth setup, or the
+  local Gateway API for automation.
 - Provider metadata, auth choices, model catalogs, config schema, and native
   transport behavior are owned by the Rust provider registry.
 - TypeScript plugins cannot register LLM providers. Use `models.providers` for
@@ -69,7 +70,7 @@ CrawClaw ships with a Rust-owned provider registry. These providers require
 - Auth: `OPENAI_API_KEY`
 - Optional rotation: `OPENAI_API_KEYS`, `OPENAI_API_KEY_1`, `OPENAI_API_KEY_2`, plus `CRAWCLAW_LIVE_OPENAI_KEY` (single override)
 - Example models: `openai/gpt-5.4`, `openai/gpt-5.4-pro`
-- CLI: CrawClaw Desktop or the local Gateway API
+- Setup: CrawClaw Desktop or the local Gateway API
 - Default transport is `auto` (WebSocket-first, SSE fallback)
 - Override per model via `agents.defaults.models["openai/<model>"].params.transport` (`"sse"`, `"websocket"`, or `"auto"`)
 - OpenAI Responses WebSocket warm-up defaults to enabled via `params.openaiWsWarmup` (`true`/`false`)
@@ -90,7 +91,8 @@ CrawClaw ships with a Rust-owned provider registry. These providers require
 - Auth: `ANTHROPIC_API_KEY` or `claude setup-token`
 - Optional rotation: `ANTHROPIC_API_KEYS`, `ANTHROPIC_API_KEY_1`, `ANTHROPIC_API_KEY_2`, plus `CRAWCLAW_LIVE_ANTHROPIC_KEY` (single override)
 - Example model: `anthropic/claude-opus-4-6`
-- CLI: CrawClaw Desktop or the local Gateway API (paste setup-token) or CrawClaw Desktop or the local Gateway API
+- Setup: CrawClaw Desktop or the local Gateway API; paste a `claude setup-token`
+  when using Anthropic subscription auth.
 - Direct public Anthropic requests support the shared `/fast` toggle and `params.fastMode`, including API-key and OAuth-authenticated traffic sent to `api.anthropic.com`; CrawClaw maps that to Anthropic `service_tier` (`auto` vs `standard_only`)
 - Policy note: setup-token support is technical compatibility; Anthropic has blocked some subscription usage outside Claude Code in the past. Verify current Anthropic terms and decide based on your risk tolerance.
 - Recommendation: Anthropic API key auth is the safer, recommended path over subscription setup-token auth.
@@ -106,7 +108,7 @@ CrawClaw ships with a Rust-owned provider registry. These providers require
 - Provider: `openai-codex`
 - Auth: existing compatible Codex token profile or external tooling
 - Example model: `openai-codex/gpt-5.4`
-- CLI: CrawClaw Desktop or the local Gateway API or CrawClaw Desktop or the local Gateway API
+- Setup: CrawClaw Desktop or the local Gateway API
 - Default transport is `auto` (WebSocket-first, SSE fallback)
 - Override per model via `agents.defaults.models["openai-codex/<model>"].params.transport` (`"sse"`, `"websocket"`, or `"auto"`)
 - `params.serviceTier` is also forwarded on native Codex Responses requests (`chatgpt.com/backend-api`)
@@ -126,7 +128,7 @@ CrawClaw ships with a Rust-owned provider registry. These providers require
 - Zen runtime provider: `opencode`
 - Go runtime provider: `opencode-go`
 - Example models: `opencode/claude-opus-4-6`, `opencode-go/kimi-k2.5`
-- CLI: CrawClaw Desktop or the local Gateway API or CrawClaw Desktop or the local Gateway API
+- Setup: CrawClaw Desktop or the local Gateway API
 
 ```json5
 {
@@ -141,7 +143,7 @@ CrawClaw ships with a Rust-owned provider registry. These providers require
 - Optional rotation: `GEMINI_API_KEYS`, `GEMINI_API_KEY_1`, `GEMINI_API_KEY_2`, `GOOGLE_API_KEY` fallback, and `CRAWCLAW_LIVE_GEMINI_KEY` (single override)
 - Example models: `google/gemini-3.1-pro-preview`, `google/gemini-3-flash-preview`
 - Compatibility: legacy CrawClaw config using `google/gemini-3.1-flash-preview` is normalized to `google/gemini-3-flash-preview`
-- CLI: CrawClaw Desktop or the local Gateway API
+- Setup: CrawClaw Desktop or the local Gateway API
 
 ### Google Vertex
 
@@ -155,7 +157,7 @@ CrawClaw ships with a Rust-owned provider registry. These providers require
 - Provider: `zai`
 - Auth: `ZAI_API_KEY`
 - Example model: `zai/glm-5`
-- CLI: CrawClaw Desktop or the local Gateway API
+- Setup: CrawClaw Desktop or the local Gateway API
   - Aliases: `z.ai/*` and `z-ai/*` normalize to `zai/*`
 
 ### Vercel AI Gateway
@@ -163,14 +165,14 @@ CrawClaw ships with a Rust-owned provider registry. These providers require
 - Provider: `vercel-ai-gateway`
 - Auth: `AI_GATEWAY_API_KEY`
 - Example model: `vercel-ai-gateway/anthropic/claude-opus-4.6`
-- CLI: CrawClaw Desktop or the local Gateway API
+- Setup: CrawClaw Desktop or the local Gateway API
 
 ### Kilo Gateway
 
 - Provider: `kilocode`
 - Auth: `KILOCODE_API_KEY`
 - Example model: `kilocode/anthropic/claude-opus-4.6`
-- CLI: CrawClaw Desktop or the local Gateway API
+- Setup: CrawClaw Desktop or the local Gateway API
 - Base URL: `https://api.kilo.ai/api/gateway/`
 - Expanded built-in catalog includes GLM-5 Free, MiniMax M2.7 Free, GPT-5.2, Gemini 3 Pro Preview, Gemini 3 Flash Preview, Grok Code Fast 1, and Kimi K2.5.
 
@@ -283,7 +285,7 @@ Volcano Engine (火山引擎) provides access to Doubao and other models in Chin
 - Provider: `volcengine` (coding: `volcengine-plan`)
 - Auth: `VOLCANO_ENGINE_API_KEY`
 - Example model: `volcengine/doubao-seed-1-8-251228`
-- CLI: CrawClaw Desktop or the local Gateway API
+- Setup: CrawClaw Desktop or the local Gateway API
 
 ```json5
 {
@@ -316,7 +318,7 @@ BytePlus ARK provides access to the same models as Volcano Engine for internatio
 - Provider: `byteplus` (coding: `byteplus-plan`)
 - Auth: `BYTEPLUS_API_KEY`
 - Example model: `byteplus/seed-1-8-251228`
-- CLI: CrawClaw Desktop or the local Gateway API
+- Setup: CrawClaw Desktop or the local Gateway API
 
 ```json5
 {
@@ -347,7 +349,7 @@ Synthetic provides Anthropic-compatible models behind the `synthetic` provider:
 - Provider: `synthetic`
 - Auth: `SYNTHETIC_API_KEY`
 - Example model: `synthetic/hf:MiniMaxAI/MiniMax-M2.5`
-- CLI: CrawClaw Desktop or the local Gateway API
+- Setup: CrawClaw Desktop or the local Gateway API
 
 ```json5
 {
@@ -504,17 +506,25 @@ Notes:
   - `contextWindow: 200000`
   - `maxTokens: 8192`
 - Recommended: set explicit values that match your proxy/model limits.
+- The agent runtime uses the selected model's `contextWindow` and `maxTokens`
+  when computing the effective prompt budget for each turn. Unknown models fall
+  back to conservative defaults; `agents.defaults.contextTokens` can cap the
+  resolved model window when you want a lower global limit.
+- The native provider request receives the computed output reserve as the
+  transport-specific output token field, such as `max_output_tokens`,
+  `max_tokens`, `generationConfig.maxOutputTokens`, `options.num_predict`, or
+  `inferenceConfig.maxTokens`.
+- Model capability metadata controls per-turn degradation. `reasoning: false`
+  or `compat.supportsReasoningEffort: false` prevents sending reasoning effort
+  controls, `compat.supportsTools: false` withholds tool schemas, and
+  `input: ["text"]` omits image blocks before the provider request.
 - For `api: "openai-completions"` on non-native endpoints (any non-empty `baseUrl` whose host is not `api.openai.com`), CrawClaw forces `compat.supportsDeveloperRole: false` to avoid provider 400 errors for unsupported `developer` roles.
 - If `baseUrl` is empty/omitted, CrawClaw keeps the default OpenAI behavior (which resolves to `api.openai.com`).
 - For safety, an explicit `compat.supportsDeveloperRole: true` is still overridden on non-native `openai-completions` endpoints.
 
 ## Gateway API examples
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 See also: [/gateway/configuration](/gateway/configuration) for full configuration examples.
 

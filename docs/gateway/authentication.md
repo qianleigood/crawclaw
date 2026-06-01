@@ -34,8 +34,9 @@ over subscription setup-token auth.
 
 ```bash
 export <PROVIDER>_API_KEY="..."
-# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
+
+Restart CrawClaw Desktop or the Gateway process after exporting the variable so the runtime can read it.
 
 3. If the Gateway runs under systemd/launchd, prefer putting the key in
    `~/.crawclaw/.env` so the daemon can read it:
@@ -48,10 +49,7 @@ EOF
 
 Then restart the daemon (or restart your Gateway process) and re-check:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 If you’d rather not manage env vars yourself, onboarding can store
 API keys for daemon use: CrawClaw Desktop or the local Gateway API.
@@ -70,15 +68,11 @@ claude setup-token
 
 Then paste it into CrawClaw:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 If the token was created on another machine, paste it manually:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 If you see an Anthropic error like:
 
@@ -96,10 +90,7 @@ the policy risk is acceptable, and verify Anthropic's current terms yourself.
 
 Manual token entry (any provider; writes `auth-profiles.json` + updates config):
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Auth profile refs are also supported for static credentials:
 
@@ -109,9 +100,7 @@ Auth profile refs are also supported for static credentials:
 
 Automation-friendly check (exit `1` when expired/missing, `2` when expiring):
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Optional ops scripts (systemd/Termux) are documented here:
 [Auth monitoring scripts](/help/scripts#auth-monitoring-scripts)
@@ -120,10 +109,7 @@ Optional ops scripts (systemd/Termux) are documented here:
 
 ## Checking model auth status
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## API key rotation behavior (gateway)
 
@@ -154,11 +140,7 @@ Use `/model` (or `/model list`) for a compact picker; use `/model status` for th
 
 Set an explicit auth profile order override for an agent (stored in that agent’s `auth-profiles.json`):
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Use `--agent <id>` to target a specific agent; omit it to use the configured default agent.
 
@@ -169,9 +151,7 @@ Use `--agent <id>` to target a specific agent; omit it to use the configured def
 If the Anthropic token profile is missing, run `claude setup-token` on the
 **gateway host**, then re-check:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ### Token expiring/expired
 

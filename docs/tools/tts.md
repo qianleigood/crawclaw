@@ -45,7 +45,7 @@ launch command for the sidecar you want to use:
   Python package sidecar.
 
 The managed runtime is installed during postinstall and can be repaired with
-CrawClaw Desktop or the local Gateway API or CrawClaw Desktop or the local Gateway API. Explicit
+CrawClaw Desktop or the local Gateway API. Explicit
 `vllm-omni` and `qwen3-tts.cpp` runtimes still require an explicit
 `launchCommand`. CrawClaw probes `baseUrl + healthPath`, verifies the managed
 runtime imports before spawning the bundled sidecar, then waits for the health

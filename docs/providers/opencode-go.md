@@ -20,11 +20,7 @@ provider id `opencode-go` so upstream per-model routing stays correct.
 
 ## Desktop setup
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# or non-interactive
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Config snippet
 

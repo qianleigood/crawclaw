@@ -91,7 +91,7 @@ git commit -m "Add Clawd workspace"
 
 ## What CrawClaw Does
 
-- Runs Weixin gateway + Pi coding agent so the assistant can read/write chats, fetch context, and run skills via the host Mac.
+- Runs the Weixin gateway plus CrawClaw's Rust agent runtime so the assistant can read/write chats, fetch context, and run skills via the host Mac.
 - The local node/runtime host manages permissions (screen recording, notifications, microphone) and exposes Gateway API controls.
 - Direct chats collapse into the agent's `main` session by default; groups stay isolated as `agent:<agentId>:<channel>:group:<id>` (rooms/channels: `agent:<agentId>:<channel>:channel:<id>`); background tasks can queue main-session wake events when they finish.
 

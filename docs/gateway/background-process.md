@@ -36,10 +36,8 @@ When spawning long-running child processes outside the exec/process tools (for e
 
 Environment overrides:
 
-- `PI_BASH_YIELD_MS`: default yield (ms)
-- `PI_BASH_MAX_OUTPUT_CHARS`: in‑memory output cap (chars)
-- `CRAWCLAW_BASH_PENDING_MAX_OUTPUT_CHARS`: pending stdout/stderr cap per stream (chars)
-- `PI_BASH_JOB_TTL_MS`: TTL for finished sessions (ms, bounded to 1m–3h)
+- `BASH_MAX_OUTPUT_LENGTH`: persisted-output threshold for oversized shell output.
+  The default is `30000` characters and values above `150000` are clamped.
 
 Config (preferred):
 

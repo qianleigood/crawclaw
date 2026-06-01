@@ -29,8 +29,8 @@ x-i18n:
 
 - [配对概述（私信 + 节点）](/channels/pairing)
 - [Gateway 网关拥有的节点配对](/gateway/pairing)
-- [Devices CLI（配对 + token 轮换）](/cli/devices)
-- [Pairing CLI（私信审批）](/cli/pairing)
+- [Gateway 配对](/gateway/pairing)
+- [渠道配对](/channels/pairing)
 
 本地信任：
 

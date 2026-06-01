@@ -11,7 +11,7 @@ title: "ACP Agents"
 
 # ACP agents
 
-[Agent Client Protocol (ACP)](https://agentclientprotocol.com/) sessions let CrawClaw run external coding harnesses (for example Pi, Claude Code, Codex, Cursor, Copilot, CrawClaw ACP, OpenCode, Gemini CLI, and other supported ACPX harnesses) through an ACP backend plugin.
+[Agent Client Protocol (ACP)](https://agentclientprotocol.com/) sessions let CrawClaw run external coding harnesses (for example Claude Code, Codex, Cursor, Copilot, CrawClaw ACP, OpenCode, Gemini CLI, and other supported ACPX harnesses) through an ACP backend plugin.
 
 If you ask CrawClaw in plain language to "run this in Codex" or "start Claude Code in a thread", CrawClaw should route that request to the ACP runtime (not the native sub-agent runtime). Each ACP session spawn is tracked as a [background task](/automation/tasks).
 
@@ -32,12 +32,12 @@ runtime is still owned by the ACP backend.
   workspace.
 - The harness's internal transcript, memory model, and tool state are backend
   concerns, not part of CrawClaw's built-in memory runtime.
-- CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, and
-  CrawClaw Desktop or the local Gateway API show the CrawClaw-side wrapper/task/archive state,
+- CrawClaw Desktop, Gateway API inspection, and background-task views show the
+  CrawClaw-side wrapper/task/archive state,
   not the harness's private internal buffers.
 
 If you want Codex or Claude Code to connect as an external MCP client directly
-to existing CrawClaw channel conversations, use [CrawClaw Desktop or the local Gateway API](/gateway/protocol)
+to existing CrawClaw channel conversations, use the [Gateway protocol](/gateway/protocol)
 instead of ACP.
 
 ## Fast operator flow
@@ -633,16 +633,11 @@ See [Configuration Reference](/gateway/configuration-reference).
 
 Install and enable plugin:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Local workspace install during development:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Then verify backend health:
 
@@ -704,9 +699,7 @@ the ACP harness.
 If you want ACP agents such as Codex or Claude Code to call installed
 CrawClaw plugin tools such as memory recall/store, enable the dedicated bridge:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Plugin-owned tool execution has been removed from the TypeScript runtime.
 Use the Rust Gateway API for CrawClaw-owned operations.
@@ -751,10 +744,7 @@ Controls what happens when a permission prompt would be shown but no interactive
 
 Set via plugin config:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Restart the gateway after changing these values.
 

@@ -101,14 +101,13 @@ CrawClaw 还会向子进程注入一些运行时标记：
 
 在 Linux 上，CrawClaw 会尽量自动修复：
 
-- `crawclaw gateway install` 会把 `NODE_EXTRA_CA_CERTS` 写入 systemd 服务环境。
-- `crawclaw` CLI 入口会在 Node 启动前带上 `NODE_EXTRA_CA_CERTS` 重新执行自己。
+- CrawClaw Desktop 或本地 Gateway API 会把 `NODE_EXTRA_CA_CERTS` 写入 systemd 服务环境。
+- CrawClaw Desktop 和 Gateway API 客户端会继承宿主运行环境里的可信 CA 设置。
 
 手动修复示例：
 
 ```bash
 export NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
-crawclaw gateway run
 ```
 
 不要只把这个变量写进 `~/.crawclaw/.env`；Node 会在进程启动时读取它。

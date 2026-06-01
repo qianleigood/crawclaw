@@ -67,7 +67,7 @@ ClawHub 是 CrawClaw 的公共 Skills 注册表。浏览 https://clawhub.com。�
 - `skills.entries.*.env` 和 `skills.entries.*.apiKey` 为该智能体轮次将秘密注入到**宿主机**进程中（而非沙箱）。将秘密保持在提示词和日志之外。
 - 有关更广泛的威胁模型和检查清单，参见[安全性](/gateway/security)。
 
-## 格式（AgentSkills + Pi 兼容）
+## 格式（AgentSkills 兼容）
 
 `SKILL.md` 必须至少包含：
 
@@ -248,21 +248,9 @@ CrawClaw 在**会话开始时**对有资格的 Skills 进行快照，并在同�
 
 ## Token 影响（Skills 列表）
 
-当 Skills 有资格时，CrawClaw 将可用 Skills 的紧凑 XML 列表注入到系统提示词中（通过 `pi-coding-agent` 中的 `formatSkillsForPrompt`）。成本是确定性的：
+当 Skills 有资格时，CrawClaw 会在 Rust runtime context disclosure 中最多展示五个相关 skill 摘要。提示词成本来自已展示 skill 的名称和描述，以及一小段 disclosure 包装文本。
 
-- **基础开销（仅当 ≥1 个 Skills 时）：** 195 字符。
-- **每个 Skills：** 97 字符 + XML 转义的 `<name>`、`<description>` 和 `<location>` 值的长度。
-
-公式（字符）：
-
-```
-total = 195 + Σ (97 + len(name_escaped) + len(description_escaped) + len(location_escaped))
-```
-
-注意事项：
-
-- XML 转义将 `& < > " '` 扩展为实体（`&amp;`、`&lt;` 等），增加长度。
-- Token 数量因模型分词器而异。粗略的 OpenAI 风格估计是 ~4 字符/token，所以**每个 Skills 97 字符 ≈ 24 token** 加上你的实际字段长度。
+完整 `SKILL.md` 内容默认不会注入。只有当模型通过 runtime skill 工具加载某个 skill 后，它才会进入上下文，并且每个已加载 skill 都会在投影前截断到上限。
 
 ## 托管 Skills 生命周期
 

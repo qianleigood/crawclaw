@@ -51,7 +51,7 @@ CrawClaw 是一个自托管 Gateway，可以把 Weixin、Feishu、QQBot、Weixin
                               ┌─────────────────┐
                               │  你的 Mac       │
                               │  (crawclaw)     │
-                              │    Pi 智能体    │
+                              │   AI agent      │
                               └─────────────────┘
 ```
 
@@ -61,15 +61,11 @@ CrawClaw 是一个自托管 Gateway，可以把 Weixin、Feishu、QQBot、Weixin
 
 1. 配对 Weixin Web（显示二维码；用助手手机扫描）：
 
-```bash
-crawclaw channels login
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 2. 启动 Gateway 网关（保持运行）：
 
-```bash
-crawclaw gateway --port 18789
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 3. 在 `~/.crawclaw/crawclaw.json` 中放置最小配置：
 
@@ -81,7 +77,7 @@ crawclaw gateway --port 18789
 
 现在从你允许列表中的手机向助手号码发消息。
 
-新手引导完成后，可使用渠道发送消息，或通过 `crawclaw tui` 打开终端界面。
+Onboarding 完成后，可使用已连接渠道发送消息，或打开 desktop client。
 
 ## 给智能体一个工作区（AGENTS）
 
@@ -97,9 +93,7 @@ CrawClaw 从其工作区目录读取操作指令和"记忆"。
 
 提示：将此文件夹视为 CrawClaw 的"记忆"，并将其设为 git 仓库（最好是私有的），这样你的 `AGENTS.md` + 记忆文件就有了备份。如果安装了 git，全新的工作区会自动初始化。
 
-```bash
-crawclaw setup
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 完整工作区布局 + 备份指南：[智能体工作区](/concepts/agent-workspace)
 记忆工作流：[记忆](/concepts/memory)
@@ -198,12 +192,7 @@ CrawClaw 会提取这些并将它们作为媒体与文本一起发送。
 
 ## 运维检查清单
 
-```bash
-crawclaw status          # 本地状态（凭证、会话、排队事件）
-crawclaw status --all    # 完整诊断（只读，可粘贴）
-crawclaw status --deep   # 添加 Gateway 网关健康探测（Feishu + QQBot）
-crawclaw health --json   # Gateway 网关健康快照（WS）
-```
+使用 CrawClaw Desktop 进行交互式检查；自动化场景调用本地 Gateway API。
 
 日志位于 `/tmp/crawclaw/`（默认：`crawclaw-YYYY-MM-DD.log`）。
 

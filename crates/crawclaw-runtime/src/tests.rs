@@ -3175,8 +3175,12 @@ impl AgentRuntimeBackend for FakeAgentRuntimeBackend {
 #[derive(Clone, Debug)]
 struct CapturedAgentRequest {
     user_text: String,
+    provider: String,
+    model: Option<String>,
+    reasoning_level: Option<String>,
     system_sections: Vec<String>,
     messages: Vec<String>,
+    messages_json: Value,
     included_tools: Vec<String>,
     deferred_tools: Vec<String>,
     surfaced_skills: Vec<String>,
@@ -3224,6 +3228,9 @@ impl AgentRuntimeBackend for CapturingAgentRuntimeBackend {
                 .expect("captured requests")
                 .push(CapturedAgentRequest {
                     user_text: request.user_text.to_string(),
+                    provider: request.provider_config.provider.clone(),
+                    model: request.provider_config.model.clone(),
+                    reasoning_level: request.reasoning_level.clone(),
                     system_sections: request.runtime_context.system_sections.clone(),
                     messages: request
                         .runtime_context
@@ -3231,6 +3238,8 @@ impl AgentRuntimeBackend for CapturingAgentRuntimeBackend {
                         .iter()
                         .map(|message| message.content.clone())
                         .collect(),
+                    messages_json: serde_json::to_value(&request.runtime_context.messages)
+                        .expect("runtime messages json"),
                     included_tools: request
                         .runtime_context
                         .context_summary
@@ -3505,6 +3514,441 @@ async fn agent_runtime_projects_large_tool_results_before_provider_context() {
         .as_str()
         .unwrap_or_default()
         .contains("tool result"));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn agent_runtime_uses_selected_model_context_window_for_prompt_budget() {
+    let runtime_root = unique_test_runtime_root("agent-context-selected-model-budget");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
+            "provider": "test-provider",
+            "model": "configured-model",
+            "apiKey": "test-key"
+        }))
+        .expect("provider config json"),
+    )
+    .expect("write provider config");
+    fs::write(
+        config_dir.join("crawclaw.json"),
+        serde_json::to_vec_pretty(&json!({
+            "agents": {
+                "defaults": {
+                    "contextTokens": 128000,
+                    "compaction": {
+                        "reserveTokens": 512
+                    }
+                }
+            },
+            "models": {
+                "providers": {
+                    "test-provider": {
+                        "models": [
+                            {
+                                "id": "configured-model",
+                                "name": "Configured Model",
+                                "reasoning": false,
+                                "input": ["text"],
+                                "cost": {
+                                    "input": 0,
+                                    "output": 0,
+                                    "cacheRead": 0,
+                                    "cacheWrite": 0
+                                },
+                                "contextWindow": 64000,
+                                "maxTokens": 4096
+                            },
+                            {
+                                "id": "tiny-model",
+                                "name": "Tiny Model",
+                                "reasoning": false,
+                                "input": ["text"],
+                                "cost": {
+                                    "input": 0,
+                                    "output": 0,
+                                    "cacheRead": 0,
+                                    "cacheWrite": 0
+                                },
+                                "contextWindow": 8192,
+                                "maxTokens": 512
+                            }
+                        ]
+                    }
+                }
+            }
+        }))
+        .expect("runtime config json"),
+    )
+    .expect("write runtime config");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_native_provider_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "tiny budget reply".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    let result = runtime
+        .send_message_with_options(
+            "thread-selected-budget".to_string(),
+            "use the selected model budget".to_string(),
+            AgentRuntimeSendOptions {
+                model_selection: Some(AgentModelSelection {
+                    provider: "test-provider".to_string(),
+                    model: "tiny-model".to_string(),
+                    reasoning_level: None,
+                }),
+                ..AgentRuntimeSendOptions::default()
+            },
+        )
+        .await
+        .expect("send with selected model budget");
+
+    let requests = captured.lock().expect("captured requests");
+    let request = requests.first().expect("provider request");
+    assert_eq!(request.provider, "test-provider");
+    assert_eq!(request.model.as_deref(), Some("tiny-model"));
+
+    let summary_json = serde_json::to_value(&result.context_summary).expect("summary json");
+    assert_eq!(summary_json["budget"]["modelContextWindow"], json!(8192));
+    assert_eq!(summary_json["budget"]["outputReserveTokens"], json!(512));
+    assert_eq!(
+        summary_json["budget"]["budgetSource"],
+        json!("config-model")
+    );
+    assert!(
+        summary_json["budget"]["maxPromptTokens"]
+            .as_u64()
+            .unwrap_or_default()
+            < 8192
+    );
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn agent_runtime_allows_large_model_window_without_default_cap() {
+    let runtime_root = unique_test_runtime_root("agent-context-large-model-budget");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
+            "provider": "test-provider",
+            "model": "large-model",
+            "apiKey": "test-key"
+        }))
+        .expect("provider config json"),
+    )
+    .expect("write provider config");
+    fs::write(
+        config_dir.join("crawclaw.json"),
+        serde_json::to_vec_pretty(&json!({
+            "agents": {
+                "defaults": {
+                    "compaction": {
+                        "reserveTokens": 2048
+                    }
+                }
+            },
+            "models": {
+                "providers": {
+                    "test-provider": {
+                        "models": [
+                            {
+                                "id": "large-model",
+                                "name": "Large Model",
+                                "reasoning": true,
+                                "input": ["text"],
+                                "cost": {
+                                    "input": 0,
+                                    "output": 0,
+                                    "cacheRead": 0,
+                                    "cacheWrite": 0
+                                },
+                                "contextWindow": 200000,
+                                "maxTokens": 8192
+                            }
+                        ]
+                    }
+                }
+            }
+        }))
+        .expect("runtime config json"),
+    )
+    .expect("write runtime config");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_native_provider_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "large budget reply".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    let result = runtime
+        .send_message_with_options(
+            "thread-large-budget".to_string(),
+            "use the large model budget".to_string(),
+            AgentRuntimeSendOptions::default(),
+        )
+        .await
+        .expect("send with large model budget");
+
+    let summary_json = serde_json::to_value(&result.context_summary).expect("summary json");
+    assert_eq!(summary_json["budget"]["modelContextWindow"], json!(200000));
+    assert_eq!(
+        summary_json["budget"]["budgetSource"],
+        json!("config-model")
+    );
+    assert!(
+        summary_json["budget"]["maxPromptTokens"]
+            .as_u64()
+            .unwrap_or_default()
+            > 128000
+    );
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn agent_runtime_downgrades_context_for_model_capabilities() {
+    let runtime_root = unique_test_runtime_root("agent-context-capability-downgrade");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
+            "provider": "test-provider",
+            "model": "text-only-model",
+            "apiKey": "test-key"
+        }))
+        .expect("provider config json"),
+    )
+    .expect("write provider config");
+    fs::write(
+        config_dir.join("crawclaw.json"),
+        serde_json::to_vec_pretty(&json!({
+            "agents": {
+                "defaults": {
+                    "compaction": {
+                        "reserveTokens": 512
+                    }
+                }
+            },
+            "models": {
+                "providers": {
+                    "test-provider": {
+                        "models": [
+                            {
+                                "id": "text-only-model",
+                                "name": "Text Only Model",
+                                "reasoning": false,
+                                "input": ["text"],
+                                "compat": {
+                                    "supportsTools": false,
+                                    "supportsReasoningEffort": false,
+                                    "supportsStreaming": false
+                                },
+                                "cost": {
+                                    "input": 0,
+                                    "output": 0,
+                                    "cacheRead": 0,
+                                    "cacheWrite": 0
+                                },
+                                "contextWindow": 64000,
+                                "maxTokens": 4096
+                            }
+                        ]
+                    }
+                }
+            }
+        }))
+        .expect("runtime config json"),
+    )
+    .expect("write runtime config");
+    fs::create_dir_all(runtime_root.join("sessions")).expect("sessions dir");
+    let image_message = AgentRuntimeMessage {
+        role: AgentRuntimeMessageRole::User,
+        content: "uploaded image".to_string(),
+        blocks: vec![AgentRuntimeMessageBlock::Image {
+            mime_type: "image/png".to_string(),
+            data: "iVBORw0KGgo=".to_string(),
+        }],
+    };
+    fs::write(
+        runtime_root.join("sessions/thread-capability-downgrade.jsonl"),
+        serde_json::to_string(&json!({
+            "role": "user",
+            "content": "uploaded image",
+            "modelMessage": image_message
+        }))
+        .expect("image transcript json"),
+    )
+    .expect("seed image transcript");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_native_provider_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "capability reply".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    let result = runtime
+        .send_message_with_options(
+            "thread-capability-downgrade".to_string(),
+            "continue with model capabilities".to_string(),
+            AgentRuntimeSendOptions {
+                model_selection: Some(AgentModelSelection {
+                    provider: "test-provider".to_string(),
+                    model: "text-only-model".to_string(),
+                    reasoning_level: Some("high".to_string()),
+                }),
+                ..AgentRuntimeSendOptions::default()
+            },
+        )
+        .await
+        .expect("send with model capability downgrade");
+
+    let requests = captured.lock().expect("captured requests");
+    let request = requests.first().expect("provider request");
+    assert_eq!(request.reasoning_level, None);
+    assert!(request.included_tools.is_empty());
+    assert!(!request.deferred_tools.is_empty());
+    let messages_json = serde_json::to_string(&request.messages_json).expect("messages json");
+    assert!(!messages_json.contains("iVBORw0KGgo="));
+    assert!(messages_json.contains("Image input omitted"));
+
+    let summary_json = serde_json::to_value(&result.context_summary).expect("summary json");
+    assert_eq!(summary_json["budget"]["supportsTools"], json!(false));
+    assert_eq!(summary_json["budget"]["supportsReasoning"], json!(false));
+    assert_eq!(summary_json["budget"]["supportsImageInput"], json!(false));
+    assert_eq!(summary_json["budget"]["supportsStreaming"], json!(false));
+    assert!(result
+        .context_summary
+        .warnings
+        .iter()
+        .any(|warning| warning.contains("does not support tool calling")));
+    assert!(result
+        .context_summary
+        .warnings
+        .iter()
+        .any(|warning| warning.contains("does not support reasoning")));
+    assert!(result
+        .context_summary
+        .warnings
+        .iter()
+        .any(|warning| warning.contains("does not support image input")));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn agent_runtime_persists_oversized_tool_results_for_recovery() {
+    let runtime_root = unique_test_runtime_root("agent-context-tool-result-persist");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+    fs::create_dir_all(runtime_root.join("sessions")).expect("sessions dir");
+
+    let huge_output = format!("{}persist-tail-marker", "huge-tool-output ".repeat(8000));
+    let assistant_message = AgentRuntimeMessage {
+        role: AgentRuntimeMessageRole::Assistant,
+        content: "Tool calls: read_file".to_string(),
+        blocks: vec![AgentRuntimeMessageBlock::ToolUse {
+            id: "tool-1".to_string(),
+            name: "read_file".to_string(),
+            input: json!({ "path": "demo.txt" }),
+        }],
+    };
+    let tool_result_message = AgentRuntimeMessage {
+        role: AgentRuntimeMessageRole::User,
+        content: format!("read_file: {huge_output}"),
+        blocks: vec![AgentRuntimeMessageBlock::ToolResult {
+            tool_use_id: "tool-1".to_string(),
+            content: huge_output.clone(),
+            is_error: false,
+        }],
+    };
+    fs::write(
+        runtime_root.join("sessions/thread-tool-persist.jsonl"),
+        [
+            serde_json::to_string(&json!({
+                "role": "assistant",
+                "content": "Tool calls: read_file",
+                "modelMessage": assistant_message
+            }))
+            .expect("assistant history json"),
+            serde_json::to_string(&json!({
+                "role": "user",
+                "content": format!("read_file: {huge_output}"),
+                "modelMessage": tool_result_message
+            }))
+            .expect("tool result history json"),
+        ]
+        .join("\n"),
+    )
+    .expect("seed transcript");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_native_provider_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "persist reply".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    let result = runtime
+        .send_message_with_options(
+            "thread-tool-persist".to_string(),
+            "continue after persisted output".to_string(),
+            AgentRuntimeSendOptions::default(),
+        )
+        .await
+        .expect("send with persisted tool result");
+
+    let requests = captured.lock().expect("captured requests");
+    let request = requests.first().expect("provider request");
+    let projected_tool_result = request
+        .messages
+        .iter()
+        .find(|message| message.contains("Full output saved to:"))
+        .expect("persisted tool result message");
+    assert!(!projected_tool_result.contains("persist-tail-marker"));
+    let persisted_path = runtime_root
+        .join("sessions")
+        .join("tool-results")
+        .join("thread-tool-persist")
+        .join("tool-1.txt");
+    assert_eq!(
+        fs::read_to_string(&persisted_path).expect("persisted tool output"),
+        huge_output
+    );
+
+    let summary_json = serde_json::to_value(&result.context_summary).expect("summary json");
+    assert_eq!(
+        summary_json["projection"]["persistedToolResultCount"],
+        json!(1)
+    );
 
     let _ = fs::remove_dir_all(runtime_root);
 }
@@ -4172,6 +4616,127 @@ async fn agent_runtime_compaction_summary_replaces_old_history() {
         .messages
         .iter()
         .any(|message| message.contains("summarized away")));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn agent_runtime_overflow_projection_adds_summary_and_tail() {
+    let runtime_root = unique_test_runtime_root("agent-context-overflow-summary-tail");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
+            "provider": "test-provider",
+            "model": "small-context-model",
+            "apiKey": "test-key"
+        }))
+        .expect("provider config json"),
+    )
+    .expect("write provider config");
+    fs::write(
+        config_dir.join("crawclaw.json"),
+        serde_json::to_vec_pretty(&json!({
+            "agents": {
+                "defaults": {
+                    "compaction": {
+                        "reserveTokens": 512
+                    }
+                }
+            },
+            "models": {
+                "providers": {
+                    "test-provider": {
+                        "models": [
+                            {
+                                "id": "small-context-model",
+                                "name": "Small Context Model",
+                                "reasoning": false,
+                                "input": ["text"],
+                                "cost": {
+                                    "input": 0,
+                                    "output": 0,
+                                    "cacheRead": 0,
+                                    "cacheWrite": 0
+                                },
+                                "contextWindow": 12000,
+                                "maxTokens": 512
+                            }
+                        ]
+                    }
+                }
+            }
+        }))
+        .expect("runtime config json"),
+    )
+    .expect("write runtime config");
+    fs::create_dir_all(runtime_root.join("sessions")).expect("sessions dir");
+    let history = (0..28)
+        .map(|index| {
+            let role = if index % 2 == 0 { "user" } else { "assistant" };
+            serde_json::to_string(&json!({
+                "role": role,
+                "content": format!(
+                    "ancient-summary-marker-{index} {}",
+                    "overflow history detail ".repeat(120)
+                )
+            }))
+            .expect("history line")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    fs::write(
+        runtime_root.join("sessions/thread-overflow-summary-tail.jsonl"),
+        history,
+    )
+    .expect("seed transcript");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_native_provider_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "overflow reply".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    let result = runtime
+        .send_message_with_options(
+            "thread-overflow-summary-tail".to_string(),
+            "keep the useful tail".to_string(),
+            AgentRuntimeSendOptions {
+                tool_selection: AgentRuntimeToolSelection::Disabled,
+                ..AgentRuntimeSendOptions::default()
+            },
+        )
+        .await
+        .expect("send with overflow projection");
+
+    let requests = captured.lock().expect("captured requests");
+    let request = requests.first().expect("provider request");
+    assert!(request
+        .system_sections
+        .iter()
+        .any(|section| section.contains("Earlier conversation omitted for context budget")));
+    assert!(request
+        .system_sections
+        .iter()
+        .any(|section| section.contains("ancient-summary-marker-0")));
+    assert!(request
+        .messages
+        .iter()
+        .any(|message| message.contains("keep the useful tail")));
+    assert!(!request
+        .messages
+        .iter()
+        .any(|message| message.contains("ancient-summary-marker-0")));
+
+    let summary_json = serde_json::to_value(&result.context_summary).expect("summary json");
+    assert_eq!(
+        summary_json["projection"]["collapseState"],
+        json!("summary-plus-overflow-tail")
+    );
 
     let _ = fs::remove_dir_all(runtime_root);
 }

@@ -78,16 +78,7 @@ CrawClaw Desktop or the local Gateway API supports a per-gateway style switch:
 
 Examples:
 
-```bash
-# optimized (only errors/slow)
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# show all WS traffic (paired)
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# show all WS traffic (full meta)
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Console formatting (subsystem logging)
 

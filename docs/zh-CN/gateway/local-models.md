@@ -18,7 +18,7 @@ x-i18n:
 
 本地部署是可行的，但 CrawClaw 需要大上下文和对提示注入的强防御能力。小显卡会截断上下文并削弱安全性。目标要高：**至少 2 台满配 Mac Studio 或同等 GPU 设备（约 3 万美元以上）**。单张 **24 GB** GPU 仅适用于较轻的提示，且延迟更高。请使用**你能运行的最大 / 完整尺寸模型变体**；激进量化或“small”检查点会提高提示注入风险（见 [安全](/gateway/security)）。
 
-如果你想要摩擦最小的本地设置，请从 [Ollama](/providers/ollama) 和 `crawclaw onboard` 开始。本页是面向更高端本地栈和自定义兼容 OpenAI 的本地服务器的偏好型指南。
+如果你想要摩擦最小的本地设置，请从 [Ollama](/providers/ollama) 和 CrawClaw Desktop 设置页开始。本页是面向更高端本地栈和自定义兼容 OpenAI 的本地服务器的偏好型指南。
 
 ## 推荐：LM Studio + MiniMax M2.5（Responses API，完整尺寸）
 

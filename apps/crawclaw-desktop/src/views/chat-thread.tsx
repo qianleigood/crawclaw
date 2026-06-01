@@ -106,6 +106,20 @@ function ContextSummaryPanel({ conversation }: { conversation: ConversationState
             {summary.projectedToolResultCount
               ? ` · ${summary.projectedToolResultCount} tool outputs clipped`
               : ''}
+            {summary.persistedToolResultCount
+              ? ` · ${summary.persistedToolResultCount} saved`
+              : ''}
+          </p>
+          <p>
+            {summary.provider}/{summary.model} · window {summary.modelContextWindow} · prompt{' '}
+            {summary.effectivePromptBudget} · reserve {summary.outputReserveTokens} · source{' '}
+            {summary.budgetSource}
+          </p>
+          <p>
+            tools {summary.supportsTools ? 'on' : 'off'} · reasoning{' '}
+            {summary.supportsReasoning ? 'on' : 'off'} · images{' '}
+            {summary.supportsImageInput ? 'on' : 'off'} · streaming{' '}
+            {summary.supportsStreaming ? 'on' : 'off'}
           </p>
           <p>{summary.projectionReason}</p>
         </section>

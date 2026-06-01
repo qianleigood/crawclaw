@@ -617,6 +617,75 @@ pub const BUNDLED_PROVIDER_MODEL_CHOICES: &[BundledProviderModelChoices] = &[
     },
 ];
 
+pub const BUNDLED_PROVIDER_MODEL_LIMITS: &[BundledProviderModelLimit] = &[
+    BundledProviderModelLimit {
+        provider: "anthropic",
+        model: "sonnet-4.6",
+        context_window: 200_000,
+        max_tokens: 64_000,
+    },
+    BundledProviderModelLimit {
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+        context_window: 200_000,
+        max_tokens: 64_000,
+    },
+    BundledProviderModelLimit {
+        provider: "anthropic-vertex",
+        model: "claude-sonnet-4-6",
+        context_window: 200_000,
+        max_tokens: 64_000,
+    },
+    BundledProviderModelLimit {
+        provider: "cloudflare-ai-gateway",
+        model: "sonnet-4.6",
+        context_window: 200_000,
+        max_tokens: 64_000,
+    },
+    BundledProviderModelLimit {
+        provider: "google",
+        model: "gemini-3-pro-preview",
+        context_window: 1_000_000,
+        max_tokens: 64_000,
+    },
+    BundledProviderModelLimit {
+        provider: "google-gemini-cli",
+        model: "gemini-3-pro-preview",
+        context_window: 1_000_000,
+        max_tokens: 64_000,
+    },
+    BundledProviderModelLimit {
+        provider: "openai",
+        model: "gpt-5.4",
+        context_window: 400_000,
+        max_tokens: 128_000,
+    },
+    BundledProviderModelLimit {
+        provider: "openai-codex",
+        model: "gpt-5.4",
+        context_window: 400_000,
+        max_tokens: 128_000,
+    },
+    BundledProviderModelLimit {
+        provider: "github-copilot",
+        model: "gpt-5.4",
+        context_window: 400_000,
+        max_tokens: 128_000,
+    },
+    BundledProviderModelLimit {
+        provider: "copilot-proxy",
+        model: "gpt-5.4",
+        context_window: 400_000,
+        max_tokens: 128_000,
+    },
+    BundledProviderModelLimit {
+        provider: "ollama",
+        model: OLLAMA_DEFAULT_MODEL,
+        context_window: 8_192,
+        max_tokens: 2_048,
+    },
+];
+
 pub const BUNDLED_PROVIDER_MODEL_PICKERS: &[BundledProviderModelPickerEntry] = &[
     BundledProviderModelPickerEntry {
         provider: "ollama",

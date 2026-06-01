@@ -27,9 +27,7 @@ x-i18n:
 1. 在 [Hugging Face → Settings → Tokens](https://huggingface.co/settings/tokens/new?ownUserPermissions=inference.serverless.write&tokenType=fineGrained) 创建一个细粒度 token，并授予 **Make calls to Inference Providers** 权限。
 2. 运行新手引导，并在提供商下拉菜单中选择 **Hugging Face**，然后在提示时输入你的 API key：
 
-```bash
-crawclaw onboard --auth-choice huggingface-api-key
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 3. 在 **Default Hugging Face model** 下拉菜单中，选择你想使用的模型（当你有有效 token 时，列表会从 Inference API 加载；否则会显示内置列表）。你的选择会保存为默认模型。
 4. 你也可以稍后在配置中设置或更改默认模型：
@@ -46,12 +44,7 @@ crawclaw onboard --auth-choice huggingface-api-key
 
 ## 非交互式示例
 
-```bash
-crawclaw onboard --non-interactive \
-  --mode local \
-  --auth-choice huggingface-api-key \
-  --huggingface-api-key "$HF_TOKEN"
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 这会将 `huggingface/deepseek-ai/DeepSeek-R1` 设置为默认模型。
 

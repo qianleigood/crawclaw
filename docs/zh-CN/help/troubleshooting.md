@@ -21,15 +21,7 @@ x-i18n:
 
 按顺序执行以下确切的排查步骤：
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 正常输出的判断标准：
 
@@ -98,13 +90,7 @@ flowchart TD
 
 <AccordionGroup>
   <Accordion title="无回复">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
     正常输出的判断标准：
 
@@ -128,13 +114,7 @@ flowchart TD
   </Accordion>
 
   <Accordion title="浏览器客户端无法连接">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
     正常输出的判断标准：
 
@@ -155,13 +135,7 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Gateway 无法启动或服务已安装但未运行">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
     正常输出的判断标准：
 
@@ -184,13 +158,7 @@ flowchart TD
   </Accordion>
 
   <Accordion title="渠道连接但消息不流转">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
     正常输出的判断标准：
 
@@ -212,14 +180,7 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Cron 或 main-session wake 未触发或未投递">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
     正常输出的判断标准：
 
@@ -242,12 +203,7 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Exec 突然要求批准">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
     发生了什么变化：
 
@@ -259,12 +215,7 @@ flowchart TD
 
     恢复当前默认的无批准行为：
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
     更安全的替代方案：
 
@@ -285,12 +236,7 @@ flowchart TD
   </Accordion>
 
   <Accordion title="浏览器工具失败">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
     从当前智能体或 Gateway `/tools/invoke` 路径，使用 `browser` 工具运行
     `{ "action": "status", "profile": "crawclaw" }`。

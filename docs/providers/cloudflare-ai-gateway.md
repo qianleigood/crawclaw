@@ -21,9 +21,7 @@ For Anthropic models, use your Anthropic API key.
 
 1. Set the provider API key and Gateway details:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 2. Set a default model:
 
@@ -39,9 +37,7 @@ For Anthropic models, use your Anthropic API key.
 
 ## Non-interactive example
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Authenticated gateways
 

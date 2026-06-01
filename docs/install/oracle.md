@@ -65,7 +65,7 @@ Run a persistent CrawClaw Gateway on Oracle Cloud's **Always Free** ARM tier (up
 
   <Step title="Install Tailscale">
     ```bash
-    curl -fsSL https://tailscale.com/CrawClaw Desktop installer | sh
+    curl -fsSL https://tailscale.com/install.sh | sh
     sudo tailscale up --ssh --hostname=crawclaw
     ```
 
@@ -74,10 +74,7 @@ Run a persistent CrawClaw Gateway on Oracle Cloud's **Always Free** ARM tier (up
   </Step>
 
   <Step title="Install CrawClaw">
-    ```bash
-    # Install CrawClaw Desktop from GitHub Releases.
-    source ~/.bashrc
-    ```
+    Install the supported CrawClaw Gateway/Desktop release for this host, or build from source. Reload your shell after installation if the setup changes PATH.
 
     When prompted "How do you want to hatch your bot?", select **Do this later**.
 
@@ -86,13 +83,9 @@ Run a persistent CrawClaw Gateway on Oracle Cloud's **Always Free** ARM tier (up
   <Step title="Configure the gateway">
     Use token auth with Tailscale Serve for secure remote access.
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    Configure `gateway.bind: "loopback"`, `gateway.auth.mode: "token"`, and `gateway.tailscale.mode: "serve"` through CrawClaw Desktop or the local Gateway API, then restart:
 
+    ```bash
     systemctl --user restart crawclaw-gateway
     ```
 
@@ -112,7 +105,6 @@ Run a persistent CrawClaw Gateway on Oracle Cloud's **Always Free** ARM tier (up
 
   <Step title="Verify">
     ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
     systemctl --user status crawclaw-gateway
     tailscale serve status
     curl http://localhost:18789

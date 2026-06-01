@@ -98,11 +98,12 @@ Rust native capability code, not TypeScript callbacks.
 
     **External plugins:** validate and publish with ClawHub, then install:
 
-    ```bash
-    clawhub package publish your-org/your-plugin --dry-run
-    clawhub package publish your-org/your-plugin
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+```bash
+clawhub package publish your-org/your-plugin --dry-run
+clawhub package publish your-org/your-plugin
+```
+
+Install the published plugin through CrawClaw Desktop or the local Gateway API.
 
     CrawClaw also checks ClawHub before npm for bare package specs like
     `@myorg/crawclaw-my-plugin`.

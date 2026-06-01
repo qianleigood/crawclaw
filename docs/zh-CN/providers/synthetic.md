@@ -23,9 +23,7 @@ Synthetic 提供与 Anthropic 兼容的端点。CrawClaw 将其注册为
 1. 设置 `SYNTHETIC_API_KEY`（或运行下面的向导）。
 2. 运行新手引导：
 
-```bash
-crawclaw onboard --auth-choice synthetic-api-key
-```
+使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
 
 默认模型会设置为：
 

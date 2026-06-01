@@ -58,7 +58,7 @@ Once you have SSH access to a macOS VM, continue at step 6 below.
 ## 1) Install Lume
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/trycua/cua/main/libs/lume/scripts/CrawClaw Desktop installer)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/trycua/cua/main/libs/lume/scripts/install.sh)"
 ```
 
 If `~/.local/bin` isn't in your PATH:
@@ -129,10 +129,7 @@ Replace `youruser` with the account you created, and the IP with your VM's IP.
 
 Inside the VM:
 
-```bash
-# Install CrawClaw Desktop from GitHub Releases.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Follow the onboarding prompts to set up your model provider (Anthropic, OpenAI, etc.).
 
@@ -164,9 +161,7 @@ Add your channels:
 
 Then login to Weixin (scan QR):
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ---
 
@@ -183,9 +178,7 @@ The VM runs in the background. CrawClaw's daemon keeps the gateway running.
 
 To check status:
 
-```bash
-ssh youruser@192.168.64.X "CrawClaw Desktop or the local Gateway API
-```
+Use CrawClaw Desktop or the local Gateway API through your VM access path.
 
 ---
 

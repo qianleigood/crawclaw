@@ -1,10 +1,14 @@
 use super::*;
 
 use std::future::Future;
+use std::path::PathBuf;
 use std::pin::Pin;
 use std::sync::Arc;
 
-use crate::agent_tool_result_projection::project_tool_result_content;
+use crate::agent_tool_result_projection::{
+    project_tool_result_content, project_tool_result_content_with_persistence,
+    ToolResultProjectionBudget, ToolResultProjectionPersistence,
+};
 use crawclaw_providers::{
     NativeProviderAssistantResponse, NativeProviderContentBlock, NativeProviderMessage,
     NativeProviderMessageRole, NativeProviderRequestOptions, NativeProviderTool,
@@ -40,12 +44,32 @@ impl AgentRuntimeBackend for NativeProviderRuntimeBackend {
                 })
                 .collect::<Vec<_>>();
             let options = NativeProviderRequestOptions {
-                stream: !provider_tools.is_empty(),
+                stream: !provider_tools.is_empty()
+                    && request
+                        .runtime_context
+                        .context_summary
+                        .budget
+                        .supports_streaming,
                 reasoning_level: request.reasoning_level.clone(),
                 system_prompt: request.runtime_context.system_prompt(),
                 tools: provider_tools,
+                max_output_tokens: Some(
+                    request
+                        .runtime_context
+                        .context_summary
+                        .budget
+                        .output_reserve_tokens,
+                ),
             };
             let max_tool_iterations = request.max_tool_iterations.max(1);
+            let tool_result_projection_budget =
+                ToolResultProjectionBudget::from_prompt_budget_tokens(
+                    request
+                        .runtime_context
+                        .context_summary
+                        .budget
+                        .max_prompt_tokens,
+                );
             let mut loop_events = Vec::new();
 
             for tool_iteration in 0..=max_tool_iterations {
@@ -86,6 +110,11 @@ impl AgentRuntimeBackend for NativeProviderRuntimeBackend {
                         &tools,
                         &response.tool_calls,
                         &mut loop_events,
+                        tool_result_projection_budget,
+                        Some((
+                            request.runtime_root.to_path_buf(),
+                            request.thread_id.to_string(),
+                        )),
                     )
                     .await,
                 );
@@ -123,13 +152,24 @@ pub(super) async fn execute_native_provider_tool_calls(
     tools: &pi::sdk::ToolRegistry,
     tool_calls: &[crawclaw_providers::NativeProviderToolCall],
     loop_events: &mut Vec<AgentLoopEvent>,
+    projection_budget: ToolResultProjectionBudget,
+    persistence: Option<(PathBuf, String)>,
 ) -> Vec<NativeProviderMessage> {
     let mut messages = Vec::with_capacity(tool_calls.len());
     let mut index = 0;
     while index < tool_calls.len() {
         let batch_len = native_provider_tool_call_batch_len(tools, tool_calls, index);
         let batch = &tool_calls[index..index + batch_len];
-        messages.extend(execute_native_provider_tool_call_batch(tools, batch, loop_events).await);
+        messages.extend(
+            execute_native_provider_tool_call_batch(
+                tools,
+                batch,
+                loop_events,
+                projection_budget,
+                persistence.clone(),
+            )
+            .await,
+        );
         index += batch_len;
     }
     messages
@@ -166,6 +206,8 @@ async fn execute_native_provider_tool_call_batch(
     tools: &pi::sdk::ToolRegistry,
     tool_calls: &[crawclaw_providers::NativeProviderToolCall],
     loop_events: &mut Vec<AgentLoopEvent>,
+    projection_budget: ToolResultProjectionBudget,
+    persistence: Option<(PathBuf, String)>,
 ) -> Vec<NativeProviderMessage> {
     for tool_call in tool_calls {
         loop_events.push(AgentLoopEvent::ToolExecution {
@@ -177,11 +219,9 @@ async fn execute_native_provider_tool_call_batch(
         });
     }
 
-    let results = futures::future::join_all(
-        tool_calls
-            .iter()
-            .map(|tool_call| execute_native_provider_tool_call(tools, tool_call)),
-    )
+    let results = futures::future::join_all(tool_calls.iter().map(|tool_call| {
+        execute_native_provider_tool_call(tools, tool_call, projection_budget, persistence.clone())
+    }))
     .await;
 
     for result in &results {
@@ -226,6 +266,8 @@ impl NativeProviderToolExecutionResult {
 async fn execute_native_provider_tool_call(
     tools: &pi::sdk::ToolRegistry,
     tool_call: &crawclaw_providers::NativeProviderToolCall,
+    projection_budget: ToolResultProjectionBudget,
+    persistence: Option<(PathBuf, String)>,
 ) -> NativeProviderToolExecutionResult {
     let progress_events = Arc::new(std::sync::Mutex::new(Vec::<AgentLoopEvent>::new()));
     let result = match tools.get(&tool_call.name) {
@@ -245,7 +287,20 @@ async fn execute_native_provider_tool_call(
                 .map(|output| {
                     let content = native_tool_output_summary(&output)
                         .unwrap_or_else(|| "Tool completed without output.".to_string());
-                    let content = project_tool_result_content(&content).content;
+                    let content = if let Some((runtime_root, thread_id)) = persistence.as_ref() {
+                        project_tool_result_content_with_persistence(
+                            &content,
+                            projection_budget,
+                            ToolResultProjectionPersistence {
+                                runtime_root,
+                                thread_id,
+                                tool_use_id: &tool_call.id,
+                            },
+                        )
+                        .content
+                    } else {
+                        project_tool_result_content(&content, projection_budget).content
+                    };
                     (content, output.is_error)
                 })
                 .map_err(|error| error.to_string())

@@ -53,16 +53,7 @@ A Gateway API task-flow cancel sets a sticky cancel intent on the flow. Active t
 
 ## Desktop and Gateway API actions
 
-```bash
-# List active and recent flows
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Show details for a specific flow
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Cancel a running flow and its active tasks
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 | Command     | Description                                   |
 | ----------- | --------------------------------------------- |

@@ -462,7 +462,7 @@ CrawClaw 把文件、运行时、Web、会话、浏览器、消息、多媒体�
 
 核心操作：
 
-- `restart`（授权 + 发送 `SIGUSR1` 进行进程内重启；`crawclaw gateway` 就地重启）
+- `restart`（授权 + 发送 `SIGUSR1` 进行进程内重启；Gateway 网关进程就地重启）
 - `config.get` / `config.schema`
 - `config.apply`（验证 + 写入配置 + 重启 + 唤醒）
 - `config.patch`（合并部分更新 + 重启 + 唤醒）

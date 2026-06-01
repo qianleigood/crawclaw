@@ -53,28 +53,23 @@ For how skills are loaded and prioritized, see [Skills](/tools/skills).
   <Step title="Load the skill">
     Start a new session so CrawClaw picks up the skill:
 
-    ```bash
-    # From chat
-    /new
+```bash
+# From chat
+/new
+```
 
-    # Or restart the gateway
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+Or restart CrawClaw Desktop or the Gateway process so the new skill is loaded.
 
     Verify the skill loaded:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
   </Step>
 
   <Step title="Test it">
     Send a message that should trigger the skill:
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
     Or just chat with the agent and ask for a greeting.
 

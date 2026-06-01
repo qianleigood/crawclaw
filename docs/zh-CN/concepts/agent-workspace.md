@@ -36,7 +36,7 @@ x-i18n:
 }
 ```
 
-`crawclaw onboard`、`crawclaw configure` 或 `crawclaw setup` 会在工作区缺失时创建工作区并植入引导文件。
+CrawClaw Desktop 和本地 Gateway API 会在工作区缺失时创建工作区并植入引导文件。
 沙箱种子复制仅接受工作区内的常规文件；解析到源工作区外部的符号链接/硬链接别名会被忽略。
 
 如果你已经自行管理工作区文件，可以禁用引导文件创建：
@@ -112,7 +112,7 @@ x-i18n:
   - 用于节点显示的 Canvas UI 文件（例如 `canvas/index.html`）。
 
 如果任何引导文件缺失，CrawClaw 会在会话中注入一个“缺失文件”标记并继续执行。注入时，大型引导文件会被截断；可使用 `agents.defaults.bootstrapMaxChars`（默认：20000）和 `agents.defaults.bootstrapTotalMaxChars`（默认：150000）调整限制。
-`crawclaw setup` 可以重新创建缺失的默认文件，而不会覆盖现有文件。
+CrawClaw Desktop 或本地 Gateway API 可以重新创建缺失的默认文件，而不会覆盖现有文件。
 
 ## 不在工作区中的内容
 
@@ -210,7 +210,7 @@ git push
 
 1. 将仓库克隆到所需路径（默认是 `~/.crawclaw/workspace`）。
 2. 在 `~/.crawclaw/crawclaw.json` 中将 `agents.defaults.workspace` 设置为该路径。
-3. 运行 `crawclaw setup --workspace <path>` 以植入任何缺失的文件。
+3. 使用 CrawClaw Desktop 或本地 Gateway API 植入任何缺失的文件。
 4. 如果你需要会话，请将旧机器上的 `~/.crawclaw/agents/<agentId>/sessions/` 单独复制过来。
 
 ## 高级说明

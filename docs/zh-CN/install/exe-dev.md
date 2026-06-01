@@ -38,7 +38,7 @@ Shelley 是 [exe.dev](https://exe.dev) 的智能体，可以使用我们的提�
 使用的提示词如下：
 
 ```
-Set up CrawClaw (https://docs.crawclaw.ai/install) on this VM. Use the non-interactive and accept-risk flags for crawclaw onboarding. Add the supplied auth or token as needed. Configure nginx to forward from the default port 18789 to the root location on the default enabled site config, making sure to enable Websocket support. Pairing is done by "crawclaw devices list" and "crawclaw devices approve <request id>". Make sure the dashboard shows that CrawClaw's health is OK. exe.dev handles forwarding from port 8000 to port 80/443 and HTTPS for us, so the final "reachable" should be <vm-name>.exe.xyz, without port specification.
+Set up CrawClaw Desktop or a Gateway API deployment on this VM. Add the supplied auth or token as needed. Configure nginx to forward from the default port 18789 to the root location on the default enabled site config, making sure to enable WebSocket support. Approve device pairing through the desktop UI or Gateway API. exe.dev handles forwarding from port 8000 to port 80/443 and HTTPS for us, so the final reachable host should be `<vm-name>.exe.xyz`, without a port.
 ```
 
 ## 手动安装
@@ -68,11 +68,7 @@ sudo apt-get install -y git curl jq ca-certificates openssl
 
 ## 3）安装 CrawClaw
 
-运行 CrawClaw 安装脚本：
-
-```bash
-curl -fsSL https://crawclaw.ai/install.sh | bash
-```
+使用该部署支持的安装流程为此 host 安装当前 CrawClaw runtime，然后在 loopback 端口 `18789` 启动 Gateway。
 
 ## 4）设置 nginx，将 CrawClaw 代理到端口 8000
 
@@ -110,10 +106,7 @@ server {
 
 ## 5）访问 CrawClaw 并授予权限
 
-访问 `https://<vm-name>.exe.xyz/`。如果提示进行身份验证，请粘贴 VM 上的
-`gateway.auth.token` 中的令牌（可通过 `crawclaw config get gateway.auth.token` 获取，或使用
-`crawclaw doctor --generate-gateway-token` 生成）。使用 `crawclaw devices list` 和
-`crawclaw devices approve <requestId>` 批准设备。如果拿不准，请在浏览器中使用 Shelley！
+从支持的 Gateway client 访问 `https://<vm-name>.exe.xyz/`。如果提示进行身份验证，请使用 VM 上 `gateway.auth.token` 中的令牌。通过 CrawClaw Desktop 或本地 Gateway API 读取或轮换该 token，并通过 CrawClaw Desktop 或本地 Gateway API 批准设备。如果拿不准，请在浏览器中使用 Shelley！
 
 ## 远程访问
 
@@ -123,11 +116,6 @@ server {
 
 ## 更新
 
-```bash
-npm i -g crawclaw@latest
-crawclaw doctor
-crawclaw gateway restart
-crawclaw health
-```
+使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 指南：[Updating](/install/updating)

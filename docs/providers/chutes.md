@@ -20,21 +20,15 @@ CrawClaw ships a bundled `chutes` provider plugin with API key auth.
 
 Set a Chutes API key through CrawClaw Desktop or the local Gateway API:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 For non-interactive setup:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Then set a default model if onboarding did not already do it:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## API key setup
 
@@ -46,9 +40,7 @@ export CHUTES_API_KEY="chutes_..."
 
 Or store it with onboarding:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 If the Gateway runs as a daemon, make sure the key is available to that process,
 for example through `~/.crawclaw/.env` or `env.shellEnv`.
@@ -85,11 +77,7 @@ You can also use any catalog model directly as `chutes/<model-id>`.
 
 ## Verify
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Troubleshooting
 

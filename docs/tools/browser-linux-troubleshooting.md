@@ -14,15 +14,11 @@ that cannot launch in the current host environment.
 
 If the tool reports that `agent-browser` is missing, reinstall managed runtimes:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Then check the runtime manifest:
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 ## Browser executable fails to launch
 
