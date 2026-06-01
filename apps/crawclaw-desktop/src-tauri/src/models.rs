@@ -320,15 +320,23 @@ pub struct ConversationContextSummary {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub agent_definition: Option<String>,
     pub projected_message_count: usize,
+    pub projected_history_estimated_tokens: usize,
+    pub projected_tool_result_count: usize,
+    pub projected_tool_result_omitted_chars: usize,
+    pub projection_reason: String,
     pub budget_state: String,
     pub overflow_retry_enabled: bool,
     pub included_tools: Vec<String>,
     pub deferred_tools: Vec<String>,
+    pub deferred_tool_count: usize,
     pub activated_tools: Vec<String>,
     pub surfaced_skills: Vec<ConversationContextSkillSummary>,
     pub loaded_skills: Vec<String>,
+    pub loaded_skill_count: usize,
     pub memory_snippets: Vec<String>,
+    pub memory_snippet_count: usize,
     pub compaction_active: bool,
+    pub compact_summary_applied: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub compacted_through: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

@@ -156,15 +156,23 @@ export interface ConversationContextSummary {
   parentContextPolicy: string
   agentDefinition?: string
   projectedMessageCount: number
+  projectedHistoryEstimatedTokens: number
+  projectedToolResultCount: number
+  projectedToolResultOmittedChars: number
+  projectionReason: string
   budgetState: string
   overflowRetryEnabled: boolean
   includedTools: string[]
   deferredTools: string[]
+  deferredToolCount: number
   activatedTools: string[]
   surfacedSkills: ConversationContextSkillSummary[]
   loadedSkills: string[]
+  loadedSkillCount: number
   memorySnippets: string[]
+  memorySnippetCount: number
   compactionActive: boolean
+  compactSummaryApplied: boolean
   compactedThrough?: string
   firstKeptMessageId?: string
   tailStartMessageId?: string

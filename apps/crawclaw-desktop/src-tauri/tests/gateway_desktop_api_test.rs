@@ -4030,9 +4030,16 @@ esac
     assert_eq!(context_summary["parentContextPolicy"], "current_session");
     assert_eq!(context_summary["agentDefinition"], "main");
     assert_eq!(context_summary["projectedMessageCount"], 1);
+    assert_eq!(context_summary["projectedHistoryEstimatedTokens"], 0);
+    assert_eq!(context_summary["projectedToolResultCount"], 0);
+    assert_eq!(context_summary["projectedToolResultOmittedChars"], 0);
+    assert!(context_summary["projectionReason"]
+        .as_str()
+        .is_some_and(|reason| reason.contains("compact summary not applied")));
     assert_eq!(context_summary["budgetState"], "within-budget");
     assert_eq!(context_summary["overflowRetryEnabled"], false);
     assert_eq!(context_summary["compactionActive"], false);
+    assert_eq!(context_summary["compactSummaryApplied"], false);
     assert_eq!(context_summary["retainedMessageCount"], 0);
     assert!(context_summary.get("compactedThrough").is_none());
     assert!(context_summary["warnings"]
@@ -4052,6 +4059,12 @@ esac
     let deferred_tools = context_summary["deferredTools"]
         .as_array()
         .expect("deferred tools");
+    assert_eq!(
+        context_summary["deferredToolCount"].as_u64(),
+        Some(deferred_tools.len() as u64)
+    );
+    assert_eq!(context_summary["loadedSkillCount"], 0);
+    assert_eq!(context_summary["memorySnippetCount"], 0);
     assert!(deferred_tools.len() > included_tools.len());
     assert!(deferred_tools.iter().any(|tool| tool == "image"));
     assert!(!included_tools.iter().any(|tool| tool == "image"));

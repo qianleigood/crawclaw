@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -5,8 +7,59 @@ use serde_json::Value;
 #[serde(rename_all = "camelCase")]
 pub struct ProviderTransport {
     pub id: &'static str,
-    pub transport: &'static str,
+    pub transport: ProviderTransportKind,
     pub capabilities: ProviderTransportCapabilities,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[serde(rename_all = "kebab-case")]
+pub enum ProviderTransportKind {
+    OpenAiResponses,
+    OpenAiCodexResponses,
+    AzureOpenAiResponses,
+    AnthropicMessages,
+    GoogleGenerativeAi,
+    Ollama,
+    BedrockConverseStream,
+    GithubCopilot,
+    OpenAiCompletions,
+}
+
+impl ProviderTransportKind {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::OpenAiResponses => "openai-responses",
+            Self::OpenAiCodexResponses => "openai-codex-responses",
+            Self::AzureOpenAiResponses => "azure-openai-responses",
+            Self::AnthropicMessages => "anthropic-messages",
+            Self::GoogleGenerativeAi => "google-generative-ai",
+            Self::Ollama => "ollama",
+            Self::BedrockConverseStream => "bedrock-converse-stream",
+            Self::GithubCopilot => "github-copilot",
+            Self::OpenAiCompletions => "openai-completions",
+        }
+    }
+
+    pub fn from_id(value: &str) -> Option<Self> {
+        match value {
+            "openai-responses" => Some(Self::OpenAiResponses),
+            "openai-codex-responses" => Some(Self::OpenAiCodexResponses),
+            "azure-openai-responses" => Some(Self::AzureOpenAiResponses),
+            "anthropic-messages" => Some(Self::AnthropicMessages),
+            "google-generative-ai" => Some(Self::GoogleGenerativeAi),
+            "ollama" => Some(Self::Ollama),
+            "bedrock-converse-stream" => Some(Self::BedrockConverseStream),
+            "github-copilot" => Some(Self::GithubCopilot),
+            "openai-completions" => Some(Self::OpenAiCompletions),
+            _ => None,
+        }
+    }
+}
+
+impl fmt::Display for ProviderTransportKind {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
 }
 
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]

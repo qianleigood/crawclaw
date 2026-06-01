@@ -26,6 +26,7 @@ mod agent_provider_bridge;
 mod agent_runtime_backend;
 mod agent_runtime_permissions;
 mod agent_runtime_types;
+mod agent_tool_result_projection;
 mod desktop_runtime_stores;
 mod runtime_tool_catalog;
 use self::agent_context::*;
@@ -66,8 +67,7 @@ use crawclaw_plugin_sdk::{NativeInvocationTarget, NativePluginDescriptor};
 use crawclaw_providers::{
     send_native_provider_conversation_response_with_options, NativeProviderAssistantResponse,
     NativeProviderConfig, NativeProviderContentBlock, NativeProviderMessage,
-    NativeProviderMessageRole, NativeProviderRequestOptions, NativeProviderTool,
-    ProviderTransportError,
+    NativeProviderMessageRole, NativeProviderRequestOptions, ProviderTransportError,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};

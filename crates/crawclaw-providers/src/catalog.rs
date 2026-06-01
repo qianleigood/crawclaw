@@ -753,127 +753,127 @@ pub const OPENAI_COMPLETIONS_THIN_PROVIDER_PRESETS: &[ProviderTransportPreset] =
 pub const EXPLICIT_NATIVE_PROVIDER_TRANSPORTS: &[ProviderTransport] = &[
     ProviderTransport {
         id: "amazon-bedrock",
-        transport: "bedrock-converse-stream",
+        transport: ProviderTransportKind::BedrockConverseStream,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "anthropic",
-        transport: "anthropic-messages",
+        transport: ProviderTransportKind::AnthropicMessages,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "anthropic-vertex",
-        transport: "anthropic-messages",
+        transport: ProviderTransportKind::AnthropicMessages,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "azure-openai",
-        transport: "azure-openai-responses",
+        transport: ProviderTransportKind::AzureOpenAiResponses,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "bedrock",
-        transport: "bedrock-converse-stream",
+        transport: ProviderTransportKind::BedrockConverseStream,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "cloudflare-ai-gateway",
-        transport: "anthropic-messages",
+        transport: ProviderTransportKind::AnthropicMessages,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "github-copilot",
-        transport: "github-copilot",
+        transport: ProviderTransportKind::GithubCopilot,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "google",
-        transport: "google-generative-ai",
+        transport: ProviderTransportKind::GoogleGenerativeAi,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "google-gemini-cli",
-        transport: "google-generative-ai",
+        transport: ProviderTransportKind::GoogleGenerativeAi,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "kilocode",
-        transport: "openai-completions",
+        transport: ProviderTransportKind::OpenAiCompletions,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "kimi",
-        transport: "anthropic-messages",
+        transport: ProviderTransportKind::AnthropicMessages,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "kimi-coding",
-        transport: "anthropic-messages",
+        transport: ProviderTransportKind::AnthropicMessages,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "microsoft-foundry",
-        transport: "openai-responses",
+        transport: ProviderTransportKind::OpenAiResponses,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "minimax",
-        transport: "anthropic-messages",
+        transport: ProviderTransportKind::AnthropicMessages,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "minimax-portal",
-        transport: "anthropic-messages",
+        transport: ProviderTransportKind::AnthropicMessages,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "ollama",
-        transport: "ollama",
+        transport: ProviderTransportKind::Ollama,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "openai",
-        transport: "openai-responses",
+        transport: ProviderTransportKind::OpenAiResponses,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "openai-codex",
-        transport: "openai-codex-responses",
+        transport: ProviderTransportKind::OpenAiCodexResponses,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "openai-compatible",
-        transport: "openai-completions",
+        transport: ProviderTransportKind::OpenAiCompletions,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "openrouter",
-        transport: "openai-completions",
+        transport: ProviderTransportKind::OpenAiCompletions,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "synthetic",
-        transport: "anthropic-messages",
+        transport: ProviderTransportKind::AnthropicMessages,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "vercel-ai-gateway",
-        transport: "anthropic-messages",
+        transport: ProviderTransportKind::AnthropicMessages,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "xai",
-        transport: "openai-responses",
+        transport: ProviderTransportKind::OpenAiResponses,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "xiaomi",
-        transport: "openai-completions",
+        transport: ProviderTransportKind::OpenAiCompletions,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "zai",
-        transport: "openai-completions",
+        transport: ProviderTransportKind::OpenAiCompletions,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
 ];
@@ -906,7 +906,7 @@ pub fn native_provider_transport_for_id(provider: &str) -> Option<ProviderTransp
 fn openai_completions_preset_transport(preset: &ProviderTransportPreset) -> ProviderTransport {
     ProviderTransport {
         id: preset.provider,
-        transport: "openai-completions",
+        transport: ProviderTransportKind::OpenAiCompletions,
         capabilities: RUST_PROVIDER_CAPABILITIES,
     }
 }

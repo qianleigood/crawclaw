@@ -107,10 +107,24 @@ fn registered_native_provider_transports_have_request_builders() {
         .map(|entry| entry.transport)
         .collect::<BTreeSet<_>>()
         .into_iter()
-        .filter(|transport| !is_implemented_native_provider_transport(transport))
+        .filter(|transport| !is_implemented_native_provider_transport(*transport))
         .collect::<Vec<_>>();
 
-    assert_eq!(missing, Vec::<&str>::new());
+    assert_eq!(missing, Vec::<ProviderTransportKind>::new());
+}
+
+#[test]
+fn native_provider_transport_dispatch_uses_typed_adapters() {
+    let source =
+        fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/transport.rs"))
+            .expect("transport source");
+
+    assert!(
+        !source.contains("\"openai-completions\" =>")
+            && !source.contains("\"anthropic-messages\" =>")
+            && !source.contains("\"bedrock-converse-stream\""),
+        "Native provider request dispatch should use typed transport adapters instead of raw transport string branches"
+    );
 }
 
 #[test]
@@ -151,7 +165,10 @@ fn openai_compatible_thin_providers_are_data_presets() {
         );
         let transport =
             native_provider_transport_for_id(provider).expect("thin provider transport");
-        assert_eq!(transport.transport, "openai-completions");
+        assert_eq!(
+            transport.transport,
+            ProviderTransportKind::OpenAiCompletions
+        );
     }
 }
 

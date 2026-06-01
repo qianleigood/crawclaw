@@ -28,6 +28,10 @@ The Rust runtime owns:
   NativeProvider transport calls.
 - Session binding, transcript writes, run ids, event projection, usage metadata,
   and abort or timeout handling.
+- Context budget projection before provider calls, including large tool result
+  previews, projected history token estimates, deferred tool counts, loaded
+  skill counts, memory snippet counts, and whether session compaction was
+  applied.
 - Cron `agentTurn` jobs, auto-reply turns, command turns, special-agent runs,
   and memory jobs.
 - Durable memory extraction, experience extraction, dream jobs, session
@@ -61,10 +65,13 @@ stay consistent across entry points.
    registry.
 3. Rust assembles the effective session context, transcript, memory inputs,
    system prompt, and tool inventory.
-4. Rust executes the model turn, streams events, records usage, and handles tool
+4. Rust projects the provider context to the active budget. Large tool results
+   are replaced with a short preview and an omission reason; the original
+   transcript on disk is not rewritten.
+5. Rust executes the model turn, streams events, records usage, and handles tool
    payloads.
-5. Rust writes transcript entries and emits delivery-ready reply payloads.
-6. Rust triggers after-turn memory ingest when the request is a persistent
+6. Rust writes transcript entries and emits delivery-ready reply payloads.
+7. Rust triggers after-turn memory ingest when the request is a persistent
    session turn.
 
 Ephemeral command modes, such as `/btw`, can opt out of transcript writes and

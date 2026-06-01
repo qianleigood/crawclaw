@@ -543,7 +543,7 @@ fn bundled_provider_descriptors_from_catalog(
                 plugin_id: metadata.plugin_id.clone(),
                 provider: provider.clone(),
                 kind: bundled_provider_kind(plugin.plugin_id, transport.is_some()),
-                transport: transport.map(|entry| entry.transport.to_string()),
+                transport: transport.map(|entry| entry.transport.as_str().to_string()),
                 default_model: default_model.map(|entry| entry.model.to_string()),
                 model_choices: bundled_provider_model_choices_for(provider),
                 auth_env_vars,
@@ -572,9 +572,13 @@ fn bundled_provider_kind(plugin_id: &str, has_chat_transport: bool) -> String {
 
 fn resolve_provider_transport(
     config: &NativeProviderConfig,
-) -> Result<&str, ProviderTransportError> {
+) -> Result<ProviderTransportKind, ProviderTransportError> {
     if let Some(api) = non_empty(config.api.as_deref()) {
-        return Ok(api);
+        return ProviderTransportKind::from_id(api).ok_or_else(|| {
+            ProviderTransportError::Unsupported(format!(
+                "Unsupported Rust provider transport: {api}"
+            ))
+        });
     }
     native_provider_transport_for_id(&config.provider)
         .map(|transport| transport.transport)

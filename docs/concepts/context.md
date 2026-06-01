@@ -120,6 +120,14 @@ memory budget, while 128k, 256k, and 1M-window models can receive more useful
 memory and experience recall. This still has hard caps, so large-window models
 do not cause CrawClaw to send unlimited context.
 
+Provider turns also project large tool results before they enter the next model
+request. The provider sees a preview plus an explicit omission reason, while the
+session transcript keeps the original tool output on disk. The run
+`contextSummary` includes the projected history token estimate, deferred tool
+count, loaded skill count, memory snippet count, compaction status, projected
+tool result count, omitted character count, and a human-readable projection
+reason.
+
 ## How CrawClaw builds the system prompt
 
 The system prompt is **CrawClaw-owned** and rebuilt each run. It includes:

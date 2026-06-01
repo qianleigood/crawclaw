@@ -37,6 +37,13 @@ IDs still appear in `models.list`, desktop setup, and model picker metadata, but
 Rust only keeps a dedicated transport entry when a provider needs custom auth,
 URL, transcript, or response handling.
 
+Native provider transports are selected through a typed Rust transport enum and
+then routed to a transport adapter such as OpenAI Responses, OpenAI-compatible
+chat completions, Anthropic Messages, Google Generate Content, Ollama, or
+Bedrock Converse. Config files still use stable string values such as
+`openai-completions`; the strings are parsed at the boundary before request
+building so provider logic does not branch on ad hoc string matches.
+
 ## API key rotation
 
 - Supports generic provider rotation for selected providers.

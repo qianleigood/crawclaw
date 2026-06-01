@@ -85,7 +85,7 @@ function ContextSummaryPanel({ conversation }: { conversation: ConversationState
           上下文
         </span>
         <small>
-          {contextMode} · {summary.includedTools.length} 可见 / {summary.deferredTools.length} 延后 · 约{' '}
+          {contextMode} · {summary.includedTools.length} 可见 / {summary.deferredToolCount} 延后 · 约{' '}
           {summary.estimatedTokens} tokens
         </small>
       </summary>
@@ -100,14 +100,19 @@ function ContextSummaryPanel({ conversation }: { conversation: ConversationState
         <section>
           <h2>Projection</h2>
           <p>
-            {summary.projectedMessageCount} messages · {summary.budgetState}
+            {summary.projectedMessageCount} messages · history ~
+            {summary.projectedHistoryEstimatedTokens} tokens · {summary.budgetState}
             {summary.overflowRetryEnabled ? ' · retry' : ''}
+            {summary.projectedToolResultCount
+              ? ` · ${summary.projectedToolResultCount} tool outputs clipped`
+              : ''}
           </p>
+          <p>{summary.projectionReason}</p>
         </section>
         <section>
           <h2>Compaction</h2>
           <p>
-            {summary.compactionActive
+            {summary.compactSummaryApplied
               ? `${summary.compactedThrough ?? 'active'} → ${
                   summary.tailStartMessageId ?? summary.firstKeptMessageId ?? 'tail'
                 } / ${summary.retainedMessageCount} retained`
@@ -128,11 +133,15 @@ function ContextSummaryPanel({ conversation }: { conversation: ConversationState
         </section>
         <section>
           <h2>Skills</h2>
-          <p>{surfacedSkills.join(', ') || '无'}</p>
+          <p>
+            {surfacedSkills.join(', ') || '无'} · {summary.loadedSkillCount} loaded
+          </p>
         </section>
         <section>
           <h2>Memory</h2>
-          <p>{summary.memorySnippets.join(' · ') || '无'}</p>
+          <p>
+            {summary.memorySnippets.join(' · ') || '无'} · {summary.memorySnippetCount} snippets
+          </p>
         </section>
       </div>
     </details>

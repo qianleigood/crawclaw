@@ -3188,6 +3188,24 @@ struct CapturedAgentRequest {
     activated_tools: Vec<String>,
 }
 
+#[test]
+fn native_provider_backend_lives_in_dedicated_module() {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let backend_source = fs::read_to_string(manifest_dir.join("src/agent_runtime_backend.rs"))
+        .expect("runtime backend source");
+
+    assert!(
+        manifest_dir
+            .join("src/agent_runtime_backend/native_provider.rs")
+            .is_file(),
+        "NativeProvider backend should live in a dedicated runtime module"
+    );
+    assert!(
+        !backend_source.contains("impl AgentRuntimeBackend for NativeProviderRuntimeBackend"),
+        "agent_runtime_backend.rs should not own the NativeProvider backend implementation"
+    );
+}
+
 #[derive(Clone)]
 struct CapturingAgentRuntimeBackend {
     reply: String,
@@ -3372,6 +3390,121 @@ async fn agent_runtime_builds_goal_scoped_context_before_provider_call() {
         .surfaced_skills
         .iter()
         .any(|skill| skill == "imagegen"));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn agent_runtime_projects_large_tool_results_before_provider_context() {
+    let runtime_root = unique_test_runtime_root("agent-context-tool-result-projection");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+    fs::create_dir_all(runtime_root.join("sessions")).expect("sessions dir");
+
+    let huge_output = format!("{}tail-marker", "large-tool-output ".repeat(900));
+    let assistant_message = AgentRuntimeMessage {
+        role: AgentRuntimeMessageRole::Assistant,
+        content: "Tool calls: read_file".to_string(),
+        blocks: vec![AgentRuntimeMessageBlock::ToolUse {
+            id: "tool-1".to_string(),
+            name: "read_file".to_string(),
+            input: json!({ "path": "demo.txt" }),
+        }],
+    };
+    let tool_result_message = AgentRuntimeMessage {
+        role: AgentRuntimeMessageRole::User,
+        content: format!("read_file: {huge_output}"),
+        blocks: vec![AgentRuntimeMessageBlock::ToolResult {
+            tool_use_id: "tool-1".to_string(),
+            content: huge_output.clone(),
+            is_error: false,
+        }],
+    };
+    fs::write(
+        runtime_root.join("sessions/thread-tool-projection.jsonl"),
+        [
+            serde_json::to_string(&json!({
+                "role": "assistant",
+                "content": "Tool calls: read_file",
+                "modelMessage": assistant_message
+            }))
+            .expect("assistant history json"),
+            serde_json::to_string(&json!({
+                "role": "user",
+                "content": format!("read_file: {huge_output}"),
+                "modelMessage": tool_result_message
+            }))
+            .expect("tool result history json"),
+        ]
+        .join("\n"),
+    )
+    .expect("seed transcript");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_native_provider_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "projection reply".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    let result = runtime
+        .send_message_with_options(
+            "thread-tool-projection".to_string(),
+            "continue after tool output".to_string(),
+            AgentRuntimeSendOptions::default(),
+        )
+        .await
+        .expect("send with projected tool result");
+
+    let requests = captured.lock().expect("captured requests");
+    let request = requests.first().expect("provider request");
+    let projected_tool_result = request
+        .messages
+        .iter()
+        .find(|message| message.contains("projected for context budget"))
+        .expect("tool result message");
+    assert!(!projected_tool_result.contains("tail-marker"));
+
+    let summary_json = serde_json::to_value(&result.context_summary).expect("summary json");
+    assert_eq!(
+        summary_json["deferredToolCount"],
+        json!(result.context_summary.deferred_tools.len())
+    );
+    assert_eq!(summary_json["loadedSkillCount"], json!(0));
+    assert_eq!(summary_json["memorySnippetCount"], json!(0));
+    assert_eq!(summary_json["compactSummaryApplied"], json!(false));
+    assert!(
+        summary_json["projection"]["projectedHistoryEstimatedTokens"]
+            .as_u64()
+            .unwrap_or_default()
+            > 0
+    );
+    assert_eq!(
+        summary_json["projection"]["projectedToolResultCount"],
+        json!(1)
+    );
+    assert!(
+        summary_json["projection"]["projectedToolResultOmittedChars"]
+            .as_u64()
+            .unwrap_or_default()
+            > 0
+    );
+    assert!(summary_json["projection"]["reason"]
+        .as_str()
+        .unwrap_or_default()
+        .contains("tool result"));
 
     let _ = fs::remove_dir_all(runtime_root);
 }

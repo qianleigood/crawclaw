@@ -2,7 +2,7 @@ use super::*;
 
 const PROVIDER_RETRY_DELAYS_MS: &[u64] = &[500, 1_000, 2_000];
 
-pub(super) async fn send_native_provider_conversation_response_with_retry(
+pub(crate) async fn send_native_provider_conversation_response_with_retry(
     config: &NativeProviderConfig,
     messages: &[NativeProviderMessage],
     options: &NativeProviderRequestOptions,
@@ -107,7 +107,7 @@ fn build_default_profile_tool_registry(runtime_root: &Path) -> pi::sdk::ToolRegi
     )
 }
 
-pub(super) fn build_native_runtime_tool_registry_for_selection(
+pub(crate) fn build_native_runtime_tool_registry_for_selection(
     runtime_root: &Path,
     selection: &AgentRuntimeToolSelection,
     permission_policy: Option<AgentRuntimePermissionPolicy>,
@@ -124,7 +124,7 @@ pub(super) fn build_native_runtime_tool_registry_for_selection(
     apply_tool_hook_policy_to_registry(registry, tool_hook_policy)
 }
 
-pub(super) fn agent_messages_to_native_provider_messages(
+pub(crate) fn agent_messages_to_native_provider_messages(
     messages: &[AgentRuntimeMessage],
 ) -> Vec<NativeProviderMessage> {
     messages

@@ -58,10 +58,15 @@ fn conversation_context_summary(summary: AgentRuntimeContextSummary) -> Conversa
         parent_context_policy: summary.parent_context_policy,
         agent_definition: summary.agent_definition,
         projected_message_count: summary.projection.projected_message_count,
+        projected_history_estimated_tokens: summary.projection.projected_history_estimated_tokens,
+        projected_tool_result_count: summary.projection.projected_tool_result_count,
+        projected_tool_result_omitted_chars: summary.projection.projected_tool_result_omitted_chars,
+        projection_reason: summary.projection.reason,
         budget_state: summary.budget.state,
         overflow_retry_enabled: summary.budget.overflow_retry_enabled,
         included_tools: summary.included_tools,
         deferred_tools: summary.deferred_tools,
+        deferred_tool_count: summary.deferred_tool_count,
         activated_tools: summary.activated_tools,
         surfaced_skills: summary
             .surfaced_skills
@@ -72,8 +77,11 @@ fn conversation_context_summary(summary: AgentRuntimeContextSummary) -> Conversa
             })
             .collect(),
         loaded_skills: summary.loaded_skills,
+        loaded_skill_count: summary.loaded_skill_count,
         memory_snippets: summary.memory_snippets,
+        memory_snippet_count: summary.memory_snippet_count,
         compaction_active: summary.compaction.active,
+        compact_summary_applied: summary.compact_summary_applied,
         compacted_through: summary.compaction.compacted_through,
         first_kept_message_id: summary.compaction.first_kept_message_id,
         tail_start_message_id: summary.compaction.tail_start_message_id,

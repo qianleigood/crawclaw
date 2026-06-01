@@ -1,5 +1,7 @@
 use super::*;
 
+use crate::agent_tool_result_projection::{project_tool_result_content, ToolResultProjectionStats};
+
 const ALWAYS_LOAD_TOOLS: &[&str] = &[
     "tool_search",
     "ToolSearch",
@@ -80,6 +82,7 @@ pub(crate) fn build_runtime_model_context(
     let compaction = compaction_summary(runtime_root, thread_id, history, profile);
     let projected_history =
         project_compacted_history(runtime_root, thread_id, history, &compaction);
+    let projected_history_estimated_tokens = estimate_message_tokens(&projected_history);
     let parent_messages = parent_context_messages(runtime_root, profile);
     let parent_message_count = parent_messages.len();
     let projected_history_message_count = projected_history.len();
@@ -90,6 +93,7 @@ pub(crate) fn build_runtime_model_context(
         user_text,
     ));
     let messages = ensure_tool_result_pairing(messages);
+    let (messages, tool_result_projection) = project_tool_results_for_context(messages);
     let mut system_sections = Vec::new();
     if let Some(system_prompt) = options
         .system_prompt
@@ -150,9 +154,12 @@ pub(crate) fn build_runtime_model_context(
         history_message_count: history.len(),
         parent_message_count,
         projected_history_message_count,
+        projected_history_estimated_tokens,
         projected_message_count: messages.len(),
         retained_tail_message_count: compaction.retained_message_count,
         compaction_active: compaction.active,
+        projected_tool_result_count: tool_result_projection.projected_count,
+        projected_tool_result_omitted_chars: tool_result_projection.omitted_chars,
         collapse_state: if overflow_projection_applied {
             "overflow-tail".to_string()
         } else if compaction.active {
@@ -160,6 +167,11 @@ pub(crate) fn build_runtime_model_context(
         } else {
             "none".to_string()
         },
+        reason: context_projection_reason(
+            overflow_projection_applied,
+            compaction.active,
+            &tool_result_projection,
+        ),
     };
     let budget = ContextBudgetReport {
         estimated_tokens,
@@ -180,6 +192,10 @@ pub(crate) fn build_runtime_model_context(
                 .to_string(),
         );
     }
+    let deferred_tool_count = deferred_tool_names.len();
+    let loaded_skill_count = loaded_skill_names.len();
+    let memory_snippet_count = memory_snippets.len();
+    let compact_summary_applied = compaction.active;
     let context_summary = AgentRuntimeContextSummary {
         profile_kind: profile.kind.as_summary_str().to_string(),
         parent_context_policy: profile.parent_context_policy.as_summary_str().to_string(),
@@ -191,11 +207,15 @@ pub(crate) fn build_runtime_model_context(
             .map(|descriptor| descriptor.name.clone())
             .collect(),
         deferred_tools: deferred_tool_names.clone(),
+        deferred_tool_count,
         activated_tools: selected_deferred_tools.iter().cloned().collect(),
         surfaced_skills: surfaced_skills.clone(),
         loaded_skills: loaded_skill_names,
+        loaded_skill_count,
         memory_snippets,
+        memory_snippet_count,
         compaction,
+        compact_summary_applied,
         warnings,
         message_count: messages.len(),
         estimated_tokens,
@@ -618,6 +638,69 @@ fn ensure_tool_result_pairing(messages: Vec<AgentRuntimeMessage>) -> Vec<AgentRu
     repaired
 }
 
+fn project_tool_results_for_context(
+    messages: Vec<AgentRuntimeMessage>,
+) -> (Vec<AgentRuntimeMessage>, ToolResultProjectionStats) {
+    let mut stats = ToolResultProjectionStats::default();
+    let messages = messages
+        .into_iter()
+        .map(|mut message| {
+            let original_content = message.content.clone();
+            let mut replacements = Vec::new();
+            message.blocks = message
+                .blocks
+                .into_iter()
+                .map(|block| match block {
+                    AgentRuntimeMessageBlock::ToolResult {
+                        tool_use_id,
+                        content,
+                        is_error,
+                    } => {
+                        let projection = project_tool_result_content(&content);
+                        if projection.projected {
+                            stats.projected_count += 1;
+                            stats.omitted_chars += projection.omitted_chars;
+                            replacements.push((content, projection.content.clone()));
+                        }
+                        AgentRuntimeMessageBlock::ToolResult {
+                            tool_use_id,
+                            content: projection.content,
+                            is_error,
+                        }
+                    }
+                    other => other,
+                })
+                .collect();
+
+            if !replacements.is_empty() {
+                let mut content = original_content.clone();
+                for (original, projected) in &replacements {
+                    if content.contains(original) {
+                        content = content.replacen(original, projected, 1);
+                    }
+                }
+                if content == original_content {
+                    content = message
+                        .blocks
+                        .iter()
+                        .filter_map(|block| match block {
+                            AgentRuntimeMessageBlock::ToolResult { content, .. } => {
+                                Some(content.clone())
+                            }
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n\n");
+                }
+                message.content = content;
+            }
+
+            message
+        })
+        .collect();
+    (messages, stats)
+}
+
 fn missing_tool_results_after_message(
     messages: &[AgentRuntimeMessage],
     index: usize,
@@ -695,6 +778,54 @@ fn positive_usize_at(value: &Value, pointer: &str) -> Option<usize> {
 
 fn near_limit_tokens(max_prompt_tokens: usize) -> usize {
     max_prompt_tokens.saturating_mul(CONTEXT_NEAR_LIMIT_PERCENT) / 100
+}
+
+fn estimate_message_tokens(messages: &[AgentRuntimeMessage]) -> usize {
+    let chars = messages
+        .iter()
+        .map(|message| {
+            let block_chars = message
+                .blocks
+                .iter()
+                .map(message_block_chars)
+                .sum::<usize>();
+            message.content.len().max(block_chars)
+        })
+        .sum::<usize>();
+    chars.div_ceil(4)
+}
+
+fn message_block_chars(block: &AgentRuntimeMessageBlock) -> usize {
+    match block {
+        AgentRuntimeMessageBlock::Text { text } => text.len(),
+        AgentRuntimeMessageBlock::Image { data, .. } => data.len(),
+        AgentRuntimeMessageBlock::ToolUse { input, .. } => input.to_string().len(),
+        AgentRuntimeMessageBlock::ToolResult { content, .. } => content.len(),
+        AgentRuntimeMessageBlock::Meta { data } => data.to_string().len(),
+    }
+}
+
+fn context_projection_reason(
+    overflow_projection_applied: bool,
+    compaction_active: bool,
+    tool_result_projection: &ToolResultProjectionStats,
+) -> String {
+    let mut reasons = Vec::new();
+    if compaction_active {
+        reasons.push("compact summary applied before provider context".to_string());
+    } else {
+        reasons.push("compact summary not applied".to_string());
+    }
+    if overflow_projection_applied {
+        reasons.push("older messages omitted after estimated prompt budget check".to_string());
+    }
+    if tool_result_projection.projected_count > 0 {
+        reasons.push(format!(
+            "{} tool result(s) projected for context budget; {} chars omitted",
+            tool_result_projection.projected_count, tool_result_projection.omitted_chars
+        ));
+    }
+    reasons.join("; ")
 }
 
 fn context_budget_state(

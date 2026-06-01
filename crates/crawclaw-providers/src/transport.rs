@@ -8,6 +8,8 @@ use serde_json::{json, Value};
 
 use super::*;
 
+mod adapters;
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct OpenAiCompatibleConfig {
@@ -393,52 +395,11 @@ pub fn build_native_provider_conversation_request_with_options(
             "Unsupported Rust provider transport: {transport}"
         )));
     }
-    match transport {
-        "openai-responses" | "openai-codex-responses" => openai_responses_request(
-            config,
-            if is_default_openai_provider(&config.provider) {
-                "https://api.openai.com/v1"
-            } else {
-                ""
-            },
-            "Authorization",
-            "Bearer ",
-            &messages,
-            options,
-        ),
-        "azure-openai-responses" => azure_openai_request(config, &messages, options),
-        "anthropic-messages" => anthropic_messages_request(config, &messages, options),
-        "google-generative-ai" => google_generate_content_request(config, &messages, options),
-        "ollama" => ollama_chat_request(config, &messages, options),
-        "bedrock-converse-stream" => bedrock_converse_request(config, &messages, options),
-        "github-copilot" => chat_completions_request(
-            config,
-            "https://api.githubcopilot.com",
-            "Authorization",
-            "Bearer ",
-            &messages,
-            options,
-        ),
-        "openai-completions" => {
-            chat_completions_request(config, "", "Authorization", "Bearer ", &messages, options)
-        }
-        _ => unreachable!("transport implementation checked before request build"),
-    }
+    adapters::build_request(transport, config, &messages, options)
 }
 
-pub(crate) fn is_implemented_native_provider_transport(transport: &str) -> bool {
-    matches!(
-        transport,
-        "openai-responses"
-            | "openai-codex-responses"
-            | "azure-openai-responses"
-            | "anthropic-messages"
-            | "google-generative-ai"
-            | "ollama"
-            | "bedrock-converse-stream"
-            | "github-copilot"
-            | "openai-completions"
-    )
+pub(crate) fn is_implemented_native_provider_transport(transport: ProviderTransportKind) -> bool {
+    adapters::is_implemented(transport)
 }
 
 pub fn parse_native_provider_response(

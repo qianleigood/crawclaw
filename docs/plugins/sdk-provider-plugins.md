@@ -52,6 +52,11 @@ Use `models.providers` in config for custom providers:
 The Rust schema validates the provider entry shape, SecretRef handling,
 transport adapter enum, and model entry fields.
 
+Provider transport strings are config contract values only. The runtime parses
+them into a typed transport enum and dispatches through Rust transport adapters,
+so new built-in providers should extend the registry and adapter table instead
+of adding scattered string branches in runtime code.
+
 ## Plugin boundary
 
 TypeScript plugins no longer register production tools, commands, services,
