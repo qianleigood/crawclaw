@@ -1,0 +1,35 @@
+{
+  "id": "acpx",
+  "name": "ACPX",
+  "description": "ACP backend plugin for non-interactive agent harness sessions.",
+  "skills": ["./skills"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "command": {
+        "type": "string",
+        "description": "Custom acpx command, absolute path, or relative path."
+      },
+      "expectedVersion": {
+        "type": "string",
+        "description": "Expected acpx version, or any to disable strict version matching."
+      },
+      "permissionMode": {
+        "type": "string",
+        "enum": ["approve-all", "approve-reads", "deny-all"],
+        "description": "Harness-level permission mode for non-interactive ACP sessions."
+      },
+      "nonInteractivePermissions": {
+        "type": "string",
+        "enum": ["fail", "deny"],
+        "description": "Behavior when a permission prompt would require an interactive TTY."
+      },
+      "mcpServers": {
+        "type": "object",
+        "description": "ACP-local MCP server definitions passed to acpx sessions.",
+        "additionalProperties": true
+      }
+    }
+  }
+}

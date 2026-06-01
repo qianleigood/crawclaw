@@ -50,9 +50,8 @@ x-i18n:
 `src/` 内保留的维护者入口点：
 
 - `src/agents/README.md`
+- `src/gateway/protocol/AGENTS.md`
 - `src/plugins/README.md`
-- `src/workflows/README.md`
-- `src/infra/README.md`
 - `src/generated/`
 
 ## 能力生态系统

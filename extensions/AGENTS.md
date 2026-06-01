@@ -11,7 +11,6 @@ uses the Rust plugin SDK in `crates/crawclaw-plugin-sdk`.
   - `docs/plugins/sdk-overview.md`
   - `docs/plugins/sdk-entrypoints.md`
   - `docs/plugins/sdk-runtime.md`
-  - `docs/plugins/sdk-channel-plugins.md`
   - `docs/plugins/sdk-provider-plugins.md`
   - `docs/plugins/manifest.md`
 - Definition files:

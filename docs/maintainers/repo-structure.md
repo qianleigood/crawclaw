@@ -45,9 +45,8 @@ desktop shell under `apps/crawclaw-desktop/`.
 Retained maintainer entry points inside `src/`:
 
 - `src/agents/README.md`
+- `src/gateway/protocol/AGENTS.md`
 - `src/plugins/README.md`
-- `src/workflows/README.md`
-- `src/infra/README.md`
 - `src/generated/`
 
 ## Capability Ecosystem

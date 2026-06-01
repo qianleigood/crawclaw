@@ -34,13 +34,13 @@
   - `src/plugins/AGENTS.md`
   - `src/gateway/protocol/AGENTS.md`
 - Plugin and extension boundary:
-  - Public docs: `docs/plugins/building-plugins.md`, `docs/plugins/architecture.md`, `docs/plugins/sdk-overview.md`, `docs/plugins/sdk-entrypoints.md`, `docs/plugins/sdk-runtime.md`, `docs/plugins/manifest.md`, `docs/plugins/sdk-channel-plugins.md`, `docs/plugins/sdk-provider-plugins.md`
+  - Public docs: `docs/plugins/building-plugins.md`, `docs/plugins/architecture.md`, `docs/plugins/sdk-overview.md`, `docs/plugins/sdk-entrypoints.md`, `docs/plugins/sdk-runtime.md`, `docs/plugins/manifest.md`, `docs/plugins/sdk-provider-plugins.md`
   - Definition files: `crates/crawclaw-plugin-sdk/src/lib.rs`, `crates/crawclaw-native-plugins/src/registry.rs`, `crates/crawclaw-runtime/src/native_plugin_registry.rs`, `src/generated/plugins/bundled-capability-metadata.generated.json`, `package.json`
   - Rule: third-party authoring contracts belong in the Rust plugin SDK, manifest metadata, and documented runtime helpers. Do not recreate public JavaScript SDK exports.
   - Rule: core code must not deep-import bundled plugin internals. If core needs bundled plugin behavior, expose it through a documented Rust/native contract or manifest field.
   - Compatibility: new plugin seams are allowed, but they must be added as documented, versioned Rust/native contracts. We have third-party plugins in the wild and do not break them casually.
 - Channel boundary:
-  - Public docs: `docs/plugins/sdk-channel-plugins.md`, `docs/plugins/architecture.md`
+  - Public docs: `docs/plugins/architecture.md`
   - Definition files: `crates/crawclaw-plugin-sdk/src/lib.rs`, `crates/crawclaw-channels/src/lib.rs`, `crates/crawclaw-native-plugins/src/registry.rs`
   - Rule: native channel contracts are core implementation. If plugin authors need a new seam, add it to the Rust plugin SDK instead of telling them to import channel internals.
 - Provider/model boundary:
@@ -50,7 +50,7 @@
   - Rule: avoid ad hoc reads of `plugins.entries.<id>.config` from unrelated core code. If core needs plugin-owned auth/config behavior, add or use a generic seam (`resolveSyntheticAuth`, public SDK/helper facades, manifest metadata, plugin auto-enable hooks) and honor plugin disablement plus SecretRef semantics.
   - Rule: vendor-owned tools and settings belong in the owning plugin. Do not add provider-specific tool config, secret collection, or runtime enablement to core `tools.*` surfaces unless the tool is intentionally core-owned.
 - Gateway protocol boundary:
-  - Public docs: `docs/gateway/protocol.md`, `docs/gateway/bridge-protocol.md`, `docs/concepts/architecture.md`
+  - Public docs: `docs/gateway/protocol.md`, `docs/concepts/architecture.md`
   - Definition files: `crates/crawclaw-gateway/src/protocol_contract.rs`, `crates/crawclaw-gateway/src/protocol_contract/protocol.schema.stable.json`
   - Rule: protocol changes are contract changes. Prefer additive evolution; incompatible changes require explicit versioning, docs, and client/codegen follow-through.
 - Bundled plugin contract boundary:
@@ -166,8 +166,8 @@
 
 ## Release / Advisory Workflows
 
-- Use `$crawclaw-release-maintainer` at `.agents/skills/crawclaw-release-maintainer/SKILL.md` for release naming, version coordination, release auth, and changelog-backed release-note workflows.
-- Use `$crawclaw-ghsa-maintainer` at `.agents/skills/crawclaw-ghsa-maintainer/SKILL.md` for GHSA advisory inspection, patch/publish flow, private-fork checks, and GHSA API validation.
+- Use `$crawclaw-release-maintainer` in the [`crawclaw/maintainers`](https://github.com/crawclaw/maintainers) repo for release naming, version coordination, release auth, and changelog-backed release-note workflows.
+- Use `$crawclaw-ghsa-maintainer` in the [`crawclaw/maintainers`](https://github.com/crawclaw/maintainers) repo for GHSA advisory inspection, patch/publish flow, private-fork checks, and GHSA API validation.
 - Release and publish remain explicit-approval actions even when using the skill.
 
 ## Testing Guidelines
@@ -189,9 +189,9 @@
 
 ## Commit & Pull Request Guidelines
 
-- Use `$crawclaw-pr-maintainer` at `.agents/skills/crawclaw-pr-maintainer/SKILL.md` for maintainer PR triage, review, close, search, and landing workflows.
+- Use `$crawclaw-pr-maintainer` in the [`crawclaw/maintainers`](https://github.com/crawclaw/maintainers) repo for maintainer PR triage, review, close, search, and landing workflows.
 - This includes auto-close labels, bug-fix evidence gates, GitHub comment/search footguns, and maintainer PR decision flow.
-- For the repo's end-to-end maintainer PR workflow, use `$crawclaw-pr-maintainer` at `.agents/skills/crawclaw-pr-maintainer/SKILL.md`.
+- For the repo's end-to-end maintainer PR workflow, use `$crawclaw-pr-maintainer` in the [`crawclaw/maintainers`](https://github.com/crawclaw/maintainers) repo.
 
 - `/landpr` lives in the global Codex prompts (`~/.codex/prompts/landpr.md`); when landing or merging any PR, always follow that `/landpr` process.
 - Create commits with `scripts/committer "<msg>" <file...>`; avoid manual `git add`/`git commit` so staging stays scoped.
@@ -218,8 +218,8 @@
 
 - Vocabulary: "makeup" = "mac app".
 - Rebrand/migration issues or legacy config/service warnings: run `crawclaw doctor` (see `docs/gateway/doctor.md`).
-- Use `$crawclaw-parallels-smoke` at `.agents/skills/crawclaw-parallels-smoke/SKILL.md` for Parallels smoke, rerun, upgrade, debug, and result-interpretation workflows across macOS, Windows, and Linux guests.
-- For the macOS Discord roundtrip deep dive, use the narrower `.agents/skills/parallels-discord-roundtrip/SKILL.md` companion skill.
+- Use `$crawclaw-parallels-smoke` in the [`crawclaw/maintainers`](https://github.com/crawclaw/maintainers) repo for Parallels smoke, rerun, upgrade, debug, and result-interpretation workflows across macOS, Windows, and Linux guests.
+- For the macOS Discord roundtrip deep dive, use the narrower `parallels-discord-roundtrip` companion skill in the [`crawclaw/maintainers`](https://github.com/crawclaw/maintainers) repo.
 - Never edit `node_modules` (global/Homebrew/npm/git installs too). Updates overwrite. Skill notes go in `tools.md` or `AGENTS.md`.
 - If you need local-only `.agents` ignores, use `.git/info/exclude` instead of repo `.gitignore`.
 - When adding a new `AGENTS.md` anywhere in the repo, also add a `CLAUDE.md` symlink pointing to it (example: `ln -s AGENTS.md CLAUDE.md`).

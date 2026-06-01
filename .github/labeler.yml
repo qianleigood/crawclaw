@@ -1,305 +1,250 @@
 "channel: ddingtalk":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/ddingtalk/**"
-          - "docs/channels/ddingtalk.md"
+          - extensions/ddingtalk/**
+          - docs/channels/ddingtalk.md
 "channel: feishu":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/feishu/**"
-          - "docs/channels/feishu.md"
+          - extensions/feishu/**
+          - docs/channels/feishu.md
 "channel: esp32":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/esp32/**"
-          - "firmware/esp32-assistant/**"
-          - "docs/channels/esp32.md"
-          - "docs/gateway/esp32-desktop-assistant.md"
+          - extensions/esp32/**
+          - firmware/esp32-assistant/**
+          - docs/channels/esp32.md
+          - docs/gateway/esp32-desktop-assistant.md
 "channel: qqbot":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/qqbot/**"
-          - "docs/channels/qqbot.md"
+          - extensions/qqbot/**
+          - docs/channels/qqbot.md
 "channel: weixin":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/weixin/**"
-          - "docs/channels/weixin.md"
-
-"gateway":
+          - extensions/weixin/**
+          - docs/channels/weixin.md
+gateway:
   - changed-files:
       - any-glob-to-any-file:
-          - "crates/crawclaw-gateway/**"
-          - "docs/gateway/**"
-
-"docs":
+          - crates/crawclaw-gateway/**
+          - docs/gateway/**
+docs:
   - changed-files:
       - any-glob-to-any-file:
-          - "docs/**"
-          - "docs.acp.md"
-
-"terminal":
+          - docs/**
+          - docs.acp.md
+terminal:
   - changed-files:
       - any-glob-to-any-file:
-          - "crates/crawclaw-repo-tools/**"
-          - "crates/crawclaw-repo-tools/src/main.rs"
-          - "crates/crawclaw-repo-tools/src/node_tool_runner.rs"
-
-"control":
+          - crates/crawclaw-repo-tools/**
+          - crates/crawclaw-repo-tools/src/main.rs
+          - crates/crawclaw-repo-tools/src/node_tool_runner.rs
+control:
   - changed-files:
       - any-glob-to-any-file:
-          - "crates/crawclaw-runtime/**"
-          - "crates/crawclaw-repo-tools/**"
-
-"scripts":
+          - crates/crawclaw-runtime/**
+          - crates/crawclaw-repo-tools/**
+scripts:
   - changed-files:
       - any-glob-to-any-file:
-          - "scripts/**"
-
-"agents":
+          - scripts/**
+agents:
   - changed-files:
       - any-glob-to-any-file:
-          - "crates/crawclaw-runtime/src/lib.rs"
-          - "crates/crawclaw-runtime/src/special_agents.rs"
-          - "crates/crawclaw-runtime/src/memory.rs"
-
-"security":
+          - crates/crawclaw-runtime/src/lib.rs
+          - crates/crawclaw-runtime/src/special_agents.rs
+          - crates/crawclaw-runtime/src/memory/**
+security:
   - changed-files:
       - any-glob-to-any-file:
-          - "docs/cli/security.md"
-          - "docs/gateway/security/**"
-          - "docs/gateway/sandbox-vs-tool-policy-vs-elevated.md"
-          - "docs/gateway/sandboxing.md"
-
+          - docs/gateway/security/**
 "extensions: acpx":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/acpx/**"
+          - extensions/acpx/**
 "extensions: amazon-bedrock":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/amazon-bedrock/**"
+          - extensions/amazon-bedrock/**
 "extensions: anthropic":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/anthropic/**"
+          - extensions/anthropic/**
 "extensions: anthropic-vertex":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/anthropic-vertex/**"
-"extensions: browser":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/browser/**"
+          - extensions/anthropic-vertex/**
 "extensions: byteplus":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/byteplus/**"
+          - extensions/byteplus/**
 "extensions: chutes":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/chutes/**"
+          - extensions/chutes/**
 "extensions: cloudflare-ai-gateway":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/cloudflare-ai-gateway/**"
+          - extensions/cloudflare-ai-gateway/**
 "extensions: comfyui":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/comfyui/**"
+          - extensions/comfyui/**
 "extensions: copilot-proxy":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/copilot-proxy/**"
+          - extensions/copilot-proxy/**
 "extensions: deepgram":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/deepgram/**"
+          - extensions/deepgram/**
 "extensions: deepseek":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/deepseek/**"
-"extensions: diagnostics-otel":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/diagnostics-otel/**"
-"extensions: diffs":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/diffs/**"
-"extensions: duckduckgo":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/duckduckgo/**"
-"extensions: elevenlabs":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/elevenlabs/**"
+          - extensions/deepseek/**
 "extensions: fal":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/fal/**"
-"extensions: feishu-cli":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/feishu-cli/**"
+          - extensions/fal/**
 "extensions: github-copilot":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/github-copilot/**"
+          - extensions/github-copilot/**
 "extensions: google":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/google/**"
+          - extensions/google/**
 "extensions: groq":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/groq/**"
+          - extensions/groq/**
 "extensions: huggingface":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/huggingface/**"
+          - extensions/huggingface/**
 "extensions: kilocode":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/kilocode/**"
+          - extensions/kilocode/**
 "extensions: kimi-coding":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/kimi-coding/**"
+          - extensions/kimi-coding/**
 "extensions: litellm":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/litellm/**"
+          - extensions/litellm/**
 "extensions: llm-task":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/llm-task/**"
+          - extensions/llm-task/**
 "extensions: lobster":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/lobster/**"
-"extensions: microsoft":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/microsoft/**"
+          - extensions/lobster/**
 "extensions: microsoft-foundry":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/microsoft-foundry/**"
+          - extensions/microsoft-foundry/**
 "extensions: minimax":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/minimax/**"
+          - extensions/minimax/**
 "extensions: mistral":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/mistral/**"
+          - extensions/mistral/**
 "extensions: modelstudio":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/modelstudio/**"
+          - extensions/modelstudio/**
 "extensions: moonshot":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/moonshot/**"
+          - extensions/moonshot/**
 "extensions: nvidia":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/nvidia/**"
+          - extensions/nvidia/**
 "extensions: ollama":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/ollama/**"
+          - extensions/ollama/**
 "extensions: open-prose":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/open-prose/**"
+          - extensions/open-prose/**
 "extensions: openai":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/openai/**"
+          - extensions/openai/**
 "extensions: opencode":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/opencode/**"
+          - extensions/opencode/**
 "extensions: opencode-go":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/opencode-go/**"
+          - extensions/opencode-go/**
 "extensions: openrouter":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/openrouter/**"
-"extensions: openshell":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/openshell/**"
+          - extensions/openrouter/**
 "extensions: qianfan":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/qianfan/**"
+          - extensions/qianfan/**
 "extensions: qwen3-tts":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/qwen3-tts/**"
-"extensions: scrapling-fetch":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/scrapling-fetch/**"
+          - extensions/qwen3-tts/**
 "extensions: searxng":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/searxng/**"
+          - extensions/searxng/**
 "extensions: sglang":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/sglang/**"
-"extensions: speech-core":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/speech-core/**"
+          - extensions/sglang/**
 "extensions: synthetic":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/synthetic/**"
-"extensions: talk-voice":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/talk-voice/**"
+          - extensions/synthetic/**
 "extensions: together":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/together/**"
-"extensions: turix-cua":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/turix-cua/**"
+          - extensions/together/**
 "extensions: venice":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/venice/**"
+          - extensions/venice/**
 "extensions: vercel-ai-gateway":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/vercel-ai-gateway/**"
+          - extensions/vercel-ai-gateway/**
 "extensions: vllm":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/vllm/**"
+          - extensions/vllm/**
 "extensions: volcengine":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/volcengine/**"
+          - extensions/volcengine/**
 "extensions: xai":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/xai/**"
+          - extensions/xai/**
 "extensions: xiaomi":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/xiaomi/**"
+          - extensions/xiaomi/**
 "extensions: zai":
   - changed-files:
       - any-glob-to-any-file:
-          - "extensions/zai/**"
+          - extensions/zai/**
+"extensions: spider-fetch":
+  - changed-files:
+      - any-glob-to-any-file:
+          - extensions/spider-fetch/**
