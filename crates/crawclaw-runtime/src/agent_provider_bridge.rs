@@ -2,21 +2,6 @@ use super::*;
 
 const PROVIDER_RETRY_DELAYS_MS: &[u64] = &[500, 1_000, 2_000];
 
-pub(super) async fn send_native_provider_conversation_with_retry(
-    config: &NativeProviderConfig,
-    messages: &[NativeProviderMessage],
-    options: &NativeProviderRequestOptions,
-) -> Result<String, ProviderTransportError> {
-    let response =
-        send_native_provider_conversation_response_with_retry(config, messages, options).await?;
-    if response.text.trim().is_empty() {
-        return Err(ProviderTransportError::InvalidResponse(
-            "provider response did not include assistant content".to_string(),
-        ));
-    }
-    Ok(response.text)
-}
-
 pub(super) async fn send_native_provider_conversation_response_with_retry(
     config: &NativeProviderConfig,
     messages: &[NativeProviderMessage],

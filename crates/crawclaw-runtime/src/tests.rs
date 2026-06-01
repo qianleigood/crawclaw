@@ -2625,6 +2625,157 @@ async fn pi_agent_rust_provider_bridge_executes_openai_tool_calls() {
 }
 
 #[tokio::test]
+async fn native_provider_runtime_executes_tool_calls_without_pi_fallback() {
+    let first_chunk = serde_json::to_string(&json!({
+        "choices": [
+            {
+                "delta": {
+                    "tool_calls": [
+                        {
+                            "index": 0,
+                            "id": "call_native_structured",
+                            "type": "function",
+                            "function": {
+                                "name": "StructuredOutput",
+                                "arguments": "{\"ok\":true}"
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }))
+    .expect("first stream chunk");
+    let finish_chunk = serde_json::to_string(&json!({
+        "choices": [
+            {
+                "delta": {},
+                "finish_reason": "tool_calls"
+            }
+        ]
+    }))
+    .expect("finish stream chunk");
+    let final_chunk = serde_json::to_string(&json!({
+        "choices": [
+            {
+                "delta": {
+                    "content": "native final after tool"
+                }
+            }
+        ]
+    }))
+    .expect("final stream chunk");
+    let (provider_base_url, request_rx) = start_openai_compatible_stream_provider(vec![
+        format!("data: {first_chunk}\n\ndata: {finish_chunk}\n\ndata: [DONE]\n\n"),
+        format!("data: {final_chunk}\n\ndata: [DONE]\n\n"),
+    ]);
+    let runtime_root = unique_test_runtime_root("native-provider-openai-tool-call-loop");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
+            "provider": "openai-compatible",
+            "baseUrl": provider_base_url,
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+
+    let runtime = AgentRuntime::with_pi_agent_backend(
+        runtime_root.clone(),
+        Arc::new(LoopEventAgentRuntimeBackend {
+            reply: "pi fallback must not run".to_string(),
+            loop_events: Vec::new(),
+        }),
+    );
+    let result = runtime
+        .run_turn(AgentRunRequest {
+            run_id: "run-native-tool-loop".to_string(),
+            agent_id: "main".to_string(),
+            session_key: "thread-native-tool-loop".to_string(),
+            inbound: ChannelInboundEnvelope {
+                channel: "gateway".to_string(),
+                account_id: Some("local".to_string()),
+                from: "user".to_string(),
+                to: "agent:main".to_string(),
+                chat_type: ChannelChatType::Direct,
+                body: "return structured output natively".to_string(),
+                raw_body: Some("return structured output natively".to_string()),
+                message_id: Some("in-native-tool-loop".to_string()),
+                thread_id: Some("thread-native-tool-loop".to_string()),
+                media_urls: Vec::new(),
+                metadata: BTreeMap::new(),
+            },
+            model: AgentModelSelection {
+                provider: "openai-compatible".to_string(),
+                model: "test-model".to_string(),
+                reasoning_level: None,
+            },
+            enabled_tools: Vec::new(),
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Normal,
+                special_agent: None,
+                memory_after_turn: Some(false),
+            }),
+            options: BTreeMap::new(),
+        })
+        .await
+        .expect("native provider tool loop run");
+
+    assert_eq!(result.assistant_text, "native final after tool");
+    let events = serde_json::to_value(&result.events).expect("events json");
+    let events = events.as_array().expect("events array");
+    assert!(events.iter().any(|event| {
+        event["type"] == "toolCall"
+            && event["callId"] == "call_native_structured"
+            && event["toolName"] == "StructuredOutput"
+            && event["arguments"] == json!({ "ok": true })
+    }));
+    assert!(events.iter().any(|event| {
+        event["type"] == "toolProgress"
+            && event["callId"] == "call_native_structured"
+            && event["status"] == "completed"
+    }));
+
+    let first_request = request_rx.recv().expect("first provider request");
+    let second_request = request_rx.recv().expect("second provider request");
+    assert!(first_request.contains("StructuredOutput"));
+    let second_body: Value =
+        serde_json::from_str(http_request_body(&second_request)).expect("second request body");
+    let messages = second_body["messages"]
+        .as_array()
+        .expect("second request messages");
+    assert!(messages.iter().any(|message| {
+        message["role"] == "assistant"
+            && message["tool_calls"][0]["id"] == "call_native_structured"
+            && message["tool_calls"][0]["function"]["name"] == "StructuredOutput"
+    }));
+    assert!(messages.iter().any(|message| {
+        message["role"] == "tool"
+            && message["tool_call_id"] == "call_native_structured"
+            && message["content"]
+                .as_str()
+                .is_some_and(|content| content.contains("Structured output provided successfully"))
+    }));
+
+    let transcript = fs::read_to_string(
+        runtime_root
+            .join("sessions")
+            .join("thread-native-tool-loop.jsonl"),
+    )
+    .expect("transcript");
+    assert!(transcript.contains(r#""type":"toolUse""#));
+    assert!(transcript.contains(r#""type":"toolResult""#));
+    assert!(transcript.contains("call_native_structured"));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
 async fn native_llm_task_tool_runs_host_agent_without_ts_wrapper() {
     let runtime_root = unique_test_runtime_root("native-llm-task-tool");
     let config_dir = runtime_root.join("config");

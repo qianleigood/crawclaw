@@ -667,13 +667,7 @@ impl AgentRuntime {
         );
         let model_selection = options.model_selection.as_ref();
         let provider_send = async {
-            let runtime_mode = if config.runtime_mode() == DesktopAgentRuntimeMode::NativeProvider
-                && !runtime_context.included_tool_schemas.is_empty()
-            {
-                DesktopAgentRuntimeMode::PiAgentRust
-            } else {
-                config.runtime_mode()
-            };
+            let runtime_mode = config.runtime_mode();
             let backend_result = match runtime_mode {
                 DesktopAgentRuntimeMode::PiAgentRust => {
                     let mut provider_config =
@@ -1152,38 +1146,169 @@ impl AgentRuntimeBackend for NativeProviderRuntimeBackend {
     ) -> Pin<Box<dyn Future<Output = Result<AgentBackendResult, AgentRuntimeError>> + Send + 'a>>
     {
         Box::pin(async move {
-            if !request.runtime_context.included_tool_schemas.is_empty() {
-                return Err(AgentRuntimeError::UnsupportedProvider(
-                    "NativeProvider runtime cannot execute tool calls; use PiAgentRust for tool-capable turns."
-                        .to_string(),
-                ));
-            }
-            let messages =
+            let mut messages =
                 agent_messages_to_native_provider_messages(&request.runtime_context.messages);
-            let assistant_text = send_native_provider_conversation_with_retry(
-                &request.provider_config,
-                &messages,
-                &NativeProviderRequestOptions {
-                    reasoning_level: request.reasoning_level.clone(),
-                    system_prompt: request.runtime_context.system_prompt(),
-                    tools: request
-                        .runtime_context
-                        .included_tool_schemas
-                        .iter()
-                        .map(|tool| NativeProviderTool {
-                            name: tool.name.clone(),
-                            description: Some(tool.description.clone()),
-                            input_schema: tool.parameters.clone(),
-                        })
-                        .collect(),
-                    ..NativeProviderRequestOptions::default()
-                },
-            )
-            .await
-            .map_err(map_provider_error)?;
-            Ok(AgentBackendResult::text(assistant_text))
+            let tools = build_pi_agent_rust_tool_registry_for_selection(
+                request.runtime_root,
+                &request.tool_selection,
+                request.permission_policy.clone(),
+                request.tool_hook_policy.clone(),
+            );
+            let provider_tools = request
+                .runtime_context
+                .included_tool_schemas
+                .iter()
+                .map(|tool| NativeProviderTool {
+                    name: tool.name.clone(),
+                    description: Some(tool.description.clone()),
+                    input_schema: tool.parameters.clone(),
+                })
+                .collect::<Vec<_>>();
+            let options = NativeProviderRequestOptions {
+                stream: !provider_tools.is_empty(),
+                reasoning_level: request.reasoning_level.clone(),
+                system_prompt: request.runtime_context.system_prompt(),
+                tools: provider_tools,
+            };
+            let max_tool_iterations = request.max_tool_iterations.max(1);
+            let mut loop_events = Vec::new();
+
+            for tool_iteration in 0..=max_tool_iterations {
+                let response = send_native_provider_conversation_response_with_retry(
+                    &request.provider_config,
+                    &messages,
+                    &options,
+                )
+                .await
+                .map_err(map_provider_error)?;
+                if response.tool_calls.is_empty() {
+                    if response.text.trim().is_empty() {
+                        return Err(AgentRuntimeError::ProviderFailed(
+                            "NativeProvider runtime did not produce assistant text.".to_string(),
+                        ));
+                    }
+                    return Ok(AgentBackendResult {
+                        assistant_text: response.text,
+                        loop_events,
+                    });
+                }
+
+                if !response.text.trim().is_empty() {
+                    loop_events.push(AgentLoopEvent::ProviderBlock {
+                        block_type: "text_delta".to_string(),
+                        text: Some(response.text.clone()),
+                        metadata: json!({ "source": "native-provider" }),
+                    });
+                }
+                if tool_iteration == max_tool_iterations {
+                    return Err(AgentRuntimeError::ProviderFailed(format!(
+                        "NativeProvider runtime exceeded max tool iterations ({max_tool_iterations})."
+                    )));
+                }
+                messages.push(native_provider_assistant_tool_call_message(&response));
+                for tool_call in &response.tool_calls {
+                    let tool_result =
+                        execute_native_provider_tool_call(&tools, tool_call, &mut loop_events)
+                            .await;
+                    messages.push(tool_result);
+                }
+            }
+
+            Err(AgentRuntimeError::ProviderFailed(format!(
+                "NativeProvider runtime exceeded max tool iterations ({max_tool_iterations})."
+            )))
         })
     }
+}
+
+fn native_provider_assistant_tool_call_message(
+    response: &NativeProviderAssistantResponse,
+) -> NativeProviderMessage {
+    let mut blocks = Vec::new();
+    if !response.text.trim().is_empty() {
+        blocks.push(NativeProviderContentBlock::text(response.text.clone()));
+    }
+    blocks.extend(response.tool_calls.iter().map(|tool_call| {
+        NativeProviderContentBlock::tool_call(
+            tool_call.id.clone(),
+            tool_call.name.clone(),
+            tool_call.arguments.clone(),
+        )
+    }));
+    NativeProviderMessage {
+        role: NativeProviderMessageRole::Assistant,
+        content: response.text.clone(),
+        blocks,
+    }
+}
+
+async fn execute_native_provider_tool_call(
+    tools: &pi::sdk::ToolRegistry,
+    tool_call: &crawclaw_providers::NativeProviderToolCall,
+    loop_events: &mut Vec<AgentLoopEvent>,
+) -> NativeProviderMessage {
+    loop_events.push(AgentLoopEvent::ToolExecution {
+        event: ToolExecutionEvent::Started {
+            call_id: tool_call.id.clone(),
+            tool_name: tool_call.name.clone(),
+            arguments: tool_call.arguments.clone(),
+        },
+    });
+
+    let result = match tools.get(&tool_call.name) {
+        Some(tool) => tool
+            .execute(&tool_call.id, tool_call.arguments.clone(), None)
+            .await
+            .map(|output| {
+                let content = native_tool_output_summary(&output)
+                    .unwrap_or_else(|| "Tool completed without output.".to_string());
+                (content, output.is_error)
+            })
+            .map_err(|error| error.to_string()),
+        None => Err(format!(
+            "Tool {} is not available in the current NativeProvider runtime context.",
+            tool_call.name
+        )),
+    };
+
+    let (content, is_error) = match result {
+        Ok((content, is_error)) => (content, is_error),
+        Err(error) => (error, true),
+    };
+    loop_events.push(AgentLoopEvent::ToolExecution {
+        event: ToolExecutionEvent::Completed {
+            call_id: tool_call.id.clone(),
+            tool_name: tool_call.name.clone(),
+            output: Some(content.clone()),
+            is_error,
+        },
+    });
+
+    NativeProviderMessage::tool_result(
+        tool_call.id.clone(),
+        Some(tool_call.name.clone()),
+        content,
+        is_error,
+    )
+}
+
+fn native_tool_output_summary(output: &pi::sdk::ToolOutput) -> Option<String> {
+    let text = output
+        .content
+        .iter()
+        .filter_map(|block| match block {
+            pi::sdk::ContentBlock::Text(text) => Some(text.text.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    if !text.trim().is_empty() {
+        return Some(text);
+    }
+    output
+        .details
+        .as_ref()
+        .and_then(|details| serde_json::to_string(details).ok())
 }
 
 impl AgentRuntimeBackend for PiAgentRuntimeBackend {
