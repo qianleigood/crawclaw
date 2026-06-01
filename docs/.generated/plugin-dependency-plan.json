@@ -2,6 +2,30 @@
   "bundledPlugins": [
     {
       "capabilities": [
+        "skill"
+      ],
+      "contractKeys": [],
+      "dependencies": {
+        "acpx": "0.4.0"
+      },
+      "devDependencies": {},
+      "dir": "extensions/acpx",
+      "enabledByDefault": false,
+      "id": "acpx",
+      "install": {
+        "entryPoints": []
+      },
+      "manifestPath": "extensions/acpx/crawclaw.plugin.json",
+      "optionalDependencies": {},
+      "packageJsonPath": "extensions/acpx/package.json",
+      "packageName": "@crawclaw/acpx",
+      "peerDependencies": {},
+      "private": true,
+      "providerIds": [],
+      "version": "2026.4.1-beta.1"
+    },
+    {
+      "capabilities": [
         "provider"
       ],
       "contractKeys": [],
@@ -1178,14 +1202,14 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "bundledPluginCount": 46,
+    "bundledPluginCount": 47,
     "capabilityCounts": {
       "contract": 5,
       "provider": 37,
-      "skill": 1,
+      "skill": 2,
       "support": 3
     },
-    "disabledByDefaultCount": 5,
+    "disabledByDefaultCount": 6,
     "enabledByDefaultCount": 41,
     "pluginRuntimeDependencyVersionSplits": [],
     "releasedNpmSpecPluginIds": [],
@@ -1195,6 +1219,6 @@
       "optionalDependencies": 0,
       "peerDependencies": 1
     },
-    "uniquePluginRuntimeDependencyCount": 1
+    "uniquePluginRuntimeDependencyCount": 2
   }
 }
