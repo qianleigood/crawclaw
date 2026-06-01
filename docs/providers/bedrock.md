@@ -8,11 +8,11 @@ title: "Amazon Bedrock"
 
 # Amazon Bedrock
 
-CrawClaw can use **Amazon Bedrock** models via pi‑ai’s **Bedrock Converse**
-streaming provider. Bedrock auth uses the **AWS SDK default credential chain**,
-not an API key.
+CrawClaw can use **Amazon Bedrock** models through the Rust NativeProvider
+Bedrock Converse transport. Bedrock auth uses the **AWS SDK default credential
+chain**, not an API key.
 
-## What pi-ai supports
+## What CrawClaw supports
 
 - Provider: `amazon-bedrock`
 - API: `bedrock-converse-stream`

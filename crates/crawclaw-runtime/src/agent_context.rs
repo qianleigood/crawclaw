@@ -224,7 +224,7 @@ fn tool_descriptors_for_context(
     let mut descriptors = match &options.tool_selection {
         AgentRuntimeToolSelection::Disabled => Vec::new(),
         AgentRuntimeToolSelection::Default => {
-            pi_agent_rust_tool_descriptors_for_runtime_root(runtime_root)
+            native_runtime_tool_descriptors_for_runtime_root(runtime_root)
         }
         AgentRuntimeToolSelection::AllowList(allowlist) => {
             let allowlist = allowlist
@@ -232,7 +232,7 @@ fn tool_descriptors_for_context(
                 .map(|tool| tool.trim())
                 .filter(|tool| !tool.is_empty())
                 .collect::<BTreeSet<_>>();
-            pi_agent_rust_tool_descriptors_for_runtime_root(runtime_root)
+            native_runtime_tool_descriptors_for_runtime_root(runtime_root)
                 .into_iter()
                 .filter(|descriptor| {
                     allowlist.iter().any(|rule| {

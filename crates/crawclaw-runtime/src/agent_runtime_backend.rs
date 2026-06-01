@@ -8,9 +8,6 @@ pub trait AgentRuntimeBackend: Send + Sync {
 }
 
 #[derive(Clone, Default)]
-pub struct PiAgentRuntimeBackend;
-
-#[derive(Clone, Default)]
 pub struct NativeProviderRuntimeBackend;
 
 #[derive(Clone, Default)]
@@ -355,19 +352,17 @@ impl AgentRuntime {
     pub fn new(runtime_root: PathBuf) -> Self {
         Self {
             runtime_root,
-            pi_agent_backend: Arc::new(PiAgentRuntimeBackend),
             native_provider_backend: Arc::new(NativeProviderRuntimeBackend),
         }
     }
 
-    pub fn with_pi_agent_backend(
+    pub fn with_native_provider_backend(
         runtime_root: PathBuf,
-        pi_agent_backend: Arc<dyn AgentRuntimeBackend>,
+        native_provider_backend: Arc<dyn AgentRuntimeBackend>,
     ) -> Self {
         Self {
             runtime_root,
-            pi_agent_backend,
-            native_provider_backend: Arc::new(NativeProviderRuntimeBackend),
+            native_provider_backend,
         }
     }
 
@@ -437,17 +432,17 @@ impl AgentRuntime {
                 projection: serde_json::to_value(&result.context_summary.projection)
                     .map_err(|error| AgentRuntimeError::ProviderFailed(error.to_string()))?,
             },
-            AgentRunEvent::ProviderBlock {
-                run_id: run_id.clone(),
-                block_type: "text".to_string(),
-                text: Some(assistant_text.clone()),
-                metadata: json!({
-                    "profileKind": result.context_summary.profile_kind,
-                    "budgetState": result.context_summary.budget.state
-                }),
-            },
         ];
         events.extend(agent_loop_events_to_run_events(&run_id, result.loop_events));
+        events.push(AgentRunEvent::ProviderBlock {
+            run_id: run_id.clone(),
+            block_type: "text".to_string(),
+            text: Some(assistant_text.clone()),
+            metadata: json!({
+                "profileKind": result.context_summary.profile_kind,
+                "budgetState": result.context_summary.budget.state
+            }),
+        });
         events.extend([
             AgentRunEvent::ReplyPayload {
                 run_id: run_id.clone(),
@@ -667,55 +662,28 @@ impl AgentRuntime {
         );
         let model_selection = options.model_selection.as_ref();
         let provider_send = async {
-            let runtime_mode = config.runtime_mode();
-            let backend_result = match runtime_mode {
-                DesktopAgentRuntimeMode::PiAgentRust => {
-                    let mut provider_config =
-                        ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
-                    apply_agent_model_selection(&mut provider_config, model_selection)?;
-                    self.pi_agent_backend
-                        .send_message(AgentRuntimeRequest {
-                            runtime_root: &self.runtime_root,
-                            thread_id: &thread_id,
-                            user_text: &user_text,
-                            history: history.clone(),
-                            runtime_context: runtime_context.clone(),
-                            provider_config,
-                            reasoning_level: model_selection
-                                .and_then(|model| model.reasoning_level.clone()),
-                            timeout_seconds,
-                            max_tool_iterations,
-                            tool_selection: options.tool_selection.clone(),
-                            permission_policy: options.permission_policy.clone(),
-                            tool_hook_policy: options.tool_hook_policy.clone(),
-                            system_prompt: options.system_prompt.clone(),
-                        })
-                        .await?
-                }
-                DesktopAgentRuntimeMode::NativeProvider => {
-                    let mut provider_config =
-                        ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
-                    apply_agent_model_selection(&mut provider_config, model_selection)?;
-                    self.native_provider_backend
-                        .send_message(AgentRuntimeRequest {
-                            runtime_root: &self.runtime_root,
-                            thread_id: &thread_id,
-                            user_text: &user_text,
-                            history: history.clone(),
-                            runtime_context: runtime_context.clone(),
-                            provider_config,
-                            reasoning_level: model_selection
-                                .and_then(|model| model.reasoning_level.clone()),
-                            timeout_seconds,
-                            max_tool_iterations,
-                            tool_selection: options.tool_selection.clone(),
-                            permission_policy: options.permission_policy.clone(),
-                            tool_hook_policy: options.tool_hook_policy.clone(),
-                            system_prompt: options.system_prompt.clone(),
-                        })
-                        .await?
-                }
-            };
+            let mut provider_config =
+                ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
+            apply_agent_model_selection(&mut provider_config, model_selection)?;
+            let backend_result = self
+                .native_provider_backend
+                .send_message(AgentRuntimeRequest {
+                    runtime_root: &self.runtime_root,
+                    thread_id: &thread_id,
+                    user_text: &user_text,
+                    history: history.clone(),
+                    runtime_context: runtime_context.clone(),
+                    provider_config,
+                    reasoning_level: model_selection
+                        .and_then(|model| model.reasoning_level.clone()),
+                    timeout_seconds,
+                    max_tool_iterations,
+                    tool_selection: options.tool_selection.clone(),
+                    permission_policy: options.permission_policy.clone(),
+                    tool_hook_policy: options.tool_hook_policy.clone(),
+                    system_prompt: options.system_prompt.clone(),
+                })
+                .await?;
             Ok::<AgentBackendResult, AgentRuntimeError>(backend_result)
         };
         let backend_result = if timeout_seconds == 0 {
@@ -812,54 +780,27 @@ impl AgentRuntime {
             &profile,
         );
         let model_selection = options.model_selection.as_ref();
-        let backend_result = match config.runtime_mode() {
-            DesktopAgentRuntimeMode::PiAgentRust => {
-                let mut provider_config =
-                    ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
-                apply_agent_model_selection(&mut provider_config, model_selection)?;
-                self.pi_agent_backend
-                    .send_message(AgentRuntimeRequest {
-                        runtime_root: &self.runtime_root,
-                        thread_id: &thread_id,
-                        user_text: &user_text,
-                        history: history.clone(),
-                        runtime_context: runtime_context.clone(),
-                        provider_config,
-                        reasoning_level: model_selection
-                            .and_then(|model| model.reasoning_level.clone()),
-                        timeout_seconds,
-                        max_tool_iterations,
-                        tool_selection: options.tool_selection.clone(),
-                        permission_policy: options.permission_policy.clone(),
-                        tool_hook_policy: options.tool_hook_policy.clone(),
-                        system_prompt: options.system_prompt.clone(),
-                    })
-                    .await?
-            }
-            DesktopAgentRuntimeMode::NativeProvider => {
-                let mut provider_config =
-                    ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
-                apply_agent_model_selection(&mut provider_config, model_selection)?;
-                self.native_provider_backend
-                    .send_message(AgentRuntimeRequest {
-                        runtime_root: &self.runtime_root,
-                        thread_id: &thread_id,
-                        user_text: &user_text,
-                        history,
-                        runtime_context: runtime_context.clone(),
-                        provider_config,
-                        reasoning_level: model_selection
-                            .and_then(|model| model.reasoning_level.clone()),
-                        timeout_seconds,
-                        max_tool_iterations,
-                        tool_selection: options.tool_selection.clone(),
-                        permission_policy: options.permission_policy.clone(),
-                        tool_hook_policy: options.tool_hook_policy.clone(),
-                        system_prompt: options.system_prompt.clone(),
-                    })
-                    .await?
-            }
-        };
+        let mut provider_config =
+            ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
+        apply_agent_model_selection(&mut provider_config, model_selection)?;
+        let backend_result = self
+            .native_provider_backend
+            .send_message(AgentRuntimeRequest {
+                runtime_root: &self.runtime_root,
+                thread_id: &thread_id,
+                user_text: &user_text,
+                history,
+                runtime_context: runtime_context.clone(),
+                provider_config,
+                reasoning_level: model_selection.and_then(|model| model.reasoning_level.clone()),
+                timeout_seconds,
+                max_tool_iterations,
+                tool_selection: options.tool_selection.clone(),
+                permission_policy: options.permission_policy.clone(),
+                tool_hook_policy: options.tool_hook_policy.clone(),
+                system_prompt: options.system_prompt.clone(),
+            })
+            .await?;
 
         Ok(AgentSendResult {
             thread_id,
@@ -1148,7 +1089,7 @@ impl AgentRuntimeBackend for NativeProviderRuntimeBackend {
         Box::pin(async move {
             let mut messages =
                 agent_messages_to_native_provider_messages(&request.runtime_context.messages);
-            let tools = build_pi_agent_rust_tool_registry_for_selection(
+            let tools = build_native_runtime_tool_registry_for_selection(
                 request.runtime_root,
                 &request.tool_selection,
                 request.permission_policy.clone(),
@@ -1206,12 +1147,14 @@ impl AgentRuntimeBackend for NativeProviderRuntimeBackend {
                     )));
                 }
                 messages.push(native_provider_assistant_tool_call_message(&response));
-                for tool_call in &response.tool_calls {
-                    let tool_result =
-                        execute_native_provider_tool_call(&tools, tool_call, &mut loop_events)
-                            .await;
-                    messages.push(tool_result);
-                }
+                messages.extend(
+                    execute_native_provider_tool_calls(
+                        &tools,
+                        &response.tool_calls,
+                        &mut loop_events,
+                    )
+                    .await,
+                );
             }
 
             Err(AgentRuntimeError::ProviderFailed(format!(
@@ -1242,29 +1185,136 @@ fn native_provider_assistant_tool_call_message(
     }
 }
 
+async fn execute_native_provider_tool_calls(
+    tools: &pi::sdk::ToolRegistry,
+    tool_calls: &[crawclaw_providers::NativeProviderToolCall],
+    loop_events: &mut Vec<AgentLoopEvent>,
+) -> Vec<NativeProviderMessage> {
+    let mut messages = Vec::with_capacity(tool_calls.len());
+    let mut index = 0;
+    while index < tool_calls.len() {
+        let batch_len = native_provider_tool_call_batch_len(tools, tool_calls, index);
+        let batch = &tool_calls[index..index + batch_len];
+        messages.extend(execute_native_provider_tool_call_batch(tools, batch, loop_events).await);
+        index += batch_len;
+    }
+    messages
+}
+
+fn native_provider_tool_call_batch_len(
+    tools: &pi::sdk::ToolRegistry,
+    tool_calls: &[crawclaw_providers::NativeProviderToolCall],
+    start: usize,
+) -> usize {
+    let Some(first) = tool_calls.get(start) else {
+        return 0;
+    };
+    if !native_provider_tool_call_is_read_only(tools, first) {
+        return 1;
+    }
+    tool_calls[start..]
+        .iter()
+        .take_while(|tool_call| native_provider_tool_call_is_read_only(tools, tool_call))
+        .count()
+        .max(1)
+}
+
+fn native_provider_tool_call_is_read_only(
+    tools: &pi::sdk::ToolRegistry,
+    tool_call: &crawclaw_providers::NativeProviderToolCall,
+) -> bool {
+    tools
+        .get(&tool_call.name)
+        .is_some_and(|tool| tool.is_read_only())
+}
+
+async fn execute_native_provider_tool_call_batch(
+    tools: &pi::sdk::ToolRegistry,
+    tool_calls: &[crawclaw_providers::NativeProviderToolCall],
+    loop_events: &mut Vec<AgentLoopEvent>,
+) -> Vec<NativeProviderMessage> {
+    for tool_call in tool_calls {
+        loop_events.push(AgentLoopEvent::ToolExecution {
+            event: ToolExecutionEvent::Started {
+                call_id: tool_call.id.clone(),
+                tool_name: tool_call.name.clone(),
+                arguments: tool_call.arguments.clone(),
+            },
+        });
+    }
+
+    let results = futures::future::join_all(
+        tool_calls
+            .iter()
+            .map(|tool_call| execute_native_provider_tool_call(tools, tool_call)),
+    )
+    .await;
+
+    for result in &results {
+        loop_events.extend(result.progress_events.clone());
+    }
+    for result in &results {
+        loop_events.push(AgentLoopEvent::ToolExecution {
+            event: ToolExecutionEvent::Completed {
+                call_id: result.call_id.clone(),
+                tool_name: result.tool_name.clone(),
+                output: Some(result.content.clone()),
+                is_error: result.is_error,
+            },
+        });
+    }
+
+    results
+        .into_iter()
+        .map(NativeProviderToolExecutionResult::into_message)
+        .collect()
+}
+
+struct NativeProviderToolExecutionResult {
+    call_id: String,
+    tool_name: String,
+    content: String,
+    is_error: bool,
+    progress_events: Vec<AgentLoopEvent>,
+}
+
+impl NativeProviderToolExecutionResult {
+    fn into_message(self) -> NativeProviderMessage {
+        NativeProviderMessage::tool_result(
+            self.call_id,
+            Some(self.tool_name),
+            self.content,
+            self.is_error,
+        )
+    }
+}
+
 async fn execute_native_provider_tool_call(
     tools: &pi::sdk::ToolRegistry,
     tool_call: &crawclaw_providers::NativeProviderToolCall,
-    loop_events: &mut Vec<AgentLoopEvent>,
-) -> NativeProviderMessage {
-    loop_events.push(AgentLoopEvent::ToolExecution {
-        event: ToolExecutionEvent::Started {
-            call_id: tool_call.id.clone(),
-            tool_name: tool_call.name.clone(),
-            arguments: tool_call.arguments.clone(),
-        },
-    });
-
+) -> NativeProviderToolExecutionResult {
+    let progress_events = Arc::new(std::sync::Mutex::new(Vec::<AgentLoopEvent>::new()));
     let result = match tools.get(&tool_call.name) {
-        Some(tool) => tool
-            .execute(&tool_call.id, tool_call.arguments.clone(), None)
-            .await
-            .map(|output| {
-                let content = native_tool_output_summary(&output)
-                    .unwrap_or_else(|| "Tool completed without output.".to_string());
-                (content, output.is_error)
-            })
-            .map_err(|error| error.to_string()),
+        Some(tool) => {
+            let call_id = tool_call.id.clone();
+            let tool_name = tool_call.name.clone();
+            let update_sink = Arc::clone(&progress_events);
+            let on_update = Box::new(move |update: pi::sdk::ToolUpdate| {
+                let event = native_tool_update_loop_event(&call_id, &tool_name, &update);
+                let mut events = update_sink
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner);
+                events.push(event);
+            });
+            tool.execute(&tool_call.id, tool_call.arguments.clone(), Some(on_update))
+                .await
+                .map(|output| {
+                    let content = native_tool_output_summary(&output)
+                        .unwrap_or_else(|| "Tool completed without output.".to_string());
+                    (content, output.is_error)
+                })
+                .map_err(|error| error.to_string())
+        }
         None => Err(format!(
             "Tool {} is not available in the current NativeProvider runtime context.",
             tool_call.name
@@ -1275,26 +1325,124 @@ async fn execute_native_provider_tool_call(
         Ok((content, is_error)) => (content, is_error),
         Err(error) => (error, true),
     };
-    loop_events.push(AgentLoopEvent::ToolExecution {
-        event: ToolExecutionEvent::Completed {
-            call_id: tool_call.id.clone(),
-            tool_name: tool_call.name.clone(),
-            output: Some(content.clone()),
-            is_error,
-        },
-    });
+    let progress_events = progress_events
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clone();
 
-    NativeProviderMessage::tool_result(
-        tool_call.id.clone(),
-        Some(tool_call.name.clone()),
+    NativeProviderToolExecutionResult {
+        call_id: tool_call.id.clone(),
+        tool_name: tool_call.name.clone(),
         content,
         is_error,
-    )
+        progress_events,
+    }
 }
 
 fn native_tool_output_summary(output: &pi::sdk::ToolOutput) -> Option<String> {
-    let text = output
-        .content
+    native_tool_content_summary(&output.content).or_else(|| {
+        output
+            .details
+            .as_ref()
+            .and_then(|details| serde_json::to_string(details).ok())
+    })
+}
+
+fn native_tool_update_summary(update: &pi::sdk::ToolUpdate) -> Option<String> {
+    native_tool_content_summary(&update.content).or_else(|| {
+        update
+            .details
+            .as_ref()
+            .and_then(|details| serde_json::to_string(details).ok())
+    })
+}
+
+fn native_tool_update_loop_event(
+    call_id: &str,
+    tool_name: &str,
+    update: &pi::sdk::ToolUpdate,
+) -> AgentLoopEvent {
+    if let Some(event) = native_tool_hook_event(update) {
+        return AgentLoopEvent::Hook { event };
+    }
+    if let Some(event) = native_tool_permission_requested_event(call_id, tool_name, update) {
+        return AgentLoopEvent::ToolExecution { event };
+    }
+    AgentLoopEvent::ToolExecution {
+        event: ToolExecutionEvent::Progress {
+            call_id: call_id.to_string(),
+            tool_name: tool_name.to_string(),
+            status: "running".to_string(),
+            message: native_tool_update_summary(update),
+        },
+    }
+}
+
+fn native_tool_hook_event(update: &pi::sdk::ToolUpdate) -> Option<HookEvent> {
+    let details = update.details.as_ref()?.as_object()?;
+    if details.get(HOOK_UPDATE_EVENT_KEY).and_then(Value::as_str)
+        != Some(HOOK_UPDATE_EVENT_DECISION)
+    {
+        return None;
+    }
+    let hook = details
+        .get(HOOK_UPDATE_HOOK_KEY)
+        .and_then(Value::as_str)?
+        .to_string();
+    let decision = details
+        .get(HOOK_UPDATE_DECISION_KEY)
+        .and_then(Value::as_str)?
+        .to_string();
+    let message = details
+        .get(HOOK_UPDATE_MESSAGE_KEY)
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .or_else(|| native_tool_update_summary(update));
+    Some(HookEvent {
+        hook,
+        decision,
+        message,
+    })
+}
+
+fn native_tool_permission_requested_event(
+    call_id: &str,
+    tool_name: &str,
+    update: &pi::sdk::ToolUpdate,
+) -> Option<ToolExecutionEvent> {
+    let details = update.details.as_ref()?.as_object()?;
+    if details
+        .get(PERMISSION_UPDATE_EVENT_KEY)
+        .and_then(Value::as_str)
+        != Some(PERMISSION_UPDATE_EVENT_REQUESTED)
+    {
+        return None;
+    }
+    let request_id = details
+        .get(PERMISSION_UPDATE_REQUEST_ID_KEY)
+        .and_then(Value::as_str)
+        .unwrap_or(call_id)
+        .to_string();
+    let tool_name = details
+        .get(PERMISSION_UPDATE_TOOL_NAME_KEY)
+        .and_then(Value::as_str)
+        .unwrap_or(tool_name)
+        .to_string();
+    let reason = details
+        .get(PERMISSION_UPDATE_REASON_KEY)
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .or_else(|| native_tool_update_summary(update))
+        .unwrap_or_else(|| "permission requested".to_string());
+    Some(ToolExecutionEvent::PermissionRequested {
+        request_id,
+        tool_name,
+        reason,
+    })
+}
+
+fn native_tool_content_summary(content: &[pi::sdk::ContentBlock]) -> Option<String> {
+    let text = content
         .iter()
         .filter_map(|block| match block {
             pi::sdk::ContentBlock::Text(text) => Some(text.text.as_str()),
@@ -1305,91 +1453,378 @@ fn native_tool_output_summary(output: &pi::sdk::ToolOutput) -> Option<String> {
     if !text.trim().is_empty() {
         return Some(text);
     }
-    output
-        .details
-        .as_ref()
-        .and_then(|details| serde_json::to_string(details).ok())
+    None
 }
 
-impl AgentRuntimeBackend for PiAgentRuntimeBackend {
-    fn send_message<'a>(
-        &'a self,
-        request: AgentRuntimeRequest<'a>,
-    ) -> Pin<Box<dyn Future<Output = Result<AgentBackendResult, AgentRuntimeError>> + Send + 'a>>
-    {
-        Box::pin(async move {
-            let provider = Arc::new(CrawClawPiProvider {
-                config: request.provider_config.clone(),
-                reasoning_level: request.reasoning_level.clone(),
-                system_prompt: request.runtime_context.system_prompt(),
-                included_tool_names: request
-                    .runtime_context
-                    .context_summary
-                    .included_tools
-                    .iter()
-                    .cloned()
-                    .collect(),
-            });
-            let tools = build_pi_agent_rust_tool_registry_for_selection(
-                request.runtime_root,
-                &request.tool_selection,
-                request.permission_policy.clone(),
-                request.tool_hook_policy.clone(),
-            );
-            tracing::debug!(
-                runtime_root = %request.runtime_root.display(),
-                thread_id = %request.thread_id,
-                "pi_agent_runtime_backend_started"
-            );
-            let agent_config = pi::sdk::AgentConfig {
-                system_prompt: None,
-                max_tool_iterations: request.max_tool_iterations.max(1),
-                stream_options: pi::sdk::StreamOptions::default(),
-                block_images: false,
-                fail_closed_hooks: false,
-            };
-            let mut projected_history = request.runtime_context.messages.clone();
-            if projected_history.last().is_some_and(|message| {
-                message.role == AgentRuntimeMessageRole::User
-                    && message.content.trim() == request.user_text.trim()
-            }) {
-                projected_history.pop();
+#[cfg(test)]
+mod native_provider_backend_tests {
+    use super::*;
+
+    struct BackendRecordingPermissionRequester {
+        decision: AgentRuntimePermissionDecision,
+        requests: std::sync::Mutex<Vec<AgentRuntimePermissionRequest>>,
+    }
+
+    impl BackendRecordingPermissionRequester {
+        fn new(decision: AgentRuntimePermissionDecision) -> Self {
+            Self {
+                decision,
+                requests: std::sync::Mutex::new(Vec::new()),
             }
-            let session = Arc::new(asupersync::sync::Mutex::new(pi_session_from_history(
-                &projected_history,
-            )));
-            let agent = pi::sdk::Agent::new(provider, tools, agent_config);
-            let agent_session = pi::sdk::AgentSession::new(
-                agent,
-                session,
-                false,
-                pi::compaction::ResolvedCompactionSettings::default(),
-            );
-            let loop_events = Arc::new(std::sync::Mutex::new(Vec::<AgentLoopEvent>::new()));
-            let event_sink = Arc::clone(&loop_events);
-            let mut handle = pi::sdk::AgentSessionHandle::from_session_with_listeners(
-                agent_session,
-                pi::sdk::EventListeners::default(),
-            );
-            let assistant = handle
-                .prompt(request.user_text.to_string(), move |event| {
-                    if let Some(loop_event) = pi_agent_event_to_loop_event(event) {
-                        let mut events = event_sink
-                            .lock()
-                            .unwrap_or_else(std::sync::PoisonError::into_inner);
-                        events.push(loop_event);
-                    }
-                })
-                .await
-                .map_err(map_pi_agent_error)?;
-            let collected_loop_events = loop_events
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .clone();
-            Ok(AgentBackendResult {
-                assistant_text: pi_agent_assistant_text(&assistant)?,
-                loop_events: collected_loop_events,
+        }
+
+        fn requests(&self) -> Vec<AgentRuntimePermissionRequest> {
+            self.requests.lock().expect("requests").clone()
+        }
+    }
+
+    impl AgentRuntimePermissionRequester for BackendRecordingPermissionRequester {
+        fn request_permission<'a>(
+            &'a self,
+            request: AgentRuntimePermissionRequest,
+        ) -> Pin<Box<dyn Future<Output = AgentRuntimePermissionDecision> + Send + 'a>> {
+            Box::pin(async move {
+                self.requests.lock().expect("requests").push(request);
+                self.decision
             })
-        })
+        }
+    }
+
+    struct PermissionedCommandTool;
+
+    #[async_trait::async_trait]
+    impl pi::sdk::Tool for PermissionedCommandTool {
+        fn name(&self) -> &str {
+            "bash"
+        }
+
+        fn label(&self) -> &str {
+            "bash"
+        }
+
+        fn description(&self) -> &str {
+            "Runs a command"
+        }
+
+        fn parameters(&self) -> Value {
+            json!({ "type": "object" })
+        }
+
+        async fn execute(
+            &self,
+            _tool_call_id: &str,
+            _input: Value,
+            _on_update: Option<Box<dyn Fn(pi::sdk::ToolUpdate) + Send + Sync>>,
+        ) -> pi::sdk::Result<pi::sdk::ToolOutput> {
+            Ok(pi::sdk::ToolOutput {
+                content: vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
+                    "command output",
+                ))],
+                details: None,
+                is_error: false,
+            })
+        }
+    }
+
+    struct HookedTool;
+
+    #[async_trait::async_trait]
+    impl pi::sdk::Tool for HookedTool {
+        fn name(&self) -> &str {
+            "hooked_tool"
+        }
+
+        fn label(&self) -> &str {
+            "hooked_tool"
+        }
+
+        fn description(&self) -> &str {
+            "Runs with hooks"
+        }
+
+        fn parameters(&self) -> Value {
+            json!({ "type": "object" })
+        }
+
+        async fn execute(
+            &self,
+            _tool_call_id: &str,
+            _input: Value,
+            _on_update: Option<Box<dyn Fn(pi::sdk::ToolUpdate) + Send + Sync>>,
+        ) -> pi::sdk::Result<pi::sdk::ToolOutput> {
+            Ok(pi::sdk::ToolOutput {
+                content: vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
+                    "hooked output",
+                ))],
+                details: None,
+                is_error: false,
+            })
+        }
+    }
+
+    struct ContinuePreHook;
+
+    impl AgentRuntimePreToolUseHook for ContinuePreHook {
+        fn pre_tool_use<'a>(
+            &'a self,
+            request: AgentRuntimePreToolUseRequest,
+        ) -> Pin<Box<dyn Future<Output = AgentRuntimePreToolUseDecision> + Send + 'a>> {
+            Box::pin(async move {
+                AgentRuntimePreToolUseDecision::Continue {
+                    input: request.input,
+                    additional_context: vec!["pre hook context".to_string()],
+                }
+            })
+        }
+    }
+
+    struct ContinuePostHook;
+
+    impl AgentRuntimePostToolUseHook for ContinuePostHook {
+        fn post_tool_use<'a>(
+            &'a self,
+            _request: AgentRuntimePostToolUseRequest,
+        ) -> Pin<Box<dyn Future<Output = AgentRuntimePostToolUseDecision> + Send + 'a>> {
+            Box::pin(async move {
+                AgentRuntimePostToolUseDecision::Continue {
+                    updated_mcp_tool_output: None,
+                    additional_context: vec!["post hook context".to_string()],
+                }
+            })
+        }
+    }
+
+    struct ProgressTool;
+
+    #[async_trait::async_trait]
+    impl pi::sdk::Tool for ProgressTool {
+        fn name(&self) -> &str {
+            "progress_tool"
+        }
+
+        fn label(&self) -> &str {
+            "progress_tool"
+        }
+
+        fn description(&self) -> &str {
+            "Reports progress before completing"
+        }
+
+        fn parameters(&self) -> Value {
+            json!({ "type": "object" })
+        }
+
+        async fn execute(
+            &self,
+            _tool_call_id: &str,
+            _input: Value,
+            on_update: Option<Box<dyn Fn(pi::sdk::ToolUpdate) + Send + Sync>>,
+        ) -> pi::sdk::Result<pi::sdk::ToolOutput> {
+            if let Some(on_update) = on_update {
+                on_update(pi::sdk::ToolUpdate {
+                    content: vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
+                        "partial progress",
+                    ))],
+                    details: Some(json!({ "phase": "running" })),
+                });
+            }
+            Ok(pi::sdk::ToolOutput {
+                content: vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
+                    "final output",
+                ))],
+                details: None,
+                is_error: false,
+            })
+        }
+    }
+
+    #[tokio::test]
+    async fn native_provider_tool_execution_surfaces_tool_updates() {
+        let registry = pi::sdk::ToolRegistry::from_tools(vec![Box::new(ProgressTool)]);
+        let tool_calls = vec![crawclaw_providers::NativeProviderToolCall {
+            id: "call_progress".to_string(),
+            name: "progress_tool".to_string(),
+            arguments: json!({}),
+        }];
+        let mut loop_events = Vec::new();
+
+        let messages =
+            execute_native_provider_tool_calls(&registry, &tool_calls, &mut loop_events).await;
+
+        assert_eq!(messages.len(), 1);
+        let progress_index = loop_events
+            .iter()
+            .position(|event| {
+                matches!(
+                    event,
+                    AgentLoopEvent::ToolExecution {
+                        event: ToolExecutionEvent::Progress {
+                            call_id,
+                            tool_name,
+                            status,
+                            message: Some(message)
+                        }
+                    } if call_id == "call_progress"
+                        && tool_name == "progress_tool"
+                        && status == "running"
+                        && message == "partial progress"
+                )
+            })
+            .expect("progress event");
+        let completed_index = loop_events
+            .iter()
+            .position(|event| {
+                matches!(
+                    event,
+                    AgentLoopEvent::ToolExecution {
+                        event: ToolExecutionEvent::Completed {
+                            call_id,
+                            output: Some(output),
+                            ..
+                        }
+                    } if call_id == "call_progress" && output == "final output"
+                )
+            })
+            .expect("completed event");
+        assert!(
+            progress_index < completed_index,
+            "tool progress should be surfaced before completion"
+        );
+    }
+
+    #[tokio::test]
+    async fn native_provider_tool_execution_surfaces_permission_requests() {
+        let requester = Arc::new(BackendRecordingPermissionRequester::new(
+            AgentRuntimePermissionDecision::Approved,
+        ));
+        let registry = apply_permission_policy_to_registry(
+            pi::sdk::ToolRegistry::from_tools(vec![Box::new(PermissionedCommandTool)]),
+            Some(
+                AgentRuntimePermissionPolicy::workspace()
+                    .with_confirm_commands(true)
+                    .with_requester(requester.clone()),
+            ),
+        );
+        let tool_calls = vec![crawclaw_providers::NativeProviderToolCall {
+            id: "call_bash".to_string(),
+            name: "bash".to_string(),
+            arguments: json!({ "command": "printf hi" }),
+        }];
+        let mut loop_events = Vec::new();
+
+        let messages =
+            execute_native_provider_tool_calls(&registry, &tool_calls, &mut loop_events).await;
+
+        assert_eq!(messages.len(), 1);
+        assert_eq!(requester.requests().len(), 1);
+        let permission_index = loop_events
+            .iter()
+            .position(|event| {
+                matches!(
+                    event,
+                    AgentLoopEvent::ToolExecution {
+                        event: ToolExecutionEvent::PermissionRequested {
+                            request_id,
+                            tool_name,
+                            reason,
+                        }
+                    } if request_id == "call_bash"
+                        && tool_name == "bash"
+                        && reason.contains("printf hi")
+                )
+            })
+            .expect("permission requested event");
+        let completed_index = loop_events
+            .iter()
+            .position(|event| {
+                matches!(
+                    event,
+                    AgentLoopEvent::ToolExecution {
+                        event: ToolExecutionEvent::Completed {
+                            call_id,
+                            is_error: false,
+                            ..
+                        }
+                    } if call_id == "call_bash"
+                )
+            })
+            .expect("completed event");
+        assert!(
+            permission_index < completed_index,
+            "permission request should be surfaced before tool completion"
+        );
+    }
+
+    #[tokio::test]
+    async fn native_provider_tool_execution_surfaces_hook_decisions() {
+        let registry = apply_tool_hook_policy_to_registry(
+            pi::sdk::ToolRegistry::from_tools(vec![Box::new(HookedTool)]),
+            Some(AgentRuntimeToolHookPolicy::with_tool_hooks(
+                Some(Arc::new(ContinuePreHook)),
+                Some(Arc::new(ContinuePostHook)),
+            )),
+        );
+        let tool_calls = vec![crawclaw_providers::NativeProviderToolCall {
+            id: "call_hooked".to_string(),
+            name: "hooked_tool".to_string(),
+            arguments: json!({}),
+        }];
+        let mut loop_events = Vec::new();
+
+        let messages =
+            execute_native_provider_tool_calls(&registry, &tool_calls, &mut loop_events).await;
+
+        assert_eq!(messages.len(), 1);
+        let pre_hook_index = loop_events
+            .iter()
+            .position(|event| {
+                matches!(
+                    event,
+                    AgentLoopEvent::Hook {
+                        event: HookEvent {
+                            hook,
+                            decision,
+                            message: Some(message),
+                        }
+                    } if hook == "PreToolUse"
+                        && decision == "continue"
+                        && message.contains("pre hook context")
+                )
+            })
+            .expect("pre hook decision event");
+        let post_hook_index = loop_events
+            .iter()
+            .position(|event| {
+                matches!(
+                    event,
+                    AgentLoopEvent::Hook {
+                        event: HookEvent {
+                            hook,
+                            decision,
+                            message: Some(message),
+                        }
+                    } if hook == "PostToolUse"
+                        && decision == "continue"
+                        && message.contains("post hook context")
+                )
+            })
+            .expect("post hook decision event");
+        let completed_index = loop_events
+            .iter()
+            .position(|event| {
+                matches!(
+                    event,
+                    AgentLoopEvent::ToolExecution {
+                        event: ToolExecutionEvent::Completed {
+                            call_id,
+                            is_error: false,
+                            ..
+                        }
+                    } if call_id == "call_hooked"
+                )
+            })
+            .expect("completed event");
+        assert!(pre_hook_index < completed_index);
+        assert!(post_hook_index < completed_index);
     }
 }

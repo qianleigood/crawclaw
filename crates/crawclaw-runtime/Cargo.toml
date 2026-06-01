@@ -16,7 +16,6 @@ chrono = "0.4"
 chrono-tz = "0.10.4"
 croner = "3.0.1"
 futures = "0.3"
-pi = { package = "pi_agent_rust", version = "0.1.13", default-features = false }
 jsonschema = "0.33"
 pdf-extract = "0.10.0"
 reqwest = { version = "0.12", default-features = false, features = [

@@ -49,7 +49,7 @@ fn status(args: &[String]) {
                 "ok": true,
                 "runtime": "ready",
                 "implementation": "rust-native",
-                "tools": crawclaw_runtime::pi_agent_rust_tool_names(),
+                "tools": crawclaw_runtime::native_runtime_tool_names(),
                 "toolCatalog": crawclaw_runtime::rust_tool_catalog_json_payload()
             })
         );
@@ -259,7 +259,7 @@ async fn run_mcp_server() {
 }
 
 fn mcp_tools_list(runtime_root: &PathBuf) -> Value {
-    let tools = crawclaw_runtime::pi_agent_rust_tool_descriptors_for_runtime_root(runtime_root)
+    let tools = crawclaw_runtime::native_runtime_tool_descriptors_for_runtime_root(runtime_root)
         .into_iter()
         .filter(|tool| {
             !tool.name.starts_with("memory_") && !tool.name.starts_with("session_summary_")

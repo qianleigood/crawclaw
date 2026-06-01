@@ -2509,7 +2509,7 @@ async fn resolve_agent_tools(
         )
     };
     let runtime_tools =
-        crawclaw_runtime::pi_agent_rust_tool_descriptors_for_runtime_root(&state.runtime_root);
+        crawclaw_runtime::native_runtime_tool_descriptors_for_runtime_root(&state.runtime_root);
     let mut tools = Vec::new();
     let mut seen = std::collections::BTreeSet::new();
     for requested_id in requested_ids {

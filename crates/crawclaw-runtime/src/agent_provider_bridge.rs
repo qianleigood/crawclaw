@@ -68,11 +68,11 @@ fn is_retryable_provider_error_message(message: &str) -> bool {
     .any(|needle| message.contains(needle))
 }
 
-pub(super) fn build_filtered_pi_agent_rust_tool_registry(
+pub(super) fn build_filtered_native_runtime_tool_registry(
     runtime_root: &Path,
     enabled_tools: &[String],
 ) -> pi::sdk::ToolRegistry {
-    let registry = build_pi_agent_rust_tool_registry(runtime_root);
+    let registry = build_native_runtime_tool_registry(runtime_root);
     if enabled_tools.is_empty() {
         return registry;
     }
@@ -99,7 +99,7 @@ pub(super) fn build_filtered_pi_agent_rust_tool_registry(
 
 fn build_default_profile_tool_registry(runtime_root: &Path) -> pi::sdk::ToolRegistry {
     pi::sdk::ToolRegistry::from_tools(
-        build_pi_agent_rust_tool_registry(runtime_root)
+        build_native_runtime_tool_registry(runtime_root)
             .into_tools()
             .into_iter()
             .filter(|tool| !is_special_agent_only_tool(tool.name()))
@@ -107,7 +107,7 @@ fn build_default_profile_tool_registry(runtime_root: &Path) -> pi::sdk::ToolRegi
     )
 }
 
-pub(super) fn build_pi_agent_rust_tool_registry_for_selection(
+pub(super) fn build_native_runtime_tool_registry_for_selection(
     runtime_root: &Path,
     selection: &AgentRuntimeToolSelection,
     permission_policy: Option<AgentRuntimePermissionPolicy>,
@@ -117,232 +117,11 @@ pub(super) fn build_pi_agent_rust_tool_registry_for_selection(
         AgentRuntimeToolSelection::Default => build_default_profile_tool_registry(runtime_root),
         AgentRuntimeToolSelection::Disabled => pi::sdk::ToolRegistry::from_tools(Vec::new()),
         AgentRuntimeToolSelection::AllowList(enabled_tools) => {
-            build_filtered_pi_agent_rust_tool_registry(runtime_root, enabled_tools)
+            build_filtered_native_runtime_tool_registry(runtime_root, enabled_tools)
         }
     };
     let registry = apply_permission_policy_to_registry(registry, permission_policy);
     apply_tool_hook_policy_to_registry(registry, tool_hook_policy)
-}
-
-#[derive(Clone)]
-pub(super) struct CrawClawPiProvider {
-    pub(super) config: NativeProviderConfig,
-    pub(super) reasoning_level: Option<String>,
-    pub(super) system_prompt: Option<String>,
-    pub(super) included_tool_names: BTreeSet<String>,
-}
-
-#[async_trait::async_trait]
-impl pi::sdk::Provider for CrawClawPiProvider {
-    fn name(&self) -> &str {
-        &self.config.provider
-    }
-
-    fn api(&self) -> &str {
-        &self.config.provider
-    }
-
-    fn model_id(&self) -> &str {
-        self.config.model.as_deref().unwrap_or("")
-    }
-
-    async fn stream(
-        &self,
-        context: &pi::sdk::ProviderContext<'_>,
-        _options: &pi::sdk::StreamOptions,
-    ) -> pi::sdk::Result<
-        Pin<Box<dyn futures::Stream<Item = pi::sdk::Result<pi::sdk::StreamEvent>> + Send>>,
-    > {
-        let messages = pi_messages_to_native_provider_messages(context.messages.as_ref());
-        if messages.is_empty() {
-            return Err(pi::sdk::Error::provider(
-                self.name(),
-                "missing provider conversation messages",
-            ));
-        }
-        let options = NativeProviderRequestOptions {
-            stream: true,
-            reasoning_level: self.reasoning_level.clone(),
-            system_prompt: self.system_prompt.clone(),
-            tools: context
-                .tools
-                .iter()
-                .filter(|tool| {
-                    self.included_tool_names.is_empty()
-                        || self.included_tool_names.contains(tool.name.as_str())
-                })
-                .map(|tool| NativeProviderTool {
-                    name: tool.name.clone(),
-                    description: Some(tool.description.clone()),
-                    input_schema: tool.parameters.clone(),
-                })
-                .collect(),
-        };
-        let response = send_native_provider_conversation_response_with_retry(
-            &self.config,
-            &messages,
-            &options,
-        )
-        .await
-        .map_err(|error| pi::sdk::Error::provider(self.name(), error.to_string()))?;
-        let message = pi_assistant_message_from_native_response(&self.config, &response);
-        let mut partial = message.clone();
-        partial.content.clear();
-        let mut events = vec![Ok(pi::sdk::StreamEvent::Start { partial })];
-        let mut content_index = 0usize;
-        if !response.text.trim().is_empty() {
-            events.push(Ok(pi::sdk::StreamEvent::TextStart { content_index }));
-            events.push(Ok(pi::sdk::StreamEvent::TextDelta {
-                content_index,
-                delta: response.text.clone(),
-            }));
-            events.push(Ok(pi::sdk::StreamEvent::TextEnd {
-                content_index,
-                content: response.text,
-            }));
-            content_index += 1;
-        }
-        for tool_call in response.tool_calls {
-            let tool_call = pi::sdk::ToolCall {
-                id: tool_call.id,
-                name: tool_call.name,
-                arguments: tool_call.arguments,
-                thought_signature: None,
-            };
-            events.push(Ok(pi::sdk::StreamEvent::ToolCallStart { content_index }));
-            events.push(Ok(pi::sdk::StreamEvent::ToolCallDelta {
-                content_index,
-                delta: tool_call.arguments.to_string(),
-            }));
-            events.push(Ok(pi::sdk::StreamEvent::ToolCallEnd {
-                content_index,
-                tool_call,
-            }));
-            content_index += 1;
-        }
-        let reason = if matches!(message.stop_reason, pi::sdk::StopReason::ToolUse) {
-            pi::sdk::StopReason::ToolUse
-        } else {
-            pi::sdk::StopReason::Stop
-        };
-        events.push(Ok(pi::sdk::StreamEvent::Done { reason, message }));
-        Ok(Box::pin(futures::stream::iter(events)))
-    }
-}
-
-pub(super) fn pi_user_content_text(content: &pi::sdk::UserContent) -> String {
-    match content {
-        pi::sdk::UserContent::Text(text) => text.clone(),
-        pi::sdk::UserContent::Blocks(blocks) => blocks
-            .iter()
-            .filter_map(|block| match block {
-                pi::sdk::ContentBlock::Text(text) => Some(text.text.as_str()),
-                _ => None,
-            })
-            .collect::<Vec<_>>()
-            .join("\n"),
-    }
-}
-
-pub(super) fn pi_user_content_blocks(
-    content: &pi::sdk::UserContent,
-) -> Vec<NativeProviderContentBlock> {
-    match content {
-        pi::sdk::UserContent::Text(text) => vec![NativeProviderContentBlock::text(text.clone())],
-        pi::sdk::UserContent::Blocks(blocks) => blocks
-            .iter()
-            .filter_map(|block| match block {
-                pi::sdk::ContentBlock::Text(text) => {
-                    Some(NativeProviderContentBlock::text(text.text.clone()))
-                }
-                pi::sdk::ContentBlock::Image(image) => {
-                    Some(NativeProviderContentBlock::image_base64(
-                        image.mime_type.clone(),
-                        image.data.clone(),
-                    ))
-                }
-                _ => None,
-            })
-            .collect(),
-    }
-}
-
-pub(super) fn pi_assistant_content_text(content: &[pi::sdk::ContentBlock]) -> String {
-    content
-        .iter()
-        .filter_map(|block| match block {
-            pi::sdk::ContentBlock::Text(text) => Some(text.text.as_str()),
-            _ => None,
-        })
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
-pub(super) fn pi_assistant_content_blocks(
-    content: &[pi::sdk::ContentBlock],
-) -> Vec<NativeProviderContentBlock> {
-    content
-        .iter()
-        .filter_map(|block| match block {
-            pi::sdk::ContentBlock::Text(text) => {
-                Some(NativeProviderContentBlock::text(text.text.clone()))
-            }
-            pi::sdk::ContentBlock::ToolCall(tool_call) => {
-                Some(NativeProviderContentBlock::tool_call(
-                    tool_call.id.clone(),
-                    tool_call.name.clone(),
-                    tool_call.arguments.clone(),
-                ))
-            }
-            pi::sdk::ContentBlock::Thinking(_) | pi::sdk::ContentBlock::Image(_) => None,
-        })
-        .collect()
-}
-
-fn pi_tool_result_content_text(content: &[pi::sdk::ContentBlock]) -> String {
-    content
-        .iter()
-        .filter_map(|block| match block {
-            pi::sdk::ContentBlock::Text(text) => Some(text.text.as_str()),
-            _ => None,
-        })
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
-pub(super) fn pi_messages_to_native_provider_messages(
-    messages: &[pi::sdk::Message],
-) -> Vec<NativeProviderMessage> {
-    messages
-        .iter()
-        .filter_map(|message| match message {
-            pi::sdk::Message::User(user) => Some(NativeProviderMessage {
-                role: NativeProviderMessageRole::User,
-                content: pi_user_content_text(&user.content),
-                blocks: pi_user_content_blocks(&user.content),
-            }),
-            pi::sdk::Message::Assistant(assistant) => Some(NativeProviderMessage {
-                role: NativeProviderMessageRole::Assistant,
-                content: pi_assistant_content_text(&assistant.content),
-                blocks: pi_assistant_content_blocks(&assistant.content),
-            }),
-            pi::sdk::Message::ToolResult(tool_result) => {
-                let content = pi_tool_result_content_text(&tool_result.content);
-                Some(NativeProviderMessage {
-                    role: NativeProviderMessageRole::Tool,
-                    content: content.clone(),
-                    blocks: vec![NativeProviderContentBlock::tool_result(
-                        tool_result.tool_call_id.clone(),
-                        Some(tool_result.tool_name.clone()),
-                        content,
-                        tool_result.is_error,
-                    )],
-                })
-            }
-            pi::sdk::Message::Custom(_) => None,
-        })
-        .filter(|message| !message.content.trim().is_empty() || !message.blocks.is_empty())
-        .collect()
 }
 
 pub(super) fn agent_messages_to_native_provider_messages(
@@ -403,209 +182,11 @@ fn runtime_message_blocks_to_native_provider_blocks(
         .collect()
 }
 
-pub(super) fn pi_session_from_history(history: &[AgentRuntimeMessage]) -> pi::sdk::Session {
-    let mut session = pi::sdk::Session::in_memory();
-    for message in history {
-        match message.role {
-            AgentRuntimeMessageRole::User => {
-                append_pi_user_message_from_runtime_message(&mut session, message);
-            }
-            AgentRuntimeMessageRole::Assistant => {
-                session.append_model_message(pi::sdk::Message::assistant(
-                    pi::sdk::AssistantMessage {
-                        content: runtime_assistant_blocks_to_pi_content(message),
-                        api: String::new(),
-                        provider: String::new(),
-                        model: String::new(),
-                        usage: pi::sdk::Usage::default(),
-                        stop_reason: pi::sdk::StopReason::Stop,
-                        error_message: None,
-                        timestamp: current_unix_millis(),
-                    },
-                ));
-            }
-        }
-    }
-    session
-}
-
-fn append_pi_user_message_from_runtime_message(
-    session: &mut pi::sdk::Session,
-    message: &AgentRuntimeMessage,
-) {
-    if message.blocks.is_empty() && !message.content.trim().is_empty() {
-        session.append_model_message(pi::sdk::Message::User(pi::sdk::UserMessage {
-            content: pi::sdk::UserContent::Text(message.content.clone()),
-            timestamp: current_unix_millis(),
-        }));
-    } else {
-        let user_blocks = runtime_user_blocks_to_pi_content(message);
-        if !user_blocks.is_empty() {
-            session.append_model_message(pi::sdk::Message::User(pi::sdk::UserMessage {
-                content: pi::sdk::UserContent::Blocks(user_blocks),
-                timestamp: current_unix_millis(),
-            }));
-        }
-    }
-
-    for block in &message.blocks {
-        if let AgentRuntimeMessageBlock::ToolResult {
-            tool_use_id,
-            content,
-            is_error,
-        } = block
-        {
-            session.append_model_message(pi::sdk::Message::tool_result(
-                pi::sdk::ToolResultMessage {
-                    tool_call_id: tool_use_id.clone(),
-                    tool_name: String::new(),
-                    content: vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
-                        content.clone(),
-                    ))],
-                    details: None,
-                    is_error: *is_error,
-                    timestamp: current_unix_millis(),
-                },
-            ));
-        }
-    }
-}
-
-fn runtime_user_blocks_to_pi_content(message: &AgentRuntimeMessage) -> Vec<pi::sdk::ContentBlock> {
-    let blocks = message
-        .blocks
-        .iter()
-        .filter_map(|block| match block {
-            AgentRuntimeMessageBlock::Text { text } => Some(pi::sdk::ContentBlock::Text(
-                pi::sdk::TextContent::new(text.clone()),
-            )),
-            AgentRuntimeMessageBlock::Image { mime_type, data } => {
-                Some(pi::sdk::ContentBlock::Image(pi::sdk::ImageContent {
-                    data: data.clone(),
-                    mime_type: mime_type.clone(),
-                }))
-            }
-            AgentRuntimeMessageBlock::ToolUse { .. }
-            | AgentRuntimeMessageBlock::ToolResult { .. }
-            | AgentRuntimeMessageBlock::Meta { .. } => None,
-        })
-        .collect::<Vec<_>>();
-    if blocks.is_empty() && message.blocks.is_empty() && !message.content.trim().is_empty() {
-        vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
-            message.content.clone(),
-        ))]
-    } else {
-        blocks
-    }
-}
-
-fn runtime_assistant_blocks_to_pi_content(
-    message: &AgentRuntimeMessage,
-) -> Vec<pi::sdk::ContentBlock> {
-    let blocks = message
-        .blocks
-        .iter()
-        .filter_map(|block| match block {
-            AgentRuntimeMessageBlock::Text { text } => Some(pi::sdk::ContentBlock::Text(
-                pi::sdk::TextContent::new(text.clone()),
-            )),
-            AgentRuntimeMessageBlock::Image { mime_type, data } => {
-                Some(pi::sdk::ContentBlock::Image(pi::sdk::ImageContent {
-                    data: data.clone(),
-                    mime_type: mime_type.clone(),
-                }))
-            }
-            AgentRuntimeMessageBlock::ToolUse { id, name, input } => {
-                Some(pi::sdk::ContentBlock::ToolCall(pi::sdk::ToolCall {
-                    id: id.clone(),
-                    name: name.clone(),
-                    arguments: input.clone(),
-                    thought_signature: None,
-                }))
-            }
-            AgentRuntimeMessageBlock::ToolResult { .. } | AgentRuntimeMessageBlock::Meta { .. } => {
-                None
-            }
-        })
-        .collect::<Vec<_>>();
-    if blocks.is_empty() {
-        vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
-            message.content.clone(),
-        ))]
-    } else {
-        blocks
-    }
-}
-
-fn pi_assistant_message_from_native_response(
-    config: &NativeProviderConfig,
-    response: &NativeProviderAssistantResponse,
-) -> pi::sdk::AssistantMessage {
-    let mut content = Vec::new();
-    if !response.text.trim().is_empty() {
-        content.push(pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
-            response.text.clone(),
-        )));
-    }
-    content.extend(response.tool_calls.iter().map(|tool_call| {
-        pi::sdk::ContentBlock::ToolCall(pi::sdk::ToolCall {
-            id: tool_call.id.clone(),
-            name: tool_call.name.clone(),
-            arguments: tool_call.arguments.clone(),
-            thought_signature: None,
-        })
-    }));
-    pi::sdk::AssistantMessage {
-        content,
-        api: config.provider.clone(),
-        provider: config.provider.clone(),
-        model: config.model.clone().unwrap_or_default(),
-        usage: pi::sdk::Usage::default(),
-        stop_reason: if response.tool_calls.is_empty() {
-            pi::sdk::StopReason::Stop
-        } else {
-            pi::sdk::StopReason::ToolUse
-        },
-        error_message: None,
-        timestamp: current_unix_millis(),
-    }
-}
-
-pub(super) fn current_unix_millis() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|duration| i64::try_from(duration.as_millis()).unwrap_or(i64::MAX))
-        .unwrap_or_default()
-}
-
-pub(super) fn map_pi_agent_error(error: pi::sdk::Error) -> AgentRuntimeError {
-    AgentRuntimeError::ProviderFailed(format!("pi_agent_rust direct runtime failed: {error}"))
-}
-
-pub(super) fn pi_agent_assistant_text(
-    assistant: &pi::sdk::AssistantMessage,
-) -> Result<String, AgentRuntimeError> {
-    let text = assistant
-        .content
-        .iter()
-        .filter_map(|content| match content {
-            pi::sdk::ContentBlock::Text(text) => Some(text.text.as_str()),
-            _ => None,
-        })
-        .collect::<String>();
-    if text.trim().is_empty() {
-        return Err(AgentRuntimeError::ProviderFailed(
-            "pi_agent_rust direct runtime did not produce assistant text.".to_string(),
-        ));
-    }
-    Ok(text)
-}
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct DesktopAgentProviderConfig {
-    #[serde(default)]
-    pub(super) runtime: DesktopAgentRuntimeMode,
+    #[serde(default, rename = "runtime")]
+    pub(super) _runtime: DesktopAgentRuntimeMode,
     pub(super) provider: String,
     pub(super) base_url: Option<String>,
     pub(super) api_key: Option<Value>,
@@ -618,14 +199,7 @@ pub(super) struct DesktopAgentProviderConfig {
 #[serde(rename_all = "kebab-case")]
 pub(super) enum DesktopAgentRuntimeMode {
     #[default]
-    PiAgentRust,
     NativeProvider,
-}
-
-impl DesktopAgentProviderConfig {
-    pub(super) fn runtime_mode(&self) -> DesktopAgentRuntimeMode {
-        self.runtime
-    }
 }
 
 impl ProviderResolver {

@@ -1,5 +1,7 @@
 #![recursion_limit = "512"]
 
+extern crate self as pi;
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::future::Future;
@@ -14,6 +16,7 @@ pub mod cron;
 pub mod memory;
 mod message_policy;
 mod native_plugin_registry;
+pub mod sdk;
 pub mod special_agents;
 
 mod agent_context;
@@ -34,7 +37,7 @@ pub use self::agent_runtime_types::*;
 pub use self::desktop_runtime_stores::*;
 pub use self::runtime_tool_catalog::*;
 
-use core_tools::build_pi_agent_rust_tool_registry;
+use core_tools::build_native_runtime_tool_registry;
 pub use core_tools::core_tools_mcp::{
     mcp_prompt_slash_commands, mcp_server_runtime_statuses, send_mcp_jsonrpc_message,
 };

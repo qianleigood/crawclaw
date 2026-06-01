@@ -3362,7 +3362,7 @@ esac
         .expect("active provider config"),
     )
     .expect("active provider json");
-    assert_eq!(active_config["runtime"], "pi-agent-rust");
+    assert_eq!(active_config["runtime"], "native-provider");
     assert_eq!(active_config["provider"], "openai-compatible");
     assert_eq!(active_config["baseUrl"], provider_base_url);
     assert_eq!(active_config["model"], "test-model");
@@ -3515,7 +3515,7 @@ esac
     )
     .expect("active provider json");
     assert_eq!(active_config["provider"], "openai-compatible");
-    assert_eq!(active_config["runtime"], "pi-agent-rust");
+    assert_eq!(active_config["runtime"], "native-provider");
     assert_eq!(active_config["baseUrl"], first_base_url);
     assert_eq!(active_config["model"], "model-one");
 }
@@ -4277,7 +4277,7 @@ esac
         &[r#""tools""#],
     )
     .await;
-    write_pi_agent_provider_config(&runtime_layout, &provider_base_url);
+    write_native_provider_config(&runtime_layout, &provider_base_url);
 
     let server = start_gateway_server(GatewayConfig {
         app_name: "CrawClaw Desktop".to_string(),
@@ -6089,14 +6089,14 @@ async fn spawn_openai_media_provider(
 }
 
 #[cfg(unix)]
-fn write_pi_agent_provider_config(layout: &RuntimeLayout, base_url: &str) {
+fn write_native_provider_config(layout: &RuntimeLayout, base_url: &str) {
     let config_dir = layout.runtime_root.join("config");
     fs::create_dir_all(&config_dir).expect("runtime config dir");
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         format!(
             r#"{{
-  "runtime": "pi-agent-rust",
+  "runtime": "native-provider",
   "provider": "openai-compatible",
   "baseUrl": "{}",
   "apiKey": "test-key",

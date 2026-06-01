@@ -753,7 +753,7 @@ pub(super) fn run_tool_search_tool(runtime_root: &Path, input: Value) -> Result<
     require_media_tool_keys(&input, &["query", "max_results"], "tool_search")?;
     let query = required_param_string("tool_search", &input, &["query"])?;
     let limit = tool_search_max_results(&input)?;
-    let descriptors = pi_agent_rust_tool_descriptors_for_runtime_root(runtime_root)
+    let descriptors = native_runtime_tool_descriptors_for_runtime_root(runtime_root)
         .into_iter()
         .filter(|descriptor| {
             !matches!(

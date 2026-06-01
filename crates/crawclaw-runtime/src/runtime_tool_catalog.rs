@@ -862,7 +862,7 @@ pub fn native_plugin_tool_descriptors_for_runtime_root(
     native_plugin_registry(runtime_root).tool_descriptors()
 }
 
-pub fn pi_agent_rust_tool_names() -> Vec<String> {
+pub fn native_runtime_tool_names() -> Vec<String> {
     let mut names = RUST_CORE_TOOL_DEFINITIONS
         .iter()
         .map(|definition| definition.id)
@@ -880,7 +880,7 @@ pub fn pi_agent_rust_tool_names() -> Vec<String> {
     names
 }
 
-pub fn pi_agent_rust_tool_names_for_runtime_root(runtime_root: &Path) -> Vec<String> {
+pub fn native_runtime_tool_names_for_runtime_root(runtime_root: &Path) -> Vec<String> {
     let mut names = RUST_CORE_TOOL_DEFINITIONS
         .iter()
         .map(|definition| definition.id)
@@ -898,10 +898,10 @@ pub fn pi_agent_rust_tool_names_for_runtime_root(runtime_root: &Path) -> Vec<Str
     names
 }
 
-pub fn pi_agent_rust_tool_descriptors_for_runtime_root(
+pub fn native_runtime_tool_descriptors_for_runtime_root(
     runtime_root: &Path,
 ) -> Vec<RustAgentToolDescriptor> {
-    build_pi_agent_rust_tool_registry(runtime_root)
+    build_native_runtime_tool_registry(runtime_root)
         .tools()
         .iter()
         .map(|tool| RustAgentToolDescriptor {
@@ -921,17 +921,17 @@ pub(crate) fn is_special_agent_only_tool(tool_name: &str) -> bool {
 }
 
 #[doc(hidden)]
-pub fn build_pi_agent_rust_tool_registry_for_test(runtime_root: &Path) -> pi::sdk::ToolRegistry {
-    build_pi_agent_rust_tool_registry(runtime_root)
+pub fn build_native_runtime_tool_registry_for_test(runtime_root: &Path) -> pi::sdk::ToolRegistry {
+    build_native_runtime_tool_registry(runtime_root)
 }
 
 #[doc(hidden)]
-pub fn build_pi_agent_rust_tool_registry_with_permission_policy_for_test(
+pub fn build_native_runtime_tool_registry_with_permission_policy_for_test(
     runtime_root: &Path,
     policy: AgentRuntimePermissionPolicy,
 ) -> pi::sdk::ToolRegistry {
     apply_permission_policy_to_registry(
-        build_pi_agent_rust_tool_registry(runtime_root),
+        build_native_runtime_tool_registry(runtime_root),
         Some(policy),
     )
 }
@@ -1007,7 +1007,7 @@ async fn execute_rust_core_tool_with_profile_guard(
             "Rust runtime tool {tool_name} is special-agent-only and requires an active special-agent profile"
         ));
     }
-    let registry = build_pi_agent_rust_tool_registry(runtime_root);
+    let registry = build_native_runtime_tool_registry(runtime_root);
     let tool = registry
         .get(tool_name)
         .ok_or_else(|| format!("unknown Rust runtime tool: {tool_name}"))?;

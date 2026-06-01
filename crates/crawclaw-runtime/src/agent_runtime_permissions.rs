@@ -1,5 +1,18 @@
 use super::*;
 
+pub(super) const PERMISSION_UPDATE_EVENT_KEY: &str = "crawclawEvent";
+pub(super) const PERMISSION_UPDATE_EVENT_REQUESTED: &str = "permissionRequested";
+pub(super) const PERMISSION_UPDATE_REQUEST_ID_KEY: &str = "requestId";
+pub(super) const PERMISSION_UPDATE_TOOL_NAME_KEY: &str = "toolName";
+pub(super) const PERMISSION_UPDATE_REASON_KEY: &str = "reason";
+pub(super) const HOOK_UPDATE_EVENT_KEY: &str = "crawclawEvent";
+pub(super) const HOOK_UPDATE_EVENT_DECISION: &str = "hookDecision";
+pub(super) const HOOK_UPDATE_HOOK_KEY: &str = "hook";
+pub(super) const HOOK_UPDATE_DECISION_KEY: &str = "decision";
+pub(super) const HOOK_UPDATE_MESSAGE_KEY: &str = "message";
+
+type SharedToolUpdateSink = Arc<dyn Fn(pi::sdk::ToolUpdate) + Send + Sync>;
+
 #[derive(Clone)]
 pub struct AgentRuntimePermissionPolicy {
     pub mode: AgentRuntimePermissionMode,
@@ -269,6 +282,9 @@ impl pi::sdk::Tool for PermissionCheckedTool {
             ));
         };
         let request = permission_request(tool_call_id, &tool_name, self.category, &input);
+        if let Some(on_update) = on_update.as_ref() {
+            on_update(permission_requested_tool_update(&request));
+        }
         tracing::info!(
             tool_name = %tool_name,
             tool_call_id,
@@ -329,6 +345,7 @@ impl pi::sdk::Tool for ToolHookCheckedTool {
         input: Value,
         on_update: Option<Box<dyn Fn(pi::sdk::ToolUpdate) + Send + Sync>>,
     ) -> pi::sdk::Result<pi::sdk::ToolOutput> {
+        let update_sink = shared_tool_update_sink(on_update);
         let tool_name = self.name().to_string();
         let mut additional_context = Vec::new();
         let input = if let Some(hook) = &self.pre_hook {
@@ -342,18 +359,29 @@ impl pi::sdk::Tool for ToolHookCheckedTool {
                     input,
                     additional_context: context,
                 } => {
+                    emit_tool_hook_decision_update(
+                        &update_sink,
+                        "PreToolUse",
+                        "continue",
+                        hook_context_message(&context),
+                    );
                     additional_context.extend(context);
                     input
                 }
                 AgentRuntimePreToolUseDecision::Block { message } => {
-                    return Err(permission_error(
-                        &tool_name,
-                        message
-                            .trim()
-                            .is_empty()
-                            .then_some("blocked by PreToolUse hook")
-                            .unwrap_or(message.as_str()),
-                    ));
+                    let message = message
+                        .trim()
+                        .is_empty()
+                        .then_some("blocked by PreToolUse hook")
+                        .unwrap_or(message.as_str())
+                        .to_string();
+                    emit_tool_hook_decision_update(
+                        &update_sink,
+                        "PreToolUse",
+                        "block",
+                        Some(message.clone()),
+                    );
+                    return Err(permission_error(&tool_name, &message));
                 }
             }
         } else {
@@ -362,7 +390,11 @@ impl pi::sdk::Tool for ToolHookCheckedTool {
 
         let result = self
             .inner
-            .execute(tool_call_id, input.clone(), on_update)
+            .execute(
+                tool_call_id,
+                input.clone(),
+                boxed_tool_update_sink(&update_sink),
+            )
             .await;
         let Some(hook) = &self.post_hook else {
             return result.map(|mut output| {
@@ -384,6 +416,12 @@ impl pi::sdk::Tool for ToolHookCheckedTool {
                         updated_mcp_tool_output,
                         additional_context: context,
                     } => {
+                        emit_tool_hook_decision_update(
+                            &update_sink,
+                            "PostToolUse",
+                            "continue",
+                            hook_context_message(&context),
+                        );
                         let mut output = apply_updated_mcp_tool_output(
                             &tool_name,
                             output,
@@ -407,6 +445,12 @@ impl pi::sdk::Tool for ToolHookCheckedTool {
                     additional_context: context,
                     ..
                 } = hook.post_tool_use(request).await;
+                emit_tool_hook_decision_update(
+                    &update_sink,
+                    "PostToolUse",
+                    "continue",
+                    hook_context_message(&context),
+                );
                 if context.is_empty() {
                     return Err(error);
                 }
@@ -422,6 +466,67 @@ impl pi::sdk::Tool for ToolHookCheckedTool {
     fn is_read_only(&self) -> bool {
         self.inner.is_read_only()
     }
+}
+
+fn shared_tool_update_sink(
+    on_update: Option<Box<dyn Fn(pi::sdk::ToolUpdate) + Send + Sync>>,
+) -> Option<SharedToolUpdateSink> {
+    on_update.map(Arc::from)
+}
+
+fn boxed_tool_update_sink(
+    update_sink: &Option<SharedToolUpdateSink>,
+) -> Option<Box<dyn Fn(pi::sdk::ToolUpdate) + Send + Sync>> {
+    update_sink.as_ref().map(|sink| {
+        let sink = Arc::clone(sink);
+        Box::new(move |update| sink(update)) as Box<dyn Fn(pi::sdk::ToolUpdate) + Send + Sync>
+    })
+}
+
+fn emit_tool_hook_decision_update(
+    update_sink: &Option<SharedToolUpdateSink>,
+    hook: &str,
+    decision: &str,
+    message: Option<String>,
+) {
+    let Some(update_sink) = update_sink else {
+        return;
+    };
+    update_sink(tool_hook_decision_update(hook, decision, message));
+}
+
+fn tool_hook_decision_update(
+    hook: &str,
+    decision: &str,
+    message: Option<String>,
+) -> pi::sdk::ToolUpdate {
+    let content = message
+        .as_ref()
+        .map(|message| {
+            vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
+                message.clone(),
+            ))]
+        })
+        .unwrap_or_default();
+    pi::sdk::ToolUpdate {
+        content,
+        details: Some(json!({
+            HOOK_UPDATE_EVENT_KEY: HOOK_UPDATE_EVENT_DECISION,
+            HOOK_UPDATE_HOOK_KEY: hook,
+            HOOK_UPDATE_DECISION_KEY: decision,
+            HOOK_UPDATE_MESSAGE_KEY: message,
+        })),
+    }
+}
+
+fn hook_context_message(contexts: &[String]) -> Option<String> {
+    let message = contexts
+        .iter()
+        .map(|context| context.trim())
+        .filter(|context| !context.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+    (!message.is_empty()).then_some(message)
 }
 
 fn append_hook_additional_context(output: &mut pi::sdk::ToolOutput, contexts: Vec<String>) {
@@ -560,6 +665,33 @@ fn mcp_updated_output_text(updated: &Value) -> String {
 
 fn permission_error(tool_name: &str, message: &str) -> pi::sdk::Error {
     pi::sdk::Error::tool(tool_name, message)
+}
+
+fn permission_requested_tool_update(
+    request: &AgentRuntimePermissionRequest,
+) -> pi::sdk::ToolUpdate {
+    pi::sdk::ToolUpdate {
+        content: vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
+            request.detail.clone(),
+        ))],
+        details: Some(json!({
+            PERMISSION_UPDATE_EVENT_KEY: PERMISSION_UPDATE_EVENT_REQUESTED,
+            PERMISSION_UPDATE_REQUEST_ID_KEY: request.tool_call_id,
+            PERMISSION_UPDATE_TOOL_NAME_KEY: request.tool_name,
+            PERMISSION_UPDATE_REASON_KEY: request.detail,
+            "title": request.title,
+            "category": permission_category_name(request.category),
+        })),
+    }
+}
+
+fn permission_category_name(category: AgentRuntimePermissionCategory) -> &'static str {
+    match category {
+        AgentRuntimePermissionCategory::FileChange => "fileChange",
+        AgentRuntimePermissionCategory::Command => "command",
+        AgentRuntimePermissionCategory::ExternalApp => "externalApp",
+        AgentRuntimePermissionCategory::HighRisk => "highRisk",
+    }
 }
 
 fn is_read_only_allowed_tool(

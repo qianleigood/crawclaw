@@ -11,6 +11,10 @@ read_when:
 CrawClaw agent execution is owned by the Rust runtime. The old TypeScript
 agent runner is not a production execution path.
 
+Agent model turns use the Rust NativeProvider backend. `native-provider` is the
+only supported desktop agent provider runtime value; the old `pi-agent-rust`
+runtime and dependency have been removed.
+
 This page describes the current runtime boundary for agent turns, session
 state, provider transport, special agents, cron jobs, auto-reply, commands, and
 memory lifecycle work.
@@ -21,7 +25,7 @@ The Rust runtime owns:
 
 - Agent turn execution through `AgentRuntime`.
 - Provider metadata, model defaults, auth choices, transport capabilities, and
-  runtime provider calls.
+  NativeProvider transport calls.
 - Session binding, transcript writes, run ids, event projection, usage metadata,
   and abort or timeout handling.
 - Cron `agentTurn` jobs, auto-reply turns, command turns, special-agent runs,
@@ -133,6 +137,11 @@ Removed TypeScript execution surfaces include:
 
 If a caller needs an agent turn, it must use a Rust-backed Gateway/runtime
 method. There is no TypeScript fallback bridge.
+
+Removed agent runtime surfaces also include the `pi-agent-rust` runtime mode and
+the external `pi_agent_rust` crate dependency. Existing provider configuration
+should use `runtime: "native-provider"` or omit `runtime`, which defaults to the
+NativeProvider path.
 
 ## Tests
 

@@ -697,7 +697,60 @@ const RUST_PROVIDER_CAPABILITIES: ProviderTransportCapabilities = ProviderTransp
     },
 };
 
-pub const NATIVE_PROVIDER_TRANSPORTS: &[ProviderTransport] = &[
+pub const OPENAI_COMPLETIONS_THIN_PROVIDER_PRESETS: &[ProviderTransportPreset] = &[
+    ProviderTransportPreset {
+        provider: "byteplus",
+    },
+    ProviderTransportPreset {
+        provider: "byteplus-plan",
+    },
+    ProviderTransportPreset { provider: "chutes" },
+    ProviderTransportPreset {
+        provider: "copilot-proxy",
+    },
+    ProviderTransportPreset {
+        provider: "deepseek",
+    },
+    ProviderTransportPreset {
+        provider: "huggingface",
+    },
+    ProviderTransportPreset {
+        provider: "litellm",
+    },
+    ProviderTransportPreset {
+        provider: "mistral",
+    },
+    ProviderTransportPreset {
+        provider: "modelstudio",
+    },
+    ProviderTransportPreset {
+        provider: "moonshot",
+    },
+    ProviderTransportPreset { provider: "nvidia" },
+    ProviderTransportPreset {
+        provider: "opencode",
+    },
+    ProviderTransportPreset {
+        provider: "opencode-go",
+    },
+    ProviderTransportPreset {
+        provider: "qianfan",
+    },
+    ProviderTransportPreset { provider: "sglang" },
+    ProviderTransportPreset {
+        provider: "together",
+    },
+    ProviderTransportPreset { provider: "venice" },
+    ProviderTransportPreset { provider: "vllm" },
+    ProviderTransportPreset {
+        provider: "volcengine",
+    },
+    ProviderTransportPreset {
+        provider: "volcengine-plan",
+    },
+];
+
+pub const EXPLICIT_NATIVE_PROVIDER_TRANSPORTS: &[ProviderTransport] = &[
     ProviderTransport {
         id: "amazon-bedrock",
         transport: "bedrock-converse-stream",
@@ -724,33 +777,8 @@ pub const NATIVE_PROVIDER_TRANSPORTS: &[ProviderTransport] = &[
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
-        id: "byteplus",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
-        id: "byteplus-plan",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
-        id: "chutes",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
         id: "cloudflare-ai-gateway",
         transport: "anthropic-messages",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
-        id: "copilot-proxy",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
-        id: "deepseek",
-        transport: "openai-completions",
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
@@ -769,11 +797,6 @@ pub const NATIVE_PROVIDER_TRANSPORTS: &[ProviderTransport] = &[
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
-        id: "huggingface",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
         id: "kilocode",
         transport: "openai-completions",
         capabilities: RUST_PROVIDER_CAPABILITIES,
@@ -789,11 +812,6 @@ pub const NATIVE_PROVIDER_TRANSPORTS: &[ProviderTransport] = &[
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
-        id: "litellm",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
         id: "microsoft-foundry",
         transport: "openai-responses",
         capabilities: RUST_PROVIDER_CAPABILITIES,
@@ -806,26 +824,6 @@ pub const NATIVE_PROVIDER_TRANSPORTS: &[ProviderTransport] = &[
     ProviderTransport {
         id: "minimax-portal",
         transport: "anthropic-messages",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
-        id: "mistral",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
-        id: "modelstudio",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
-        id: "moonshot",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
-        id: "nvidia",
-        transport: "openai-completions",
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
@@ -849,27 +847,7 @@ pub const NATIVE_PROVIDER_TRANSPORTS: &[ProviderTransport] = &[
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
-        id: "opencode",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
-        id: "opencode-go",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
         id: "openrouter",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
-        id: "qianfan",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
-        id: "sglang",
         transport: "openai-completions",
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
@@ -879,33 +857,8 @@ pub const NATIVE_PROVIDER_TRANSPORTS: &[ProviderTransport] = &[
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
-        id: "together",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
-        id: "venice",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
         id: "vercel-ai-gateway",
         transport: "anthropic-messages",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
-        id: "vllm",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
-        id: "volcengine",
-        transport: "openai-completions",
-        capabilities: RUST_PROVIDER_CAPABILITIES,
-    },
-    ProviderTransport {
-        id: "volcengine-plan",
-        transport: "openai-completions",
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
@@ -924,3 +877,36 @@ pub const NATIVE_PROVIDER_TRANSPORTS: &[ProviderTransport] = &[
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
 ];
+
+pub fn native_provider_transport_catalog() -> Vec<ProviderTransport> {
+    let mut transports = EXPLICIT_NATIVE_PROVIDER_TRANSPORTS.to_vec();
+    transports.extend(
+        OPENAI_COMPLETIONS_THIN_PROVIDER_PRESETS
+            .iter()
+            .map(openai_completions_preset_transport),
+    );
+    transports.sort_by(|left, right| left.id.cmp(right.id));
+    transports
+}
+
+pub fn native_provider_transport_for_id(provider: &str) -> Option<ProviderTransport> {
+    EXPLICIT_NATIVE_PROVIDER_TRANSPORTS
+        .iter()
+        .copied()
+        .find(|transport| transport.id == provider)
+        .or_else(|| {
+            OPENAI_COMPLETIONS_THIN_PROVIDER_PRESETS
+                .iter()
+                .copied()
+                .find(|preset| preset.provider == provider)
+                .map(|preset| openai_completions_preset_transport(&preset))
+        })
+}
+
+fn openai_completions_preset_transport(preset: &ProviderTransportPreset) -> ProviderTransport {
+    ProviderTransport {
+        id: preset.provider,
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    }
+}

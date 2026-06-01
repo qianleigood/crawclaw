@@ -1,6 +1,4 @@
 use super::*;
-use futures::StreamExt;
-use pi::sdk::Provider;
 use serde_json::json;
 use std::future::Future;
 use std::io::Read;
@@ -632,6 +630,83 @@ fn rust_runtime_repo_guardrails_keep_ts_test_env_toggles_absent() {
 }
 
 #[test]
+fn rust_runtime_repo_guardrails_keep_production_tool_catalog_surfaces_on_native_runtime_names() {
+    let root = repo_root();
+    let checked_files = [
+        "apps/crawclaw-desktop/src-tauri/src/gateway/desktop_api/desktop_native_operations.rs",
+        "crates/crawclaw-gateway/src/gateway_control.rs",
+        "crates/crawclaw-gateway/src/gateway_runtime_memory.rs",
+        "crates/crawclaw-gateway/src/gateway_tools.rs",
+        "crates/crawclaw-runtime/src/agent_context.rs",
+        "crates/crawclaw-runtime/src/core_tools/core_tools_media.rs",
+        "crates/crawclaw-runtime/src/main.rs",
+    ];
+    let hits = checked_files
+        .iter()
+        .filter_map(|relative| {
+            let source = fs::read_to_string(root.join(relative)).expect("read production source");
+            source
+                .contains("pi_agent_rust_tool_")
+                .then(|| (*relative).to_string())
+        })
+        .collect::<Vec<_>>();
+
+    assert!(
+        hits.is_empty(),
+        "production tool catalog/status surfaces should use native_runtime_tool_* names, not pi_agent_rust_tool_* compatibility aliases: {hits:?}"
+    );
+}
+
+#[test]
+fn rust_runtime_repo_guardrails_keep_native_provider_backend_off_pi_registry_name() {
+    let root = repo_root();
+    let source =
+        fs::read_to_string(root.join("crates/crawclaw-runtime/src/agent_runtime_backend.rs"))
+            .expect("read backend source");
+    assert!(
+        !source.contains("build_pi_agent_rust_tool_registry_for_selection"),
+        "NativeProvider backend must use native runtime registry naming, not pi_agent_rust compatibility aliases"
+    );
+}
+
+#[test]
+fn rust_runtime_repo_guardrails_remove_pi_agent_runtime_dependency() {
+    let root = repo_root();
+    let runtime_manifest = fs::read_to_string(root.join("crates/crawclaw-runtime/Cargo.toml"))
+        .expect("read runtime manifest");
+    assert!(
+        !runtime_manifest.contains("pi_agent_rust"),
+        "crawclaw-runtime must not depend on pi_agent_rust after NativeProvider becomes the runtime"
+    );
+
+    let backend_source =
+        fs::read_to_string(root.join("crates/crawclaw-runtime/src/agent_runtime_backend.rs"))
+            .expect("read backend source");
+    for removed_symbol in [
+        "PiAgentRuntimeBackend",
+        "with_pi_agent_backend",
+        "DesktopAgentRuntimeMode::PiAgentRust",
+    ] {
+        assert!(
+            !backend_source.contains(removed_symbol),
+            "agent runtime backend still exposes removed PiAgent runtime symbol {removed_symbol}"
+        );
+    }
+
+    let bridge_source =
+        fs::read_to_string(root.join("crates/crawclaw-runtime/src/agent_provider_bridge.rs"))
+            .expect("read provider bridge");
+    assert!(
+        !bridge_source.contains("CrawClawPiProvider"),
+        "NativeProvider must not keep the PiAgent provider shim"
+    );
+    assert!(
+        !bridge_source.contains("pi-agent-rust"),
+        "NativeProvider must not keep a pi-agent-rust runtime config alias"
+    );
+}
+
+#[test]
 fn rust_runtime_repo_guardrails_keep_removed_ts_plugin_control_plane_absent() {
     let root = repo_root();
     let removed = [
@@ -759,9 +834,9 @@ fn desktop_runtime_manifest_advertises_managed_searxng_runtime() {
 }
 
 #[test]
-fn pi_agent_rust_core_tool_registry_uses_crawclaw_tool_names() {
-    let runtime_root = unique_test_runtime_root("pi-agent-rust-core-tools");
-    let registry = build_pi_agent_rust_tool_registry(&runtime_root);
+fn native_runtime_core_tool_registry_uses_crawclaw_tool_names() {
+    let runtime_root = unique_test_runtime_root("native-provider-core-tools");
+    let registry = build_native_runtime_tool_registry(&runtime_root);
     let tool_names: Vec<&str> = registry.tools().iter().map(|tool| tool.name()).collect();
 
     for expected_tool_name in [
@@ -821,7 +896,7 @@ fn pi_agent_rust_core_tool_registry_uses_crawclaw_tool_names() {
     }
     assert!(registry.get("bash").is_some());
     assert!(registry.get("exec").is_none());
-    let catalog_names = pi_agent_rust_tool_names();
+    let catalog_names = native_runtime_tool_names();
     assert!(catalog_names.contains(&"knowledge_recall".to_string()));
     assert!(catalog_names.contains(&"knowledge_reflect".to_string()));
     assert!(!catalog_names.contains(&"memory_note_read".to_string()));
@@ -924,10 +999,10 @@ async fn notebook_edit_replaces_inserts_and_deletes_cells() {
 
 #[cfg(unix)]
 #[tokio::test]
-async fn pi_agent_rust_tool_registry_executes_installed_native_sidecar_tool() {
+async fn native_runtime_tool_registry_executes_installed_native_sidecar_tool() {
     use std::os::unix::fs::PermissionsExt;
 
-    let runtime_root = unique_test_runtime_root("pi-agent-rust-sidecar-tool");
+    let runtime_root = unique_test_runtime_root("native-provider-sidecar-tool");
     let plugin_dir = runtime_root.join("plugins").join("acme-native");
     fs::create_dir_all(&plugin_dir).expect("plugin dir");
     let sidecar = plugin_dir.join("sidecar.sh");
@@ -974,8 +1049,8 @@ esac
 
 #[test]
 fn grep_find_ls_are_default_rust_native_discovery_tools() {
-    let runtime_root = unique_test_runtime_root("pi-agent-rust-discovery-tools");
-    let registry = build_pi_agent_rust_tool_registry(&runtime_root);
+    let runtime_root = unique_test_runtime_root("native-provider-discovery-tools");
+    let registry = build_native_runtime_tool_registry(&runtime_root);
     let tool_names: Vec<&str> = registry.tools().iter().map(|tool| tool.name()).collect();
 
     assert!(tool_names.contains(&"grep"));
@@ -990,9 +1065,9 @@ fn grep_find_ls_are_default_rust_native_discovery_tools() {
 }
 
 #[test]
-fn pi_agent_rust_tool_registry_honors_runtime_allowlist() {
-    let runtime_root = unique_test_runtime_root("pi-agent-rust-tool-allowlist");
-    let registry = build_filtered_pi_agent_rust_tool_registry(
+fn native_runtime_tool_registry_honors_runtime_allowlist() {
+    let runtime_root = unique_test_runtime_root("native-provider-tool-allowlist");
+    let registry = build_filtered_native_runtime_tool_registry(
         &runtime_root,
         &[
             "knowledge_recall".to_string(),
@@ -1015,7 +1090,7 @@ async fn permission_policy_read_only_keeps_read_tools_and_blocks_mutating_tools(
     let runtime_root = unique_test_runtime_root("permission-read-only-tools");
     fs::create_dir_all(&runtime_root).expect("runtime root");
     fs::write(runtime_root.join("note.txt"), "hello").expect("read fixture");
-    let registry = build_pi_agent_rust_tool_registry_with_permission_policy_for_test(
+    let registry = build_native_runtime_tool_registry_with_permission_policy_for_test(
         &runtime_root,
         AgentRuntimePermissionPolicy::read_only(),
     );
@@ -1046,7 +1121,7 @@ async fn permission_policy_confirm_commands_waits_for_approval_before_execution(
         AgentRuntimePermissionDecision::Denied,
         AgentRuntimePermissionDecision::Approved,
     ]));
-    let registry = build_pi_agent_rust_tool_registry_with_permission_policy_for_test(
+    let registry = build_native_runtime_tool_registry_with_permission_policy_for_test(
         &runtime_root,
         AgentRuntimePermissionPolicy::workspace()
             .with_confirm_commands(true)
@@ -1091,7 +1166,7 @@ async fn permission_policy_confirm_file_changes_blocks_write_until_approved() {
         AgentRuntimePermissionDecision::Denied,
         AgentRuntimePermissionDecision::Approved,
     ]));
-    let registry = build_pi_agent_rust_tool_registry_with_permission_policy_for_test(
+    let registry = build_native_runtime_tool_registry_with_permission_policy_for_test(
         &runtime_root,
         AgentRuntimePermissionPolicy::workspace()
             .with_confirm_file_changes(true)
@@ -1135,7 +1210,7 @@ async fn permission_policy_confirm_external_apps_blocks_native_plugin_tools() {
     let requester = std::sync::Arc::new(RecordingPermissionRequester::new(vec![
         AgentRuntimePermissionDecision::Denied,
     ]));
-    let registry = build_pi_agent_rust_tool_registry_with_permission_policy_for_test(
+    let registry = build_native_runtime_tool_registry_with_permission_policy_for_test(
         &runtime_root,
         AgentRuntimePermissionPolicy::workspace()
             .with_confirm_external_apps(true)
@@ -1164,7 +1239,7 @@ async fn permission_policy_confirm_high_risk_blocks_workflow_tools() {
     let requester = std::sync::Arc::new(RecordingPermissionRequester::new(vec![
         AgentRuntimePermissionDecision::Denied,
     ]));
-    let registry = build_pi_agent_rust_tool_registry_with_permission_policy_for_test(
+    let registry = build_native_runtime_tool_registry_with_permission_policy_for_test(
         &runtime_root,
         AgentRuntimePermissionPolicy::workspace()
             .with_confirm_high_risk(true)
@@ -1305,7 +1380,7 @@ fn rust_core_tool_inventory_tracks_native_tools() {
         assert!(definition(tool_name).default_enabled);
         assert!(definition(tool_name).read_only);
     }
-    let tool_names = pi_agent_rust_tool_names();
+    let tool_names = native_runtime_tool_names();
     for expected in [
         "apply_patch",
         "process",
@@ -1630,9 +1705,9 @@ fn special_agent_registry_tracks_all_native_agents() {
 
 #[tokio::test]
 async fn rust_native_session_tools_manage_subagent_sessions() {
-    let runtime_root = unique_test_runtime_root("pi-agent-rust-session-tools");
+    let runtime_root = unique_test_runtime_root("native-provider-session-tools");
     fs::create_dir_all(&runtime_root).expect("runtime root");
-    let registry = build_pi_agent_rust_tool_registry(&runtime_root);
+    let registry = build_native_runtime_tool_registry(&runtime_root);
     let spawn = registry
         .get("subagents_spawn")
         .expect("subagents_spawn tool");
@@ -1732,9 +1807,9 @@ async fn rust_native_session_tools_manage_subagent_sessions() {
 
 #[tokio::test]
 async fn rust_native_web_fetch_uses_canonical_tool_name() {
-    let runtime_root = unique_test_runtime_root("pi-agent-rust-web-fetch");
+    let runtime_root = unique_test_runtime_root("native-provider-web-fetch");
     fs::create_dir_all(&runtime_root).expect("runtime root");
-    let registry = build_pi_agent_rust_tool_registry(&runtime_root);
+    let registry = build_native_runtime_tool_registry(&runtime_root);
     let web_search = registry.get("web_search").expect("web_search tool");
     let web_fetch = registry.get("web_fetch").expect("web_fetch tool");
     let listener = TcpListener::bind("127.0.0.1:0").expect("web fetch listener");
@@ -1780,9 +1855,9 @@ async fn rust_native_web_fetch_uses_canonical_tool_name() {
 
 #[tokio::test]
 async fn rust_native_web_search_only_exposes_searxng_provider() {
-    let runtime_root = unique_test_runtime_root("pi-agent-rust-web-search-provider");
+    let runtime_root = unique_test_runtime_root("native-provider-web-search-provider");
     fs::create_dir_all(&runtime_root).expect("runtime root");
-    let registry = build_pi_agent_rust_tool_registry(&runtime_root);
+    let registry = build_native_runtime_tool_registry(&runtime_root);
     let web_search = registry.get("web_search").expect("web_search tool");
     let parameters = web_search.parameters();
     let providers = parameters
@@ -1811,10 +1886,10 @@ async fn rust_native_web_search_only_exposes_searxng_provider() {
 
 #[tokio::test]
 async fn rust_native_apply_patch_updates_workspace_files() {
-    let runtime_root = unique_test_runtime_root("pi-agent-rust-apply-patch");
+    let runtime_root = unique_test_runtime_root("native-provider-apply-patch");
     fs::create_dir_all(&runtime_root).expect("runtime root");
     fs::write(runtime_root.join("sample.txt"), "old\n").expect("sample");
-    let registry = build_pi_agent_rust_tool_registry(&runtime_root);
+    let registry = build_native_runtime_tool_registry(&runtime_root);
     let apply_patch = registry.get("apply_patch").expect("apply_patch tool");
     let patch = [
         "*** Begin Patch",
@@ -1853,9 +1928,9 @@ async fn rust_native_apply_patch_updates_workspace_files() {
 
 #[tokio::test]
 async fn rust_native_bash_and_process_manage_background_sessions() {
-    let runtime_root = unique_test_runtime_root("pi-agent-rust-process");
+    let runtime_root = unique_test_runtime_root("native-provider-process");
     fs::create_dir_all(&runtime_root).expect("runtime root");
-    let registry = build_pi_agent_rust_tool_registry(&runtime_root);
+    let registry = build_native_runtime_tool_registry(&runtime_root);
     let bash = registry.get("bash").expect("bash tool");
     let process = registry.get("process").expect("process tool");
 
@@ -1902,14 +1977,17 @@ async fn rust_native_bash_and_process_manage_background_sessions() {
 }
 
 #[tokio::test]
-async fn agent_runtime_uses_pi_agent_rust_direct_backend_by_default() {
-    let runtime_root = unique_test_runtime_root("pi-agent-direct");
+async fn agent_runtime_uses_native_provider_backend_by_default() {
+    let runtime_root = unique_test_runtime_root("native-provider-default");
+    let (provider_base_url, _request_rx) =
+        start_openai_compatible_provider("hello from native provider");
     let config_dir = runtime_root.join("config");
     fs::create_dir_all(&config_dir).expect("config dir");
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
-            "provider": "test-provider",
+            "provider": "openai-compatible",
+            "baseUrl": provider_base_url,
             "model": "test-model",
             "apiKey": "test-key"
         }))
@@ -1917,23 +1995,27 @@ async fn agent_runtime_uses_pi_agent_rust_direct_backend_by_default() {
     )
     .expect("write config");
 
-    let backend = Arc::new(FakeAgentRuntimeBackend {
-        reply: "hello from pi_agent_rust".to_string(),
-    });
-    let runtime = AgentRuntime::with_pi_agent_backend(runtime_root.clone(), backend);
+    let runtime = AgentRuntime::new(runtime_root.clone());
     let result = runtime
-        .send_message("thread-pi".to_string(), "hello direct".to_string())
+        .send_message(
+            "thread-native-default".to_string(),
+            "hello direct".to_string(),
+        )
         .await
-        .expect("pi direct result");
+        .expect("native provider result");
 
-    assert_eq!(result.assistant_text, "hello from pi_agent_rust");
-    let transcript = fs::read_to_string(runtime_root.join("sessions").join("thread-pi.jsonl"))
-        .expect("transcript");
+    assert_eq!(result.assistant_text, "hello from native provider");
+    let transcript = fs::read_to_string(
+        runtime_root
+            .join("sessions")
+            .join("thread-native-default.jsonl"),
+    )
+    .expect("transcript");
     assert!(transcript.contains(r#""content":"hello direct""#));
-    assert!(transcript.contains(r#""content":"hello from pi_agent_rust""#));
+    assert!(transcript.contains(r#""content":"hello from native provider""#));
     let memory_messages =
         crate::memory::RuntimeStore::new(runtime_root.join("memory").join("runtime.db"))
-            .list_messages("thread-pi", 10)
+            .list_messages("thread-native-default", 10)
             .expect("memory messages");
     assert_eq!(memory_messages.len(), 2);
 }
@@ -1946,6 +2028,7 @@ async fn agent_runtime_run_turn_emits_rust_event_contract() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "test-provider",
             "model": "test-model",
             "apiKey": "test-key"
@@ -1954,7 +2037,7 @@ async fn agent_runtime_run_turn_emits_rust_event_contract() {
     )
     .expect("write config");
 
-    let runtime = AgentRuntime::with_pi_agent_backend(
+    let runtime = AgentRuntime::with_native_provider_backend(
         runtime_root.clone(),
         Arc::new(FakeAgentRuntimeBackend {
             reply: "hello from run_turn".to_string(),
@@ -2038,6 +2121,7 @@ async fn agent_runtime_run_turn_can_disable_memory_after_turn() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "test-provider",
             "model": "test-model",
             "apiKey": "test-key"
@@ -2046,7 +2130,7 @@ async fn agent_runtime_run_turn_can_disable_memory_after_turn() {
     )
     .expect("write config");
 
-    let runtime = AgentRuntime::with_pi_agent_backend(
+    let runtime = AgentRuntime::with_native_provider_backend(
         runtime_root.clone(),
         Arc::new(FakeAgentRuntimeBackend {
             reply: "no memory reply".to_string(),
@@ -2142,6 +2226,7 @@ async fn memory_runtime_compact_operation_uses_native_agent_runtime() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "openai-compatible",
             "baseUrl": provider_base_url,
             "model": "test-model",
@@ -2253,6 +2338,7 @@ async fn agent_runtime_run_turn_applies_request_model_selection() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "configured-provider",
             "model": "configured-model",
             "apiKey": "test-key"
@@ -2261,7 +2347,7 @@ async fn agent_runtime_run_turn_applies_request_model_selection() {
     )
     .expect("write config");
 
-    let runtime = AgentRuntime::with_pi_agent_backend(
+    let runtime = AgentRuntime::with_native_provider_backend(
         runtime_root,
         Arc::new(FakeAgentRuntimeBackend {
             reply: "selected model reply".to_string(),
@@ -2312,6 +2398,7 @@ async fn agent_runtime_btw_turn_is_ephemeral_and_marks_reply_metadata() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "test-provider",
             "model": "test-model",
             "apiKey": "test-key"
@@ -2320,7 +2407,7 @@ async fn agent_runtime_btw_turn_is_ephemeral_and_marks_reply_metadata() {
     )
     .expect("write config");
 
-    let runtime = AgentRuntime::with_pi_agent_backend(
+    let runtime = AgentRuntime::with_native_provider_backend(
         runtime_root.clone(),
         Arc::new(FakeAgentRuntimeBackend {
             reply: "side answer".to_string(),
@@ -2393,8 +2480,8 @@ async fn agent_runtime_btw_turn_is_ephemeral_and_marks_reply_metadata() {
 }
 
 #[tokio::test]
-async fn pi_agent_rust_direct_backend_uses_crawclaw_provider_transport() {
-    let runtime_root = unique_test_runtime_root("pi-agent-direct-provider-bridge");
+async fn native_provider_backend_uses_crawclaw_provider_transport() {
+    let runtime_root = unique_test_runtime_root("native-provider-direct-provider-bridge");
     let (provider_base_url, request_rx) =
         start_openai_compatible_provider("reply from provider bridge");
     let config_dir = runtime_root.join("config");
@@ -2402,7 +2489,7 @@ async fn pi_agent_rust_direct_backend_uses_crawclaw_provider_transport() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
-            "runtime": "pi-agent-rust",
+            "runtime": "native-provider",
             "provider": "openai-compatible",
             "baseUrl": provider_base_url,
             "apiKey": "test-key",
@@ -2439,61 +2526,7 @@ async fn pi_agent_rust_direct_backend_uses_crawclaw_provider_transport() {
 }
 
 #[tokio::test]
-async fn pi_agent_rust_provider_bridge_passes_streaming_tools_and_images() {
-    let (provider_base_url, request_rx) =
-        start_openai_compatible_provider("reply from provider bridge");
-    let provider = CrawClawPiProvider {
-        config: NativeProviderConfig {
-            provider: "openai-compatible".to_string(),
-            base_url: Some(provider_base_url),
-            api_key: Some("test-key".to_string()),
-            model: Some("test-model".to_string()),
-            api: None,
-            api_version: None,
-        },
-        reasoning_level: None,
-        system_prompt: None,
-        included_tool_names: BTreeSet::new(),
-    };
-    let context = pi::sdk::ProviderContext::owned(
-        None,
-        vec![pi::sdk::Message::User(pi::sdk::UserMessage {
-            content: pi::sdk::UserContent::Blocks(vec![
-                pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new("describe this")),
-                pi::sdk::ContentBlock::Image(pi::sdk::ImageContent {
-                    data: "iVBORw0KGgo=".to_string(),
-                    mime_type: "image/png".to_string(),
-                }),
-            ]),
-            timestamp: 1,
-        })],
-        vec![pi::sdk::ToolDef {
-            name: "lookup_weather".to_string(),
-            description: "Look up weather".to_string(),
-            parameters: json!({ "type": "object" }),
-        }],
-    );
-
-    let stream = provider
-        .stream(&context, &pi::sdk::StreamOptions::default())
-        .await
-        .expect("provider stream");
-    let events = stream
-        .collect::<Vec<_>>()
-        .await
-        .into_iter()
-        .collect::<Result<Vec<_>, _>>()
-        .expect("stream events");
-
-    assert!(!events.is_empty());
-    let request = request_rx.recv().expect("captured provider request");
-    assert!(request.contains(r#""stream":true"#));
-    assert!(request.contains("lookup_weather"));
-    assert!(request.contains("iVBORw0KGgo="));
-}
-
-#[tokio::test]
-async fn pi_agent_rust_provider_bridge_executes_openai_tool_calls() {
+async fn native_provider_runtime_executes_openai_tool_calls() {
     let first_chunk = serde_json::to_string(&json!({
         "choices": [
             {
@@ -2537,12 +2570,13 @@ async fn pi_agent_rust_provider_bridge_executes_openai_tool_calls() {
         format!("data: {first_chunk}\n\ndata: {finish_chunk}\n\ndata: [DONE]\n\n"),
         format!("data: {final_chunk}\n\ndata: [DONE]\n\n"),
     ]);
-    let runtime_root = unique_test_runtime_root("pi-agent-openai-tool-call-bridge");
+    let runtime_root = unique_test_runtime_root("native-provider-openai-tool-call-bridge");
     let config_dir = runtime_root.join("config");
     fs::create_dir_all(&config_dir).expect("config dir");
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "openai-compatible",
             "baseUrl": provider_base_url,
             "model": "test-model",
@@ -2685,13 +2719,7 @@ async fn native_provider_runtime_executes_tool_calls_without_pi_fallback() {
     )
     .expect("write config");
 
-    let runtime = AgentRuntime::with_pi_agent_backend(
-        runtime_root.clone(),
-        Arc::new(LoopEventAgentRuntimeBackend {
-            reply: "pi fallback must not run".to_string(),
-            loop_events: Vec::new(),
-        }),
-    );
+    let runtime = AgentRuntime::new(runtime_root.clone());
     let result = runtime
         .run_turn(AgentRunRequest {
             run_id: "run-native-tool-loop".to_string(),
@@ -2776,6 +2804,166 @@ async fn native_provider_runtime_executes_tool_calls_without_pi_fallback() {
 }
 
 #[tokio::test]
+async fn native_provider_runtime_runs_read_only_tool_calls_in_parallel_batches() {
+    let tool_chunk = serde_json::to_string(&json!({
+        "choices": [
+            {
+                "delta": {
+                    "tool_calls": [
+                        {
+                            "index": 0,
+                            "id": "call_sleep_a",
+                            "type": "function",
+                            "function": {
+                                "name": "Sleep",
+                                "arguments": "{\"durationMs\":350}"
+                            }
+                        },
+                        {
+                            "index": 1,
+                            "id": "call_sleep_b",
+                            "type": "function",
+                            "function": {
+                                "name": "Sleep",
+                                "arguments": "{\"durationMs\":350}"
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }))
+    .expect("tool stream chunk");
+    let finish_chunk = serde_json::to_string(&json!({
+        "choices": [
+            {
+                "delta": {},
+                "finish_reason": "tool_calls"
+            }
+        ]
+    }))
+    .expect("finish stream chunk");
+    let final_chunk = serde_json::to_string(&json!({
+        "choices": [
+            {
+                "delta": {
+                    "content": "native final after parallel tools"
+                }
+            }
+        ]
+    }))
+    .expect("final stream chunk");
+    let (provider_base_url, request_rx) = start_openai_compatible_stream_provider(vec![
+        format!("data: {tool_chunk}\n\ndata: {finish_chunk}\n\ndata: [DONE]\n\n"),
+        format!("data: {final_chunk}\n\ndata: [DONE]\n\n"),
+    ]);
+    let runtime_root = unique_test_runtime_root("native-provider-read-only-parallel-tools");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
+            "provider": "openai-compatible",
+            "baseUrl": provider_base_url,
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+    record_tool_activation_state(&runtime_root, &["Sleep".to_string()])
+        .expect("activate sleep tool");
+
+    let runtime = AgentRuntime::new(runtime_root.clone());
+    let started_at = std::time::Instant::now();
+    let result = runtime
+        .run_turn(AgentRunRequest {
+            run_id: "run-native-parallel-tools".to_string(),
+            agent_id: "main".to_string(),
+            session_key: "thread-native-parallel-tools".to_string(),
+            inbound: ChannelInboundEnvelope {
+                channel: "gateway".to_string(),
+                account_id: Some("local".to_string()),
+                from: "user".to_string(),
+                to: "agent:main".to_string(),
+                chat_type: ChannelChatType::Direct,
+                body: "wait twice in parallel".to_string(),
+                raw_body: Some("wait twice in parallel".to_string()),
+                message_id: Some("in-native-parallel-tools".to_string()),
+                thread_id: Some("thread-native-parallel-tools".to_string()),
+                media_urls: Vec::new(),
+                metadata: BTreeMap::new(),
+            },
+            model: AgentModelSelection {
+                provider: "openai-compatible".to_string(),
+                model: "test-model".to_string(),
+                reasoning_level: None,
+            },
+            enabled_tools: vec!["Sleep".to_string()],
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Normal,
+                special_agent: None,
+                memory_after_turn: Some(false),
+            }),
+            options: BTreeMap::new(),
+        })
+        .await
+        .expect("native provider parallel tool run");
+    let elapsed = started_at.elapsed();
+
+    assert_eq!(result.assistant_text, "native final after parallel tools");
+    assert!(
+        elapsed < std::time::Duration::from_millis(650),
+        "read-only tool calls should overlap, elapsed: {elapsed:?}"
+    );
+    let events = serde_json::to_value(&result.events).expect("events json");
+    let events = events.as_array().expect("events array");
+    let call_sleep_a = events
+        .iter()
+        .position(|event| event["type"] == "toolCall" && event["callId"] == "call_sleep_a");
+    let call_sleep_b = events
+        .iter()
+        .position(|event| event["type"] == "toolCall" && event["callId"] == "call_sleep_b");
+    let done_sleep_a = events.iter().position(|event| {
+        event["type"] == "toolProgress"
+            && event["callId"] == "call_sleep_a"
+            && event["status"] == "completed"
+    });
+    let done_sleep_b = events.iter().position(|event| {
+        event["type"] == "toolProgress"
+            && event["callId"] == "call_sleep_b"
+            && event["status"] == "completed"
+    });
+    let call_sleep_a = call_sleep_a.expect("call_sleep_a start");
+    let call_sleep_b = call_sleep_b.expect("call_sleep_b start");
+    let done_sleep_a = done_sleep_a.expect("call_sleep_a completion");
+    let done_sleep_b = done_sleep_b.expect("call_sleep_b completion");
+    assert!(call_sleep_a < done_sleep_a);
+    assert!(call_sleep_b < done_sleep_b);
+    assert!(
+        call_sleep_b < done_sleep_a,
+        "second read-only tool should start before the first one completes"
+    );
+
+    let first_request = request_rx.recv().expect("first provider request");
+    let second_request = request_rx.recv().expect("second provider request");
+    assert!(first_request.contains("Sleep"));
+    let second_body: Value =
+        serde_json::from_str(http_request_body(&second_request)).expect("second request body");
+    let messages = second_body["messages"]
+        .as_array()
+        .expect("second request messages");
+    let tool_results = messages
+        .iter()
+        .filter(|message| message["role"] == "tool")
+        .collect::<Vec<_>>();
+    assert_eq!(tool_results.len(), 2, "second request body: {second_body}");
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
 async fn native_llm_task_tool_runs_host_agent_without_ts_wrapper() {
     let runtime_root = unique_test_runtime_root("native-llm-task-tool");
     let config_dir = runtime_root.join("config");
@@ -2793,7 +2981,7 @@ async fn native_llm_task_tool_runs_host_agent_without_ts_wrapper() {
     )
     .expect("write config");
 
-    let registry = build_pi_agent_rust_tool_registry(&runtime_root);
+    let registry = build_native_runtime_tool_registry(&runtime_root);
     let tool = registry
         .tools()
         .iter()
@@ -2827,14 +3015,14 @@ async fn native_llm_task_tool_runs_host_agent_without_ts_wrapper() {
 }
 
 #[tokio::test]
-async fn agent_runtime_rejects_unknown_runtime_modes() {
-    let runtime_root = unique_test_runtime_root("unknown-runtime-mode");
+async fn agent_runtime_rejects_removed_pi_agent_runtime_mode() {
+    let runtime_root = unique_test_runtime_root("removed-pi-agent-runtime-mode");
     let config_dir = runtime_root.join("config");
     fs::create_dir_all(&config_dir).expect("config dir");
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
-            "runtime": "legacy-sidecar-mode",
+            "runtime": "pi-agent-rust",
             "provider": "test-provider",
             "model": "test-model"
         }))
@@ -2842,7 +3030,7 @@ async fn agent_runtime_rejects_unknown_runtime_modes() {
     )
     .expect("write config");
 
-    let runtime = AgentRuntime::with_pi_agent_backend(
+    let runtime = AgentRuntime::with_native_provider_backend(
         runtime_root,
         Arc::new(FakeAgentRuntimeBackend {
             reply: "should not run".to_string(),
@@ -2851,9 +3039,9 @@ async fn agent_runtime_rejects_unknown_runtime_modes() {
     let error = runtime
         .send_message("thread-pi".to_string(), "second".to_string())
         .await
-        .expect_err("unknown runtime mode should be rejected");
+        .expect_err("removed PiAgent runtime mode should be rejected");
 
-    assert!(error.message().contains("legacy-sidecar-mode"));
+    assert!(error.message().contains("pi-agent-rust"));
 }
 
 #[test]
@@ -2878,7 +3066,7 @@ fn resolves_rust_runtime_binary_under_resource_runtime_root() {
 fn desktop_agent_provider_config_builds_native_provider_config() {
     let runtime_root = unique_test_runtime_root("desktop-agent-provider-config");
     let config = DesktopAgentProviderConfig {
-        runtime: DesktopAgentRuntimeMode::NativeProvider,
+        _runtime: DesktopAgentRuntimeMode::NativeProvider,
         provider: "anthropic".to_string(),
         base_url: Some("https://api.anthropic.com".to_string()),
         api_key: Some(json!("secret")),
@@ -2900,7 +3088,7 @@ fn desktop_agent_provider_config_builds_native_provider_config() {
 fn desktop_agent_provider_config_uses_rust_default_model_catalog() {
     let runtime_root = unique_test_runtime_root("desktop-agent-provider-default-model");
     let config = DesktopAgentProviderConfig {
-        runtime: DesktopAgentRuntimeMode::NativeProvider,
+        _runtime: DesktopAgentRuntimeMode::NativeProvider,
         provider: "openai".to_string(),
         base_url: None,
         api_key: Some(json!("secret")),
@@ -2920,7 +3108,7 @@ fn desktop_agent_provider_config_uses_rust_default_model_catalog() {
 fn desktop_agent_provider_config_rejects_non_chat_provider_descriptors() {
     let runtime_root = unique_test_runtime_root("desktop-agent-provider-non-chat");
     let config = DesktopAgentProviderConfig {
-        runtime: DesktopAgentRuntimeMode::NativeProvider,
+        _runtime: DesktopAgentRuntimeMode::NativeProvider,
         provider: "fal".to_string(),
         base_url: None,
         api_key: Some(json!("secret")),
@@ -2944,7 +3132,7 @@ fn desktop_agent_provider_config_resolves_file_secret_ref_api_key() {
     fs::create_dir_all(secret_path.parent().expect("secret parent")).expect("secret dir");
     fs::write(&secret_path, "resolved-secret\n").expect("write secret");
     let config = DesktopAgentProviderConfig {
-        runtime: DesktopAgentRuntimeMode::NativeProvider,
+        _runtime: DesktopAgentRuntimeMode::NativeProvider,
         provider: "openai-compatible".to_string(),
         base_url: Some("https://api.example.test/v1".to_string()),
         api_key: Some(json!({
@@ -3099,6 +3287,7 @@ async fn agent_runtime_builds_goal_scoped_context_before_provider_call() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "test-provider",
             "model": "test-model",
             "apiKey": "test-key"
@@ -3114,7 +3303,7 @@ async fn agent_runtime_builds_goal_scoped_context_before_provider_call() {
     .expect("skill file");
 
     let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
-    let runtime = AgentRuntime::with_pi_agent_backend(
+    let runtime = AgentRuntime::with_native_provider_backend(
         runtime_root.clone(),
         Arc::new(CapturingAgentRuntimeBackend {
             reply: "context reply".to_string(),
@@ -3195,6 +3384,7 @@ async fn agent_runtime_context_ignores_transcript_tool_activation_json() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "test-provider",
             "model": "test-model",
             "apiKey": "test-key"
@@ -3274,6 +3464,7 @@ async fn loaded_skill_state_enters_next_provider_context() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "test-provider",
             "model": "test-model",
             "apiKey": "test-key"
@@ -3293,7 +3484,7 @@ async fn loaded_skill_state_enters_next_provider_context() {
         .expect("load skill");
 
     let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
-    let runtime = AgentRuntime::with_pi_agent_backend(
+    let runtime = AgentRuntime::with_native_provider_backend(
         runtime_root.clone(),
         Arc::new(CapturingAgentRuntimeBackend {
             reply: "skill reply".to_string(),
@@ -3337,6 +3528,7 @@ async fn agent_runtime_special_profile_applies_definition_prompt_and_tool_policy
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "test-provider",
             "model": "test-model",
             "apiKey": "test-key"
@@ -3346,7 +3538,7 @@ async fn agent_runtime_special_profile_applies_definition_prompt_and_tool_policy
     .expect("write config");
 
     let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
-    let runtime = AgentRuntime::with_pi_agent_backend(
+    let runtime = AgentRuntime::with_native_provider_backend(
         runtime_root.clone(),
         Arc::new(CapturingAgentRuntimeBackend {
             reply: "summary reply".to_string(),
@@ -3418,6 +3610,7 @@ async fn agent_runtime_run_turn_exposes_loop_projection_contract() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "test-provider",
             "model": "test-model",
             "apiKey": "test-key"
@@ -3427,7 +3620,7 @@ async fn agent_runtime_run_turn_exposes_loop_projection_contract() {
     .expect("write config");
 
     let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
-    let runtime = AgentRuntime::with_pi_agent_backend(
+    let runtime = AgentRuntime::with_native_provider_backend(
         runtime_root.clone(),
         Arc::new(CapturingAgentRuntimeBackend {
             reply: "loop reply".to_string(),
@@ -3507,6 +3700,7 @@ async fn agent_runtime_run_turn_surfaces_backend_tool_loop_events() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "test-provider",
             "model": "test-model",
             "apiKey": "test-key"
@@ -3515,7 +3709,7 @@ async fn agent_runtime_run_turn_surfaces_backend_tool_loop_events() {
     )
     .expect("write config");
 
-    let runtime = AgentRuntime::with_pi_agent_backend(
+    let runtime = AgentRuntime::with_native_provider_backend(
         runtime_root.clone(),
         Arc::new(LoopEventAgentRuntimeBackend {
             reply: "loop done".to_string(),
@@ -3608,6 +3802,40 @@ async fn agent_runtime_run_turn_surfaces_backend_tool_loop_events() {
             && event["callId"] == "tool-call-1"
             && event["status"] == "completed"
     }));
+    let loop_delta = events
+        .iter()
+        .position(|event| {
+            event["type"] == "providerBlock"
+                && event["blockType"] == "text_delta"
+                && event["text"] == "loop "
+        })
+        .expect("loop delta event");
+    let tool_call = events
+        .iter()
+        .position(|event| event["type"] == "toolCall" && event["callId"] == "tool-call-1")
+        .expect("tool call event");
+    let tool_completed = events
+        .iter()
+        .position(|event| {
+            event["type"] == "toolProgress"
+                && event["callId"] == "tool-call-1"
+                && event["status"] == "completed"
+        })
+        .expect("tool completed event");
+    let final_text = events
+        .iter()
+        .position(|event| {
+            event["type"] == "providerBlock"
+                && event["blockType"] == "text"
+                && event["text"] == "loop done"
+        })
+        .expect("final provider text event");
+    assert!(loop_delta < tool_call);
+    assert!(tool_call < tool_completed);
+    assert!(
+        tool_completed < final_text,
+        "final assistant text should follow tool loop events"
+    );
 
     let _ = fs::remove_dir_all(runtime_root);
 }
@@ -3620,6 +3848,7 @@ async fn agent_runtime_context_includes_compacted_summary_for_thread() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "test-provider",
             "model": "test-model",
             "apiKey": "test-key"
@@ -3635,7 +3864,7 @@ async fn agent_runtime_context_includes_compacted_summary_for_thread() {
     .expect("summary file");
 
     let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
-    let runtime = AgentRuntime::with_pi_agent_backend(
+    let runtime = AgentRuntime::with_native_provider_backend(
         runtime_root.clone(),
         Arc::new(CapturingAgentRuntimeBackend {
             reply: "summary context reply".to_string(),
@@ -3670,6 +3899,7 @@ async fn agent_runtime_btw_profile_disables_memory_recall() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "test-provider",
             "model": "test-model",
             "apiKey": "test-key"
@@ -3699,7 +3929,7 @@ async fn agent_runtime_btw_profile_disables_memory_recall() {
     .expect("write memory");
 
     let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
-    let runtime = AgentRuntime::with_pi_agent_backend(
+    let runtime = AgentRuntime::with_native_provider_backend(
         runtime_root.clone(),
         Arc::new(CapturingAgentRuntimeBackend {
             reply: "btw reply".to_string(),
@@ -3756,6 +3986,7 @@ async fn agent_runtime_compaction_summary_replaces_old_history() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "test-provider",
             "model": "test-model",
             "apiKey": "test-key"
@@ -3781,7 +4012,7 @@ async fn agent_runtime_compaction_summary_replaces_old_history() {
     .expect("summary file");
 
     let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
-    let runtime = AgentRuntime::with_pi_agent_backend(
+    let runtime = AgentRuntime::with_native_provider_backend(
         runtime_root.clone(),
         Arc::new(CapturingAgentRuntimeBackend {
             reply: "compacted reply".to_string(),
@@ -3820,6 +4051,7 @@ async fn agent_runtime_compaction_tail_keeps_tool_pairs() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "test-provider",
             "model": "test-model",
             "apiKey": "test-key"
@@ -3859,7 +4091,7 @@ async fn agent_runtime_compaction_tail_keeps_tool_pairs() {
     .expect("state file");
 
     let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
-    let runtime = AgentRuntime::with_pi_agent_backend(
+    let runtime = AgentRuntime::with_native_provider_backend(
         runtime_root.clone(),
         Arc::new(CapturingAgentRuntimeBackend {
             reply: "safe tail reply".to_string(),
@@ -3946,6 +4178,7 @@ async fn subagent_profile_injects_parent_context_messages() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "test-provider",
             "model": "test-model",
             "apiKey": "test-key"
@@ -3977,7 +4210,7 @@ async fn subagent_profile_injects_parent_context_messages() {
         .expect("parent assistant");
 
     let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
-    let runtime = AgentRuntime::with_pi_agent_backend(
+    let runtime = AgentRuntime::with_native_provider_backend(
         runtime_root.clone(),
         Arc::new(CapturingAgentRuntimeBackend {
             reply: "child reply".to_string(),
@@ -4047,6 +4280,7 @@ async fn subagent_profile_defaults_to_fresh_parent_context() {
     fs::write(
         config_dir.join("desktop-agent-provider.json"),
         serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
             "provider": "test-provider",
             "model": "test-model",
             "apiKey": "test-key"
@@ -4069,7 +4303,7 @@ async fn subagent_profile_defaults_to_fresh_parent_context() {
         .expect("parent user");
 
     let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
-    let runtime = AgentRuntime::with_pi_agent_backend(
+    let runtime = AgentRuntime::with_native_provider_backend(
         runtime_root.clone(),
         Arc::new(CapturingAgentRuntimeBackend {
             reply: "child reply".to_string(),

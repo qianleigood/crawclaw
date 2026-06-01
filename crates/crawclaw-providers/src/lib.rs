@@ -8,12 +8,12 @@ pub use models::*;
 use serde_json::{json, Value};
 
 pub fn native_provider_transports() -> Vec<ProviderTransport> {
-    NATIVE_PROVIDER_TRANSPORTS.to_vec()
+    native_provider_transport_catalog()
 }
 
 pub fn native_provider_ids() -> Vec<&'static str> {
-    NATIVE_PROVIDER_TRANSPORTS
-        .iter()
+    native_provider_transport_catalog()
+        .into_iter()
         .map(|provider| provider.id)
         .collect()
 }
@@ -403,11 +403,9 @@ fn bundled_provider_plugin_metadata_from_catalog(
         .iter()
         .map(|provider| (*provider).to_string())
         .collect::<Vec<_>>();
-    let chat = providers.iter().any(|provider| {
-        NATIVE_PROVIDER_TRANSPORTS
-            .iter()
-            .any(|entry| entry.id == provider)
-    });
+    let chat = providers
+        .iter()
+        .any(|provider| native_provider_transport_for_id(provider).is_some());
     let image_generation = plugin.plugin_id == "fal";
     let media_understanding = matches!(plugin.plugin_id, "openai");
     BundledProviderPluginMetadata {
@@ -534,9 +532,7 @@ fn bundled_provider_descriptors_from_catalog(
         .providers
         .iter()
         .map(|provider| {
-            let transport = NATIVE_PROVIDER_TRANSPORTS
-                .iter()
-                .find(|entry| entry.id == provider);
+            let transport = native_provider_transport_for_id(provider);
             let default_model = bundled_provider_default_model_for(provider);
             let auth_env_vars = bundled_provider_auth_env_vars_for(provider)
                 .unwrap_or_default()
@@ -580,9 +576,7 @@ fn resolve_provider_transport(
     if let Some(api) = non_empty(config.api.as_deref()) {
         return Ok(api);
     }
-    NATIVE_PROVIDER_TRANSPORTS
-        .iter()
-        .find(|transport| transport.id == config.provider)
+    native_provider_transport_for_id(&config.provider)
         .map(|transport| transport.transport)
         .ok_or_else(|| {
             ProviderTransportError::Unsupported(format!(

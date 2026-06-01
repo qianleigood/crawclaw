@@ -114,6 +114,48 @@ fn registered_native_provider_transports_have_request_builders() {
 }
 
 #[test]
+fn openai_compatible_thin_providers_are_data_presets() {
+    for provider in [
+        "byteplus",
+        "byteplus-plan",
+        "chutes",
+        "copilot-proxy",
+        "deepseek",
+        "huggingface",
+        "litellm",
+        "mistral",
+        "modelstudio",
+        "moonshot",
+        "nvidia",
+        "opencode",
+        "opencode-go",
+        "qianfan",
+        "sglang",
+        "together",
+        "venice",
+        "vllm",
+        "volcengine",
+        "volcengine-plan",
+    ] {
+        assert!(
+            !EXPLICIT_NATIVE_PROVIDER_TRANSPORTS
+                .iter()
+                .any(|entry| entry.id == provider),
+            "thin OpenAI-compatible provider {provider} should be registered through preset data, not a dedicated ProviderTransport entry"
+        );
+        assert!(
+            OPENAI_COMPLETIONS_THIN_PROVIDER_PRESETS
+                .iter()
+                .any(|preset| preset.provider == provider),
+            "thin OpenAI-compatible provider {provider} should be registered as preset data"
+        );
+        let transport =
+            native_provider_transport_for_id(provider).expect("thin provider transport");
+        assert_eq!(transport.transport, "openai-completions");
+    }
+}
+
+#[test]
 fn bundled_provider_auth_env_vars_cover_plugin_manifest_snapshot() {
     let actual = bundled_provider_auth_env_vars()
         .into_iter()
@@ -933,6 +975,96 @@ fn anthropic_messages_request_uses_provider_level_system_prompt() {
 }
 
 #[test]
+fn anthropic_messages_tool_results_use_user_role() {
+    let request = build_native_provider_conversation_request_with_options(
+        &NativeProviderConfig {
+            provider: "anthropic".to_string(),
+            base_url: Some("https://api.example.test".to_string()),
+            api_key: Some("secret".to_string()),
+            model: Some("sonnet-4.6".to_string()),
+            api: None,
+            api_version: None,
+        },
+        &[
+            NativeProviderMessage {
+                role: NativeProviderMessageRole::Assistant,
+                content: String::new(),
+                blocks: vec![NativeProviderContentBlock::tool_call(
+                    "toolu_1",
+                    "lookup_weather",
+                    json!({ "city": "Paris" }),
+                )],
+            },
+            NativeProviderMessage::tool_result(
+                "toolu_1",
+                Some("lookup_weather".to_string()),
+                "sunny",
+                false,
+            ),
+        ],
+        &NativeProviderRequestOptions::default(),
+    )
+    .expect("anthropic request");
+
+    let messages = request.body["messages"].as_array().expect("messages");
+    assert_eq!(messages.len(), 2);
+    assert_eq!(messages[0]["role"], "assistant");
+    assert_eq!(messages[0]["content"][0]["type"], "tool_use");
+    assert_eq!(messages[1]["role"], "user");
+    assert_eq!(messages[1]["content"][0]["type"], "tool_result");
+    assert_eq!(messages[1]["content"][0]["tool_use_id"], "toolu_1");
+    assert_eq!(messages[1]["content"][0]["content"], "sunny");
+}
+
+#[test]
+fn bedrock_converse_tool_results_use_user_role() {
+    let request = build_native_provider_conversation_request_with_options(
+        &NativeProviderConfig {
+            provider: "bedrock".to_string(),
+            base_url: Some("https://bedrock.example.test".to_string()),
+            api_key: Some("secret".to_string()),
+            model: Some("anthropic.claude-test".to_string()),
+            api: None,
+            api_version: None,
+        },
+        &[
+            NativeProviderMessage {
+                role: NativeProviderMessageRole::Assistant,
+                content: String::new(),
+                blocks: vec![NativeProviderContentBlock::tool_call(
+                    "toolu_1",
+                    "lookup_weather",
+                    json!({ "city": "Paris" }),
+                )],
+            },
+            NativeProviderMessage::tool_result(
+                "toolu_1",
+                Some("lookup_weather".to_string()),
+                "sunny",
+                false,
+            ),
+        ],
+        &NativeProviderRequestOptions::default(),
+    )
+    .expect("bedrock request");
+
+    let messages = request.body["messages"].as_array().expect("messages");
+    assert_eq!(messages.len(), 2);
+    assert_eq!(messages[0]["role"], "assistant");
+    assert!(messages[0]["content"][0]["toolUse"].is_object());
+    assert_eq!(messages[1]["role"], "user");
+    assert_eq!(
+        messages[1]["content"][0]["toolResult"]["toolUseId"],
+        "toolu_1"
+    );
+    assert_eq!(messages[1]["content"][0]["toolResult"]["status"], "success");
+    assert_eq!(
+        messages[1]["content"][0]["toolResult"]["content"][0]["text"],
+        "sunny"
+    );
+}
+
+#[test]
 fn builds_native_http_requests_for_all_phase_three_provider_families() {
     for provider in RUST_NATIVE_CHAT_MODEL_PROVIDERS {
         let request = build_native_provider_request(
@@ -1115,6 +1247,53 @@ fn applies_native_openai_responses_reasoning_policy() {
     .expect("openai non-reasoning responses request");
 
     assert!(non_reasoning_request.body.get("reasoning").is_none());
+}
+
+#[test]
+fn openai_responses_tool_calls_and_outputs_are_top_level_input_items() {
+    let request = build_native_provider_conversation_request_with_options(
+        &NativeProviderConfig {
+            provider: "openai".to_string(),
+            base_url: Some("https://api.openai.com/v1".to_string()),
+            api_key: Some("secret".to_string()),
+            model: Some("gpt-5.4".to_string()),
+            api: None,
+            api_version: None,
+        },
+        &[
+            NativeProviderMessage {
+                role: NativeProviderMessageRole::Assistant,
+                content: String::new(),
+                blocks: vec![NativeProviderContentBlock::tool_call(
+                    "call_1",
+                    "lookup_weather",
+                    json!({ "city": "Paris" }),
+                )],
+            },
+            NativeProviderMessage::tool_result(
+                "call_1",
+                Some("lookup_weather".to_string()),
+                "sunny",
+                false,
+            ),
+        ],
+        &NativeProviderRequestOptions::default(),
+    )
+    .expect("openai responses request");
+
+    let input = request.body["input"].as_array().expect("responses input");
+    assert_eq!(input.len(), 2);
+    assert_eq!(input[0]["type"], "function_call");
+    assert_eq!(input[0]["call_id"], "call_1");
+    assert_eq!(input[0]["name"], "lookup_weather");
+    assert_eq!(input[0]["arguments"], "{\"city\":\"Paris\"}");
+    assert!(input[0].get("role").is_none());
+    assert!(input[0].get("content").is_none());
+    assert_eq!(input[1]["type"], "function_call_output");
+    assert_eq!(input[1]["call_id"], "call_1");
+    assert_eq!(input[1]["output"], "sunny");
+    assert!(input[1].get("role").is_none());
+    assert!(input[1].get("content").is_none());
 }
 
 #[test]
@@ -1544,6 +1723,30 @@ fn parses_native_provider_tool_call_shapes() {
         assert_eq!(response.tool_calls[0].name, "lookup_weather");
         assert_eq!(response.tool_calls[0].arguments, json!({ "city": "Paris" }));
     }
+}
+
+#[test]
+fn parses_openai_responses_stream_tool_calls() {
+    let body = [
+        "data: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"type\":\"function_call\",\"id\":\"fc_1\",\"call_id\":\"call_1\",\"name\":\"lookup_weather\",\"arguments\":\"\"}}",
+        "data: {\"type\":\"response.function_call_arguments.delta\",\"output_index\":0,\"item_id\":\"fc_1\",\"delta\":\"{\\\"city\\\"\"}",
+        "data: {\"type\":\"response.function_call_arguments.delta\",\"output_index\":0,\"item_id\":\"fc_1\",\"delta\":\":\\\"Paris\\\"}\"}",
+        "data: {\"type\":\"response.function_call_arguments.done\",\"output_index\":0,\"item_id\":\"fc_1\",\"name\":\"lookup_weather\",\"arguments\":\"{\\\"city\\\":\\\"Paris\\\"}\"}",
+        "data: [DONE]",
+    ]
+    .join("\n\n");
+
+    let response = parse_native_provider_stream_assistant_response(
+        NativeProviderResponseFormat::OpenAiResponses,
+        &body,
+    )
+    .expect("responses stream tool call");
+
+    assert_eq!(response.text, "");
+    assert_eq!(response.tool_calls.len(), 1);
+    assert_eq!(response.tool_calls[0].id, "call_1");
+    assert_eq!(response.tool_calls[0].name, "lookup_weather");
+    assert_eq!(response.tool_calls[0].arguments, json!({ "city": "Paris" }));
 }
 
 fn collect_manifest_provider_auth_env_vars() -> BTreeMap<String, Vec<String>> {

@@ -20,7 +20,7 @@ For model selection rules, see [/concepts/models](/concepts/models).
   transport behavior are owned by the Rust provider registry.
 - TypeScript plugins cannot register LLM providers. Use `models.providers` for
   custom provider entries.
-- Provider runtime `capabilities` is shared runner metadata (provider family,
+- Native provider runtime `capabilities` are shared runner metadata (provider family,
   transcript/tooling quirks, transport/cache hints). It is not the same as the
   [public capability model](/plugins/architecture#public-capability-model).
 
@@ -30,6 +30,12 @@ Rust owns the provider list used by `models.list`, the provider status shown by
 `runtime.status`, and the config schema surfaced by `config.schema` and
 `config.schema.lookup`. Bundled native plugin descriptors register
 non-provider capabilities such as speech, media understanding, or web search.
+
+Simple bundled providers that only need the shared OpenAI-compatible chat
+adapter are cataloged as thin presets over `openai-completions`. Their provider
+IDs still appear in `models.list`, desktop setup, and model picker metadata, but
+Rust only keeps a dedicated transport entry when a provider needs custom auth,
+URL, transcript, or response handling.
 
 ## API key rotation
 
@@ -45,10 +51,10 @@ non-provider capabilities such as speech, media understanding, or web search.
 - Non-rate-limit failures fail immediately; no key rotation is attempted.
 - When all candidate keys fail, the final error is returned from the last attempt.
 
-## Built-in providers (pi-ai catalog)
+## Built-in providers (Rust registry)
 
-CrawClaw ships with the pi‑ai catalog. These providers require **no**
-`models.providers` config; just set auth + pick a model.
+CrawClaw ships with a Rust-owned provider registry. These providers require
+**no** `models.providers` config; just set auth and pick a model.
 
 ### OpenAI
 

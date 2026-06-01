@@ -25,7 +25,7 @@ use crate::special_agents::{find_special_agent, SpecialAgentToolGuard};
 use crate::DesktopSessionStore;
 use crate::{
     dispatch_native_channel_outbound, invoke_native_plugin_operation, is_special_agent_only_tool,
-    load_skill_candidates, pi_agent_rust_tool_descriptors_for_runtime_root,
+    load_skill_candidates, native_runtime_tool_descriptors_for_runtime_root,
     record_loaded_skill_state, record_tool_activation_state, with_native_runtime_context,
     AgentModelSelection, AgentRunEvent, AgentRunProfileKind, AgentRunProfileRequest,
     AgentRunRequest, AgentRunResult, AgentRuntime, ChannelChatType, ChannelInboundEnvelope,
@@ -130,7 +130,7 @@ impl pi::sdk::Tool for StructuredOutputTool {
     }
 }
 
-pub(crate) fn build_pi_agent_rust_tool_registry(runtime_root: &Path) -> pi::sdk::ToolRegistry {
+pub(crate) fn build_native_runtime_tool_registry(runtime_root: &Path) -> pi::sdk::ToolRegistry {
     let process_registry = process_registry_for_root(runtime_root);
     let mut tools: Vec<Box<dyn pi::sdk::Tool>> = vec![
         pi::sdk::create_read_tool(runtime_root),

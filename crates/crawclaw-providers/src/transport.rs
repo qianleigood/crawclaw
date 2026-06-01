@@ -89,6 +89,27 @@ impl NativeProviderMessageRole {
             Self::Tool => "user",
         }
     }
+
+    fn as_anthropic_role(self) -> &'static str {
+        match self {
+            Self::User | Self::Tool => "user",
+            Self::Assistant => "assistant",
+        }
+    }
+
+    fn as_bedrock_role(self) -> &'static str {
+        match self {
+            Self::User | Self::Tool => "user",
+            Self::Assistant => "assistant",
+        }
+    }
+
+    fn as_openai_responses_message_role(self) -> &'static str {
+        match self {
+            Self::User | Self::Tool => "user",
+            Self::Assistant => "assistant",
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -503,7 +524,10 @@ fn parse_native_provider_stream_delta_from_json(
 ) -> Option<String> {
     let text = match format {
         NativeProviderResponseFormat::OpenAiResponses => body
-            .get("delta")
+            .get("type")
+            .and_then(Value::as_str)
+            .filter(|event_type| *event_type == "response.output_text.delta")
+            .and_then(|_| body.get("delta"))
             .and_then(Value::as_str)
             .map(ToOwned::to_owned),
         NativeProviderResponseFormat::ChatCompletions => body
@@ -603,6 +627,7 @@ struct NativeProviderToolCallBuilder {
 
 #[derive(Default)]
 struct PartialNativeProviderToolCall {
+    item_id: Option<String>,
     id: Option<String>,
     name: Option<String>,
     arguments: String,
@@ -611,14 +636,16 @@ struct PartialNativeProviderToolCall {
 impl NativeProviderToolCallBuilder {
     fn apply_stream_chunk(&mut self, format: NativeProviderResponseFormat, body: &Value) {
         match format {
+            NativeProviderResponseFormat::OpenAiResponses => {
+                self.apply_openai_responses_stream_chunk(body);
+            }
             NativeProviderResponseFormat::ChatCompletions => {
                 self.apply_openai_chat_stream_chunk(body);
             }
             NativeProviderResponseFormat::AnthropicMessages => {
                 self.apply_anthropic_stream_chunk(body);
             }
-            NativeProviderResponseFormat::OpenAiResponses
-            | NativeProviderResponseFormat::GoogleGenerateContent
+            NativeProviderResponseFormat::GoogleGenerateContent
             | NativeProviderResponseFormat::OllamaChat
             | NativeProviderResponseFormat::BedrockConverse => {
                 for (index, tool_call) in native_provider_tool_calls(format, body)
@@ -632,6 +659,92 @@ impl NativeProviderToolCallBuilder {
                 }
             }
         }
+    }
+
+    fn apply_openai_responses_stream_chunk(&mut self, body: &Value) {
+        match body.get("type").and_then(Value::as_str) {
+            Some("response.output_item.added") => {
+                let Some(item) = body.get("item") else {
+                    return;
+                };
+                if item.get("type").and_then(Value::as_str) != Some("function_call") {
+                    return;
+                }
+                let index = self.openai_responses_stream_index(body);
+                let entry = self.calls.entry(index).or_default();
+                if let Some(item_id) = non_empty(item.get("id").and_then(Value::as_str)) {
+                    entry.item_id = Some(item_id.to_string());
+                }
+                if let Some(call_id) = non_empty(item.get("call_id").and_then(Value::as_str)) {
+                    entry.id = Some(call_id.to_string());
+                } else if let Some(item_id) = entry.item_id.clone() {
+                    entry.id.get_or_insert(item_id);
+                }
+                if let Some(name) = non_empty(item.get("name").and_then(Value::as_str)) {
+                    entry.name = Some(name.to_string());
+                }
+                if let Some(arguments) = item.get("arguments").and_then(Value::as_str) {
+                    entry.arguments.push_str(arguments);
+                }
+            }
+            Some("response.function_call_arguments.delta") => {
+                let index = self.openai_responses_stream_index(body);
+                if let Some(delta) = body.get("delta").and_then(Value::as_str) {
+                    self.calls
+                        .entry(index)
+                        .or_default()
+                        .arguments
+                        .push_str(delta);
+                }
+            }
+            Some("response.function_call_arguments.done") => {
+                let index = self.openai_responses_stream_index(body);
+                let entry = self.calls.entry(index).or_default();
+                if let Some(item_id) = non_empty(body.get("item_id").and_then(Value::as_str)) {
+                    entry.item_id.get_or_insert_with(|| item_id.to_string());
+                }
+                if let Some(call_id) = non_empty(body.get("call_id").and_then(Value::as_str)) {
+                    entry.id = Some(call_id.to_string());
+                } else if let Some(item_id) = entry.item_id.clone() {
+                    entry.id.get_or_insert(item_id);
+                }
+                if let Some(name) = non_empty(body.get("name").and_then(Value::as_str)) {
+                    entry.name = Some(name.to_string());
+                }
+                if let Some(arguments) = body.get("arguments").and_then(Value::as_str) {
+                    entry.arguments = arguments.to_string();
+                }
+            }
+            _ => {
+                for (index, tool_call) in openai_responses_tool_calls(body).into_iter().enumerate()
+                {
+                    let entry = self.calls.entry(index).or_default();
+                    entry.id = Some(tool_call.id);
+                    entry.name = Some(tool_call.name);
+                    entry.arguments = tool_call.arguments.to_string();
+                }
+            }
+        }
+    }
+
+    fn openai_responses_stream_index(&self, body: &Value) -> usize {
+        if let Some(index) = body
+            .get("output_index")
+            .and_then(Value::as_u64)
+            .and_then(|value| usize::try_from(value).ok())
+        {
+            return index;
+        }
+        if let Some(item_id) = body.get("item_id").and_then(Value::as_str) {
+            if let Some((index, _)) = self
+                .calls
+                .iter()
+                .find(|(_, partial)| partial.item_id.as_deref() == Some(item_id))
+            {
+                return *index;
+            }
+        }
+        self.calls.len()
     }
 
     fn apply_openai_chat_stream_chunk(&mut self, body: &Value) {
@@ -1189,18 +1302,66 @@ fn openai_responses_input(messages: &[NativeProviderMessage]) -> Value {
     Value::Array(
         messages
             .iter()
-            .map(|message| {
-                json!({
-                    "role": message.role.as_chat_role(),
-                    "content": openai_responses_content(message),
-                })
-            })
+            .flat_map(openai_responses_input_items)
             .collect(),
     )
 }
 
-fn openai_responses_content(message: &NativeProviderMessage) -> Value {
-    let blocks = native_message_blocks(message);
+fn openai_responses_input_items(message: &NativeProviderMessage) -> Vec<Value> {
+    let mut items = Vec::new();
+    let mut message_blocks = Vec::new();
+    for block in native_message_blocks(message) {
+        match block {
+            NativeProviderContentBlock::ToolCall {
+                id,
+                name,
+                arguments,
+            } => {
+                push_openai_responses_message_item(message, &mut message_blocks, &mut items);
+                items.push(json!({
+                    "type": "function_call",
+                    "call_id": id,
+                    "name": name,
+                    "arguments": arguments.to_string()
+                }));
+            }
+            NativeProviderContentBlock::ToolResult {
+                tool_call_id,
+                content,
+                ..
+            } => {
+                push_openai_responses_message_item(message, &mut message_blocks, &mut items);
+                items.push(json!({
+                    "type": "function_call_output",
+                    "call_id": tool_call_id,
+                    "output": content
+                }));
+            }
+            NativeProviderContentBlock::Text { .. } | NativeProviderContentBlock::Image { .. } => {
+                message_blocks.push(block);
+            }
+        }
+    }
+    push_openai_responses_message_item(message, &mut message_blocks, &mut items);
+    items
+}
+
+fn push_openai_responses_message_item(
+    message: &NativeProviderMessage,
+    blocks: &mut Vec<NativeProviderContentBlock>,
+    items: &mut Vec<Value>,
+) {
+    if blocks.is_empty() {
+        return;
+    }
+    let content = openai_responses_content(&std::mem::take(blocks));
+    items.push(json!({
+        "role": message.role.as_openai_responses_message_role(),
+        "content": content,
+    }));
+}
+
+fn openai_responses_content(blocks: &[NativeProviderContentBlock]) -> Value {
     Value::Array(
         blocks
             .iter()
@@ -1212,25 +1373,13 @@ fn openai_responses_content(message: &NativeProviderMessage) -> Value {
                     "type": "input_image",
                     "image_url": data_url(mime_type, data)
                 }),
-                NativeProviderContentBlock::ToolCall {
-                    id,
-                    name,
-                    arguments,
-                } => json!({
-                    "type": "function_call",
-                    "call_id": id,
-                    "name": name,
-                    "arguments": arguments.to_string()
-                }),
-                NativeProviderContentBlock::ToolResult {
-                    tool_call_id,
-                    content,
-                    ..
-                } => json!({
-                    "type": "function_call_output",
-                    "call_id": tool_call_id,
-                    "output": content
-                }),
+                NativeProviderContentBlock::ToolCall { .. }
+                | NativeProviderContentBlock::ToolResult { .. } => {
+                    json!({
+                        "type": "input_text",
+                        "text": native_content_blocks_text(std::slice::from_ref(block))
+                    })
+                }
             })
             .collect(),
     )
@@ -1260,7 +1409,7 @@ fn native_messages_for_anthropic(messages: &[NativeProviderMessage]) -> Vec<Valu
         .iter()
         .map(|message| {
             json!({
-                "role": message.role.as_chat_role(),
+                "role": message.role.as_anthropic_role(),
                 "content": anthropic_content(message),
             })
         })
@@ -1284,7 +1433,7 @@ fn native_messages_for_bedrock(messages: &[NativeProviderMessage]) -> Vec<Value>
         .iter()
         .map(|message| {
             json!({
-                "role": message.role.as_chat_role(),
+                "role": message.role.as_bedrock_role(),
                 "content": bedrock_content(message),
             })
         })

@@ -24,7 +24,7 @@ pub(super) fn runtime_status_value(state: &GatewayState) -> Value {
         "defaultModels": crawclaw_providers::bundled_provider_default_models(),
         "gatewayMethods": gateway_methods(),
         "mcpServers": mcp_servers_snapshot(state),
-        "coreTools": crawclaw_runtime::pi_agent_rust_tool_names_for_runtime_root(&state.runtime_root)
+        "coreTools": crawclaw_runtime::native_runtime_tool_names_for_runtime_root(&state.runtime_root)
     })
 }
 

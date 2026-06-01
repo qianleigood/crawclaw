@@ -40,8 +40,8 @@ CrawClaw intentionally suppresses the stale `openai/gpt-5.3-codex-spark` row,
 because direct OpenAI API calls reject it in live traffic.
 
 CrawClaw does **not** expose `openai/gpt-5.3-codex-spark` on the direct OpenAI
-API path. `pi-ai` still ships a built-in row for that model, but live OpenAI API
-requests currently reject it. Spark is treated as Codex-only in CrawClaw.
+API path because live OpenAI API requests reject it. Spark is treated as
+Codex-only in CrawClaw.
 
 ## OpenAI Code (Codex)
 
@@ -68,16 +68,16 @@ If your Codex account is entitled to Codex Spark, CrawClaw also supports:
 CrawClaw treats Codex Spark as Codex-only. It does not expose a direct
 `openai/gpt-5.3-codex-spark` API-key path.
 
-CrawClaw also preserves `openai-codex/gpt-5.3-codex-spark` when `pi-ai`
-discovers it. Treat it as entitlement-dependent and experimental: Codex Spark is
-separate from GPT-5.4 `/fast`, and availability depends on the signed-in Codex /
-ChatGPT account.
+CrawClaw also preserves `openai-codex/gpt-5.3-codex-spark` when compatible Codex
+auth and catalog metadata expose it. Treat it as entitlement-dependent and
+experimental: Codex Spark is separate from GPT-5.4 `/fast`, and availability
+depends on the signed-in Codex / ChatGPT account.
 
 ### Transport default
 
-CrawClaw uses `pi-ai` for model streaming. For both `openai/*` and
-`openai-codex/*`, default transport is `"auto"` (WebSocket-first, then SSE
-fallback).
+CrawClaw uses its Rust NativeProvider transport for model streaming. For both
+`openai/*` and `openai-codex/*`, default transport is `"auto"`
+(WebSocket-first, then SSE fallback).
 
 You can set `agents.defaults.models.<provider/model>.params.transport`:
 

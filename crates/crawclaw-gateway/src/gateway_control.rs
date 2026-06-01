@@ -2387,7 +2387,7 @@ fn tool_read_only(state: &GatewayState, tool_name: &str) -> Option<bool> {
         .find(|definition| definition.id == tool_name)
         .map(|definition| definition.read_only)
         .or_else(|| {
-            crawclaw_runtime::pi_agent_rust_tool_descriptors_for_runtime_root(&state.runtime_root)
+            crawclaw_runtime::native_runtime_tool_descriptors_for_runtime_root(&state.runtime_root)
                 .into_iter()
                 .find(|descriptor| descriptor.name == tool_name)
                 .map(|descriptor| descriptor.read_only)

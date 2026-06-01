@@ -4,7 +4,7 @@ pub(super) fn tools_catalog(state: &GatewayState, params: Value) -> Value {
     let agent_id = string_param(&params, &["agentId"]).unwrap_or_else(|| "main".to_string());
     let native_registry = crawclaw_runtime::native_plugin_registry(&state.runtime_root);
     let rust_tools =
-        crawclaw_runtime::pi_agent_rust_tool_descriptors_for_runtime_root(&state.runtime_root);
+        crawclaw_runtime::native_runtime_tool_descriptors_for_runtime_root(&state.runtime_root);
     let mut groups = vec![json!({
         "id": "core",
         "label": "Core tools",
@@ -57,7 +57,7 @@ pub(super) fn tools_effective(state: &GatewayState, params: Value) -> Value {
     };
     let native_registry = crawclaw_runtime::native_plugin_registry(&state.runtime_root);
     let rust_tools =
-        crawclaw_runtime::pi_agent_rust_tool_descriptors_for_runtime_root(&state.runtime_root);
+        crawclaw_runtime::native_runtime_tool_descriptors_for_runtime_root(&state.runtime_root);
     let mut groups = vec![json!({
         "id": "core",
         "label": "Core tools",

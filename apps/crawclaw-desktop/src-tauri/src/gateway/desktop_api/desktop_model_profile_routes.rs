@@ -256,7 +256,7 @@ fn write_active_model_profile_config(
     std::fs::create_dir_all(&config_dir)
         .map_err(|error| format!("Failed to create desktop provider config directory: {error}"))?;
     let mut object = Map::new();
-    object.insert("runtime".to_string(), json!("pi-agent-rust"));
+    object.insert("runtime".to_string(), json!("native-provider"));
     object.insert("provider".to_string(), json!(&profile.provider));
     if let Some(base_url) = &profile.base_url {
         object.insert("baseUrl".to_string(), json!(base_url));

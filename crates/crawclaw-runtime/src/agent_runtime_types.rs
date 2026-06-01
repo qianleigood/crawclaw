@@ -3,7 +3,6 @@ use super::*;
 #[derive(Clone)]
 pub struct AgentRuntime {
     pub(super) runtime_root: PathBuf,
-    pub(super) pi_agent_backend: Arc<dyn AgentRuntimeBackend>,
     pub(super) native_provider_backend: Arc<dyn AgentRuntimeBackend>,
 }
 

@@ -318,7 +318,7 @@ async fn cron_tool_is_registered_and_uses_state_dir_store() {
     std::env::set_var("CRAWCLAW_STATE_DIR", temp.path());
 
     let runtime_root = temp.path().join("runtime");
-    let registry = crawclaw_runtime::build_pi_agent_rust_tool_registry_for_test(&runtime_root);
+    let registry = crawclaw_runtime::build_native_runtime_tool_registry_for_test(&runtime_root);
     let cron = registry.get("cron").expect("cron tool");
     assert!(!cron.is_read_only());
 
