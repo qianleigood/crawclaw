@@ -7,10 +7,27 @@ pub(super) async fn send_native_provider_conversation_with_retry(
     messages: &[NativeProviderMessage],
     options: &NativeProviderRequestOptions,
 ) -> Result<String, ProviderTransportError> {
+    let response =
+        send_native_provider_conversation_response_with_retry(config, messages, options).await?;
+    if response.text.trim().is_empty() {
+        return Err(ProviderTransportError::InvalidResponse(
+            "provider response did not include assistant content".to_string(),
+        ));
+    }
+    Ok(response.text)
+}
+
+pub(super) async fn send_native_provider_conversation_response_with_retry(
+    config: &NativeProviderConfig,
+    messages: &[NativeProviderMessage],
+    options: &NativeProviderRequestOptions,
+) -> Result<NativeProviderAssistantResponse, ProviderTransportError> {
     let mut attempt = 0usize;
     loop {
-        match send_native_provider_conversation_with_options(config, messages, options).await {
-            Ok(text) => return Ok(text),
+        match send_native_provider_conversation_response_with_options(config, messages, options)
+            .await
+        {
+            Ok(response) => return Ok(response),
             Err(error)
                 if attempt < PROVIDER_RETRY_DELAYS_MS.len()
                     && is_retryable_provider_error(&error) =>
@@ -176,28 +193,54 @@ impl pi::sdk::Provider for CrawClawPiProvider {
                 })
                 .collect(),
         };
-        let text = send_native_provider_conversation_with_retry(&self.config, &messages, &options)
-            .await
-            .map_err(|error| pi::sdk::Error::provider(self.name(), error.to_string()))?;
-        let message = pi_assistant_message(&self.config, text.clone());
+        let response = send_native_provider_conversation_response_with_retry(
+            &self.config,
+            &messages,
+            &options,
+        )
+        .await
+        .map_err(|error| pi::sdk::Error::provider(self.name(), error.to_string()))?;
+        let message = pi_assistant_message_from_native_response(&self.config, &response);
         let mut partial = message.clone();
         partial.content.clear();
-        let events = vec![
-            Ok(pi::sdk::StreamEvent::Start { partial }),
-            Ok(pi::sdk::StreamEvent::TextStart { content_index: 0 }),
-            Ok(pi::sdk::StreamEvent::TextDelta {
-                content_index: 0,
-                delta: text.clone(),
-            }),
-            Ok(pi::sdk::StreamEvent::TextEnd {
-                content_index: 0,
-                content: text,
-            }),
-            Ok(pi::sdk::StreamEvent::Done {
-                reason: pi::sdk::StopReason::Stop,
-                message,
-            }),
-        ];
+        let mut events = vec![Ok(pi::sdk::StreamEvent::Start { partial })];
+        let mut content_index = 0usize;
+        if !response.text.trim().is_empty() {
+            events.push(Ok(pi::sdk::StreamEvent::TextStart { content_index }));
+            events.push(Ok(pi::sdk::StreamEvent::TextDelta {
+                content_index,
+                delta: response.text.clone(),
+            }));
+            events.push(Ok(pi::sdk::StreamEvent::TextEnd {
+                content_index,
+                content: response.text,
+            }));
+            content_index += 1;
+        }
+        for tool_call in response.tool_calls {
+            let tool_call = pi::sdk::ToolCall {
+                id: tool_call.id,
+                name: tool_call.name,
+                arguments: tool_call.arguments,
+                thought_signature: None,
+            };
+            events.push(Ok(pi::sdk::StreamEvent::ToolCallStart { content_index }));
+            events.push(Ok(pi::sdk::StreamEvent::ToolCallDelta {
+                content_index,
+                delta: tool_call.arguments.to_string(),
+            }));
+            events.push(Ok(pi::sdk::StreamEvent::ToolCallEnd {
+                content_index,
+                tool_call,
+            }));
+            content_index += 1;
+        }
+        let reason = if matches!(message.stop_reason, pi::sdk::StopReason::ToolUse) {
+            pi::sdk::StopReason::ToolUse
+        } else {
+            pi::sdk::StopReason::Stop
+        };
+        events.push(Ok(pi::sdk::StreamEvent::Done { reason, message }));
         Ok(Box::pin(futures::stream::iter(events)))
     }
 }
@@ -250,6 +293,38 @@ pub(super) fn pi_assistant_content_text(content: &[pi::sdk::ContentBlock]) -> St
         .join("\n")
 }
 
+pub(super) fn pi_assistant_content_blocks(
+    content: &[pi::sdk::ContentBlock],
+) -> Vec<NativeProviderContentBlock> {
+    content
+        .iter()
+        .filter_map(|block| match block {
+            pi::sdk::ContentBlock::Text(text) => {
+                Some(NativeProviderContentBlock::text(text.text.clone()))
+            }
+            pi::sdk::ContentBlock::ToolCall(tool_call) => {
+                Some(NativeProviderContentBlock::tool_call(
+                    tool_call.id.clone(),
+                    tool_call.name.clone(),
+                    tool_call.arguments.clone(),
+                ))
+            }
+            pi::sdk::ContentBlock::Thinking(_) | pi::sdk::ContentBlock::Image(_) => None,
+        })
+        .collect()
+}
+
+fn pi_tool_result_content_text(content: &[pi::sdk::ContentBlock]) -> String {
+    content
+        .iter()
+        .filter_map(|block| match block {
+            pi::sdk::ContentBlock::Text(text) => Some(text.text.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 pub(super) fn pi_messages_to_native_provider_messages(
     messages: &[pi::sdk::Message],
 ) -> Vec<NativeProviderMessage> {
@@ -264,9 +339,22 @@ pub(super) fn pi_messages_to_native_provider_messages(
             pi::sdk::Message::Assistant(assistant) => Some(NativeProviderMessage {
                 role: NativeProviderMessageRole::Assistant,
                 content: pi_assistant_content_text(&assistant.content),
-                blocks: Vec::new(),
+                blocks: pi_assistant_content_blocks(&assistant.content),
             }),
-            _ => None,
+            pi::sdk::Message::ToolResult(tool_result) => {
+                let content = pi_tool_result_content_text(&tool_result.content);
+                Some(NativeProviderMessage {
+                    role: NativeProviderMessageRole::Tool,
+                    content: content.clone(),
+                    blocks: vec![NativeProviderContentBlock::tool_result(
+                        tool_result.tool_call_id.clone(),
+                        Some(tool_result.tool_name.clone()),
+                        content,
+                        tool_result.is_error,
+                    )],
+                })
+            }
+            pi::sdk::Message::Custom(_) => None,
         })
         .filter(|message| !message.content.trim().is_empty() || !message.blocks.is_empty())
         .collect()
@@ -312,19 +400,19 @@ fn runtime_message_blocks_to_native_provider_blocks(
             AgentRuntimeMessageBlock::Image { mime_type, data } => Some(
                 NativeProviderContentBlock::image_base64(mime_type.clone(), data.clone()),
             ),
-            AgentRuntimeMessageBlock::ToolUse { id, name, input } => {
-                Some(NativeProviderContentBlock::text(format!(
-                    "[tool_use id={id} name={name} input={}]",
-                    serde_json::to_string(input).unwrap_or_else(|_| "{}".to_string())
-                )))
-            }
+            AgentRuntimeMessageBlock::ToolUse { id, name, input } => Some(
+                NativeProviderContentBlock::tool_call(id.clone(), name.clone(), input.clone()),
+            ),
             AgentRuntimeMessageBlock::ToolResult {
                 tool_use_id,
                 content,
                 is_error,
-            } => Some(NativeProviderContentBlock::text(format!(
-                "[tool_result tool_use_id={tool_use_id} is_error={is_error}]\n{content}"
-            ))),
+            } => Some(NativeProviderContentBlock::tool_result(
+                tool_use_id.clone(),
+                None,
+                content.clone(),
+                *is_error,
+            )),
             AgentRuntimeMessageBlock::Meta { .. } => None,
         })
         .collect()
@@ -464,17 +552,35 @@ fn runtime_assistant_blocks_to_pi_content(
     }
 }
 
-pub(super) fn pi_assistant_message(
+fn pi_assistant_message_from_native_response(
     config: &NativeProviderConfig,
-    text: String,
+    response: &NativeProviderAssistantResponse,
 ) -> pi::sdk::AssistantMessage {
+    let mut content = Vec::new();
+    if !response.text.trim().is_empty() {
+        content.push(pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(
+            response.text.clone(),
+        )));
+    }
+    content.extend(response.tool_calls.iter().map(|tool_call| {
+        pi::sdk::ContentBlock::ToolCall(pi::sdk::ToolCall {
+            id: tool_call.id.clone(),
+            name: tool_call.name.clone(),
+            arguments: tool_call.arguments.clone(),
+            thought_signature: None,
+        })
+    }));
     pi::sdk::AssistantMessage {
-        content: vec![pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(text))],
+        content,
         api: config.provider.clone(),
         provider: config.provider.clone(),
         model: config.model.clone().unwrap_or_default(),
         usage: pi::sdk::Usage::default(),
-        stop_reason: pi::sdk::StopReason::Stop,
+        stop_reason: if response.tool_calls.is_empty() {
+            pi::sdk::StopReason::Stop
+        } else {
+            pi::sdk::StopReason::ToolUse
+        },
         error_message: None,
         timestamp: current_unix_millis(),
     }

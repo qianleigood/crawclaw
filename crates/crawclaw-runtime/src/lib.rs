@@ -61,9 +61,10 @@ pub use crawclaw_channels::{
 use crawclaw_core::{RuntimeCompatStatus, RuntimeStatusValue};
 use crawclaw_plugin_sdk::{NativeInvocationTarget, NativePluginDescriptor};
 use crawclaw_providers::{
-    send_native_provider_conversation_with_options, NativeProviderConfig,
-    NativeProviderContentBlock, NativeProviderMessage, NativeProviderMessageRole,
-    NativeProviderRequestOptions, NativeProviderTool, ProviderTransportError,
+    send_native_provider_conversation_response_with_options, NativeProviderAssistantResponse,
+    NativeProviderConfig, NativeProviderContentBlock, NativeProviderMessage,
+    NativeProviderMessageRole, NativeProviderRequestOptions, NativeProviderTool,
+    ProviderTransportError,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};

@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fmt;
 use std::net::IpAddr;
 use std::time::Duration;
@@ -69,6 +70,7 @@ pub struct NativeProviderConfig {
 pub enum NativeProviderMessageRole {
     User,
     Assistant,
+    Tool,
 }
 
 impl NativeProviderMessageRole {
@@ -76,6 +78,7 @@ impl NativeProviderMessageRole {
         match self {
             Self::User => "user",
             Self::Assistant => "assistant",
+            Self::Tool => "tool",
         }
     }
 
@@ -83,6 +86,7 @@ impl NativeProviderMessageRole {
         match self {
             Self::User => "user",
             Self::Assistant => "model",
+            Self::Tool => "user",
         }
     }
 }
@@ -99,8 +103,24 @@ pub struct NativeProviderMessage {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum NativeProviderContentBlock {
-    Text { text: String },
-    Image { mime_type: String, data: String },
+    Text {
+        text: String,
+    },
+    Image {
+        mime_type: String,
+        data: String,
+    },
+    ToolCall {
+        id: String,
+        name: String,
+        arguments: Value,
+    },
+    ToolResult {
+        tool_call_id: String,
+        name: Option<String>,
+        content: String,
+        is_error: bool,
+    },
 }
 
 impl NativeProviderContentBlock {
@@ -112,6 +132,28 @@ impl NativeProviderContentBlock {
         Self::Image {
             mime_type: mime_type.into(),
             data: data.into(),
+        }
+    }
+
+    pub fn tool_call(id: impl Into<String>, name: impl Into<String>, arguments: Value) -> Self {
+        Self::ToolCall {
+            id: id.into(),
+            name: name.into(),
+            arguments,
+        }
+    }
+
+    pub fn tool_result(
+        tool_call_id: impl Into<String>,
+        name: Option<String>,
+        content: impl Into<String>,
+        is_error: bool,
+    ) -> Self {
+        Self::ToolResult {
+            tool_call_id: tool_call_id.into(),
+            name,
+            content: content.into(),
+            is_error,
         }
     }
 }
@@ -130,6 +172,25 @@ impl NativeProviderMessage {
             role: NativeProviderMessageRole::Assistant,
             content: content.into(),
             blocks: Vec::new(),
+        }
+    }
+
+    pub fn tool_result(
+        tool_call_id: impl Into<String>,
+        name: Option<String>,
+        content: impl Into<String>,
+        is_error: bool,
+    ) -> Self {
+        let content = content.into();
+        Self {
+            role: NativeProviderMessageRole::Tool,
+            content: content.clone(),
+            blocks: vec![NativeProviderContentBlock::tool_result(
+                tool_call_id,
+                name,
+                content,
+                is_error,
+            )],
         }
     }
 
@@ -175,6 +236,19 @@ pub struct NativeProviderTool {
     pub input_schema: Value,
 }
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct NativeProviderAssistantResponse {
+    pub text: String,
+    pub tool_calls: Vec<NativeProviderToolCall>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct NativeProviderToolCall {
+    pub id: String,
+    pub name: String,
+    pub arguments: Value,
+}
+
 pub async fn send_native_provider_message(
     config: &NativeProviderConfig,
     user_text: &str,
@@ -199,6 +273,21 @@ pub async fn send_native_provider_conversation_with_options(
     messages: &[NativeProviderMessage],
     options: &NativeProviderRequestOptions,
 ) -> Result<String, ProviderTransportError> {
+    let response =
+        send_native_provider_conversation_response_with_options(config, messages, options).await?;
+    if response.text.trim().is_empty() {
+        return Err(ProviderTransportError::InvalidResponse(
+            "provider response did not include assistant content".to_string(),
+        ));
+    }
+    Ok(response.text)
+}
+
+pub async fn send_native_provider_conversation_response_with_options(
+    config: &NativeProviderConfig,
+    messages: &[NativeProviderMessage],
+    options: &NativeProviderRequestOptions,
+) -> Result<NativeProviderAssistantResponse, ProviderTransportError> {
     let request =
         build_native_provider_conversation_request_with_options(config, messages, options)?;
     let mut client_builder = reqwest::Client::builder().timeout(Duration::from_secs(30));
@@ -230,14 +319,14 @@ pub async fn send_native_provider_conversation_with_options(
             .text()
             .await
             .map_err(|error| ProviderTransportError::InvalidResponse(error.to_string()))?;
-        return parse_native_provider_stream_response(request.response_format, &body);
+        return parse_native_provider_stream_assistant_response(request.response_format, &body);
     }
 
     let body = response
         .json::<Value>()
         .await
         .map_err(|error| ProviderTransportError::InvalidResponse(error.to_string()))?;
-    parse_native_provider_response(request.response_format, body)
+    parse_native_provider_assistant_response(request.response_format, body)
 }
 
 fn is_loopback_request_url(url: &str) -> bool {
@@ -335,6 +424,19 @@ pub fn parse_native_provider_response(
     format: NativeProviderResponseFormat,
     body: Value,
 ) -> Result<String, ProviderTransportError> {
+    let response = parse_native_provider_assistant_response(format, body)?;
+    if response.text.trim().is_empty() {
+        return Err(ProviderTransportError::InvalidResponse(
+            "provider response did not include assistant content".to_string(),
+        ));
+    }
+    Ok(response.text)
+}
+
+pub fn parse_native_provider_assistant_response(
+    format: NativeProviderResponseFormat,
+    body: Value,
+) -> Result<NativeProviderAssistantResponse, ProviderTransportError> {
     let text = match format {
         NativeProviderResponseFormat::OpenAiResponses => body
             .get("output_text")
@@ -375,12 +477,14 @@ pub fn parse_native_provider_response(
             .and_then(Value::as_array)
             .and_then(|parts| text_from_parts(parts, "text")),
     };
-    text.filter(|content| !content.trim().is_empty())
-        .ok_or_else(|| {
-            ProviderTransportError::InvalidResponse(
-                "provider response did not include assistant content".to_string(),
-            )
-        })
+    let text = text.unwrap_or_default();
+    let tool_calls = native_provider_tool_calls(format, &body);
+    if text.trim().is_empty() && tool_calls.is_empty() {
+        return Err(ProviderTransportError::InvalidResponse(
+            "provider response did not include assistant content".to_string(),
+        ));
+    }
+    Ok(NativeProviderAssistantResponse { text, tool_calls })
 }
 
 pub fn parse_native_provider_stream_delta(
@@ -390,6 +494,13 @@ pub fn parse_native_provider_stream_delta(
     let Some(body) = stream_chunk_json(chunk)? else {
         return Ok(None);
     };
+    Ok(parse_native_provider_stream_delta_from_json(format, &body))
+}
+
+fn parse_native_provider_stream_delta_from_json(
+    format: NativeProviderResponseFormat,
+    body: &Value,
+) -> Option<String> {
     let text = match format {
         NativeProviderResponseFormat::OpenAiResponses => body
             .get("delta")
@@ -428,28 +539,196 @@ pub fn parse_native_provider_stream_delta(
             .and_then(Value::as_str)
             .map(ToOwned::to_owned),
     };
-    Ok(text.filter(|text| !text.trim().is_empty()))
+    text.filter(|text| !text.trim().is_empty())
 }
 
 pub fn parse_native_provider_stream_response(
     format: NativeProviderResponseFormat,
     body: &str,
 ) -> Result<String, ProviderTransportError> {
-    let mut text = String::new();
-    for line in body.lines().map(str::trim).filter(|line| !line.is_empty()) {
-        if line.starts_with(':') || line.starts_with("event:") || line.starts_with("id:") {
-            continue;
-        }
-        if let Some(delta) = parse_native_provider_stream_delta(format, line)? {
-            text.push_str(&delta);
-        }
-    }
-    if text.trim().is_empty() {
+    let response = parse_native_provider_stream_assistant_response(format, body)?;
+    if response.text.trim().is_empty() {
         return Err(ProviderTransportError::InvalidResponse(
             "provider stream did not include assistant content".to_string(),
         ));
     }
-    Ok(text)
+    Ok(response.text)
+}
+
+pub fn parse_native_provider_stream_assistant_response(
+    format: NativeProviderResponseFormat,
+    body: &str,
+) -> Result<NativeProviderAssistantResponse, ProviderTransportError> {
+    let mut text = String::new();
+    let mut tool_call_builder = NativeProviderToolCallBuilder::default();
+    for line in body.lines().map(str::trim).filter(|line| !line.is_empty()) {
+        if line.starts_with(':') || line.starts_with("event:") || line.starts_with("id:") {
+            continue;
+        }
+        let Some(chunk) = stream_chunk_json(line)? else {
+            continue;
+        };
+        if let Some(delta) = parse_native_provider_stream_delta_from_json(format, &chunk) {
+            text.push_str(&delta);
+        }
+        tool_call_builder.apply_stream_chunk(format, &chunk);
+    }
+    let tool_calls = tool_call_builder.finish();
+    if text.trim().is_empty() && tool_calls.is_empty() {
+        return Err(ProviderTransportError::InvalidResponse(
+            "provider stream did not include assistant content".to_string(),
+        ));
+    }
+    Ok(NativeProviderAssistantResponse { text, tool_calls })
+}
+
+fn native_provider_tool_calls(
+    format: NativeProviderResponseFormat,
+    body: &Value,
+) -> Vec<NativeProviderToolCall> {
+    match format {
+        NativeProviderResponseFormat::OpenAiResponses => openai_responses_tool_calls(body),
+        NativeProviderResponseFormat::ChatCompletions => openai_chat_tool_calls(body),
+        NativeProviderResponseFormat::AnthropicMessages => anthropic_tool_calls(body),
+        NativeProviderResponseFormat::GoogleGenerateContent => google_tool_calls(body),
+        NativeProviderResponseFormat::OllamaChat => ollama_tool_calls(body),
+        NativeProviderResponseFormat::BedrockConverse => bedrock_tool_calls(body),
+    }
+}
+
+#[derive(Default)]
+struct NativeProviderToolCallBuilder {
+    calls: BTreeMap<usize, PartialNativeProviderToolCall>,
+}
+
+#[derive(Default)]
+struct PartialNativeProviderToolCall {
+    id: Option<String>,
+    name: Option<String>,
+    arguments: String,
+}
+
+impl NativeProviderToolCallBuilder {
+    fn apply_stream_chunk(&mut self, format: NativeProviderResponseFormat, body: &Value) {
+        match format {
+            NativeProviderResponseFormat::ChatCompletions => {
+                self.apply_openai_chat_stream_chunk(body);
+            }
+            NativeProviderResponseFormat::AnthropicMessages => {
+                self.apply_anthropic_stream_chunk(body);
+            }
+            NativeProviderResponseFormat::OpenAiResponses
+            | NativeProviderResponseFormat::GoogleGenerateContent
+            | NativeProviderResponseFormat::OllamaChat
+            | NativeProviderResponseFormat::BedrockConverse => {
+                for (index, tool_call) in native_provider_tool_calls(format, body)
+                    .into_iter()
+                    .enumerate()
+                {
+                    let entry = self.calls.entry(index).or_default();
+                    entry.id = Some(tool_call.id);
+                    entry.name = Some(tool_call.name);
+                    entry.arguments = tool_call.arguments.to_string();
+                }
+            }
+        }
+    }
+
+    fn apply_openai_chat_stream_chunk(&mut self, body: &Value) {
+        let Some(choices) = body.get("choices").and_then(Value::as_array) else {
+            return;
+        };
+        for choice in choices {
+            let Some(tool_calls) = choice
+                .get("delta")
+                .and_then(|delta| delta.get("tool_calls"))
+                .and_then(Value::as_array)
+            else {
+                continue;
+            };
+            for tool_call in tool_calls {
+                let index = tool_call
+                    .get("index")
+                    .and_then(Value::as_u64)
+                    .and_then(|value| usize::try_from(value).ok())
+                    .unwrap_or(self.calls.len());
+                let entry = self.calls.entry(index).or_default();
+                if let Some(id) = non_empty(tool_call.get("id").and_then(Value::as_str)) {
+                    entry.id = Some(id.to_string());
+                }
+                if let Some(name) = tool_call
+                    .get("function")
+                    .and_then(|function| function.get("name"))
+                    .and_then(Value::as_str)
+                    .and_then(|name| non_empty(Some(name)))
+                {
+                    entry.name = Some(name.to_string());
+                }
+                if let Some(arguments) = tool_call
+                    .get("function")
+                    .and_then(|function| function.get("arguments"))
+                    .and_then(Value::as_str)
+                {
+                    entry.arguments.push_str(arguments);
+                }
+            }
+        }
+    }
+
+    fn apply_anthropic_stream_chunk(&mut self, body: &Value) {
+        let index = body
+            .get("index")
+            .and_then(Value::as_u64)
+            .and_then(|value| usize::try_from(value).ok())
+            .unwrap_or(self.calls.len());
+        match body.get("type").and_then(Value::as_str) {
+            Some("content_block_start") => {
+                let Some(block) = body.get("content_block") else {
+                    return;
+                };
+                if block.get("type").and_then(Value::as_str) != Some("tool_use") {
+                    return;
+                }
+                let entry = self.calls.entry(index).or_default();
+                if let Some(id) = non_empty(block.get("id").and_then(Value::as_str)) {
+                    entry.id = Some(id.to_string());
+                }
+                if let Some(name) = non_empty(block.get("name").and_then(Value::as_str)) {
+                    entry.name = Some(name.to_string());
+                }
+            }
+            Some("content_block_delta") => {
+                let Some(delta) = body.get("delta") else {
+                    return;
+                };
+                if delta.get("type").and_then(Value::as_str) != Some("input_json_delta") {
+                    return;
+                }
+                if let Some(partial) = delta.get("partial_json").and_then(Value::as_str) {
+                    self.calls
+                        .entry(index)
+                        .or_default()
+                        .arguments
+                        .push_str(partial);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn finish(self) -> Vec<NativeProviderToolCall> {
+        self.calls
+            .into_iter()
+            .filter_map(|(index, partial)| {
+                let name = partial.name?;
+                Some(NativeProviderToolCall {
+                    id: partial.id.unwrap_or_else(|| format!("call_{index}")),
+                    name,
+                    arguments: parse_tool_arguments(&partial.arguments),
+                })
+            })
+            .collect()
+    }
 }
 
 pub(crate) fn openai_compatible_chat_completions_url(base_url: &str) -> String {
@@ -854,6 +1133,34 @@ fn normalize_native_content_blocks(
                     data.to_string(),
                 ))
             }
+            NativeProviderContentBlock::ToolCall {
+                id,
+                name,
+                arguments,
+            } => {
+                let id = non_empty(Some(id.as_str()))?;
+                let name = non_empty(Some(name.as_str()))?;
+                Some(NativeProviderContentBlock::tool_call(
+                    id.to_string(),
+                    name.to_string(),
+                    arguments.clone(),
+                ))
+            }
+            NativeProviderContentBlock::ToolResult {
+                tool_call_id,
+                name,
+                content,
+                is_error,
+            } => {
+                let tool_call_id = non_empty(Some(tool_call_id.as_str()))?;
+                let content = non_empty(Some(content.as_str()))?;
+                Some(NativeProviderContentBlock::tool_result(
+                    tool_call_id.to_string(),
+                    name.clone(),
+                    content.to_string(),
+                    *is_error,
+                ))
+            }
         })
         .collect()
 }
@@ -864,6 +1171,10 @@ fn native_content_blocks_text(blocks: &[NativeProviderContentBlock]) -> String {
         .filter_map(|block| match block {
             NativeProviderContentBlock::Text { text } => non_empty(Some(text.as_str())),
             NativeProviderContentBlock::Image { .. } => None,
+            NativeProviderContentBlock::ToolCall { .. } => None,
+            NativeProviderContentBlock::ToolResult { content, .. } => {
+                non_empty(Some(content.as_str()))
+            }
         })
         .collect::<Vec<_>>()
         .join("\n")
@@ -901,21 +1212,32 @@ fn openai_responses_content(message: &NativeProviderMessage) -> Value {
                     "type": "input_image",
                     "image_url": data_url(mime_type, data)
                 }),
+                NativeProviderContentBlock::ToolCall {
+                    id,
+                    name,
+                    arguments,
+                } => json!({
+                    "type": "function_call",
+                    "call_id": id,
+                    "name": name,
+                    "arguments": arguments.to_string()
+                }),
+                NativeProviderContentBlock::ToolResult {
+                    tool_call_id,
+                    content,
+                    ..
+                } => json!({
+                    "type": "function_call_output",
+                    "call_id": tool_call_id,
+                    "output": content
+                }),
             })
             .collect(),
     )
 }
 
 fn native_messages_for_chat(messages: &[NativeProviderMessage]) -> Vec<Value> {
-    messages
-        .iter()
-        .map(|message| {
-            json!({
-                "role": message.role.as_chat_role(),
-                "content": chat_content(message),
-            })
-        })
-        .collect()
+    messages.iter().map(chat_message).collect()
 }
 
 fn native_messages_for_chat_with_system(
@@ -973,6 +1295,9 @@ fn native_messages_for_ollama(messages: &[NativeProviderMessage]) -> Vec<Value> 
     messages
         .iter()
         .map(|message| {
+            if has_tool_calls(message) || message.role == NativeProviderMessageRole::Tool {
+                return chat_message(message);
+            }
             let mut value = json!({
                 "role": message.role.as_chat_role(),
                 "content": native_content_blocks_text(&native_message_blocks(message)),
@@ -983,7 +1308,9 @@ fn native_messages_for_ollama(messages: &[NativeProviderMessage]) -> Vec<Value> 
                     NativeProviderContentBlock::Image { data, .. } => {
                         Some(Value::String(data.clone()))
                     }
-                    NativeProviderContentBlock::Text { .. } => None,
+                    NativeProviderContentBlock::Text { .. }
+                    | NativeProviderContentBlock::ToolCall { .. }
+                    | NativeProviderContentBlock::ToolResult { .. } => None,
                 })
                 .collect::<Vec<_>>();
             if !images.is_empty() {
@@ -1024,6 +1351,120 @@ fn native_message_blocks(message: &NativeProviderMessage) -> Vec<NativeProviderC
     vec![NativeProviderContentBlock::text(message.content.clone())]
 }
 
+struct NativeProviderToolResultRef {
+    tool_call_id: String,
+    name: Option<String>,
+    content: String,
+}
+
+fn first_tool_result(message: &NativeProviderMessage) -> Option<NativeProviderToolResultRef> {
+    native_message_blocks(message)
+        .into_iter()
+        .find_map(|block| {
+            if let NativeProviderContentBlock::ToolResult {
+                tool_call_id,
+                name,
+                content,
+                ..
+            } = block
+            {
+                Some(NativeProviderToolResultRef {
+                    tool_call_id,
+                    name,
+                    content,
+                })
+            } else {
+                None
+            }
+        })
+}
+
+fn tool_call_blocks(message: &NativeProviderMessage) -> Vec<NativeProviderToolCall> {
+    native_message_blocks(message)
+        .into_iter()
+        .filter_map(|block| {
+            if let NativeProviderContentBlock::ToolCall {
+                id,
+                name,
+                arguments,
+            } = block
+            {
+                Some(NativeProviderToolCall {
+                    id,
+                    name,
+                    arguments,
+                })
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+fn has_tool_calls(message: &NativeProviderMessage) -> bool {
+    native_message_blocks(message)
+        .into_iter()
+        .any(|block| matches!(block, NativeProviderContentBlock::ToolCall { .. }))
+}
+
+fn text_and_image_blocks(message: &NativeProviderMessage) -> Vec<NativeProviderContentBlock> {
+    native_message_blocks(message)
+        .into_iter()
+        .filter(|block| {
+            matches!(
+                block,
+                NativeProviderContentBlock::Text { .. } | NativeProviderContentBlock::Image { .. }
+            )
+        })
+        .collect()
+}
+
+fn chat_message(message: &NativeProviderMessage) -> Value {
+    if let Some(tool_result) = first_tool_result(message) {
+        let mut value = json!({
+            "role": "tool",
+            "tool_call_id": tool_result.tool_call_id,
+            "content": tool_result.content,
+        });
+        if let Some(name) = tool_result.name {
+            value["name"] = Value::String(name);
+        }
+        return value;
+    }
+
+    let tool_calls = tool_call_blocks(message)
+        .into_iter()
+        .map(|tool_call| {
+            json!({
+                "id": tool_call.id,
+                "type": "function",
+                "function": {
+                    "name": tool_call.name,
+                    "arguments": tool_call.arguments.to_string()
+                }
+            })
+        })
+        .collect::<Vec<_>>();
+    if !tool_calls.is_empty() {
+        let mut value = json!({
+            "role": "assistant",
+            "tool_calls": tool_calls,
+        });
+        let text = native_content_blocks_text(&text_and_image_blocks(message));
+        value["content"] = if text.trim().is_empty() {
+            Value::Null
+        } else {
+            Value::String(text)
+        };
+        return value;
+    }
+
+    json!({
+        "role": message.role.as_chat_role(),
+        "content": chat_content(message),
+    })
+}
+
 fn chat_content(message: &NativeProviderMessage) -> Value {
     if message.blocks.is_empty() {
         return Value::String(message.content.clone());
@@ -1038,6 +1479,11 @@ fn chat_content(message: &NativeProviderMessage) -> Value {
                 NativeProviderContentBlock::Image { mime_type, data } => json!({
                     "type": "image_url",
                     "image_url": { "url": data_url(mime_type, data) }
+                }),
+                NativeProviderContentBlock::ToolCall { .. }
+                | NativeProviderContentBlock::ToolResult { .. } => json!({
+                    "type": "text",
+                    "text": native_content_blocks_text(&[block.clone()])
                 }),
             })
             .collect(),
@@ -1063,6 +1509,27 @@ fn anthropic_content(message: &NativeProviderMessage) -> Value {
                         "data": data
                     }
                 }),
+                NativeProviderContentBlock::ToolCall {
+                    id,
+                    name,
+                    arguments,
+                } => json!({
+                    "type": "tool_use",
+                    "id": id,
+                    "name": name,
+                    "input": arguments
+                }),
+                NativeProviderContentBlock::ToolResult {
+                    tool_call_id,
+                    content,
+                    is_error,
+                    ..
+                } => json!({
+                    "type": "tool_result",
+                    "tool_use_id": tool_call_id,
+                    "content": content,
+                    "is_error": is_error
+                }),
             })
             .collect(),
     )
@@ -1079,6 +1546,22 @@ fn google_parts(message: &NativeProviderMessage) -> Vec<Value> {
                     "data": data
                 }
             }),
+            NativeProviderContentBlock::ToolCall {
+                name, arguments, ..
+            } => json!({
+                "functionCall": {
+                    "name": name,
+                    "args": arguments
+                }
+            }),
+            NativeProviderContentBlock::ToolResult { name, content, .. } => json!({
+                "functionResponse": {
+                    "name": name.as_deref().unwrap_or("tool"),
+                    "response": {
+                        "content": content
+                    }
+                }
+            }),
         })
         .collect()
 }
@@ -1092,6 +1575,29 @@ fn bedrock_content(message: &NativeProviderMessage) -> Vec<Value> {
                 "image": {
                     "format": image_format_from_mime(mime_type),
                     "source": { "bytes": data }
+                }
+            }),
+            NativeProviderContentBlock::ToolCall {
+                id,
+                name,
+                arguments,
+            } => json!({
+                "toolUse": {
+                    "toolUseId": id,
+                    "name": name,
+                    "input": arguments
+                }
+            }),
+            NativeProviderContentBlock::ToolResult {
+                tool_call_id,
+                content,
+                is_error,
+                ..
+            } => json!({
+                "toolResult": {
+                    "toolUseId": tool_call_id,
+                    "status": if *is_error { "error" } else { "success" },
+                    "content": [{ "text": content }]
                 }
             }),
         })
@@ -1250,6 +1756,181 @@ fn text_from_parts(parts: &[Value], field: &str) -> Option<String> {
         .filter_map(|part| part.get(field).and_then(Value::as_str))
         .find(|text| !text.trim().is_empty())
         .map(ToOwned::to_owned)
+}
+
+fn openai_responses_tool_calls(body: &Value) -> Vec<NativeProviderToolCall> {
+    body.get("output")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|item| {
+            let item_type = item.get("type").and_then(Value::as_str)?;
+            if item_type != "function_call" {
+                return None;
+            }
+            let name = non_empty(item.get("name").and_then(Value::as_str))?.to_string();
+            Some(NativeProviderToolCall {
+                id: item
+                    .get("call_id")
+                    .or_else(|| item.get("id"))
+                    .and_then(Value::as_str)
+                    .unwrap_or("call_0")
+                    .to_string(),
+                name,
+                arguments: parse_tool_arguments(
+                    item.get("arguments")
+                        .and_then(Value::as_str)
+                        .unwrap_or("{}"),
+                ),
+            })
+        })
+        .collect()
+}
+
+fn openai_chat_tool_calls(body: &Value) -> Vec<NativeProviderToolCall> {
+    body.get("choices")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|choice| choice.get("message"))
+        .flat_map(|message| {
+            message
+                .get("tool_calls")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+        })
+        .filter_map(|tool_call| {
+            let function = tool_call.get("function")?;
+            let name = non_empty(function.get("name").and_then(Value::as_str))?.to_string();
+            Some(NativeProviderToolCall {
+                id: tool_call
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("call_0")
+                    .to_string(),
+                name,
+                arguments: parse_tool_arguments(
+                    function
+                        .get("arguments")
+                        .and_then(Value::as_str)
+                        .unwrap_or("{}"),
+                ),
+            })
+        })
+        .collect()
+}
+
+fn anthropic_tool_calls(body: &Value) -> Vec<NativeProviderToolCall> {
+    body.get("content")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|part| {
+            if part.get("type").and_then(Value::as_str) != Some("tool_use") {
+                return None;
+            }
+            let name = non_empty(part.get("name").and_then(Value::as_str))?.to_string();
+            Some(NativeProviderToolCall {
+                id: part
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("toolu_0")
+                    .to_string(),
+                name,
+                arguments: part.get("input").cloned().unwrap_or_else(|| json!({})),
+            })
+        })
+        .collect()
+}
+
+fn google_tool_calls(body: &Value) -> Vec<NativeProviderToolCall> {
+    body.get("candidates")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|candidate| candidate.get("content"))
+        .flat_map(|content| {
+            content
+                .get("parts")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+        })
+        .filter_map(|part| {
+            let function_call = part.get("functionCall")?;
+            let name = non_empty(function_call.get("name").and_then(Value::as_str))?.to_string();
+            Some(NativeProviderToolCall {
+                id: function_call
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("call_0")
+                    .to_string(),
+                name,
+                arguments: function_call
+                    .get("args")
+                    .cloned()
+                    .unwrap_or_else(|| json!({})),
+            })
+        })
+        .collect()
+}
+
+fn ollama_tool_calls(body: &Value) -> Vec<NativeProviderToolCall> {
+    body.get("message")
+        .and_then(|message| message.get("tool_calls"))
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .enumerate()
+        .filter_map(|(index, tool_call)| {
+            let function = tool_call.get("function")?;
+            let name = non_empty(function.get("name").and_then(Value::as_str))?.to_string();
+            Some(NativeProviderToolCall {
+                id: tool_call
+                    .get("id")
+                    .and_then(Value::as_str)
+                    .map(ToOwned::to_owned)
+                    .unwrap_or_else(|| format!("call_{index}")),
+                name,
+                arguments: function
+                    .get("arguments")
+                    .cloned()
+                    .unwrap_or_else(|| json!({})),
+            })
+        })
+        .collect()
+}
+
+fn bedrock_tool_calls(body: &Value) -> Vec<NativeProviderToolCall> {
+    body.get("output")
+        .and_then(|output| output.get("message"))
+        .and_then(|message| message.get("content"))
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|part| {
+            let tool_use = part.get("toolUse")?;
+            let name = non_empty(tool_use.get("name").and_then(Value::as_str))?.to_string();
+            Some(NativeProviderToolCall {
+                id: tool_use
+                    .get("toolUseId")
+                    .and_then(Value::as_str)
+                    .unwrap_or("tooluse_0")
+                    .to_string(),
+                name,
+                arguments: tool_use.get("input").cloned().unwrap_or_else(|| json!({})),
+            })
+        })
+        .collect()
+}
+
+fn parse_tool_arguments(raw: &str) -> Value {
+    let raw = raw.trim();
+    if raw.is_empty() {
+        return json!({});
+    }
+    serde_json::from_str(raw).unwrap_or_else(|_| Value::String(raw.to_string()))
 }
 
 fn first_text_at_path<'a>(body: &'a Value, path: &[&str]) -> Option<&'a str> {

@@ -802,6 +802,9 @@ fn pi_agent_rust_core_tool_registry_uses_crawclaw_tool_names() {
         "load_skill",
         "workflow",
         "workflowize",
+        "Brief",
+        "Config",
+        "NotebookEdit",
         "review_task",
         "knowledge_recall",
         "knowledge_reflect",
@@ -823,6 +826,100 @@ fn pi_agent_rust_core_tool_registry_uses_crawclaw_tool_names() {
     assert!(catalog_names.contains(&"knowledge_reflect".to_string()));
     assert!(!catalog_names.contains(&"memory_note_read".to_string()));
     assert!(!catalog_names.contains(&"write_experience_note".to_string()));
+}
+
+#[tokio::test]
+async fn notebook_edit_replaces_inserts_and_deletes_cells() {
+    let runtime_root = unique_test_runtime_root("notebook-edit-core-tool");
+    fs::create_dir_all(&runtime_root).expect("runtime root");
+    let notebook_path = runtime_root.join("analysis.ipynb");
+    fs::write(
+        &notebook_path,
+        serde_json::to_vec_pretty(&json!({
+            "cells": [
+                {
+                    "cell_type": "markdown",
+                    "id": "intro",
+                    "metadata": {},
+                    "source": "# Old title\n"
+                },
+                {
+                    "cell_type": "code",
+                    "execution_count": 7,
+                    "id": "calc",
+                    "metadata": {},
+                    "outputs": [{ "output_type": "stream", "name": "stdout", "text": "old\n" }],
+                    "source": "x = 1\nprint(x)\n"
+                }
+            ],
+            "metadata": {
+                "language_info": {
+                    "name": "python"
+                }
+            },
+            "nbformat": 4,
+            "nbformat_minor": 5
+        }))
+        .expect("notebook json"),
+    )
+    .expect("write notebook");
+
+    let replaced = execute_rust_core_tool(
+        &runtime_root,
+        "NotebookEdit",
+        json!({
+            "notebook_path": "analysis.ipynb",
+            "cell_id": "intro",
+            "new_source": "# New title\n"
+        }),
+    )
+    .await
+    .expect("replace notebook cell");
+    assert_eq!(replaced["details"]["edit_mode"], "replace");
+
+    let inserted = execute_rust_core_tool(
+        &runtime_root,
+        "NotebookEdit",
+        json!({
+            "notebook_path": "analysis.ipynb",
+            "cell_id": "intro",
+            "new_source": "print('inserted')\n",
+            "cell_type": "code",
+            "edit_mode": "insert"
+        }),
+    )
+    .await
+    .expect("insert notebook cell");
+    assert_eq!(inserted["details"]["edit_mode"], "insert");
+
+    let deleted = execute_rust_core_tool(
+        &runtime_root,
+        "NotebookEdit",
+        json!({
+            "notebook_path": "analysis.ipynb",
+            "cell_id": "calc",
+            "edit_mode": "delete"
+        }),
+    )
+    .await
+    .expect("delete notebook cell");
+    assert_eq!(deleted["details"]["edit_mode"], "delete");
+    assert!(deleted["details"]["new_source"].is_null());
+
+    let notebook: Value =
+        serde_json::from_str(&fs::read_to_string(&notebook_path).expect("read updated notebook"))
+            .expect("parse updated notebook");
+    let cells = notebook["cells"].as_array().expect("notebook cells");
+    assert_eq!(cells.len(), 2);
+    assert_eq!(cells[0]["id"], "intro");
+    assert_eq!(cells[0]["source"], "# New title\n");
+    assert_eq!(cells[1]["cell_type"], "code");
+    assert_eq!(cells[1]["source"], "print('inserted')\n");
+    assert_eq!(cells[1]["execution_count"], Value::Null);
+    assert_eq!(cells[1]["outputs"], json!([]));
+    assert!(!cells.iter().any(|cell| cell["id"] == "calc"));
+
+    let _ = fs::remove_dir_all(runtime_root);
 }
 
 #[cfg(unix)]
@@ -1179,6 +1276,9 @@ fn rust_core_tool_inventory_tracks_native_tools() {
     assert!(definition("load_skill").read_only);
     assert!(!definition("workflow").read_only);
     assert!(!definition("workflowize").read_only);
+    assert!(definition("Brief").read_only);
+    assert!(!definition("Config").read_only);
+    assert!(!definition("NotebookEdit").read_only);
     for tool_name in [
         "session_status",
         "sessions_list",
@@ -1215,6 +1315,9 @@ fn rust_core_tool_inventory_tracks_native_tools() {
         "tts",
         "workflow",
         "workflowize",
+        "Brief",
+        "Config",
+        "NotebookEdit",
         "review_task",
         "knowledge_ingest",
         "knowledge_reflect",
@@ -2387,6 +2490,138 @@ async fn pi_agent_rust_provider_bridge_passes_streaming_tools_and_images() {
     assert!(request.contains(r#""stream":true"#));
     assert!(request.contains("lookup_weather"));
     assert!(request.contains("iVBORw0KGgo="));
+}
+
+#[tokio::test]
+async fn pi_agent_rust_provider_bridge_executes_openai_tool_calls() {
+    let first_chunk = serde_json::to_string(&json!({
+        "choices": [
+            {
+                "delta": {
+                    "tool_calls": [
+                        {
+                            "index": 0,
+                            "id": "call_structured",
+                            "type": "function",
+                            "function": {
+                                "name": "StructuredOutput",
+                                "arguments": "{\"ok\":true}"
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }))
+    .expect("first stream chunk");
+    let finish_chunk = serde_json::to_string(&json!({
+        "choices": [
+            {
+                "delta": {},
+                "finish_reason": "tool_calls"
+            }
+        ]
+    }))
+    .expect("finish stream chunk");
+    let final_chunk = serde_json::to_string(&json!({
+        "choices": [
+            {
+                "delta": {
+                    "content": "final after tool"
+                }
+            }
+        ]
+    }))
+    .expect("final stream chunk");
+    let (provider_base_url, request_rx) = start_openai_compatible_stream_provider(vec![
+        format!("data: {first_chunk}\n\ndata: {finish_chunk}\n\ndata: [DONE]\n\n"),
+        format!("data: {final_chunk}\n\ndata: [DONE]\n\n"),
+    ]);
+    let runtime_root = unique_test_runtime_root("pi-agent-openai-tool-call-bridge");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "provider": "openai-compatible",
+            "baseUrl": provider_base_url,
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+
+    let runtime = AgentRuntime::new(runtime_root.clone());
+    let result = runtime
+        .run_turn(AgentRunRequest {
+            run_id: "run-openai-tool-bridge".to_string(),
+            agent_id: "main".to_string(),
+            session_key: "thread-openai-tool-bridge".to_string(),
+            inbound: ChannelInboundEnvelope {
+                channel: "gateway".to_string(),
+                account_id: Some("local".to_string()),
+                from: "user".to_string(),
+                to: "agent:main".to_string(),
+                chat_type: ChannelChatType::Direct,
+                body: "return structured output".to_string(),
+                raw_body: Some("return structured output".to_string()),
+                message_id: Some("in-openai-tool-bridge".to_string()),
+                thread_id: Some("thread-openai-tool-bridge".to_string()),
+                media_urls: Vec::new(),
+                metadata: BTreeMap::new(),
+            },
+            model: AgentModelSelection {
+                provider: "openai-compatible".to_string(),
+                model: "test-model".to_string(),
+                reasoning_level: None,
+            },
+            enabled_tools: Vec::new(),
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Normal,
+                special_agent: None,
+                memory_after_turn: Some(false),
+            }),
+            options: BTreeMap::new(),
+        })
+        .await
+        .expect("openai tool bridge run");
+
+    assert_eq!(result.assistant_text, "final after tool");
+    let events = serde_json::to_value(&result.events).expect("events json");
+    let events = events.as_array().expect("events array");
+    assert!(events.iter().any(|event| {
+        event["type"] == "toolCall"
+            && event["callId"] == "call_structured"
+            && event["toolName"] == "StructuredOutput"
+            && event["arguments"] == json!({ "ok": true })
+    }));
+    assert!(events.iter().any(|event| {
+        event["type"] == "toolProgress"
+            && event["callId"] == "call_structured"
+            && event["status"] == "completed"
+    }));
+
+    let first_request = request_rx.recv().expect("first provider request");
+    let second_request = request_rx.recv().expect("second provider request");
+    assert!(first_request.contains("StructuredOutput"));
+    let second_body: Value =
+        serde_json::from_str(http_request_body(&second_request)).expect("second request body");
+    let messages = second_body["messages"]
+        .as_array()
+        .expect("second request messages");
+    assert!(
+        messages.iter().any(|message| {
+            message["role"] == "tool"
+                && message["tool_call_id"] == "call_structured"
+                && message["content"].as_str().is_some_and(|content| {
+                    content.contains("Structured output provided successfully")
+                })
+        }),
+        "second request body: {second_body}"
+    );
+
+    let _ = fs::remove_dir_all(runtime_root);
 }
 
 #[tokio::test]
@@ -3796,6 +4031,31 @@ fn start_openai_compatible_provider(reply: &str) -> (String, mpsc::Receiver<Stri
     (format!("http://{addr}/v1"), request_rx)
 }
 
+fn start_openai_compatible_stream_provider(
+    replies: Vec<String>,
+) -> (String, mpsc::Receiver<String>) {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("provider listener");
+    let addr = listener.local_addr().expect("provider addr");
+    let (request_tx, request_rx) = mpsc::channel();
+    thread::spawn(move || {
+        for body in replies {
+            let (mut stream, _) = listener.accept().expect("provider request");
+            let request = read_http_request(&mut stream);
+            request_tx
+                .send(String::from_utf8_lossy(&request).to_string())
+                .expect("send captured request");
+            write!(
+                stream,
+                "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                body.len(),
+                body
+            )
+            .expect("write response");
+        }
+    });
+    (format!("http://{addr}/v1"), request_rx)
+}
+
 fn read_http_request(stream: &mut std::net::TcpStream) -> Vec<u8> {
     let mut request = Vec::new();
     let mut buffer = [0_u8; 8192];
@@ -3810,6 +4070,10 @@ fn read_http_request(stream: &mut std::net::TcpStream) -> Vec<u8> {
         }
     }
     request
+}
+
+fn http_request_body(request: &str) -> &str {
+    request.split("\r\n\r\n").nth(1).unwrap_or("")
 }
 
 fn http_request_complete(request: &[u8]) -> bool {

@@ -37,6 +37,7 @@ mod core_tools_lsp;
 pub mod core_tools_mcp;
 mod core_tools_media;
 mod core_tools_native_plugins;
+mod core_tools_notebook;
 mod core_tools_patch;
 mod core_tools_plan;
 mod core_tools_process;
@@ -52,6 +53,7 @@ use self::core_tools_lsp::*;
 use self::core_tools_mcp::*;
 use self::core_tools_media::*;
 use self::core_tools_native_plugins::*;
+use self::core_tools_notebook::*;
 use self::core_tools_patch::*;
 use self::core_tools_plan::*;
 use self::core_tools_process::*;
@@ -266,6 +268,15 @@ pub(crate) fn build_pi_agent_rust_tool_registry(runtime_root: &Path) -> pi::sdk:
             runtime_root,
             CoreRuntimeToolKind::Workflowize,
         )),
+        Box::new(CoreRuntimeTool::new(
+            runtime_root,
+            CoreRuntimeToolKind::Brief,
+        )),
+        Box::new(CoreRuntimeTool::new(
+            runtime_root,
+            CoreRuntimeToolKind::Config,
+        )),
+        Box::new(NotebookEditTool::new(runtime_root)),
         Box::new(SpecialAgentTool::new(
             runtime_root.to_path_buf(),
             SpecialAgentToolKind::ReviewTask,

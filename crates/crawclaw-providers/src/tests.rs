@@ -1341,6 +1341,211 @@ fn parses_native_provider_stream_delta_shapes() {
     }
 }
 
+#[test]
+fn parses_openai_compatible_stream_tool_calls() {
+    let body = concat!(
+        "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call_1\",\"type\":\"function\",\"function\":{\"name\":\"lookup_weather\",\"arguments\":\"{\\\"city\\\":\\\"Paris\\\"}\"}}]}}]}\n\n",
+        "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\n",
+        "data: [DONE]\n\n",
+    );
+
+    let response = parse_native_provider_stream_assistant_response(
+        NativeProviderResponseFormat::ChatCompletions,
+        body,
+    )
+    .expect("assistant response");
+
+    assert_eq!(response.text, "");
+    assert_eq!(response.tool_calls.len(), 1);
+    assert_eq!(response.tool_calls[0].id, "call_1");
+    assert_eq!(response.tool_calls[0].name, "lookup_weather");
+    assert_eq!(response.tool_calls[0].arguments, json!({ "city": "Paris" }));
+}
+
+#[test]
+fn parses_openai_compatible_non_stream_tool_calls() {
+    let response = parse_native_provider_assistant_response(
+        NativeProviderResponseFormat::ChatCompletions,
+        json!({
+            "choices": [
+                {
+                    "message": {
+                        "content": null,
+                        "tool_calls": [
+                            {
+                                "id": "call_1",
+                                "type": "function",
+                                "function": {
+                                    "name": "lookup_weather",
+                                    "arguments": "{\"city\":\"Paris\"}"
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }),
+    )
+    .expect("assistant response");
+
+    assert_eq!(response.text, "");
+    assert_eq!(response.tool_calls.len(), 1);
+    assert_eq!(response.tool_calls[0].id, "call_1");
+    assert_eq!(response.tool_calls[0].name, "lookup_weather");
+    assert_eq!(response.tool_calls[0].arguments, json!({ "city": "Paris" }));
+}
+
+#[test]
+fn serializes_openai_compatible_tool_call_and_result_messages() {
+    let request = build_native_provider_conversation_request_with_options(
+        &NativeProviderConfig {
+            provider: "openai-compatible".to_string(),
+            base_url: Some("https://example.test/v1".to_string()),
+            api_key: Some("secret".to_string()),
+            model: Some("test-model".to_string()),
+            api: None,
+            api_version: None,
+        },
+        &[
+            NativeProviderMessage {
+                role: NativeProviderMessageRole::Assistant,
+                content: String::new(),
+                blocks: vec![NativeProviderContentBlock::tool_call(
+                    "call_1",
+                    "lookup_weather",
+                    json!({ "city": "Paris" }),
+                )],
+            },
+            NativeProviderMessage::tool_result(
+                "call_1",
+                Some("lookup_weather".to_string()),
+                "sunny",
+                false,
+            ),
+        ],
+        &NativeProviderRequestOptions::default(),
+    )
+    .expect("openai-compatible request");
+
+    let messages = request.body["messages"].as_array().expect("messages");
+    assert_eq!(messages.len(), 2);
+    assert_eq!(messages[0]["role"], "assistant");
+    assert!(messages[0]["content"].is_null());
+    assert_eq!(messages[0]["tool_calls"][0]["id"], "call_1");
+    assert_eq!(
+        messages[0]["tool_calls"][0]["function"]["name"],
+        "lookup_weather"
+    );
+    assert_eq!(
+        messages[0]["tool_calls"][0]["function"]["arguments"],
+        "{\"city\":\"Paris\"}"
+    );
+    assert_eq!(messages[1]["role"], "tool");
+    assert_eq!(messages[1]["tool_call_id"], "call_1");
+    assert_eq!(messages[1]["name"], "lookup_weather");
+    assert_eq!(messages[1]["content"], "sunny");
+}
+
+#[test]
+fn parses_native_provider_tool_call_shapes() {
+    let cases = [
+        (
+            NativeProviderResponseFormat::OpenAiResponses,
+            "call_responses",
+            json!({
+                "output": [
+                    {
+                        "type": "function_call",
+                        "call_id": "call_responses",
+                        "name": "lookup_weather",
+                        "arguments": "{\"city\":\"Paris\"}"
+                    }
+                ]
+            }),
+        ),
+        (
+            NativeProviderResponseFormat::AnthropicMessages,
+            "toolu_1",
+            json!({
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "toolu_1",
+                        "name": "lookup_weather",
+                        "input": { "city": "Paris" }
+                    }
+                ]
+            }),
+        ),
+        (
+            NativeProviderResponseFormat::GoogleGenerateContent,
+            "call_google",
+            json!({
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {
+                                    "functionCall": {
+                                        "id": "call_google",
+                                        "name": "lookup_weather",
+                                        "args": { "city": "Paris" }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }),
+        ),
+        (
+            NativeProviderResponseFormat::OllamaChat,
+            "call_0",
+            json!({
+                "message": {
+                    "tool_calls": [
+                        {
+                            "function": {
+                                "name": "lookup_weather",
+                                "arguments": { "city": "Paris" }
+                            }
+                        }
+                    ]
+                }
+            }),
+        ),
+        (
+            NativeProviderResponseFormat::BedrockConverse,
+            "tooluse_1",
+            json!({
+                "output": {
+                    "message": {
+                        "content": [
+                            {
+                                "toolUse": {
+                                    "toolUseId": "tooluse_1",
+                                    "name": "lookup_weather",
+                                    "input": { "city": "Paris" }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }),
+        ),
+    ];
+
+    for (format, expected_id, body) in cases {
+        let response = parse_native_provider_assistant_response(format, body)
+            .unwrap_or_else(|error| panic!("{format:?} should parse tool call: {error}"));
+        assert_eq!(response.text, "");
+        assert_eq!(response.tool_calls.len(), 1);
+        assert_eq!(response.tool_calls[0].id, expected_id);
+        assert_eq!(response.tool_calls[0].name, "lookup_weather");
+        assert_eq!(response.tool_calls[0].arguments, json!({ "city": "Paris" }));
+    }
+}
+
 fn collect_manifest_provider_auth_env_vars() -> BTreeMap<String, Vec<String>> {
     let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let extensions_dir = repo_root.join("extensions");

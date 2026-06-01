@@ -18,7 +18,7 @@ impl NotebookEditTool {
 struct NotebookEditInput {
     notebook_path: String,
     cell_id: Option<String>,
-    new_source: String,
+    new_source: Option<String>,
     cell_type: Option<String>,
     edit_mode: Option<String>,
 }
@@ -51,7 +51,7 @@ impl pi::sdk::Tool for NotebookEditTool {
                 },
                 "new_source": {
                     "type": "string",
-                    "description": "The new source for the cell."
+                    "description": "The new source for the cell. Required for replace and insert modes; ignored for delete."
                 },
                 "cell_type": {
                     "type": "string",
@@ -64,7 +64,7 @@ impl pi::sdk::Tool for NotebookEditTool {
                     "description": "Edit mode. Defaults to replace."
                 }
             },
-            "required": ["notebook_path", "new_source"]
+            "required": ["notebook_path"]
         })
     }
 
@@ -97,6 +97,10 @@ fn edit_notebook(runtime_root: &Path, input: NotebookEditInput) -> Result<Value,
     if edit_mode == "insert" && cell_type.is_none() {
         return Err("cell_type is required when using edit_mode=insert".to_string());
     }
+    if edit_mode != "delete" && input.new_source.is_none() {
+        return Err("new_source is required unless using edit_mode=delete".to_string());
+    }
+    let new_source = input.new_source.clone().unwrap_or_default();
 
     let path = resolve_notebook_path(runtime_root, &input.notebook_path)?;
     if path.extension().and_then(|value| value.to_str()) != Some("ipynb") {
@@ -148,8 +152,7 @@ fn edit_notebook(runtime_root: &Path, input: NotebookEditInput) -> Result<Value,
         "insert" => {
             let new_cell_id = uses_cell_ids.then(|| notebook_cell_id(cells));
             let new_cell_type = cell_type.unwrap_or("code").to_string();
-            let new_cell =
-                new_notebook_cell(&new_cell_type, &input.new_source, new_cell_id.as_deref());
+            let new_cell = new_notebook_cell(&new_cell_type, &new_source, new_cell_id.as_deref());
             cells.insert(cell_index, new_cell);
             (new_cell_id, new_cell_type)
         }
@@ -158,10 +161,7 @@ fn edit_notebook(runtime_root: &Path, input: NotebookEditInput) -> Result<Value,
                 .get_mut(cell_index)
                 .and_then(Value::as_object_mut)
                 .ok_or_else(|| format!("Cell index {cell_index} is not an object"))?;
-            target.insert(
-                "source".to_string(),
-                Value::String(input.new_source.clone()),
-            );
+            target.insert("source".to_string(), Value::String(new_source.clone()));
             if target.get("cell_type").and_then(Value::as_str) == Some("code") {
                 target.insert("execution_count".to_string(), Value::Null);
                 target.insert("outputs".to_string(), Value::Array(Vec::new()));
@@ -206,12 +206,12 @@ fn edit_notebook(runtime_root: &Path, input: NotebookEditInput) -> Result<Value,
         "replace" => format!(
             "Updated cell {} with {}",
             edited_cell_id.as_deref().unwrap_or(""),
-            input.new_source
+            new_source
         ),
         "insert" => format!(
             "Inserted cell {} with {}",
             edited_cell_id.as_deref().unwrap_or(""),
-            input.new_source
+            new_source
         ),
         "delete" => format!("Deleted cell {}", edited_cell_id.as_deref().unwrap_or("")),
         _ => "Notebook edited".to_string(),
