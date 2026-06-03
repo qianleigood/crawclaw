@@ -32,8 +32,32 @@ pub struct DesktopMemoryRecord {
     pub category: String,
     pub tags: Vec<String>,
     pub source: String,
+    #[serde(default = "default_memory_provider")]
+    pub provider: String,
+    #[serde(default = "default_memory_layer")]
+    pub layer: String,
+    #[serde(default)]
+    pub bank_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub remote_id: Option<String>,
+    #[serde(default = "default_memory_sync_status")]
+    pub sync_status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sync_error: Option<String>,
     pub updated_at: String,
     pub archived: bool,
+}
+
+fn default_memory_provider() -> String {
+    "local".to_string()
+}
+
+fn default_memory_layer() -> String {
+    "resource".to_string()
+}
+
+fn default_memory_sync_status() -> String {
+    "local_only".to_string()
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

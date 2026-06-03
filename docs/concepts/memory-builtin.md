@@ -37,27 +37,38 @@ Most users do not need to configure the builtin runtime. To pin the runtime DB:
 }
 ```
 
-Hindsight is optional and is configured under `memory.hindsight`. When it is
-disabled or returns no useful result, CrawClaw keeps local session summaries but
-skips Hindsight recall and retain for that turn. Hindsight owns semantic
-relevance and ordering; CrawClaw preserves provider order and only applies
-deterministic guardrails before prompt assembly. Run Hindsight as a sidecar or
-remote service; CrawClaw only needs the HTTP API endpoint and bank configuration.
+Hindsight is optional and is configured under `memory.hindsight`. CrawClaw
+Desktop stages a pinned `hindsight-embed` release binary into the embedded
+runtime during packaging, verifies its sha256, and prepares that local sidecar
+when no explicit Hindsight endpoint is configured. If the sidecar binary is
+unavailable, Desktop records that lifecycle state and keeps memory local instead
+of forcing failing writeback. Hindsight owns semantic relevance and ordering;
+CrawClaw preserves provider order and only applies deterministic guardrails
+before prompt assembly. Run Hindsight as the Desktop-managed sidecar or as a
+remote service; CrawClaw only needs the HTTP API endpoint and bank
+configuration.
 
 ## Operational notes
 
 - Durable, experience, resource, and mental-model layers are Hindsight banks.
 - Auto retain runs after eligible completed turns, strips injected memory tags,
   and enqueues Hindsight `experience` writeback in the runtime outbox.
-- `memory.outbox.process` is the worker entrypoint that drains pending retain
-  jobs. `memory.status`, `memory.outbox.list`, and `memory.activity.list`
-  expose queue health and recent activity.
+- The gateway and Desktop gateway start an automatic outbox worker. The worker
+  drains pending retain and forget jobs in small batches; `memory.outbox.process`
+  remains available for manual drains and tests.
+- `memory.status` reports Hindsight lifecycle, worker state, outbox counts,
+  recent activity, and Desktop policy overlays. `memory.outbox.list` and
+  `memory.activity.list` expose queue and activity details.
 - Explicit `remember` enqueues durable retain work; explicit
   `do-not-remember` skips Hindsight writeback for the turn; explicit `forget`
-  is observable but currently marked unsupported because the Hindsight client
-  has no delete API.
-- Recall reads Hindsight only; if Hindsight is unavailable, recall sections are
-  empty for that turn.
+  enqueues a local tombstone. Tombstones suppress matching future recall by
+  target id or forget query while avoiding destructive remote deletes until the
+  Hindsight API exposes a stable delete operation.
+- Desktop local memory items carry `provider`, `layer`, `bankId`, and sync
+  status metadata. Create and edit operations enqueue retain work for Hindsight
+  when available; cleanup enqueues a forget tombstone and hides the local item.
+- Recall reads Hindsight and filters locally tombstoned items. If Hindsight is
+  unavailable, recall sections are empty for that turn.
 - Session summaries are maintained separately from durable memory and are used
   as compaction continuity.
 - The `durable-memory`, `experience`, and `dream` special agents are constrained

@@ -1,5 +1,6 @@
 use super::*;
 use std::collections::BTreeSet;
+use std::future::Future;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{mpsc, Mutex, OnceLock};
@@ -9,6 +10,14 @@ use std::time::Duration;
 fn env_lock() -> &'static Mutex<()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
     LOCK.get_or_init(|| Mutex::new(()))
+}
+
+fn block_on_gateway_test<T>(future: impl Future<Output = T>) -> T {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("test runtime")
+        .block_on(future)
 }
 
 const REMOVED_TS_GATEWAY_RUNTIME_FILES: &[&str] = &[
@@ -1430,8 +1439,8 @@ async fn rust_gateway_memory_session_summary_refresh_uses_native_agent_runtime()
     let _ = std::fs::remove_dir_all(runtime_root);
 }
 
-#[tokio::test]
-async fn rust_gateway_memory_compact_uses_native_agent_runtime() {
+#[test]
+fn rust_gateway_memory_compact_uses_native_agent_runtime() {
     let runtime_root = unique_test_runtime_root("gateway-memory-compact-runtime");
     let (provider_base_url, request_rx) = serve_openai_compatible_once(
         r#"{"choices":[{"message":{"content":"compact summary from rust agent runtime"}}]}"#,
@@ -1455,7 +1464,7 @@ async fn rust_gateway_memory_compact_uses_native_agent_runtime() {
         runtime_root: Some(runtime_root.clone()),
         ..GatewayRunConfig::default()
     });
-    handle_gateway_method(
+    block_on_gateway_test(handle_gateway_method(
         &state,
         "memory.ingestBatch",
         json!({
@@ -1465,19 +1474,17 @@ async fn rust_gateway_memory_compact_uses_native_agent_runtime() {
                 { "id": "m2", "role": "assistant", "content": "deployment decision acknowledged" }
             ]
         }),
-    )
-    .await
+    ))
     .expect("ingest messages");
 
-    let compact = handle_gateway_method(
+    let compact = block_on_gateway_test(handle_gateway_method(
         &state,
         "memory.compact",
         json!({
             "sessionId": "session-compact",
             "force": true
         }),
-    )
-    .await
+    ))
     .expect("compact memory");
 
     assert_eq!(compact["ok"], true);
@@ -1698,15 +1705,15 @@ async fn rust_gateway_memory_prompt_journal_summary_reads_jsonl() {
     let _ = std::fs::remove_dir_all(runtime_root);
 }
 
-#[tokio::test]
-async fn rust_gateway_memory_after_turn_ingests_from_native_runtime() {
+#[test]
+fn rust_gateway_memory_after_turn_ingests_from_native_runtime() {
     let runtime_root = unique_test_runtime_root("gateway-memory-after-turn");
     let state = GatewayState::new(GatewayRunConfig {
         runtime_root: Some(runtime_root.clone()),
         ..GatewayRunConfig::default()
     });
 
-    let result = handle_gateway_method(
+    let result = block_on_gateway_test(handle_gateway_method(
         &state,
         "memory.afterTurn",
         json!({
@@ -1719,8 +1726,7 @@ async fn rust_gateway_memory_after_turn_ingests_from_native_runtime() {
                 { "role": "assistant", "content": "stored" }
             ]
         }),
-    )
-    .await
+    ))
     .expect("memory after turn");
 
     assert_eq!(result["status"], "ok");
@@ -1731,15 +1737,15 @@ async fn rust_gateway_memory_after_turn_ingests_from_native_runtime() {
     let _ = std::fs::remove_dir_all(runtime_root);
 }
 
-#[tokio::test]
-async fn rust_gateway_memory_after_turn_accepts_explicit_directives() {
+#[test]
+fn rust_gateway_memory_after_turn_accepts_explicit_directives() {
     let runtime_root = unique_test_runtime_root("gateway-memory-directive");
     let state = GatewayState::new(GatewayRunConfig {
         runtime_root: Some(runtime_root.clone()),
         ..GatewayRunConfig::default()
     });
 
-    let result = handle_gateway_method(
+    let result = block_on_gateway_test(handle_gateway_method(
         &state,
         "memory.afterTurn",
         json!({
@@ -1754,8 +1760,7 @@ async fn rust_gateway_memory_after_turn_accepts_explicit_directives() {
                 { "id": "m2", "role": "assistant", "content": "ack" }
             ]
         }),
-    )
-    .await
+    ))
     .expect("memory after turn directive");
 
     assert_eq!(result["status"], "ok");
@@ -1769,15 +1774,14 @@ async fn rust_gateway_memory_after_turn_accepts_explicit_directives() {
         "user_do_not_remember"
     );
 
-    let activity = handle_gateway_method(
+    let activity = block_on_gateway_test(handle_gateway_method(
         &state,
         "memory.activity.list",
         json!({
             "sessionId": "session-directive",
             "limit": 5
         }),
-    )
-    .await
+    ))
     .expect("memory activity list");
     assert!(activity["activity"]
         .as_array()
@@ -1785,7 +1789,7 @@ async fn rust_gateway_memory_after_turn_accepts_explicit_directives() {
         .iter()
         .any(|event| event["kind"] == "after_turn" && event["status"] == "skipped"));
 
-    let remember = handle_gateway_method(
+    let remember = block_on_gateway_test(handle_gateway_method(
         &state,
         "memory.afterTurn",
         json!({
@@ -1798,8 +1802,7 @@ async fn rust_gateway_memory_after_turn_accepts_explicit_directives() {
                 { "id": "m4", "role": "assistant", "content": "ack" }
             ]
         }),
-    )
-    .await
+    ))
     .expect("memory remember directive");
     assert_eq!(
         remember["diagnostics"]["memory"]["afterTurn"]["directive"]["action"],

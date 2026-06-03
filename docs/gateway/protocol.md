@@ -126,9 +126,10 @@ Memory runtime methods are part of the Gateway control plane:
 - `memory.activity.list` lists recent memory activity globally or for a
   `sessionId`.
 
-`forget` jobs are observable but currently complete as `unsupported` until the
-Hindsight client has a delete operation. CrawClaw does not report a remote
-forget as successful when no backend delete happened.
+`forget` jobs are processed locally as tombstones and complete as
+`completed_local`. The tombstone is applied to future recall results so local
+delete intent is honored even when the remote Hindsight backend does not expose
+a delete API.
 
 ## Runtime events
 

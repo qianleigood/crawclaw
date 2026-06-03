@@ -299,6 +299,7 @@ export interface MemoryWorkspaceState {
   filter: MemoryFilter
   query: string
   dream: MemoryDreamState
+  runtimeStatus: unknown
   items: MemoryItem[]
 }
 
@@ -318,6 +319,12 @@ export interface MemoryItem {
   category: MemoryCategory
   tags: string[]
   source: string
+  provider: string
+  layer: string
+  bankId: string
+  remoteId?: string
+  syncStatus: string
+  syncError?: string
   updatedAt: string
   archived: boolean
 }

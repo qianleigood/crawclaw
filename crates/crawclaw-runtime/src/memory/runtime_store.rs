@@ -85,6 +85,27 @@ impl RuntimeStore {
                 status TEXT NOT NULL,
                 payload_json TEXT NOT NULL,
                 created_at INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS gm_memory_tombstones (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                query TEXT NOT NULL,
+                reason TEXT NOT NULL,
+                target_id TEXT,
+                payload_json TEXT NOT NULL,
+                created_at INTEGER NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS gm_memory_worker_state (
+                id TEXT PRIMARY KEY,
+                enabled INTEGER NOT NULL,
+                last_run_status TEXT NOT NULL,
+                last_started_at INTEGER,
+                last_finished_at INTEGER,
+                last_processed_count INTEGER DEFAULT 0,
+                last_status_counts_json TEXT NOT NULL,
+                last_error TEXT,
+                updated_at INTEGER NOT NULL
             );",
         )
         .map_err(|e| format!("failed to create tables: {e}"))?;
@@ -300,6 +321,52 @@ impl RuntimeStore {
         Ok(())
     }
 
+    pub fn record_memory_tombstone(
+        &self,
+        query: &str,
+        reason: &str,
+        target_id: Option<&str>,
+        payload: Value,
+    ) -> Result<(), String> {
+        let conn =
+            Connection::open(&self.db_path).map_err(|e| format!("failed to open db: {e}"))?;
+        let payload_json = serde_json::to_string(&payload)
+            .map_err(|e| format!("failed to encode memory tombstone payload: {e}"))?;
+        conn.execute(
+            "INSERT INTO gm_memory_tombstones (query, reason, target_id, payload_json, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![query, reason, target_id, payload_json, now_millis() as i64],
+        )
+        .map_err(|e| format!("failed to record memory tombstone: {e}"))?;
+        Ok(())
+    }
+
+    pub fn list_memory_tombstones(&self, limit: usize) -> Result<Vec<Value>, String> {
+        let conn =
+            Connection::open(&self.db_path).map_err(|e| format!("failed to open db: {e}"))?;
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, query, reason, target_id, payload_json, created_at
+                 FROM gm_memory_tombstones ORDER BY id DESC LIMIT ?1",
+            )
+            .map_err(|e| format!("failed to prepare memory tombstone query: {e}"))?;
+        let rows = stmt
+            .query_map(params![limit as i64], |row| {
+                let payload_raw: String = row.get(4)?;
+                let payload = serde_json::from_str::<Value>(&payload_raw).unwrap_or(Value::Null);
+                Ok(json!({
+                    "id": row.get::<_, i64>(0)?,
+                    "query": row.get::<_, String>(1)?,
+                    "reason": row.get::<_, String>(2)?,
+                    "targetId": row.get::<_, Option<String>>(3)?,
+                    "payload": payload,
+                    "createdAt": row.get::<_, i64>(5)?,
+                }))
+            })
+            .map_err(|e| format!("failed to query memory tombstones: {e}"))?;
+        collect_json_rows(rows)
+    }
+
     pub fn list_memory_activity(
         &self,
         session_id: Option<&str>,
@@ -325,6 +392,97 @@ impl RuntimeStore {
                 .map_err(|e| format!("failed to query memory activity: {e}"))?
         };
         collect_json_rows(rows)
+    }
+
+    pub fn record_memory_worker_result(
+        &self,
+        enabled: bool,
+        status: &str,
+        started_at: u64,
+        processed_count: usize,
+        status_counts: &Value,
+        last_error: Option<&str>,
+    ) -> Result<(), String> {
+        let conn =
+            Connection::open(&self.db_path).map_err(|e| format!("failed to open db: {e}"))?;
+        let status_counts_json = serde_json::to_string(status_counts)
+            .map_err(|e| format!("failed to encode worker status counts: {e}"))?;
+        let now = now_millis() as i64;
+        conn.execute(
+            "INSERT INTO gm_memory_worker_state (
+                id,
+                enabled,
+                last_run_status,
+                last_started_at,
+                last_finished_at,
+                last_processed_count,
+                last_status_counts_json,
+                last_error,
+                updated_at
+             )
+             VALUES ('default', ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?4)
+             ON CONFLICT(id) DO UPDATE SET
+                enabled = excluded.enabled,
+                last_run_status = excluded.last_run_status,
+                last_started_at = excluded.last_started_at,
+                last_finished_at = excluded.last_finished_at,
+                last_processed_count = excluded.last_processed_count,
+                last_status_counts_json = excluded.last_status_counts_json,
+                last_error = excluded.last_error,
+                updated_at = excluded.updated_at",
+            params![
+                if enabled { 1 } else { 0 },
+                status,
+                started_at as i64,
+                now,
+                processed_count as i64,
+                status_counts_json,
+                last_error,
+            ],
+        )
+        .map_err(|e| format!("failed to record memory worker state: {e}"))?;
+        Ok(())
+    }
+
+    pub fn memory_worker_status(&self, enabled: bool) -> Result<Value, String> {
+        let conn =
+            Connection::open(&self.db_path).map_err(|e| format!("failed to open db: {e}"))?;
+        let result: Option<Value> = conn
+            .query_row(
+                "SELECT enabled, last_run_status, last_started_at, last_finished_at,
+                        last_processed_count, last_status_counts_json, last_error, updated_at
+                 FROM gm_memory_worker_state WHERE id = 'default'",
+                [],
+                |row| {
+                    let status_counts_raw: String = row.get(5)?;
+                    let status_counts =
+                        serde_json::from_str::<Value>(&status_counts_raw).unwrap_or(Value::Null);
+                    Ok(json!({
+                        "enabled": row.get::<_, i64>(0)? != 0,
+                        "lastRunStatus": row.get::<_, String>(1)?,
+                        "lastStartedAt": row.get::<_, Option<i64>>(2)?,
+                        "lastFinishedAt": row.get::<_, Option<i64>>(3)?,
+                        "lastProcessedCount": row.get::<_, i64>(4)?,
+                        "lastStatusCounts": status_counts,
+                        "lastError": row.get::<_, Option<String>>(6)?,
+                        "updatedAt": row.get::<_, i64>(7)?,
+                    }))
+                },
+            )
+            .optional()
+            .map_err(|e| format!("failed to query memory worker state: {e}"))?;
+        Ok(result.unwrap_or_else(|| {
+            json!({
+                "enabled": enabled,
+                "lastRunStatus": "never_run",
+                "lastStartedAt": Value::Null,
+                "lastFinishedAt": Value::Null,
+                "lastProcessedCount": 0,
+                "lastStatusCounts": {},
+                "lastError": Value::Null,
+                "updatedAt": Value::Null,
+            })
+        }))
     }
 
     pub fn upsert_session_summary_state(

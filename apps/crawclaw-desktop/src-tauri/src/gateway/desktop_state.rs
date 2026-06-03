@@ -62,6 +62,9 @@ pub fn initial_desktop_state(runtime: &RuntimeStatus) -> DesktopState {
                 message: String::new(),
                 last_run_at: String::new(),
             },
+            runtime_status: serde_json::json!({
+                "status": "unknown"
+            }),
             items: Vec::new(),
         },
         plugins_workspace: PluginsWorkspaceState {

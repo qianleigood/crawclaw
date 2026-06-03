@@ -28,15 +28,16 @@ use crawclaw_plugin_host::{
     PluginHostError, PluginHostInstalledPlugin, PluginHostSkill, PluginHostTool,
 };
 use crawclaw_runtime::{
-    special_agents::find_special_agent, AgentLoopEvent, AgentModelSelection, AgentRunProfileKind,
-    AgentRunProfileRequest, AgentRunRequest, AgentRuntime, AgentRuntimeConfirmationPolicy,
-    AgentRuntimeContextSummary, AgentRuntimePermissionCategory, AgentRuntimePermissionDecision,
-    AgentRuntimePermissionMode, AgentRuntimePermissionPolicy, AgentRuntimePermissionRequest,
-    AgentRuntimePermissionRequester, AgentRuntimeSendOptions, AgentRuntimeToolSelection,
-    ChannelChatType, ChannelInboundEnvelope, DesktopAgentStore, DesktopAgentStoreError,
-    DesktopMemoryRecord, DesktopMemoryStore, DesktopMemoryStoreError, DesktopModelProfileStore,
-    DesktopPreferencesRecord, DesktopPreferencesStore, DesktopPreferencesStoreError,
-    DesktopSessionRecord, DesktopSessionStore, DesktopSessionStoreError, ToolExecutionEvent,
+    memory::MemoryRuntime, special_agents::find_special_agent, AgentLoopEvent, AgentModelSelection,
+    AgentRunProfileKind, AgentRunProfileRequest, AgentRunRequest, AgentRuntime,
+    AgentRuntimeConfirmationPolicy, AgentRuntimeContextSummary, AgentRuntimePermissionCategory,
+    AgentRuntimePermissionDecision, AgentRuntimePermissionMode, AgentRuntimePermissionPolicy,
+    AgentRuntimePermissionRequest, AgentRuntimePermissionRequester, AgentRuntimeSendOptions,
+    AgentRuntimeToolSelection, ChannelChatType, ChannelInboundEnvelope, DesktopAgentStore,
+    DesktopAgentStoreError, DesktopMemoryRecord, DesktopMemoryStore, DesktopMemoryStoreError,
+    DesktopModelProfileStore, DesktopPreferencesRecord, DesktopPreferencesStore,
+    DesktopPreferencesStoreError, DesktopSessionRecord, DesktopSessionStore,
+    DesktopSessionStoreError, ToolExecutionEvent,
 };
 
 use crate::gateway::desktop_state::initial_desktop_state;
@@ -56,6 +57,7 @@ use crate::runtime_engine::RuntimeLayout;
 mod desktop_agent_model;
 mod desktop_agent_routes;
 mod desktop_core_routes;
+mod desktop_hindsight_lifecycle;
 mod desktop_logging;
 mod desktop_memory_routes;
 mod desktop_model_profile_routes;
@@ -75,6 +77,7 @@ use self::desktop_core_routes::{
     bootstrap, desktop_state, events, permission_decision, runtime_status, search, select_nav,
     select_thread, send_message,
 };
+use self::desktop_hindsight_lifecycle::prepare_desktop_hindsight_lifecycle;
 use self::desktop_logging::configure_desktop_rust_logging;
 use self::desktop_memory_routes::{
     select_memory_agent, select_memory_item, set_memory_filter, set_memory_query,
@@ -112,6 +115,8 @@ use self::desktop_settings_effects::{
 
 const SESSION_HEADER: &str = "x-crawclaw-desktop-session";
 pub(super) const DEFAULT_MEMORY_AGENT_ID: &str = "main";
+const MEMORY_OUTBOX_WORKER_INTERVAL: std::time::Duration = std::time::Duration::from_secs(15);
+const MEMORY_OUTBOX_WORKER_LIMIT: usize = 10;
 
 #[derive(Clone)]
 pub struct GatewayConfig {
@@ -185,6 +190,7 @@ pub async fn start_gateway_server(config: GatewayConfig) -> Result<GatewayServer
     )
     .await;
 
+    spawn_memory_outbox_worker(state.clone());
     let app = router(state);
     tokio::spawn(async move {
         if let Err(error) = axum::serve(listener, app).await {
@@ -293,6 +299,35 @@ async fn build_state(
                 tone: "error".to_string(),
             }),
     }
+    match prepare_desktop_hindsight_lifecycle(&runtime_layout.runtime_root).await {
+        Ok(status) => {
+            let lifecycle_status = status
+                .get("status")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown")
+                .to_string();
+            desktop_state
+                .conversation
+                .runtime_checks
+                .push(RuntimeCheck {
+                    label: "Desktop Hindsight".to_string(),
+                    value: lifecycle_status.clone(),
+                    tone: if lifecycle_status == "unavailable" {
+                        "error".to_string()
+                    } else {
+                        "ok".to_string()
+                    },
+                });
+        }
+        Err(error) => desktop_state
+            .conversation
+            .runtime_checks
+            .push(RuntimeCheck {
+                label: "Desktop Hindsight".to_string(),
+                value: error,
+                tone: "error".to_string(),
+            }),
+    }
     if let Err(error) = configure_desktop_rust_logging(
         &runtime_layout.runtime_root,
         &desktop_state.preferences.advanced_defaults.log_level,
@@ -335,6 +370,46 @@ async fn build_state(
         active_generation: Arc::new(Mutex::new(None)),
         permission_waiters: Arc::new(Mutex::new(HashMap::new())),
         events,
+    }
+}
+
+fn spawn_memory_outbox_worker(state: GatewayState) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(MEMORY_OUTBOX_WORKER_INTERVAL);
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        loop {
+            interval.tick().await;
+            run_memory_outbox_worker_tick(&state).await;
+        }
+    });
+}
+
+async fn run_memory_outbox_worker_tick(state: &GatewayState) {
+    let runtime_root = state.runtime_root.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        let runtime = MemoryRuntime::new(runtime_root);
+        runtime.process_outbox_once(MEMORY_OUTBOX_WORKER_LIMIT)
+    })
+    .await;
+
+    match result {
+        Ok(Ok(value)) => {
+            let processed_count = value
+                .get("processedCount")
+                .and_then(Value::as_u64)
+                .unwrap_or(0);
+            if processed_count > 0 {
+                tracing::info!(
+                    processed_count,
+                    status_counts = ?value.get("statusCounts"),
+                    "desktop_memory_outbox_worker_tick"
+                );
+            }
+        }
+        Ok(Err(error)) => {
+            tracing::warn!(error = %error, "desktop_memory_outbox_worker_tick_failed")
+        }
+        Err(error) => tracing::warn!(error = %error, "desktop_memory_outbox_worker_join_failed"),
     }
 }
 
@@ -1837,6 +1912,12 @@ fn workspace_memory_record_from_markdown(
         category: workspace_memory_category(memory_type).to_string(),
         tags,
         source: "workspace-memory".to_string(),
+        provider: "local".to_string(),
+        layer: "resource".to_string(),
+        bank_id: String::new(),
+        remote_id: None,
+        sync_status: "local_only".to_string(),
+        sync_error: None,
         updated_at: frontmatter
             .get("created")
             .cloned()
@@ -2156,11 +2237,32 @@ fn authorize_token(token: Option<&str>, state: &GatewayState) -> Result<(), Stat
 }
 
 async fn emit_state_changed(state: &GatewayState) -> Result<Json<DesktopState>, StatusCode> {
-    let desktop_state = state.desktop_state.read().await.clone();
+    let desktop_state = desktop_state_snapshot(state).await;
     let _ = state.events.send(DesktopEvent::StateChanged {
         desktop_state: desktop_state.clone(),
     });
     Ok(Json(desktop_state))
+}
+
+async fn desktop_state_snapshot(state: &GatewayState) -> DesktopState {
+    let mut desktop_state = state.desktop_state.read().await.clone();
+    refresh_memory_runtime_status(state, &mut desktop_state).await;
+    desktop_state
+}
+
+async fn refresh_memory_runtime_status(state: &GatewayState, desktop_state: &mut DesktopState) {
+    let runtime_root = state.runtime_root.clone();
+    let status = tokio::task::spawn_blocking(move || MemoryRuntime::new(runtime_root).status())
+        .await
+        .map_err(|error| format!("memory runtime status join failed: {error}"))
+        .and_then(|result| result)
+        .unwrap_or_else(|error| {
+            json!({
+                "status": "error",
+                "error": error,
+            })
+        });
+    desktop_state.memory_workspace.runtime_status = status;
 }
 
 fn persist_memory_item(state: &GatewayState, item: &MemoryItem) -> Result<(), StatusCode> {
@@ -2168,6 +2270,92 @@ fn persist_memory_item(state: &GatewayState, item: &MemoryItem) -> Result<(), St
         .memory_store
         .upsert_item(memory_record_from_item(item))
         .map_err(|error| memory_store_status(state, error))
+}
+
+fn apply_memory_item_retain_sync(state: &GatewayState, item: &mut MemoryItem) {
+    item.layer = desktop_memory_layer(&item.category).to_string();
+    item.sync_error = None;
+    match MemoryRuntime::new(state.runtime_root.clone()).enqueue_desktop_memory_item(
+        &item.id,
+        &item.agent_id,
+        &item.title,
+        &item.summary,
+        &item.content,
+        &item.category,
+        &item.source,
+        &item.tags,
+    ) {
+        Ok(result) if result["status"] == "pending" => {
+            item.provider = "hindsight".to_string();
+            item.bank_id = result
+                .get("bankId")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_string();
+            item.sync_status = "pending".to_string();
+        }
+        Ok(result) => {
+            item.provider = result
+                .get("provider")
+                .and_then(Value::as_str)
+                .unwrap_or("local")
+                .to_string();
+            item.bank_id = result
+                .get("bankId")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_string();
+            item.sync_status = "local_only".to_string();
+            item.sync_error = result
+                .get("skipReason")
+                .and_then(Value::as_str)
+                .map(str::to_string);
+        }
+        Err(error) => {
+            item.provider = "local".to_string();
+            item.bank_id = String::new();
+            item.sync_status = "failed".to_string();
+            item.sync_error = Some(error);
+        }
+    }
+}
+
+fn apply_memory_item_forget_sync(state: &GatewayState, item: &mut MemoryItem) {
+    item.sync_status = "pending_delete".to_string();
+    item.sync_error = None;
+    let session_id = format!("desktop-memory:{}", item.agent_id);
+    let content = [item.title.trim(), item.summary.trim(), item.content.trim()]
+        .into_iter()
+        .filter(|value| !value.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n\n");
+    match MemoryRuntime::new(state.runtime_root.clone()).enqueue_forget_memory(
+        &session_id,
+        &content,
+        Some(&item.id),
+    ) {
+        Ok(result) if result["status"] == "pending" => {}
+        Ok(result) => {
+            item.sync_status = "local_delete_only".to_string();
+            item.sync_error = result
+                .get("skipReason")
+                .and_then(Value::as_str)
+                .map(str::to_string);
+        }
+        Err(error) => {
+            item.sync_status = "delete_failed".to_string();
+            item.sync_error = Some(error);
+        }
+    }
+}
+
+fn desktop_memory_layer(category: &str) -> &'static str {
+    match category.trim() {
+        "偏好" => "durable",
+        "经验" => "experience",
+        "项目" | "其他" => "resource",
+        _ => "resource",
+    }
 }
 
 fn persist_agent_profile(state: &GatewayState, agent: &AgentProfile) -> Result<(), StatusCode> {
@@ -2309,6 +2497,12 @@ fn memory_record_from_item(item: &MemoryItem) -> DesktopMemoryRecord {
         category: item.category.clone(),
         tags: item.tags.clone(),
         source: item.source.clone(),
+        provider: item.provider.clone(),
+        layer: item.layer.clone(),
+        bank_id: item.bank_id.clone(),
+        remote_id: item.remote_id.clone(),
+        sync_status: item.sync_status.clone(),
+        sync_error: item.sync_error.clone(),
         updated_at: item.updated_at.clone(),
         archived: item.archived,
     }
@@ -2324,6 +2518,12 @@ fn memory_item_from_record(record: DesktopMemoryRecord) -> MemoryItem {
         category: record.category,
         tags: record.tags,
         source: record.source,
+        provider: record.provider,
+        layer: record.layer,
+        bank_id: record.bank_id,
+        remote_id: record.remote_id,
+        sync_status: record.sync_status,
+        sync_error: record.sync_error,
         updated_at: record.updated_at,
         archived: record.archived,
     }

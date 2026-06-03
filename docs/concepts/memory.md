@@ -36,16 +36,22 @@ The product target is an explicit, observable memory loop:
 - turn-end memory work must not block the main response path
 - `memory.afterTurn` records model-visible message deltas and enqueues memory
   jobs in the runtime store
-- `memory.outbox.process` is the worker entrypoint that writes queued retain
-  jobs to Hindsight
+- the gateway starts an automatic outbox worker that writes queued retain jobs
+  to Hindsight and records local forget tombstones; `memory.outbox.process`
+  remains the manual drain entrypoint
+- CrawClaw Desktop packaging stages and sha256-verifies the pinned
+  `hindsight-embed` sidecar binary before bundling the embedded runtime
 - `memory.status`, `memory.outbox.list`, and `memory.activity.list` expose
-  policy, queue state, and recent memory activity
+  policy, Hindsight lifecycle, worker state, queue state, and recent activity
 - explicit `remember` writes a durable-memory retain job
 - explicit `do-not-remember` prevents Hindsight writeback for that turn while
   keeping local session continuity records
-- explicit `forget` is recorded as an observable job, but is marked
-  unsupported until the Hindsight API exposes a delete operation; CrawClaw does
-  not report a false remote deletion
+- explicit `forget` records a local tombstone. Tombstones suppress matching
+  future recall while CrawClaw avoids claiming destructive remote deletion until
+  Hindsight exposes a stable delete operation
+- Desktop memory items use the same runtime outbox. Local items carry provider,
+  layer, bank, and sync status fields so the UI can show whether they are
+  pending Hindsight writeback, local-only, or pending local deletion
 
 This keeps the ideal design small: CrawClaw owns policy, idempotent local state,
 and observability; Hindsight owns semantic storage, recall, ranking, and future
@@ -85,6 +91,11 @@ Recall is bounded by the current model context budget. Smaller context windows
 receive tighter memory snippets; larger context windows can receive more recall
 without becoming unbounded.
 
+Recall also applies local tombstone filtering after Hindsight returns results.
+If a tombstone targets a Desktop memory item id, matching recall items are
+removed by metadata. Otherwise, CrawClaw suppresses items whose text matches the
+forget query.
+
 ## Writeback
 
 Turn-end writeback is intentionally split by memory type:
@@ -97,8 +108,10 @@ Turn-end writeback is intentionally split by memory type:
 - Explicit `remember` requests enqueue a Hindsight `durable` retain job.
 - Explicit `do-not-remember` requests skip Hindsight writeback for the turn.
 - Explicit `forget` requests are tracked as memory activity and outbox work;
-  they are reported as unsupported until the Hindsight backend provides delete
-  support.
+  the worker records a local tombstone and marks the job `completed_local`.
+- Desktop create and edit operations enqueue retain work to the matching
+  Hindsight layer when Hindsight is available. Desktop cleanup hides the local
+  item and enqueues a forget tombstone for the same item id.
 - `durable-memory` is a constrained maintenance special agent for stable
   long-term facts. It receives a structured memory delta input and does not
   inherit parent transcript history.

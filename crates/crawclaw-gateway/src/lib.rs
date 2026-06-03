@@ -327,6 +327,7 @@ pub async fn run_gateway(config: GatewayRunConfig) -> Result<(), String> {
         state_dir = %state.state_dir.display(),
         "rust_gateway_started"
     );
+    spawn_memory_outbox_worker(state.clone());
     let app = Router::new()
         .route("/", get(ws))
         .route("/healthz", get(health))

@@ -359,51 +359,21 @@ fn record_memory_after_turn(
 
 ### 步骤 4：打包 hindsight-embed 二进制
 
-在 Tauri 构建流程中添加 sidecar：
+当前实现不使用 Tauri `externalBin`。Tauri 只打包
+`apps/crawclaw-desktop/.runtime/crawclaw`，`crawclaw-repo-tools
+desktop-stage` 会在构建前把 `hindsight-embed` stage 到
+`.runtime/crawclaw/bin/hindsight-embed`，同时写入
+`runtimes/hindsight/manifest.json` 和 `source.lock.json`。
 
-```json5
-// apps/crawclaw-desktop/src-tauri/tauri.conf.json
-{
-  bundle: {
-    externalBin: ["hindsight-embed"],
-  },
-}
-```
-
-下载脚本（在 CI 或开发时运行）：
+默认下载并校验 Hindsight v0.7.0 的 GitHub release 资产：
 
 ```bash
-#!/bin/bash
-# scripts/download-hindsight-embed.sh
-# 下载对应平台的 hindsight-embed 二进制
-
-set -euo pipefail
-
-VERSION="${HINDSIGHT_VERSION:-latest}"
-PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')"
-ARCH="$(uname -m)"
-
-case "${ARCH}" in
-  x86_64)  ARCH="x86_64" ;;
-  arm64|aarch64) ARCH="aarch64" ;;
-esac
-
-TARGET_DIR="apps/crawclaw-desktop/src-tauri/binaries"
-mkdir -p "${TARGET_DIR}"
-
-# 从 GitHub Releases 下载
-URL="https://github.com/vectorize-io/hindsight/releases/download/${VERSION}/hindsight-embed-${PLATFORM}-${ARCH}"
-if [[ "${PLATFORM}" == "darwin" ]]; then
-  # macOS 通用二进制
-  URL="https://github.com/vectorize-io/hindsight/releases/download/${VERSION}/hindsight-embed-${PLATFORM}-universal"
-fi
-
-echo "下载 Hindsight embed: ${URL}"
-curl -fsSL "${URL}" -o "${TARGET_DIR}/hindsight-embed-${PLATFORM}-${ARCH}"
-chmod +x "${TARGET_DIR}/hindsight-embed-${PLATFORM}-${ARCH}"
-
-echo "✅ 已下载到 ${TARGET_DIR}/"
+cargo run -q -p crawclaw-repo-tools -- desktop-stage --root .
 ```
+
+构建机需要自定义二进制来源时，设置
+`CRAWCLAW_HINDSIGHT_EMBED_BIN=/path/to/hindsight-embed`。没有锁定 release
+资产的平台会明确失败，而不是生成缺少 sidecar 的桌面包。
 
 ### 步骤 5：CrawClaw 配置文件
 
@@ -504,7 +474,7 @@ Hindsight         启动失败   error   ← 显示错误信息
 
 ## 7. 端到端验证清单
 
-- [ ] `hindsight-embed` 二进制打包进 Tauri app
+- [x] `hindsight-embed` 二进制打包进 Tauri app
 - [ ] 应用启动 → Hindsight 自动启动 → 健康检查通过
 - [ ] 首次对话 → 自动 retain 到 Hindsight bank
 - [ ] 第二次对话 → 自动 recall 注入相关记忆

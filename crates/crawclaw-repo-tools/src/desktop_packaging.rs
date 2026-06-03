@@ -2,13 +2,17 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::env;
 use std::ffi::{OsStr, OsString};
 use std::fs;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 
 const AGENT_BROWSER_VERSION: &str = "0.27.0";
+const HINDSIGHT_EMBED_VERSION: &str = "0.7.0";
+const HINDSIGHT_SOURCE_REPO: &str = "https://github.com/vectorize-io/hindsight";
 const SEARXNG_SOURCE_REPO: &str = "https://github.com/searxng/searxng";
 const SEARXNG_SOURCE_COMMIT: &str = "afafca93f30939f213c1bc3fa3379e5ed883122d";
 const SEARXNG_BUILD_BOOTSTRAP_REQUIREMENTS: &[&str] = &["setuptools", "wheel", "msgspec==0.21.1"];
@@ -66,6 +70,20 @@ struct AgentBrowserRuntimePaths {
     manifest_path: PathBuf,
     license_path: PathBuf,
     source_lock_path: PathBuf,
+}
+
+#[derive(Clone, Debug)]
+struct HindsightEmbedRuntimePaths {
+    runtime_dir: PathBuf,
+    binary_path: PathBuf,
+    manifest_path: PathBuf,
+    source_lock_path: PathBuf,
+}
+
+#[derive(Clone, Debug)]
+struct HindsightEmbedReleaseAsset {
+    asset_name: &'static str,
+    sha256: &'static str,
 }
 
 pub fn resolve_desktop_runtime_stage_paths(root_dir: impl AsRef<Path>) -> DesktopRuntimeStagePaths {
@@ -136,6 +154,7 @@ pub fn stage_desktop_tauri_runtime(
 
     crawclaw_runtime::stage_desktop_runtime_manifests(&paths.runtime_root)?;
     copy_release_binaries(&paths)?;
+    stage_hindsight_embed_runtime(&paths.runtime_root, &envs)?;
     stage_searxng_runtime(root_dir, &paths.runtime_root, &envs)?;
     stage_agent_browser_runtime(&paths.runtime_root, &envs)?;
     assert_runtime_tree(&paths, "embedded", true)?;
@@ -433,6 +452,117 @@ fn stage_searxng_runtime(
     )
 }
 
+fn stage_hindsight_embed_runtime(
+    runtime_root: &Path,
+    envs: &BTreeMap<String, String>,
+) -> Result<(), String> {
+    let platform = current_platform();
+    let arch = current_arch();
+    let paths = resolve_hindsight_embed_runtime_paths(runtime_root, &platform);
+    fs::create_dir_all(&paths.runtime_dir)
+        .map_err(|error| format!("failed to create {}: {error}", paths.runtime_dir.display()))?;
+
+    let source = if let Some(explicit_binary) = envs
+        .get("CRAWCLAW_HINDSIGHT_EMBED_BIN")
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    {
+        copy_file(Path::new(explicit_binary), &paths.binary_path)?;
+        set_executable(&paths.binary_path)?;
+        json!({
+            "source": "env",
+            "env": "CRAWCLAW_HINDSIGHT_EMBED_BIN",
+            "path": explicit_binary,
+        })
+    } else {
+        let asset = hindsight_embed_release_asset(&platform, &arch)?;
+        download_hindsight_embed_asset(&paths.binary_path, &asset, envs)?;
+        json!({
+            "source": "github-release",
+            "sourceRepo": HINDSIGHT_SOURCE_REPO,
+            "version": HINDSIGHT_EMBED_VERSION,
+            "releaseTag": format!("v{HINDSIGHT_EMBED_VERSION}"),
+            "assetName": asset.asset_name,
+            "downloadUrl": hindsight_embed_download_url(asset.asset_name),
+            "sha256": asset.sha256,
+        })
+    };
+
+    let binary_name = paths
+        .binary_path
+        .file_name()
+        .and_then(OsStr::to_str)
+        .unwrap_or("hindsight-embed");
+    write_json_file(
+        &paths.manifest_path,
+        &json!({
+            "id": "hindsight",
+            "provider": "hindsight",
+            "runtime": "rust-native-binary",
+            "version": HINDSIGHT_EMBED_VERSION,
+            "platform": platform,
+            "arch": arch,
+            "binaryName": binary_name,
+            "binaryPath": relative_slash_path(runtime_root, &paths.binary_path),
+        }),
+    )?;
+    write_json_file(
+        &paths.source_lock_path,
+        &json!({
+            "runtime": "rust-native-binary",
+            "platform": platform,
+            "arch": arch,
+            "binaryName": binary_name,
+            "source": source,
+        }),
+    )
+}
+
+fn download_hindsight_embed_asset(
+    dest: &Path,
+    asset: &HindsightEmbedReleaseAsset,
+    envs: &BTreeMap<String, String>,
+) -> Result<(), String> {
+    if dest.exists() {
+        verify_sha256(dest, asset.sha256)?;
+        set_executable(dest)?;
+        return Ok(());
+    }
+    let parent = dest.parent().ok_or_else(|| {
+        format!(
+            "Hindsight embed destination has no parent: {}",
+            dest.display()
+        )
+    })?;
+    fs::create_dir_all(parent)
+        .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
+    let temp_path = parent.join(format!("{}.download", asset.asset_name));
+    let _ = fs::remove_file(&temp_path);
+    let curl = if cfg!(windows) { "curl.exe" } else { "curl" };
+    run_checked(
+        parent,
+        curl,
+        vec![
+            OsString::from("-fsSL"),
+            OsString::from("--retry"),
+            OsString::from("3"),
+            OsString::from("--output"),
+            temp_path.as_os_str().to_os_string(),
+            OsString::from(hindsight_embed_download_url(asset.asset_name)),
+        ],
+        envs,
+    )?;
+    verify_sha256(&temp_path, asset.sha256)?;
+    fs::rename(&temp_path, dest).map_err(|error| {
+        format!(
+            "failed to move Hindsight embed binary {} to {}: {error}",
+            temp_path.display(),
+            dest.display()
+        )
+    })?;
+    set_executable(dest)
+}
+
 fn stage_agent_browser_runtime(
     runtime_root: &Path,
     envs: &BTreeMap<String, String>,
@@ -563,6 +693,7 @@ fn assert_runtime_tree(
         &runtime_manifest,
         &format!("{label} managed runtime manifest"),
     )?;
+    assert_hindsight_embed_runtime_tree(&paths.runtime_root, label)?;
     assert_searxng_runtime_tree(&paths.runtime_root, label)?;
     assert_agent_browser_runtime_tree(&paths.runtime_root, label)?;
     assert_no_default_js_plugin_runtime(
@@ -692,6 +823,73 @@ fn assert_agent_browser_runtime_tree(runtime_root: &Path, label: &str) -> Result
         &platform_binary_name("agent-browser", &current_platform()),
         &format!("{label} agent-browser source lock binaryName"),
     )
+}
+
+fn assert_hindsight_embed_runtime_tree(runtime_root: &Path, label: &str) -> Result<(), String> {
+    let paths = resolve_hindsight_embed_runtime_paths(runtime_root, &current_platform());
+    assert_executable_file(
+        &paths.binary_path,
+        &format!("{label} Hindsight embed sidecar"),
+    )?;
+    assert_file(
+        &paths.manifest_path,
+        &format!("{label} Hindsight runtime manifest"),
+    )?;
+    assert_file(
+        &paths.source_lock_path,
+        &format!("{label} Hindsight source lock"),
+    )?;
+    let manifest = read_json(&paths.manifest_path)?;
+    assert_json_string_eq(
+        manifest.get("provider"),
+        "hindsight",
+        &format!("{label} Hindsight manifest provider"),
+    )?;
+    assert_json_string_eq(
+        manifest.get("runtime"),
+        "rust-native-binary",
+        &format!("{label} Hindsight manifest runtime"),
+    )?;
+    assert_json_string_eq(
+        manifest.get("binaryName"),
+        &platform_binary_name("hindsight-embed", &current_platform()),
+        &format!("{label} Hindsight manifest binaryName"),
+    )?;
+    assert_json_string_eq(
+        manifest.get("binaryPath"),
+        &format!(
+            "bin/{}",
+            platform_binary_name("hindsight-embed", &current_platform())
+        ),
+        &format!("{label} Hindsight manifest binaryPath"),
+    )?;
+    let source_lock = read_json(&paths.source_lock_path)?;
+    assert_json_string_eq(
+        source_lock.get("runtime"),
+        "rust-native-binary",
+        &format!("{label} Hindsight source lock runtime"),
+    )?;
+    assert_json_string_eq(
+        source_lock.get("binaryName"),
+        &platform_binary_name("hindsight-embed", &current_platform()),
+        &format!("{label} Hindsight source lock binaryName"),
+    )?;
+    if let Some(source) = source_lock.get("source").and_then(Value::as_object) {
+        if source.get("source").and_then(Value::as_str) == Some("github-release") {
+            let asset = hindsight_embed_release_asset(&current_platform(), &current_arch())?;
+            assert_json_string_eq(
+                source.get("assetName"),
+                asset.asset_name,
+                &format!("{label} Hindsight source lock assetName"),
+            )?;
+            assert_json_string_eq(
+                source.get("sha256"),
+                asset.sha256,
+                &format!("{label} Hindsight source lock sha256"),
+            )?;
+        }
+    }
+    Ok(())
 }
 
 fn assert_agent_browser_runtime_pruned_to_host_platform(
@@ -1120,6 +1318,57 @@ fn resolve_agent_browser_runtime_paths(
     }
 }
 
+fn resolve_hindsight_embed_runtime_paths(
+    runtime_root: &Path,
+    platform: &str,
+) -> HindsightEmbedRuntimePaths {
+    let runtime_dir = runtime_root.join("runtimes").join("hindsight");
+    HindsightEmbedRuntimePaths {
+        binary_path: runtime_root
+            .join("bin")
+            .join(platform_binary_name("hindsight-embed", platform)),
+        manifest_path: runtime_dir.join("manifest.json"),
+        source_lock_path: runtime_dir.join("source.lock.json"),
+        runtime_dir,
+    }
+}
+
+fn hindsight_embed_release_asset(
+    platform: &str,
+    arch: &str,
+) -> Result<HindsightEmbedReleaseAsset, String> {
+    let normalized_arch = match arch {
+        "aarch64" | "arm64" => "arm64",
+        "x86_64" | "x64" => "amd64",
+        _ => return Err(format!("Unsupported Hindsight embed architecture: {arch}")),
+    };
+    match (platform, normalized_arch) {
+        ("macos" | "darwin", "arm64") => Ok(HindsightEmbedReleaseAsset {
+            asset_name: "hindsight-darwin-arm64",
+            sha256: "062d842e70434a06bce54549049f96f526baaeab5599f5a9e7bbd0167e1ca174",
+        }),
+        ("macos" | "darwin", "amd64") => Ok(HindsightEmbedReleaseAsset {
+            asset_name: "hindsight-darwin-amd64",
+            sha256: "ba304022fe931f596dcc30392b41a5dd80c1288c715fa659982bc3a65270245d",
+        }),
+        ("linux", "arm64") => Ok(HindsightEmbedReleaseAsset {
+            asset_name: "hindsight-linux-arm64",
+            sha256: "e085185bd441ab2eb5f52a9dbb728d57c4b643e245d759d00a2112c45a380d34",
+        }),
+        ("linux", "amd64") => Ok(HindsightEmbedReleaseAsset {
+            asset_name: "hindsight-linux-amd64",
+            sha256: "7c12118139a72f056136b328bdcab7b584c36d54e29b9d5466c92feede4b3ec4",
+        }),
+        _ => Err(format!(
+            "Unsupported Hindsight embed platform: {platform}-{arch}. Provide CRAWCLAW_HINDSIGHT_EMBED_BIN to stage an explicit local binary."
+        )),
+    }
+}
+
+fn hindsight_embed_download_url(asset_name: &str) -> String {
+    format!("{HINDSIGHT_SOURCE_REPO}/releases/download/v{HINDSIGHT_EMBED_VERSION}/{asset_name}")
+}
+
 fn desktop_runtime_deploy_env(paths: &DesktopRuntimeStagePaths) -> BTreeMap<String, String> {
     let mut envs = env::vars().collect::<BTreeMap<_, _>>();
     envs.insert(
@@ -1206,6 +1455,34 @@ fn copy_file(source: &Path, dest: &Path) -> Result<(), String> {
             dest.display()
         )
     })
+}
+
+fn verify_sha256(path: &Path, expected: &str) -> Result<(), String> {
+    let actual = sha256_file(path)?;
+    if actual == expected {
+        return Ok(());
+    }
+    Err(format!(
+        "sha256 mismatch for {}: expected {expected}, got {actual}",
+        path.display()
+    ))
+}
+
+fn sha256_file(path: &Path) -> Result<String, String> {
+    let mut file = fs::File::open(path)
+        .map_err(|error| format!("failed to open {}: {error}", path.display()))?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 8192];
+    loop {
+        let read = file
+            .read(&mut buffer)
+            .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+    }
+    Ok(format!("{:x}", hasher.finalize()))
 }
 
 fn write_json_file(path: &Path, value: &Value) -> Result<(), String> {
@@ -1445,5 +1722,42 @@ mod tests {
             "sourceCommit": "abc123"
         }))
         .is_none());
+    }
+
+    #[test]
+    fn resolves_hindsight_embed_runtime_paths() {
+        let root = PathBuf::from("/tmp/crawclaw-runtime");
+        let paths = resolve_hindsight_embed_runtime_paths(&root, "macos");
+
+        assert_eq!(paths.binary_path, root.join("bin").join("hindsight-embed"));
+        assert_eq!(
+            paths.manifest_path,
+            root.join("runtimes")
+                .join("hindsight")
+                .join("manifest.json")
+        );
+        assert_eq!(
+            paths.source_lock_path,
+            root.join("runtimes")
+                .join("hindsight")
+                .join("source.lock.json")
+        );
+    }
+
+    #[test]
+    fn maps_hindsight_embed_release_assets_with_pinned_checksums() {
+        let asset = hindsight_embed_release_asset("darwin", "arm64").expect("darwin arm64");
+        assert_eq!(asset.asset_name, "hindsight-darwin-arm64");
+        assert_eq!(
+            asset.sha256,
+            "062d842e70434a06bce54549049f96f526baaeab5599f5a9e7bbd0167e1ca174"
+        );
+
+        let asset = hindsight_embed_release_asset("linux", "x86_64").expect("linux x64");
+        assert_eq!(asset.asset_name, "hindsight-linux-amd64");
+        assert_eq!(
+            hindsight_embed_download_url(asset.asset_name),
+            "https://github.com/vectorize-io/hindsight/releases/download/v0.7.0/hindsight-linux-amd64"
+        );
     }
 }

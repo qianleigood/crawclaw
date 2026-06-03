@@ -505,7 +505,7 @@ pub(super) async fn apply_native_operation(
                 .memory_workspace
                 .selected_agent_id
                 .clone();
-            let item = MemoryItem {
+            let mut item = MemoryItem {
                 id: id.clone(),
                 agent_id: string_field(&input, "agentId")
                     .filter(|value| !value.is_empty())
@@ -516,9 +516,16 @@ pub(super) async fn apply_native_operation(
                 category,
                 tags: string_array_field(&input, "tags"),
                 source,
+                provider: "local".to_string(),
+                layer: "resource".to_string(),
+                bank_id: String::new(),
+                remote_id: None,
+                sync_status: "local_only".to_string(),
+                sync_error: None,
                 updated_at: "刚刚".to_string(),
                 archived: false,
             };
+            apply_memory_item_retain_sync(state, &mut item);
             let item_agent_id = item.agent_id.clone();
             persist_memory_item(state, &item)?;
             {
@@ -545,19 +552,17 @@ pub(super) async fn apply_native_operation(
             ensure_memory_cleanup_allowed(state, &item, confirmed).await?;
             item.archived = true;
             item.updated_at = "刚刚".to_string();
-            state
-                .memory_store
-                .archive_item(&item_id)
-                .map_err(|error| memory_store_status(state, error))?;
+            apply_memory_item_forget_sync(state, &mut item);
+            persist_memory_item(state, &item)?;
             {
                 let mut desktop_state = state.desktop_state.write().await;
-                if let Some(item) = desktop_state
+                if let Some(memory) = desktop_state
                     .memory_workspace
                     .items
                     .iter_mut()
                     .find(|item| item.id == item_id)
                 {
-                    item.archived = true;
+                    *memory = item.clone();
                 }
             }
             emit_state_changed(state).await
@@ -593,6 +598,7 @@ pub(super) async fn apply_native_operation(
                 updated_item.source = source;
             }
             updated_item.updated_at = "刚刚".to_string();
+            apply_memory_item_retain_sync(state, &mut updated_item);
             persist_memory_item(state, &updated_item)?;
             {
                 let mut desktop_state = state.desktop_state.write().await;

@@ -129,20 +129,75 @@ fn write_settings_effect_files(
             "updatedAtUnixMs": now_unix_ms(),
         }),
     )?;
-    write_json_file(
-        &runtime_root
-            .join("config")
-            .join("desktop-memory-policy.json"),
-        &json!({
-            "rememberPreferences": preferences.memory_defaults.remember_preferences,
-            "rememberProjectContext": preferences.memory_defaults.remember_project_context,
-            "memoryDreamEnabled": preferences.memory_defaults.memory_dream_enabled,
-            "memoryDreamFrequency": preferences.memory_defaults.memory_dream_frequency,
-            "memoryCleanupConfirmation": preferences.memory_defaults.memory_cleanup_confirmation,
-            "updatedAtUnixMs": now_unix_ms(),
-        }),
-    )?;
+    let memory_policy_path = runtime_root
+        .join("config")
+        .join("desktop-memory-policy.json");
+    let mut memory_policy = json!({
+        "rememberPreferences": preferences.memory_defaults.remember_preferences,
+        "rememberProjectContext": preferences.memory_defaults.remember_project_context,
+        "memoryDreamEnabled": preferences.memory_defaults.memory_dream_enabled,
+        "memoryDreamFrequency": preferences.memory_defaults.memory_dream_frequency,
+        "memoryCleanupConfirmation": preferences.memory_defaults.memory_cleanup_confirmation,
+        "updatedAtUnixMs": now_unix_ms(),
+    });
+    preserve_hindsight_policy_fields(&memory_policy_path, &mut memory_policy);
+    write_json_file(&memory_policy_path, &memory_policy)?;
     Ok(())
+}
+
+pub(super) fn update_desktop_memory_policy(
+    runtime_root: &Path,
+    patch: &Value,
+) -> Result<(), String> {
+    let path = runtime_root
+        .join("config")
+        .join("desktop-memory-policy.json");
+    let mut policy = read_json_file(&path).unwrap_or_else(|| json!({}));
+    let Some(policy_object) = policy.as_object_mut() else {
+        policy = json!({});
+        let policy_object = policy.as_object_mut().expect("object policy");
+        if let Some(patch_object) = patch.as_object() {
+            for (key, value) in patch_object {
+                policy_object.insert(key.clone(), value.clone());
+            }
+        }
+        return write_json_file(&path, &policy);
+    };
+    if let Some(patch_object) = patch.as_object() {
+        for (key, value) in patch_object {
+            policy_object.insert(key.clone(), value.clone());
+        }
+    }
+    write_json_file(&path, &policy)
+}
+
+fn preserve_hindsight_policy_fields(path: &Path, policy: &mut Value) {
+    let Some(existing) = read_json_file(path) else {
+        return;
+    };
+    let Some(existing_object) = existing.as_object() else {
+        return;
+    };
+    let Some(policy_object) = policy.as_object_mut() else {
+        return;
+    };
+    for key in [
+        "hindsightEnabled",
+        "hindsightMode",
+        "hindsightBaseUrl",
+        "hindsightManaged",
+        "hindsightLifecycleStatus",
+        "hindsightLifecycleReason",
+    ] {
+        if let Some(value) = existing_object.get(key) {
+            policy_object.insert(key.to_string(), value.clone());
+        }
+    }
+}
+
+fn read_json_file(path: &Path) -> Option<Value> {
+    let text = fs::read_to_string(path).ok()?;
+    serde_json::from_str(&text).ok()
 }
 
 fn write_json_file(path: &Path, value: &Value) -> Result<(), String> {

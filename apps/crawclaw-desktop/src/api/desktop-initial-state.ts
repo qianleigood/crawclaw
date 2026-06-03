@@ -52,6 +52,7 @@ export function createDesktopUnavailableState(detail = '正在连接本机 Gatew
         message: '',
         status: 'idle',
       },
+      runtimeStatus: { status: 'unknown' },
       items: [],
     },
     pluginsWorkspace: {

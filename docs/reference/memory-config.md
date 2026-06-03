@@ -49,6 +49,15 @@ multilingual Hindsight setup such as `BAAI/bge-m3` embeddings plus
 `BAAI/bge-reranker-v2-m3` reranking, and configure the Hindsight text-search
 extension that best supports Chinese keyword segmentation.
 
+CrawClaw Desktop prepares a local `hindsight-embed` sidecar when no explicit
+Hindsight endpoint is configured. Desktop packaging stages the pinned
+Hindsight release binary into the embedded runtime and verifies its sha256
+before the app bundle is built; build operators can override the source with
+`CRAWCLAW_HINDSIGHT_EMBED_BIN`. The Desktop policy overlay can supply a local
+`baseUrl` and lifecycle status to the runtime. If the sidecar binary is
+missing, Desktop leaves Hindsight disabled and reports the unavailable
+lifecycle instead of creating a permanently failing outbox.
+
 | Key                                                      | Type      | Default             | Description                                                      |
 | -------------------------------------------------------- | --------- | ------------------- | ---------------------------------------------------------------- |
 | `memory.hindsight.enabled`                               | `boolean` | `false`             | Enable Hindsight recall and writeback                            |
@@ -92,7 +101,8 @@ extension that best supports Chinese keyword segmentation.
 
 Automatic turn-end retain is separate from this prompt recall mode. Eligible
 completed turns enqueue a Hindsight `experience` retain job when Hindsight is
-enabled and auto retain is enabled. `memory.outbox.process` drains that queue.
+enabled and auto retain is enabled. The gateway runs an automatic outbox worker;
+`memory.outbox.process` is the manual drain entrypoint.
 
 ## Dreaming and summaries
 

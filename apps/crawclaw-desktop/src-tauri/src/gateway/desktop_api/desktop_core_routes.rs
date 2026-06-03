@@ -17,8 +17,9 @@ use crate::models::{
 
 use super::{
     apply_session_conversation, authorize_headers, authorize_token,
-    clear_active_thread_conversation, emit_state_changed, run_native_state_mutation,
-    session_store_status, upsert_permission_message, DesktopNativeMutation, GatewayState,
+    clear_active_thread_conversation, desktop_state_snapshot, emit_state_changed,
+    run_native_state_mutation, session_store_status, upsert_permission_message,
+    DesktopNativeMutation, GatewayState,
 };
 
 #[derive(Deserialize)]
@@ -60,7 +61,7 @@ pub(super) struct PermissionDecisionRequest {
 
 pub(super) async fn bootstrap(State(state): State<GatewayState>) -> Json<BootstrapResponse> {
     let runtime = state.runtime_supervisor.status();
-    let desktop_state = state.desktop_state.read().await.clone();
+    let desktop_state = desktop_state_snapshot(&state).await;
     Json(BootstrapResponse {
         app: state.app.clone(),
         api: state.api.clone(),
@@ -70,7 +71,7 @@ pub(super) async fn bootstrap(State(state): State<GatewayState>) -> Json<Bootstr
 }
 
 pub(super) async fn desktop_state(State(state): State<GatewayState>) -> Json<DesktopState> {
-    Json(state.desktop_state.read().await.clone())
+    Json(desktop_state_snapshot(&state).await)
 }
 
 pub(super) async fn runtime_status(State(state): State<GatewayState>) -> Json<RuntimeStatus> {

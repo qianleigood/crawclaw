@@ -26,7 +26,7 @@ pub use self::runtime_store::RuntimeStore;
 pub use self::session_summary_store::SessionSummaryStore;
 
 use self::bank_resolver::{BankContext, BankResolverConfig};
-use self::hindsight_client::HindsightClient;
+use self::hindsight_client::{HindsightClient, RecallItem};
 use self::recall_pipeline::RecallConfig;
 use self::reflect_pipeline::ReflectConfig;
 use self::retain_pipeline::RetainConfig;
@@ -155,6 +155,9 @@ impl MemoryRuntime {
     ) -> Result<Value, String> {
         let query_text = prompt.unwrap_or(session_id);
         let ctx = self.bank_context("main");
+        let store = self.store();
+        store.init()?;
+        let tombstones = store.list_memory_tombstones(500)?;
 
         let recall_config = RecallConfig::from(&self.config.hindsight);
         let query = recall_pipeline::compose_recall_query(query_text, &messages, &recall_config);
@@ -174,6 +177,7 @@ impl MemoryRuntime {
                     &query,
                     &recall_config,
                 );
+                let items = filter_tombstoned_recall_items(items, &tombstones);
                 let durable: Vec<_> = items
                     .iter()
                     .filter(|i| i.metadata.get("layer").and_then(|v| v.as_str()) == Some("durable"))
@@ -354,7 +358,7 @@ impl MemoryRuntime {
                 )?;
             }
             MemoryDirective::Forget { content } => {
-                outbox = self.enqueue_forget_job(&store, session_id, content)?;
+                outbox = self.enqueue_forget_job(&store, session_id, content, None)?;
             }
             MemoryDirective::DoNotRemember { .. } => {
                 outbox["status"] = json!("skipped");
@@ -465,6 +469,7 @@ impl MemoryRuntime {
         store: &RuntimeStore,
         session_id: &str,
         content: &str,
+        target_id: Option<&str>,
     ) -> Result<Value, String> {
         if content.trim().is_empty() {
             return Ok(json!({
@@ -479,6 +484,7 @@ impl MemoryRuntime {
         let payload = json!({
             "query": content,
             "reason": "explicit_forget",
+            "targetId": target_id,
         });
         let enqueued = store.enqueue_memory_job(session_id, "forget_memory", None, payload)?;
         Ok(json!({
@@ -490,9 +496,116 @@ impl MemoryRuntime {
         }))
     }
 
+    pub fn enqueue_desktop_memory_item(
+        &self,
+        item_id: &str,
+        agent_id: &str,
+        title: &str,
+        summary: &str,
+        content: &str,
+        category: &str,
+        source: &str,
+        tags: &[String],
+    ) -> Result<Value, String> {
+        let store = self.store();
+        store.init()?;
+        let layer = desktop_memory_layer(category);
+        let kind = retain_kind_for_layer(layer);
+        if !self.config.hindsight.enabled {
+            return Ok(json!({
+                "status": "skipped",
+                "skipReason": "hindsight_disabled",
+                "enqueued": false,
+                "provider": "local",
+                "kind": kind,
+                "layer": layer,
+                "bankId": Value::Null,
+            }));
+        }
+        if self
+            .hindsight
+            .as_ref()
+            .is_none_or(|client| !client.is_configured())
+        {
+            return Ok(json!({
+                "status": "skipped",
+                "skipReason": "hindsight_not_available",
+                "enqueued": false,
+                "provider": "local",
+                "kind": kind,
+                "layer": layer,
+                "bankId": Value::Null,
+            }));
+        }
+        let ctx = self.bank_context(agent_id);
+        let bank_id = self.bank_resolver.resolve(&ctx, layer);
+        let content = [title.trim(), summary.trim(), content.trim()]
+            .into_iter()
+            .filter(|value| !value.is_empty())
+            .collect::<Vec<_>>()
+            .join("\n\n");
+        if content.trim().is_empty() {
+            return Ok(json!({
+                "status": "skipped",
+                "skipReason": "empty_retain_payload",
+                "enqueued": false,
+                "provider": "local",
+                "kind": kind,
+                "layer": layer,
+                "bankId": bank_id,
+            }));
+        }
+        let mut retain_tags = retain_pipeline::build_retain_tags(&ctx, layer);
+        retain_tags.push("desktop-memory".to_string());
+        retain_tags.push(format!("category:{category}"));
+        retain_tags.extend(tags.iter().filter(|tag| !tag.trim().is_empty()).cloned());
+        let payload = json!({
+            "bankId": bank_id,
+            "content": content,
+            "context": "desktop_memory_item",
+            "metadata": {
+                "layer": layer,
+                "agentId": agent_id,
+                "desktopMemoryItemId": item_id,
+                "title": title,
+                "summary": summary,
+                "category": category,
+                "source": source,
+            },
+            "tags": retain_tags,
+        });
+        let enqueued = store.enqueue_memory_job(
+            &format!("desktop-memory:{agent_id}"),
+            kind,
+            Some(layer),
+            payload,
+        )?;
+        Ok(json!({
+            "status": enqueued.status,
+            "jobId": enqueued.job_id,
+            "enqueued": enqueued.enqueued,
+            "provider": "hindsight",
+            "kind": kind,
+            "layer": layer,
+            "bankId": bank_id,
+        }))
+    }
+
+    pub fn enqueue_forget_memory(
+        &self,
+        session_id: &str,
+        content: &str,
+        target_id: Option<&str>,
+    ) -> Result<Value, String> {
+        let store = self.store();
+        store.init()?;
+        self.enqueue_forget_job(&store, session_id, content, target_id)
+    }
+
     pub fn process_outbox_once(&self, limit: usize) -> Result<Value, String> {
         let store = self.store();
         store.init()?;
+        let started_at = helpers::now_millis();
         let jobs = store.list_outbox_jobs(Some("pending"), limit)?;
         let mut status_counts = serde_json::Map::new();
         let mut results = Vec::new();
@@ -502,9 +615,6 @@ impl MemoryRuntime {
             let process_result = self.process_outbox_job(&store, &job);
             let (status, last_error) = match process_result {
                 Ok(status) => (status, None),
-                Err(error) if error == "hindsight_forget_not_supported" => {
-                    ("unsupported".to_string(), Some(error))
-                }
                 Err(error) if error.starts_with("unsupported_memory_job_kind:") => {
                     ("unsupported".to_string(), Some(error))
                 }
@@ -532,6 +642,16 @@ impl MemoryRuntime {
                 "status": status,
             }));
         }
+        let worker_status = memory_worker_run_status(&status_counts);
+        let status_counts_value = Value::Object(status_counts.clone());
+        store.record_memory_worker_result(
+            self.memory_worker_enabled(),
+            worker_status,
+            started_at,
+            results.len(),
+            &status_counts_value,
+            None,
+        )?;
         Ok(json!({
             "status": "ok",
             "processedCount": results.len(),
@@ -540,12 +660,15 @@ impl MemoryRuntime {
         }))
     }
 
-    fn process_outbox_job(&self, _store: &RuntimeStore, job: &Value) -> Result<String, String> {
+    fn process_outbox_job(&self, store: &RuntimeStore, job: &Value) -> Result<String, String> {
         let kind = job.get("kind").and_then(Value::as_str).unwrap_or("");
         if kind == "forget_memory" {
-            return Err("hindsight_forget_not_supported".to_string());
+            return self.process_forget_memory_job(store, job);
         }
-        if !matches!(kind, "retain_experience" | "retain_durable") {
+        if !matches!(
+            kind,
+            "retain_experience" | "retain_durable" | "retain_resource"
+        ) {
             return Err(format!("unsupported_memory_job_kind:{kind}"));
         }
         let Some(client) = &self.hindsight else {
@@ -582,6 +705,27 @@ impl MemoryRuntime {
         let tag_refs: Vec<&str> = tags.iter().map(String::as_str).collect();
         client.retain(bank_id, content, context, metadata, &tag_refs)?;
         Ok("completed".to_string())
+    }
+
+    fn process_forget_memory_job(
+        &self,
+        store: &RuntimeStore,
+        job: &Value,
+    ) -> Result<String, String> {
+        let payload = job.get("payload").unwrap_or(&Value::Null);
+        let query = payload
+            .get("query")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| "memory_forget_missing_query".to_string())?;
+        let reason = payload
+            .get("reason")
+            .and_then(Value::as_str)
+            .unwrap_or("explicit_forget");
+        let target_id = payload.get("targetId").and_then(Value::as_str);
+        store.record_memory_tombstone(query, reason, target_id, payload.clone())?;
+        Ok("completed_local".to_string())
     }
 
     pub fn dream_consolidate(&self, session_id: &str) -> Result<Value, String> {
@@ -729,17 +873,15 @@ impl MemoryRuntime {
 
     pub fn hindsight_status(&self) -> Value {
         let config = &self.config.hindsight;
-        let reason = if !config.enabled {
-            Some("disabled")
-        } else if config.base_url.trim().is_empty() {
-            Some("missing_base_url")
-        } else {
-            None
-        };
+        let lifecycle = self.hindsight_lifecycle_status();
+        let reason = lifecycle
+            .get("reason")
+            .and_then(Value::as_str)
+            .map(str::to_string);
         json!({
             "enabled": config.enabled,
-            "ready": reason.is_none(),
-            "lifecycle": if reason.is_none() { "ready" } else { "degraded" },
+            "ready": lifecycle.get("status").and_then(Value::as_str) == Some("ready"),
+            "lifecycle": lifecycle,
             "reason": reason,
             "provider": "hindsight",
             "baseUrl": config.base_url,
@@ -773,9 +915,172 @@ impl MemoryRuntime {
             "hindsight": self.hindsight_status(),
             "policy": EffectiveMemoryPolicy::from_config(&self.config),
             "outbox": store.memory_outbox_summary()?,
+            "worker": store.memory_worker_status(self.memory_worker_enabled())?,
             "recentActivity": store.list_memory_activity(None, 10)?,
         }))
     }
+
+    pub fn memory_worker_enabled(&self) -> bool {
+        true
+    }
+
+    fn hindsight_lifecycle_status(&self) -> Value {
+        let config = &self.config.hindsight;
+        let policy_mode = self
+            .desktop_policy
+            .as_ref()
+            .and_then(|policy| policy.get("hindsightMode"))
+            .and_then(Value::as_str);
+        let policy_managed = self
+            .desktop_policy
+            .as_ref()
+            .and_then(|policy| policy.get("hindsightManaged"))
+            .and_then(Value::as_bool);
+        let policy_status = self
+            .desktop_policy
+            .as_ref()
+            .and_then(|policy| policy.get("hindsightLifecycleStatus"))
+            .and_then(Value::as_str);
+        let policy_reason = self
+            .desktop_policy
+            .as_ref()
+            .and_then(|policy| policy.get("hindsightLifecycleReason"))
+            .and_then(Value::as_str);
+        if !config.enabled {
+            let managed = policy_managed.unwrap_or(false);
+            let status = if managed && policy_status == Some("unavailable") {
+                "unavailable"
+            } else {
+                "disabled"
+            };
+            let reason = if status == "unavailable" {
+                policy_reason.unwrap_or("hindsight_unavailable")
+            } else {
+                "disabled"
+            };
+            return json!({
+                "provider": "hindsight",
+                "mode": policy_mode.unwrap_or("off"),
+                "status": status,
+                "reason": reason,
+                "baseUrl": config.base_url,
+                "managed": managed,
+            });
+        }
+        if config.base_url.trim().is_empty() {
+            return json!({
+                "provider": "hindsight",
+                "mode": policy_mode.unwrap_or("local"),
+                "status": "degraded",
+                "reason": "missing_base_url",
+                "baseUrl": config.base_url,
+                "managed": policy_managed.unwrap_or(true),
+            });
+        }
+        let mode = policy_mode.unwrap_or(if is_loopback_hindsight_url(&config.base_url) {
+            "local"
+        } else {
+            "remote"
+        });
+        let healthy = self
+            .hindsight
+            .as_ref()
+            .is_some_and(HindsightClient::health_check);
+        let status = if healthy {
+            "ready"
+        } else if policy_status == Some("starting") {
+            "starting"
+        } else {
+            "degraded"
+        };
+        let reason = if healthy {
+            Value::Null
+        } else if status == "starting" {
+            json!("health_check_pending")
+        } else {
+            json!(policy_reason.unwrap_or("health_check_failed"))
+        };
+        json!({
+            "provider": "hindsight",
+            "mode": mode,
+            "status": status,
+            "reason": reason,
+            "baseUrl": config.base_url,
+            "managed": policy_managed.unwrap_or(mode == "local"),
+        })
+    }
+}
+
+fn memory_worker_run_status(status_counts: &serde_json::Map<String, Value>) -> &'static str {
+    if status_counts.is_empty() {
+        return "idle";
+    }
+    if status_counts
+        .get("failed")
+        .and_then(Value::as_i64)
+        .unwrap_or(0)
+        > 0
+    {
+        "failed"
+    } else {
+        "completed"
+    }
+}
+
+fn is_loopback_hindsight_url(value: &str) -> bool {
+    value.contains("://127.0.0.1") || value.contains("://localhost") || value.contains("://[::1]")
+}
+
+fn desktop_memory_layer(category: &str) -> &'static str {
+    match category.trim() {
+        "偏好" => "durable",
+        "经验" => "experience",
+        "项目" | "其他" => "resource",
+        _ => "resource",
+    }
+}
+
+fn retain_kind_for_layer(layer: &str) -> &'static str {
+    match layer {
+        "durable" => "retain_durable",
+        "experience" => "retain_experience",
+        "resource" => "retain_resource",
+        _ => "retain_resource",
+    }
+}
+
+fn filter_tombstoned_recall_items(items: Vec<RecallItem>, tombstones: &[Value]) -> Vec<RecallItem> {
+    if tombstones.is_empty() {
+        return items;
+    }
+    items
+        .into_iter()
+        .filter(|item| !recall_item_matches_tombstone(item, tombstones))
+        .collect()
+}
+
+fn recall_item_matches_tombstone(item: &RecallItem, tombstones: &[Value]) -> bool {
+    let item_target = item
+        .metadata
+        .get("desktopMemoryItemId")
+        .and_then(Value::as_str);
+    let item_text = item.text.to_ascii_lowercase();
+    tombstones.iter().any(|tombstone| {
+        let target_match = tombstone
+            .get("targetId")
+            .and_then(Value::as_str)
+            .zip(item_target)
+            .is_some_and(|(target_id, item_id)| target_id == item_id);
+        if target_match {
+            return true;
+        }
+        tombstone
+            .get("query")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|query| !query.is_empty())
+            .is_some_and(|query| item_text.contains(&query.to_ascii_lowercase()))
+    })
 }
 
 fn maybe_hindsight_client(config: &HindsightConfig) -> Option<HindsightClient> {
@@ -913,6 +1218,17 @@ fn apply_desktop_memory_policy(config: &mut MemoryRuntimeConfig, policy: Option<
     let Some(policy) = policy else {
         return;
     };
+    if let Some(enabled) = policy.get("hindsightEnabled").and_then(Value::as_bool) {
+        config.hindsight.enabled = enabled;
+    }
+    if let Some(base_url) = policy
+        .get("hindsightBaseUrl")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        config.hindsight.base_url = base_url.to_string();
+    }
     if policy.get("memoryDreamEnabled").and_then(Value::as_bool) == Some(false) {
         config.dreaming.enabled = false;
     }
@@ -1533,7 +1849,7 @@ mod tests {
     }
 
     #[test]
-    fn process_outbox_marks_forget_jobs_unsupported() {
+    fn process_outbox_records_forget_jobs_as_local_tombstones() {
         let dir = tempdir().unwrap();
         let mut config = MemoryRuntimeConfig::default();
         config.runtime_store.db_path = dir.path().join("memory.db").to_string_lossy().to_string();
@@ -1560,13 +1876,17 @@ mod tests {
         let result = runtime.process_outbox_once(10).unwrap();
 
         assert_eq!(result["processedCount"], 1);
-        assert_eq!(result["statusCounts"]["unsupported"], 1);
+        assert_eq!(result["statusCounts"]["completed_local"], 1);
         let jobs = runtime
             .store()
-            .list_outbox_jobs(Some("unsupported"), 10)
+            .list_outbox_jobs(Some("completed_local"), 10)
             .unwrap();
         assert_eq!(jobs.len(), 1);
-        assert_eq!(jobs[0]["lastError"], "hindsight_forget_not_supported");
+        assert_eq!(jobs[0]["lastError"], Value::Null);
+        let tombstones = runtime.store().list_memory_tombstones(10).unwrap();
+        assert_eq!(tombstones.len(), 1);
+        assert_eq!(tombstones[0]["query"], "old code name");
+        assert_eq!(tombstones[0]["reason"], "explicit_forget");
     }
 
     #[test]
@@ -1630,6 +1950,87 @@ mod tests {
         let status = runtime.status().unwrap();
         assert_eq!(status["status"], "ok");
         assert_eq!(status["implementation"], "hindsight-native");
+    }
+
+    #[test]
+    fn status_includes_worker_and_hindsight_lifecycle() {
+        let dir = tempdir().unwrap();
+        let mut config = MemoryRuntimeConfig::default();
+        config.runtime_store.db_path = dir.path().join("memory.db").to_string_lossy().to_string();
+        config.hindsight.enabled = true;
+        config.hindsight.base_url = "http://127.0.0.1:1".to_string();
+        let runtime = MemoryRuntime::with_config(dir.path(), config);
+
+        let status = runtime.status().unwrap();
+
+        assert_eq!(status["worker"]["enabled"], true);
+        assert_eq!(status["worker"]["lastRunStatus"], "never_run");
+        assert_eq!(status["hindsight"]["lifecycle"]["provider"], "hindsight");
+        assert_eq!(status["hindsight"]["lifecycle"]["mode"], "local");
+        assert_eq!(status["hindsight"]["lifecycle"]["status"], "degraded");
+    }
+
+    #[test]
+    fn desktop_policy_enables_managed_local_hindsight_lifecycle() {
+        let dir = tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("config")).unwrap();
+        std::fs::write(
+            dir.path().join("config").join("desktop-memory-policy.json"),
+            serde_json::to_vec_pretty(&json!({
+                "hindsightEnabled": true,
+                "hindsightBaseUrl": "http://127.0.0.1:1",
+                "hindsightMode": "local",
+                "hindsightManaged": true,
+                "hindsightLifecycleStatus": "starting"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let mut config = MemoryRuntimeConfig::default();
+        config.runtime_store.db_path = dir.path().join("memory.db").to_string_lossy().to_string();
+        let runtime = MemoryRuntime::with_config(dir.path(), config);
+
+        let status = runtime.status().unwrap();
+
+        assert_eq!(status["config"]["hindsight"]["enabled"], true);
+        assert_eq!(
+            status["config"]["hindsight"]["baseUrl"],
+            "http://127.0.0.1:1"
+        );
+        assert_eq!(status["worker"]["enabled"], true);
+        assert_eq!(status["hindsight"]["lifecycle"]["mode"], "local");
+        assert_eq!(status["hindsight"]["lifecycle"]["status"], "starting");
+        assert_eq!(
+            status["hindsight"]["lifecycle"]["reason"],
+            "health_check_pending"
+        );
+        assert_eq!(status["hindsight"]["lifecycle"]["managed"], true);
+    }
+
+    #[test]
+    fn process_outbox_updates_worker_observability() {
+        let dir = tempdir().unwrap();
+        let (base_url, _request_rx) = start_hindsight_retain_server();
+        let mut config = MemoryRuntimeConfig::default();
+        config.runtime_store.db_path = dir.path().join("memory.db").to_string_lossy().to_string();
+        config.hindsight.enabled = true;
+        config.hindsight.base_url = base_url;
+        let runtime = MemoryRuntime::with_config(dir.path(), config);
+        let messages = vec![
+            json!({"id": "m1", "role": "user", "content": "remember this lesson"}),
+            json!({"id": "m2", "role": "assistant", "content": "stored"}),
+        ];
+        runtime
+            .after_turn("session-process-worker", Some("key"), &messages, 0)
+            .unwrap();
+
+        let result = runtime.process_outbox_once(10).unwrap();
+
+        assert_eq!(result["processedCount"], 1);
+        let status = runtime.status().unwrap();
+        assert_eq!(status["worker"]["lastRunStatus"], "completed");
+        assert_eq!(status["worker"]["lastProcessedCount"], 1);
+        assert_eq!(status["worker"]["lastStatusCounts"]["completed"], 1);
     }
 
     fn start_hindsight_retain_server() -> (String, std::sync::mpsc::Receiver<String>) {

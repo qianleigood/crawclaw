@@ -1,5 +1,8 @@
 use super::*;
 
+const MEMORY_OUTBOX_WORKER_INTERVAL: Duration = Duration::from_secs(15);
+const MEMORY_OUTBOX_WORKER_LIMIT: usize = 10;
+
 pub(super) fn runtime_status_value(state: &GatewayState) -> Value {
     let native_registry = crawclaw_runtime::native_plugin_registry(&state.runtime_root);
     json!({
@@ -68,6 +71,44 @@ pub(super) fn hello_ok(state: &GatewayState) -> Value {
 
 pub(super) fn memory_runtime(state: &GatewayState) -> MemoryRuntime {
     MemoryRuntime::new(state.runtime_root.clone())
+}
+
+pub(super) fn spawn_memory_outbox_worker(state: GatewayState) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(MEMORY_OUTBOX_WORKER_INTERVAL);
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        loop {
+            interval.tick().await;
+            run_memory_outbox_worker_tick(&state).await;
+        }
+    });
+}
+
+async fn run_memory_outbox_worker_tick(state: &GatewayState) {
+    let runtime_root = state.runtime_root.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        let runtime = MemoryRuntime::new(runtime_root);
+        runtime.process_outbox_once(MEMORY_OUTBOX_WORKER_LIMIT)
+    })
+    .await;
+
+    match result {
+        Ok(Ok(value)) => {
+            let processed_count = value
+                .get("processedCount")
+                .and_then(Value::as_u64)
+                .unwrap_or(0);
+            if processed_count > 0 {
+                tracing::info!(
+                    processed_count,
+                    status_counts = ?value.get("statusCounts"),
+                    "memory_outbox_worker_tick"
+                );
+            }
+        }
+        Ok(Err(error)) => tracing::warn!(error = %error, "memory_outbox_worker_tick_failed"),
+        Err(error) => tracing::warn!(error = %error, "memory_outbox_worker_join_failed"),
+    }
 }
 
 pub(super) fn memory_prompt_journal_summary(

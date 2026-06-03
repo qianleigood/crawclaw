@@ -548,6 +548,8 @@ pub struct MemoryWorkspaceState {
     pub filter: String,
     pub query: String,
     pub dream: MemoryDreamState,
+    #[serde(default)]
+    pub runtime_status: serde_json::Value,
     pub items: Vec<MemoryItem>,
 }
 
@@ -571,6 +573,14 @@ pub struct MemoryItem {
     pub category: String,
     pub tags: Vec<String>,
     pub source: String,
+    pub provider: String,
+    pub layer: String,
+    pub bank_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub remote_id: Option<String>,
+    pub sync_status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sync_error: Option<String>,
     pub updated_at: String,
     pub archived: bool,
 }
