@@ -1,4 +1,6 @@
-use serde_json::Value;
+use std::collections::HashSet;
+
+use serde_json::{json, Value};
 
 use super::bank_resolver::{BankContext, BankResolverConfig};
 use super::config::HindsightConfig;
@@ -147,7 +149,7 @@ pub fn parallel_recall(
             &tag_refs,
             &config.tags_match,
         ) {
-            Ok(response) => all_items.extend(response.items),
+            Ok(response) => all_items.extend(tag_recall_items_with_layer(response.items, layer)),
             Err(e) => {
                 tracing::warn!(layer = layer, error = %e, "hindsight_recall_failed");
             }
@@ -159,10 +161,45 @@ pub fn parallel_recall(
             .partial_cmp(&a.score)
             .unwrap_or(std::cmp::Ordering::Equal)
     });
-    all_items.dedup_by(|a, b| a.id == b.id);
+    let all_items = dedupe_recall_items(all_items);
 
     let budget = config.max_tokens as usize;
     enforce_token_budget(all_items, budget)
+}
+
+fn tag_recall_items_with_layer(items: Vec<RecallItem>, layer: &str) -> Vec<RecallItem> {
+    items
+        .into_iter()
+        .map(|mut item| {
+            if let Some(metadata) = item.metadata.as_object_mut() {
+                metadata.insert("layer".to_string(), json!(layer));
+            } else {
+                item.metadata = json!({
+                    "layer": layer,
+                    "raw": item.metadata,
+                });
+            }
+            item
+        })
+        .collect()
+}
+
+fn dedupe_recall_items(items: Vec<RecallItem>) -> Vec<RecallItem> {
+    let mut seen = HashSet::new();
+    items
+        .into_iter()
+        .filter(|item| item.id.is_empty() || seen.insert(item.id.clone()))
+        .collect()
+}
+
+#[cfg(test)]
+fn tag_recall_items_with_layer_for_test(items: Vec<RecallItem>, layer: &str) -> Vec<RecallItem> {
+    tag_recall_items_with_layer(items, layer)
+}
+
+#[cfg(test)]
+fn dedupe_recall_items_for_test(items: Vec<RecallItem>) -> Vec<RecallItem> {
+    dedupe_recall_items(items)
 }
 
 fn enforce_token_budget(items: Vec<RecallItem>, max_tokens: usize) -> Vec<RecallItem> {
@@ -269,6 +306,62 @@ mod tests {
     fn expand_bilingual_terms_en_to_zh() {
         let result = expand_bilingual_terms("how to configure gateway");
         assert!(result.contains("网关"));
+    }
+
+    #[test]
+    fn tags_recall_items_with_query_layer() {
+        let items = vec![RecallItem {
+            id: "one".to_string(),
+            text: "remembered".to_string(),
+            memory_type: "observation".to_string(),
+            score: 1.0,
+            metadata: json!({ "source": "hindsight" }),
+        }];
+        let tagged = tag_recall_items_with_layer_for_test(items, "durable");
+        assert_eq!(tagged[0].metadata["layer"], "durable");
+        assert_eq!(tagged[0].metadata["source"], "hindsight");
+    }
+
+    #[test]
+    fn preserves_recall_items_without_ids_when_deduping() {
+        let items = vec![
+            RecallItem {
+                id: String::new(),
+                text: "first".to_string(),
+                memory_type: "observation".to_string(),
+                score: 1.0,
+                metadata: json!({}),
+            },
+            RecallItem {
+                id: String::new(),
+                text: "second".to_string(),
+                memory_type: "observation".to_string(),
+                score: 0.9,
+                metadata: json!({}),
+            },
+            RecallItem {
+                id: "same".to_string(),
+                text: "third".to_string(),
+                memory_type: "observation".to_string(),
+                score: 0.8,
+                metadata: json!({}),
+            },
+            RecallItem {
+                id: "same".to_string(),
+                text: "duplicate".to_string(),
+                memory_type: "observation".to_string(),
+                score: 0.7,
+                metadata: json!({}),
+            },
+        ];
+        let deduped = dedupe_recall_items_for_test(items);
+        assert_eq!(
+            deduped
+                .iter()
+                .map(|item| item.text.as_str())
+                .collect::<Vec<_>>(),
+            vec!["first", "second", "third"]
+        );
     }
 
     #[test]

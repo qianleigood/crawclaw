@@ -90,6 +90,21 @@ pub(super) fn agent_run_option_string(
         .map(str::to_string)
 }
 
+fn agent_run_option_string_array(
+    options: &BTreeMap<String, Value>,
+    key: &str,
+) -> Option<Vec<String>> {
+    let values = options.get(key)?.as_array()?;
+    let out = values
+        .iter()
+        .filter_map(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+    (!out.is_empty()).then_some(out)
+}
+
 fn runtime_now_millis() -> u128 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -132,6 +147,129 @@ fn tool_selection_from_profile(
         ToolPolicy::Default => tool_selection_from_enabled_tools(enabled_tools),
         ToolPolicy::Disabled => AgentRuntimeToolSelection::Disabled,
         ToolPolicy::AllowList(tools) => AgentRuntimeToolSelection::AllowList(tools.clone()),
+    }
+}
+
+fn filter_hindsight_tools_for_config(
+    tools: Vec<String>,
+    config: &crate::memory::HindsightConfig,
+) -> Vec<String> {
+    crate::memory::EffectiveMemoryPolicy::from_hindsight_config(config)
+        .apply_tool_allowlist(&tools)
+        .effective_tool_allowlist
+}
+
+fn apply_hindsight_tool_config_to_profile(runtime_root: &Path, profile: &mut AgentRunProfile) {
+    let ToolPolicy::AllowList(tools) = &mut profile.tool_policy else {
+        return;
+    };
+    if !tools.iter().any(|tool| is_hindsight_knowledge_tool(tool)) {
+        return;
+    }
+    let config = crate::memory::MemoryRuntimeConfig::load(runtime_root);
+    let filtered = filter_hindsight_tools_for_config(std::mem::take(tools), &config.hindsight);
+    *tools = filtered;
+}
+
+#[cfg(test)]
+pub(crate) fn filter_hindsight_tools_for_config_for_test(
+    tools: Vec<String>,
+    config: &crate::memory::HindsightConfig,
+) -> Vec<String> {
+    filter_hindsight_tools_for_config(tools, config)
+}
+
+fn subagent_definition_selector(request: &AgentRunRequest) -> Option<String> {
+    agent_run_option_string(
+        &request.options,
+        &["subagent_type", "subagentType", "agentType", "agent"],
+    )
+    .or_else(|| {
+        request
+            .inbound
+            .metadata
+            .get("agentType")
+            .or_else(|| request.inbound.metadata.get("subagent_type"))
+            .or_else(|| request.inbound.metadata.get("subagentType"))
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+    })
+    .or_else(|| {
+        let agent_id = request.agent_id.trim();
+        (!agent_id.is_empty() && agent_id != "subagent").then(|| agent_id.to_string())
+    })
+}
+
+fn apply_user_visible_subagent_definition(
+    profile: &mut AgentRunProfile,
+    request: &AgentRunRequest,
+) {
+    let Some(selector) = subagent_definition_selector(request) else {
+        return;
+    };
+    let Some(definition) = agent_definitions::find_user_visible_agent_definition(&selector) else {
+        return;
+    };
+    profile.agent_definition_id = Some(definition.id.to_string());
+    profile.agent_definition_label = Some(definition.label.to_string());
+    profile.mcp_servers = definition
+        .mcp_servers
+        .iter()
+        .map(|server| (*server).to_string())
+        .collect();
+    profile.permission_mode = Some(definition.permission_mode.to_string());
+    if definition.tool_allowlist.is_empty() {
+        profile.tool_policy = ToolPolicy::Default;
+    } else {
+        profile.tool_policy = ToolPolicy::AllowList(
+            definition
+                .tool_allowlist
+                .iter()
+                .map(|tool| (*tool).to_string())
+                .collect(),
+        );
+    }
+    profile.system_prompt = Some(definition.prompt.to_string());
+}
+
+fn runtime_permission_policy_for_run(
+    profile: &AgentRunProfile,
+    options: &BTreeMap<String, Value>,
+    inbound_metadata: &BTreeMap<String, Value>,
+) -> Option<AgentRuntimePermissionPolicy> {
+    let mode = agent_run_option_string(options, &["permissionMode", "permission_mode", "mode"])
+        .or_else(|| {
+            inbound_metadata
+                .get("permissionMode")
+                .or_else(|| inbound_metadata.get("permission_mode"))
+                .or_else(|| inbound_metadata.get("mode"))
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string)
+        })
+        .or_else(|| profile.permission_mode.clone())?;
+    permission_policy_for_mode(&mode)
+}
+
+fn permission_policy_for_mode(mode: &str) -> Option<AgentRuntimePermissionPolicy> {
+    let normalized = mode
+        .trim()
+        .chars()
+        .filter(|ch| *ch != '-' && *ch != '_' && !ch.is_whitespace())
+        .flat_map(char::to_lowercase)
+        .collect::<String>();
+    match normalized.as_str() {
+        "readonly" | "plan" => Some(AgentRuntimePermissionPolicy::read_only()),
+        "fullaccess" | "bypasspermissions" | "dontask" => {
+            Some(AgentRuntimePermissionPolicy::full_access())
+        }
+        "workspace" | "default" | "acceptedits" | "auto" => {
+            Some(AgentRuntimePermissionPolicy::workspace())
+        }
+        _ => None,
     }
 }
 
@@ -214,6 +352,10 @@ fn special_profile(
             max_turns: definition.max_turns,
         },
         result_policy,
+        agent_definition_id: None,
+        agent_definition_label: None,
+        mcp_servers: Vec::new(),
+        permission_mode: None,
         special_agent_id: Some(definition.id.to_string()),
         system_prompt: Some(special_agents::render_special_agent_prompt(definition)),
         warnings: Vec::new(),
@@ -253,6 +395,10 @@ fn resolve_agent_run_profile(
                 max_turns: 1,
             },
             result_policy: AgentResultPolicy::Reply,
+            agent_definition_id: None,
+            agent_definition_label: None,
+            mcp_servers: Vec::new(),
+            permission_mode: None,
             special_agent_id: None,
             system_prompt: None,
             warnings: Vec::new(),
@@ -276,6 +422,10 @@ fn resolve_agent_run_profile(
                 max_turns: 8,
             },
             result_policy: AgentResultPolicy::Reply,
+            agent_definition_id: None,
+            agent_definition_label: None,
+            mcp_servers: Vec::new(),
+            permission_mode: None,
             special_agent_id: None,
             system_prompt: None,
             warnings: Vec::new(),
@@ -305,6 +455,9 @@ fn resolve_agent_run_profile(
             profile.memory_after_turn,
         )?,
     };
+    if profile.kind == AgentRunProfileKind::Subagent {
+        apply_user_visible_subagent_definition(&mut resolved, request);
+    }
     if matches!(
         resolved.parent_context_policy,
         ParentContextPolicy::ForkMessagesOnly | ParentContextPolicy::FullEnvelope
@@ -327,6 +480,9 @@ fn resolve_agent_run_profile(
         agent_run_option_string(&request.options, &["systemPrompt", "system_prompt"])
     {
         resolved.system_prompt = Some(system_prompt);
+    }
+    if let Some(mcp_servers) = agent_run_option_string_array(&request.options, "mcpServers") {
+        resolved.mcp_servers = mcp_servers;
     }
     Ok(resolved)
 }
@@ -381,7 +537,8 @@ impl AgentRuntime {
         request: AgentRunRequest,
         tool_hook_policy: Option<AgentRuntimeToolHookPolicy>,
     ) -> Result<AgentRunResult, AgentRuntimeError> {
-        let profile = resolve_agent_run_profile(&request)?;
+        let mut profile = resolve_agent_run_profile(&request)?;
+        apply_hindsight_tool_config_to_profile(&self.runtime_root, &mut profile);
         let run_id = request.run_id;
         let agent_id = request.agent_id;
         let session_key = request.session_key;
@@ -389,6 +546,8 @@ impl AgentRuntime {
         let inbound_metadata = request.inbound.metadata;
         let model = request.model;
         let options = request.options;
+        let permission_policy =
+            runtime_permission_policy_for_run(&profile, &options, &inbound_metadata);
         if profile.kind == AgentRunKind::Btw {
             let question = agent_run_option_string(&options, &["btwQuestion"]).or_else(|| {
                 inbound_metadata
@@ -415,7 +574,7 @@ impl AgentRuntime {
                 AgentRuntimeSendOptions {
                     model_selection: Some(model.clone()),
                     tool_selection: tool_selection_from_profile(&profile, request.enabled_tools),
-                    permission_policy: None,
+                    permission_policy,
                     tool_hook_policy,
                     system_prompt: None,
                 },
@@ -733,6 +892,7 @@ impl AgentRuntime {
                 &format!("send-{}", runtime_now_millis()),
                 &user_text,
                 &assistant_text,
+                &loop_events,
             )
         });
         tracing::info!(
@@ -778,6 +938,10 @@ impl AgentRuntime {
                 max_turns: 1,
             },
             result_policy: AgentResultPolicy::Reply,
+            agent_definition_id: None,
+            agent_definition_label: None,
+            mcp_servers: Vec::new(),
+            permission_mode: None,
             special_agent_id: None,
             system_prompt: None,
             warnings: Vec::new(),
@@ -914,6 +1078,7 @@ impl AgentRuntime {
         run_id: &str,
         user_text: &str,
         assistant_text: &str,
+        loop_events: &[AgentLoopEvent],
     ) -> Result<Value, String> {
         let mut memory_config = crate::memory::MemoryRuntimeConfig::load(&self.runtime_root);
         memory_config.runtime_store.db_path = self
@@ -924,6 +1089,16 @@ impl AgentRuntime {
             .to_string();
         let runtime =
             crate::memory::MemoryRuntime::with_config(self.runtime_root.clone(), memory_config);
+        let tool_calls = memory_after_turn_tool_calls(loop_events);
+        let mut assistant_message = json!({
+            "id": format!("{run_id}:assistant"),
+            "role": "assistant",
+            "content": assistant_text,
+            "source": "agent-runtime"
+        });
+        if !tool_calls.is_empty() {
+            assistant_message["tool_calls"] = json!(tool_calls);
+        }
         let messages = vec![
             json!({
                 "id": format!("{run_id}:user"),
@@ -931,12 +1106,7 @@ impl AgentRuntime {
                 "content": user_text,
                 "source": "agent-runtime"
             }),
-            json!({
-                "id": format!("{run_id}:assistant"),
-                "role": "assistant",
-                "content": assistant_text,
-                "source": "agent-runtime"
-            }),
+            assistant_message,
         ];
         let result = runtime.after_turn(session_id, Some(session_key), &messages, 0);
         tracing::debug!(
@@ -948,6 +1118,22 @@ impl AgentRuntime {
         );
         result
     }
+}
+
+fn memory_after_turn_tool_calls(loop_events: &[AgentLoopEvent]) -> Vec<String> {
+    let mut tool_calls = Vec::new();
+    for loop_event in loop_events {
+        let AgentLoopEvent::ToolExecution {
+            event: ToolExecutionEvent::Started { tool_name, .. },
+        } = loop_event
+        else {
+            continue;
+        };
+        tool_calls.push(tool_name.clone());
+    }
+    tool_calls.sort();
+    tool_calls.dedup();
+    tool_calls
 }
 
 fn model_visible_turn_messages(
@@ -1060,8 +1246,8 @@ fn model_visible_turn_messages(
 }
 
 pub(super) fn is_configured_model_marker(value: &str) -> bool {
-    let trimmed = value.trim();
-    trimmed.is_empty() || trimmed == "configured"
+    let trimmed = value.trim().to_ascii_lowercase();
+    trimmed.is_empty() || matches!(trimmed.as_str(), "configured" | "inherit")
 }
 
 pub(super) fn apply_agent_model_selection(

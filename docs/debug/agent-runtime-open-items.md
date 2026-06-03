@@ -28,8 +28,9 @@ The following are already landed:
 - `/review` as the public two-stage review entrypoint
 - Context Archive foundation
 - Action Feed foundation
-- the background `durable_memory` path for durable auto-write
-- the shared special-agent substrate for `session_summary`, `durable_memory`, `dream`, and review
+- Hindsight-backed direct experience retention after completed turns
+- the shared special-agent substrate for `session-summary`, `durable-memory`,
+  `dream`, `experience`, and review
 
 The items below are the main gaps that still matter.
 
@@ -69,70 +70,41 @@ contracts.
 - [x] Add a shared runtime substrate for maintenance-style special agents.
   - Landed:
     - shared `SpecialAgentDefinition`
-    - dual execution modes: `spawned_session` and `runtime_fork`
+    - dual execution modes: `spawned_session` and `embedded_fork`
     - explicit transcript policy on special-agent definitions
     - explicit tool policies resolved from the shared special-agent registry
     - runtime deny for special-agent tool enforcement
-    - explicit provider-level cache policy on special-agent definitions
-    - parent-run `parentForkContext` capture with no disk-backed parent prompt
-      fallback artifact
+    - explicit parent context policy on special-agent definitions
+    - explicit memory input contracts for memory-maintenance agents
+    - explicit Hindsight layer policy for memory-maintenance tools
     - shared spawn / embedded-run / completion capture runtime
-    - shared event / history / usage hooks in the runtime runner
-    - `session_summary` migrated to `runtime_fork`
-    - `durable_memory` migrated as a pilot on the shared substrate
+    - `session-summary` migrated to `embedded_fork`
+    - `durable-memory` migrated as a narrow-input maintenance agent
     - `dream` migrated on the shared substrate
-    - runtime memory special runs now record usage/history/action observations into Context Archive
-    - runtime memory special runs now surface usage, including cache read/write, in Action Feed completion details
+    - `experience` migrated on the shared substrate
     - review migrated
 - [x] Keep future task-specific special agents on case-by-case substrate opt-in.
   - Runtime maintenance forks are the default only for fire-and-forget background agents.
   - User-invoked or session-bearing task agents stay `spawned_session` unless they need parent-run cache inheritance more than child-session state.
-- [x] Add explicit cache-write suppression (`skipCacheWrite` equivalent) to the embedded-fork substrate.
-  - Runtime memory special agents now carry explicit cache-write suppression through the shared substrate.
-  - The runtime maps that to provider-supported "avoid creating new cache entries" controls while still preserving prompt-cache reads when the provider can do so.
-- [x] Replace persisted parent-run prompt artifacts with a fuller parent fork prompt envelope.
+- [x] Replace ad hoc parent-context inheritance with definition-level policy.
   - Landed:
-    - tool prompt payload and tool-inventory digest
-    - thinking config
-    - fork-context messages
-    - `session_summary` now receives one lifecycle `parentForkContext` that
-      bundles the retained parent prompt envelope with the current full
-      model-visible message context
-    - non-summary runtime forks no longer read parent prompt state from a
-      persisted `runId` artifact
-    - durable extraction and dream keep short retention plus cache-write
-      suppression, while session-summary uses the parent fork context only for
-      prompt/history handoff and does not reuse parent prompt-cache keys
     - runtime forks now declare explicit `parentContextPolicy`
       (`none`, `fork_messages_only`, `full_envelope`) instead of relying on
       ad hoc call-site omission or `definitionId` checks
-    - dream does not consume session-summary files or compact-summary state;
-      it consolidates durable memory from the manifest, structured signals,
-      and narrow transcript refs
-    - dream now runs as an independent embedded maintenance special agent; stop
-      lifecycle only schedules the scope, and dream receives no parent prompt
-      envelope, parent messages, parent run id, provider/model inheritance,
-      child-session state, subagent announcement, default main-agent prompt,
-      skills, bootstrap context, workspace reminders, or main memory runtime
-      recall/lifecycle because its contract is now `parentContextPolicy: "none"`
-    - dream now declares `isolatedContext: true`, and the runtime runner uses
-      that definition-level contract to omit default prompt extras instead of
-      relying on a spawn-source allowlist
-    - explicit CLI/gateway summary refresh now reconstructs a bounded manual
-      parent fork context from persisted model-visible rows instead of calling
-      the scheduler without fork context
+    - `durable-memory`, `dream`, and `experience` declare
+      `parentContextPolicy: "none"`
+    - `durable-memory` uses a structured `contextPackage` instead of inheriting
+      the parent transcript
+    - `session-summary` remains the only current memory special agent allowed
+      a full parent handoff
     - session-summary compaction now persists the rendered compact view and
       prompt assembly prepends it as a compact summary message before the
       preserved tail
     - stale `summaryInProgress` leases are cleared by compaction
-    - cache ownership is now split cleanly into:
-      - `CacheEnvelope` identity + explicit parent fork handoff
-      - direct provider cache hints
   - Remaining gap:
     - CrawClaw still does not replay the parent query loop as a live
-      in-process clone. The explicit parent fork context is the supported
-      handoff for session-summary history, while request building remains
-      adapter-shaped and cache controls stay as direct special-agent hints.
+      in-process clone. Structured packages and explicit parent-context policy
+      are the supported handoff mechanisms.
 - [x] Introduce a structured `QueryContext` owner for prompt assembly.
   - Landed:
     - base system prompt now emits structured sections instead of only one large string
@@ -248,31 +220,34 @@ The backend architecture is ahead of the current operator UI.
 
 Memory is aligned with the current simplified model, but follow-up work remains.
 
-- [x] Upgrade the main durable auto-write path to a background `durable_memory` agent.
-  - Landed:
+- [ ] Add an automatic durable-memory extraction scheduler if product wants
+      durable auto-write.
+  - Current landed boundary:
+    - `durable-memory` special-agent definition
+    - narrow `contextPackage` input
+    - `parentContextPolicy: "none"`
+    - durable-only Hindsight layer enforcement
+  - Future scheduler requirements:
     - cursor-based incremental window
     - explicit durable write/delete wins
-    - experience knowledge writes no longer suppress durable extraction
+    - experience writes do not suppress durable extraction
     - bidirectional `feedback` guidance
-    - task-backed background special agent
-    - Action Feed / Context Archive recording
+    - inspection/replay evidence for automatic extraction runs
   - Design and background:
     - [`Durable Memory Agent Design`](/debug/memory-extractor-agent)
     - [`Durable Memory Refactor Status`](/debug/claude-memory-refactor)
 - [x] Add agent-scoped routing guidance for experience knowledge writes, matching the
       durable-memory guidance quality level.
-- [x] Move maintenance-agent isolation onto `SpecialAgentDefinition`.
-  - `durable-memory`, `session-summary`, `dream`, and `experience` now declare
-    `isolatedContext: true` directly.
-  - the runtime runner resolves isolation from the registered definition
-    instead of a hardcoded spawn-source set.
+- [x] Move maintenance-agent context isolation onto `SpecialAgentDefinition`.
+  - `durable-memory`, `dream`, and `experience` now declare
+    `parentContextPolicy: "none"`.
+  - `session-summary` declares `parentContextPolicy: "full_envelope"` because
+    it is explicitly a session-continuity agent.
 - [ ] Revisit candidate extraction as a future suggestion layer only.
   - It should not become a hidden writeback path again.
 - [x] Keep dreaming as a separate durable-memory consolidation pipeline.
-  - Dream uses an isolated runtime-fork special-agent run with host-provided
-    manifest, structured signals, and narrow transcript refs.
-  - It does not spawn a child session, emit a subagent completion message, or
-    inherit parent prompt/context state.
+  - Dream uses an embedded-fork special-agent run with no parent context.
+  - It does not inherit parent prompt or transcript state.
   - Hindsight/experience writes stay on the explicit experience path; Dream
     does not run main memory runtime recall and only consolidates durable
     profile/context memory.

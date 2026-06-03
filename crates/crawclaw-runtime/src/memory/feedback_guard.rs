@@ -6,6 +6,7 @@ const MEMORY_TAGS: &[&str] = &[
     "experience_recall",
     "resource_recall",
     "mental_model_recall",
+    "mental_models_recall",
 ];
 
 pub fn strip_memory_tags(message: &Value) -> Value {
@@ -16,6 +17,20 @@ pub fn strip_memory_tags(message: &Value) -> Value {
             result = strip_tag(&result, tag);
         }
         cleaned["content"] = Value::String(result);
+    } else if let Some(parts) = cleaned.get_mut("content").and_then(Value::as_array_mut) {
+        for part in parts {
+            if part.get("type").and_then(Value::as_str) != Some("text") {
+                continue;
+            }
+            let Some(text) = part.get("text").and_then(Value::as_str) else {
+                continue;
+            };
+            let mut result = text.to_string();
+            for tag in MEMORY_TAGS {
+                result = strip_tag(&result, tag);
+            }
+            part["text"] = Value::String(result);
+        }
     }
     cleaned
 }
@@ -72,6 +87,30 @@ mod tests {
         let msg = json!({"content": "<durable_recall>old</durable_recall> real <experience_recall>exp</experience_recall>"});
         let result = strip_memory_tags(&msg);
         assert_eq!(result["content"].as_str().unwrap(), " real ");
+    }
+
+    #[test]
+    fn strips_plural_mental_models_recall_tag() {
+        let msg =
+            json!({"content": "Before <mental_models_recall>model</mental_models_recall> After"});
+        let result = strip_memory_tags(&msg);
+        assert_eq!(result["content"].as_str().unwrap(), "Before  After");
+    }
+
+    #[test]
+    fn strips_memory_tags_from_array_text_parts() {
+        let msg = json!({
+            "content": [
+                { "type": "text", "text": "Before <durable_recall>old</durable_recall> After" },
+                { "type": "image", "url": "image://one" }
+            ]
+        });
+        let result = strip_memory_tags(&msg);
+        assert_eq!(
+            result["content"][0]["text"].as_str().unwrap(),
+            "Before  After"
+        );
+        assert_eq!(result["content"][1]["type"], "image");
     }
 
     #[test]

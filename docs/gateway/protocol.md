@@ -109,6 +109,27 @@ Gateway → Client:
 
 Side-effecting methods require **idempotency keys** (see schema).
 
+## Memory methods
+
+Memory runtime methods are part of the Gateway control plane:
+
+- `memory.status` returns the effective memory policy, Hindsight status, outbox
+  summary, and recent memory activity.
+- `memory.afterTurn` stores model-visible turn deltas and enqueues memory
+  writeback work. It accepts `memoryDirective`, `memoryIntent`,
+  `memoryAction`, or `doNotRemember` for explicit `remember`, `forget`, and
+  `do-not-remember` behavior.
+- `memory.outbox.list` lists queued memory jobs, optionally filtered by
+  `status`.
+- `memory.outbox.process` processes pending outbox jobs once and returns status
+  counts. This is the worker entrypoint for asynchronous Hindsight retain.
+- `memory.activity.list` lists recent memory activity globally or for a
+  `sessionId`.
+
+`forget` jobs are observable but currently complete as `unsupported` until the
+Hindsight client has a delete operation. CrawClaw does not report a remote
+forget as successful when no backend delete happened.
+
 ## Runtime events
 
 Agent run events are emitted by the Rust runtime and forwarded by Gateway as
@@ -353,8 +374,11 @@ Method scope is only the first gate. Some slash commands reached through
     missing-id, not-found, not-running, and description text, and Bash/PowerShell expose Claude Code-style
     descriptions and parameter descriptions, with Bash guidance for dedicated file/search tools,
     background runs, command chaining, git safety, and sleep avoidance, reject Claude Code-style foreground long `sleep`/`Start-Sleep` commands, use Claude Code's strict top-level input shapes, and accept Claude Code semantic booleans for `dangerouslyDisableSandbox`, while
-    `EnterWorktree`/`ExitWorktree` expose Claude Code-style descriptions, strict top-level input shapes, and parameter descriptions and return Claude-style visible worktree status text and
-    `ExitWorktree` refuses removal when it cannot prove the worktree state without explicit
+    `EnterWorktree`/`ExitWorktree` expose Claude Code-style descriptions, strict top-level input shapes, and parameter descriptions and return Claude-style visible worktree status text.
+    After `EnterWorktree`, workspace-facing tools (`read`, `write`, `edit`,
+    `apply_patch`, Bash/PowerShell, `grep`, `find`, `ls`, LSP, and
+    `NotebookEdit`) resolve paths against the active worktree while runtime
+    state tools continue using the runtime root. `ExitWorktree` refuses removal when it cannot prove the worktree state without explicit
     discard confirmation. Bash/PowerShell `timeout` values use milliseconds, validate Claude Code's
     600000 ms maximum, with Bash `run_in_background` accepted as a background-run alias. The `Bash`
     alias removes redundant `cd <cwd> &&` prefixes and unescapes `find -exec` terminators like
@@ -382,13 +406,17 @@ Method scope is only the first gate. Some slash commands reached through
   - `Agent` and legacy `Task` are accepted as Claude Code-compatible aliases for
     `subagents_spawn`. They use Claude Code-style strict top-level input shapes with
     `prompt`, `description`, `subagent_type`, `model`, `run_in_background`, `name`, `team_name`,
-    and `mode`, then run through the same CrawClaw sub-agent session runtime. `name` becomes
+    `mode`, `permissionMode`, and `mcpServers`, then run through the same CrawClaw sub-agent session runtime. `name` becomes
     the spawned session title for `SendMessage` lookup, `team_name` targets an existing runtime
     team, and `mode` is forwarded with the run options. The aliases return Claude Code-style
     async/completed result text, including the background-agent instructions and completed-agent
-    `agentId` plus usage trailer. When `subagent_type` matches a configured, project
-    markdown, desktop, or SDK-initialized agent, the run inherits that agent's prompt, model,
-    thinking level, and enabled tools unless the request supplies explicit overrides. Project
+    `agentId` plus usage trailer. The Rust runtime has built-in user-visible task definitions for
+    `general-purpose`, `Explore`, `Plan`, and `verification`; `Explore`, `Plan`, and
+    `verification` apply read-only permission mode plus read/search/MCP-resource tool allowlists,
+    and `verification` requires a final `VERDICT` line. `model: "inherit"` resolves to the
+    configured provider model. When `subagent_type` matches a configured, project
+    markdown, desktop, SDK-initialized, or built-in agent, the run inherits that agent's prompt, model,
+    permission mode, MCP server list, thinking level, and enabled tools unless the request supplies explicit overrides. Project
     markdown agents are read from `.claude/agents/*.md` and `.agents/*.md` frontmatter using
     Claude Code-style `name`, `description`, `tools`, `model`, `permissionMode`, and `mcpServers`
     fields, with the Markdown body used as the agent prompt. CrawClaw checks the runtime root plus
@@ -424,7 +452,9 @@ Method scope is only the first gate. Some slash commands reached through
     cancellation path and otherwise returns `cancelled=false`.
   - `seed_read_state` accepts Claude SDK file-read seeds, resolves them inside the runtime root,
     records an LF-normalized snapshot only when the on-disk mtime has not advanced, and otherwise
-    returns the Claude-compatible empty success payload.
+    returns the Claude-compatible empty success payload. `NotebookEdit` uses the same native read
+    state boundary as file edits: the notebook must be read before editing, stale mtimes or changed
+    content are rejected, and successful writes refresh the read state for follow-up cell edits.
   - `rewind_files` uses the in-memory file checkpoint captured before the matching agent turn.
     Checkpoints cover Git-visible regular files in the runtime worktree, are keyed by
     `user_message_id`, and are bounded to avoid snapshotting large worktrees. `dry_run` reports

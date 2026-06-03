@@ -1,204 +1,141 @@
 ---
 title: "Special-Agent Substrate"
-summary: "Shared runtime substrate for CrawClaw background maintenance agents"
+summary: "Shared runtime substrate for CrawClaw special agents"
 read_when:
   - You are changing special-agent spawning or transcript policy
-  - You are auditing background maintenance agent runtime behavior
+  - You are auditing special-agent runtime behavior
 ---
 
 # Special-Agent Substrate
 
-CrawClaw now has a shared special-agent substrate for background maintenance agents that run on top of the run-loop lifecycle spine.
+CrawClaw uses a shared Rust special-agent substrate for built-in agents that
+need stricter runtime policy than ordinary user-selected task agents.
 
-## Scope
+The substrate is intentionally small. It owns the execution contract, transcript
+handoff rules, tool allowlists, and memory-layer policy. Each special agent still
+owns its prompt, result semantics, and persistence behavior.
 
-This substrate intentionally unifies only the runtime layer:
+## Runtime Boundary
 
-- spawn metadata
-- `spawnSource`
-- explicit transcript policy
-- explicit tool policy / allowlist enforcement
-- explicit cache policy
-- default `maxTurns`
-- default `runTimeoutSeconds`
-- transcript/session spawn context wiring
-- `agent.wait`
-- completion reply capture
-- shared lifecycle subscriber wiring
-- shared agent-event / history / usage hooks
+The canonical registry lives in `crates/crawclaw-runtime/src/special_agents.rs`.
 
-It does **not** try to unify:
+Each `SpecialAgentDefinition` declares:
 
-- prompts
-- tool surfaces
-- result schemas
-- persistence behavior
-- lifecycle gate logic
+- `id` and `spawnSource`
+- `executionMode`: `spawned_session` or `embedded_fork`
+- transcript policy
+- parent-context policy
+- tool allowlist
+- optional memory-maintenance guard
+- timeout and max-turn limits
+- input and output contracts
+- persistence handler
+- memory-layer policy
 
-That follows the Claude Code pattern: shared forked-agent runtime, specialized agents on top.
+The runtime uses those declarations to build a profile-specific native tool
+registry. Memory-maintenance agents do not just rely on prompt wording; their
+Hindsight tools are constrained to the layer declared by their special-agent
+definition.
 
-## Shared Runtime
+## Current Agents
 
-The shared runtime lives in:
+| Agent             | Mode              | Parent context       | Input contract       | Memory layer         |
+| ----------------- | ----------------- | -------------------- | -------------------- | -------------------- |
+| `session-summary` | `embedded_fork`   | `full_envelope`      | `session_summary`    | none                 |
+| `durable-memory`  | `embedded_fork`   | `none`               | `memory_delta`       | `durable` only       |
+| `experience`      | `embedded_fork`   | `none`               | `manual_maintenance` | `experience` only    |
+| `dream`           | `embedded_fork`   | `none`               | `manual_maintenance` | `mental-models` only |
+| `review-spec`     | `spawned_session` | `fork_messages_only` | none                 | none                 |
+| `review-quality`  | `spawned_session` | `fork_messages_only` | none                 | none                 |
 
-- `crates/crawclaw-runtime/src/lib.rs`
+User-visible task agents, such as `general-purpose`, `Explore`, `Plan`, and
+`verification`, live in the Rust task-agent definition layer. They are not
+special agents and do not receive memory-maintenance-only tools.
 
-Core concepts:
+## Parent Context Rules
 
-- `SpecialAgentDefinition`
-  Declares the stable runtime contract for one special agent, including
-  `executionMode: "spawned_session" | "embedded_fork"`.
-- Rust special-agent registry
-  Resolves registered special-agent definitions and tool policies by `spawnSource`.
-- Rust special-agent runtime
-  Dispatches to the selected special-agent definition, then handles completion
-  capture, transcript-policy enforcement, and optional event/history/usage hooks.
-- Rust embedded-fork runner
-  Hosts the embedded-fork substrate path inside the native agent runtime.
-- `createRunLoopLifecycleRegistration(...)`
-  Handles shared lifecycle phase registration for special-agent subscribers.
-- `createSharedLifecycleSubscriberAccessor(...)`
-  Handles shared singleton-style subscriber reuse and reset behavior.
+Parent context is an explicit definition-level decision:
 
-## Landed Agents
+- `none` means the run must not inherit the parent transcript or prompt envelope.
+- `fork_messages_only` allows only the selected fork-message handoff.
+- `full_envelope` allows a full parent handoff where the agent is designed to
+  summarize session continuity.
 
-The shared substrate is now used by:
+This matters most for memory agents. `durable-memory`, `experience`, and
+`dream` run with `parentContextPolicy: "none"` so they cannot accidentally turn
+parent context into durable or cross-session memory. `durable-memory` receives a
+structured `contextPackage` instead of a parent transcript.
 
-- session summary
-  - Rust memory runtime session-summary job
-  - definition id: `session-summary`
-- durable memory agent
-  - Rust memory runtime durable extraction job
-  - definition id: `durable-memory`
-- dream
-  - Rust memory runtime dream job
-  - definition id: `dream`
-- review-spec
-  - Rust native special-agent registry
-  - definition id: `review-spec`
-- review-quality
-  - Rust native special-agent registry
-  - definition id: `review-quality`
+The gateway also gives memory-maintenance special agents a fresh run-scoped
+session key in the form `special:{kind}:{runId}`. That keeps their transcripts
+separate from the parent session even when a caller supplied `parentSessionKey`
+for correlation.
 
-These pilots keep their existing:
+## Tool And Layer Policy
 
-- prompt builders
-- lifecycle subscribers
-- scheduler / worker-manager logic
-- result parsing
-- action-feed titles and summaries
+Special-agent tool policy has two parts:
 
-Only the runtime substrate is shared.
+- the definition-level allowlist decides which native tools are visible
+- the memory-layer policy decides which Hindsight layer those tools may touch
 
-## Why This Shape
+For example:
 
-The goal is to unify the cross-cutting mechanics without flattening specialized agent behavior into one contract.
+- `durable-memory` can use `knowledge_recall` and `knowledge_ingest`, but only
+  against the `durable` layer.
+- `experience` can write only `experience` notes.
+- `dream` can work only with `mental-models`.
+- review agents do not receive Hindsight maintenance tools.
 
-That means:
+This is the key difference from a prompt-only restriction. Even if a model asks
+for another layer, the special-agent tool wrapper resolves or rejects the layer
+according to the active special-agent profile.
 
-- lifecycle spine stays the single owner of phase timing
-- special agents share one runtime substrate
-- each agent still owns its own mission, tools, and outputs
+## Memory Runtime Relationship
 
-That gives the shared runtime coverage across:
+Hindsight is the memory substrate:
 
-- session-summary maintenance
-- durable memory agent
-- dream / auto-dream
-- review
+- `durable` stores stable user/project preference and collaboration context.
+- `experience` stores reusable operational lessons.
+- `resource` stores external or reference material.
+- `mental-models` stores distilled patterns produced by dream-style
+  consolidation.
 
-The prompts, tool contracts, and result schemas remain specialized.
+Normal `memory.afterTurn` writes runtime-store rows and enqueues eligible
+completed turns for Hindsight `experience` retain through the memory outbox. It
+is not the automatic durable-memory extraction path.
 
-## Claude Alignment
+`session-summary` is the compaction/session-continuity agent. It is the only
+current memory special agent that is allowed a full parent handoff, because its
+job is explicitly to summarize session state.
 
-This is now close to Claude Code at the substrate-design level:
+## Claude Code Alignment
 
-- shared lifecycle spine
-- shared special-agent runtime
-- explicit transcript isolation for maintenance agents
-- explicit tool policy per special agent, with runtime deny instead of prompt-time tool inventory shrinking
-- explicit provider-level cache policy per special agent
-- shared event/history/usage hooks in the runner
+CrawClaw and Claude Code now share the same broad shape:
 
-CrawClaw now carries only the cache pieces used by the current memory special
-agents:
+- special agents have explicit runtime definitions
+- maintenance agents are isolated from ordinary user task agents
+- parent context is a policy decision instead of an implicit inheritance
+- tool access is scoped per agent
+- memory maintenance is separated from main-agent response generation
 
-- memory-oriented special agents declare cache policy in `SpecialAgentDefinition`
-- the shared runner translates those policies into provider request params
-  such as short retention and cache-write suppression
-- parent runs build a lifecycle `parentForkContext` from the final parent
-  prompt assembly, so runtime forks can receive one captured handoff object
-  containing model-visible messages plus cache/debug metadata
-- runtime forks now declare a definition-level `parentContextPolicy`
-  (`none`, `fork_messages_only`, or `full_envelope`) so the runtime decides
-  whether a captured parent prompt envelope may be attached at all
-- the parent fork context separates:
-  - a canonical `CacheEnvelope` for the model-visible shared prefix
-  - debug context fields for run/session metadata that should not affect cache identity
-- the canonical `CacheEnvelope` now only covers:
-  - `systemPromptText`
-  - tool prompt payload + tool-inventory digest
-  - thinking config
-  - fork-context messages
-- provider-specific request patching now only consumes direct cache hints; it no
-  longer derives a parent prompt-cache key from the parent envelope
-- the substrate now supports an explicit `embedded_fork` execution mode, so special agents no longer need to be modeled only as child sessions
-- session-summary special runs consume the lifecycle `parentForkContext` as the
-  automatic parent handoff
-- that parent fork context carries the full current model-visible
-  fork-context messages, matching Claude Code's session-memory update shape
-  without a recent-message excerpt fallback
-- session-summary declares `parentContextPolicy: "full_envelope"` for the
-  handoff object without reusing the parent system prompt, the main-agent
-  prompt extras, or the main memory-runtime recall path
-- lifecycle updates with missing fork context are skipped, while explicit
-  CLI/gateway refresh builds a bounded manual parent fork context from persisted
-  model-visible rows
-- when that parent fork context is available, the summary-specific instructions
-  stay in the task prompt instead of being appended to or merged into the
-  parent system prompt
-- durable extraction does not attach the parent run's captured prompt envelope;
-  its `parentContextPolicy: "fork_messages_only"` gives it only the
-  fork-context messages required for the recent-message extraction window
-- embedded runs do not infer fork-context messages from a full parent prompt
-  envelope; the special-agent transport selects that handoff from the declared
-  `parentContextPolicy`
-- dream is an independent embedded maintenance special agent. It does not
-  receive a parent fork context because its definition now declares
-  `parentContextPolicy: "none"`, does not spawn a child session, and consumes
-  only the host-provided durable manifest, structured signals, and transcript
-  refs.
-- dream and experience use the embedded maintenance runner with
-  `parentContextPolicy: "none"`, so those runs stay on their narrow
-  maintenance prompt surfaces instead of inheriting parent context.
-- durable extraction and dream special runs still keep cache-write suppression
-  and short retention
-- session-summary keeps short retention but does not reuse a parent
-  prompt-cache key
-- session-summary-backed compaction now stores the rendered compact view in
-  compaction state, and prompt assembly prepends it as a compact summary message
-  before the preserved tail
-- stale `summaryInProgress` leases are cleared during compaction rather than
-  blocking on a dead summary run
-- runtime memory special runs now record shared agent-event / history / usage observations into Context Archive without depending on child-session transcript state
-- the same runtime memory runs now surface usage, including `cacheRead` / `cacheWrite`, back into their Action Feed completion details
-- runtime memory special agents now declare explicit cache-write suppression on the substrate, which maps to provider-supported "do not create new cache entries" controls while preserving prompt-cache reads when possible
-- review stage agents are intentionally explicit about staying on `spawned_session`; they use the shared substrate contract, but they are not treated as fire-and-forget maintenance forks
+The important differences are intentional:
 
-At the current CrawClaw runtime layer, this closes most of the substrate-level design gap that was still open after the first embedded-fork rollout while also simplifying ownership:
+- CrawClaw uses Hindsight layers instead of file-native memory directories.
+- CrawClaw constrains memory tools by declared layer policy.
+- CrawClaw passes structured packages to memory agents when narrow input is
+  required, instead of replaying the parent query loop as a cloned process.
+- CrawClaw keeps session summaries, experience retention, durable memory, and
+  dream consolidation as separate maintenance surfaces.
 
-- the Rust memory runtime owns canonical cache identity and parent fork context
-  construction
-- Rust special-agent definitions own direct special-agent cache hints
-- provider request payload translation is owned by the Rust runtime/provider
-  layer
+## Design Rules
 
-The main remaining difference from Claude Code is that CrawClaw still does not replay the parent query loop as a live in-process clone. The explicit parent fork context is the supported handoff for session-summary history, while request building remains adapter-shaped and cache controls stay as direct special-agent hints.
+When adding a special agent:
 
-Future task-specific special agents should continue to opt in case-by-case:
-
-- maintenance-style, fire-and-forget background agents should prefer
-  `embedded_fork`; independence should come from an explicit
-  `parentContextPolicy` choice plus isolated context behavior, not from
-  implicitly omitting parent fork context at the call site
-- user-invoked or session-bearing task agents should remain `spawned_session` unless they explicitly need a parent fork context more than child-session state
+- Use a normal task-agent definition unless the agent needs special runtime
+  policy.
+- Declare the narrowest parent-context policy that can work.
+- For memory-maintenance agents, declare an explicit input contract and memory
+  layer policy.
+- Keep provider/model/cache behavior out of the special-agent contract unless
+  the runtime actually enforces it.
+- Add tests for the policy boundary, not just prompt text.

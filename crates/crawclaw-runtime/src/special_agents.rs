@@ -38,6 +38,23 @@ pub enum SpecialAgentOutputContract {
 
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
+pub enum SpecialAgentMemoryInputContract {
+    None,
+    MemoryDelta,
+    ManualMaintenance,
+    SessionSummary,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SpecialAgentMemoryLayerPolicy {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_layer: Option<&'static str>,
+    pub allowed_layers: &'static [&'static str],
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum SpecialAgentPersistenceHandler {
     ChildTranscript,
     SessionSummary,
@@ -63,6 +80,8 @@ pub struct SpecialAgentDefinition {
     pub prompt_id: &'static str,
     pub output_contract: SpecialAgentOutputContract,
     pub persistence_handler: SpecialAgentPersistenceHandler,
+    pub input_contract: SpecialAgentMemoryInputContract,
+    pub memory_layer_policy: SpecialAgentMemoryLayerPolicy,
 }
 
 pub const REVIEW_AGENT_TOOL_ALLOWLIST: &[&str] = &[
@@ -77,13 +96,8 @@ pub const REVIEW_AGENT_TOOL_ALLOWLIST: &[&str] = &[
     "sessions_history",
 ];
 
-pub const KNOWLEDGE_MAINTENANCE_TOOL_ALLOWLIST: &[&str] = &[
-    "knowledge_recall",
-    "knowledge_ingest",
-    "knowledge_model_create",
-    "knowledge_model_list",
-    "sessions_history",
-];
+pub const KNOWLEDGE_MAINTENANCE_TOOL_ALLOWLIST: &[&str] =
+    &["knowledge_recall", "knowledge_ingest", "sessions_history"];
 
 pub const DREAM_TOOL_ALLOWLIST: &[&str] = &[
     "knowledge_recall",
@@ -101,11 +115,7 @@ pub const SESSION_SUMMARY_TOOL_ALLOWLIST: &[&str] = &[
     "sessions_history",
 ];
 
-pub const EXPERIENCE_TOOL_ALLOWLIST: &[&str] = &[
-    "knowledge_ingest",
-    "knowledge_model_create",
-    "sessions_history",
-];
+pub const EXPERIENCE_TOOL_ALLOWLIST: &[&str] = &["knowledge_ingest", "sessions_history"];
 
 const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
     SpecialAgentDefinition {
@@ -122,6 +132,11 @@ const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
         prompt_id: "review-spec",
         output_contract: SpecialAgentOutputContract::Findings,
         persistence_handler: SpecialAgentPersistenceHandler::ChildTranscript,
+        input_contract: SpecialAgentMemoryInputContract::None,
+        memory_layer_policy: SpecialAgentMemoryLayerPolicy {
+            default_layer: None,
+            allowed_layers: &[],
+        },
     },
     SpecialAgentDefinition {
         id: "review-quality",
@@ -137,6 +152,11 @@ const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
         prompt_id: "review-quality",
         output_contract: SpecialAgentOutputContract::Findings,
         persistence_handler: SpecialAgentPersistenceHandler::ChildTranscript,
+        input_contract: SpecialAgentMemoryInputContract::None,
+        memory_layer_policy: SpecialAgentMemoryLayerPolicy {
+            default_layer: None,
+            allowed_layers: &[],
+        },
     },
     SpecialAgentDefinition {
         id: "durable-memory",
@@ -144,7 +164,7 @@ const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
         spawn_source: "durable-memory",
         execution_mode: SpecialAgentExecutionMode::EmbeddedFork,
         transcript_policy: SpecialAgentTranscriptPolicy::ThreadBound,
-        parent_context_policy: SpecialAgentParentContextPolicy::ForkMessagesOnly,
+        parent_context_policy: SpecialAgentParentContextPolicy::None,
         tool_allowlist: KNOWLEDGE_MAINTENANCE_TOOL_ALLOWLIST,
         guard: Some(SpecialAgentToolGuard::MemoryMaintenance),
         timeout_seconds: 90,
@@ -152,6 +172,11 @@ const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
         prompt_id: "durable-memory",
         output_contract: SpecialAgentOutputContract::MemoryReport,
         persistence_handler: SpecialAgentPersistenceHandler::HindsightMemory,
+        input_contract: SpecialAgentMemoryInputContract::MemoryDelta,
+        memory_layer_policy: SpecialAgentMemoryLayerPolicy {
+            default_layer: Some("durable"),
+            allowed_layers: &["durable"],
+        },
     },
     SpecialAgentDefinition {
         id: "dream",
@@ -167,6 +192,11 @@ const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
         prompt_id: "dream",
         output_contract: SpecialAgentOutputContract::MemoryReport,
         persistence_handler: SpecialAgentPersistenceHandler::HindsightDream,
+        input_contract: SpecialAgentMemoryInputContract::ManualMaintenance,
+        memory_layer_policy: SpecialAgentMemoryLayerPolicy {
+            default_layer: Some("mental-models"),
+            allowed_layers: &["mental-models"],
+        },
     },
     SpecialAgentDefinition {
         id: "session-summary",
@@ -182,6 +212,11 @@ const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
         prompt_id: "session-summary",
         output_contract: SpecialAgentOutputContract::SessionSummary,
         persistence_handler: SpecialAgentPersistenceHandler::SessionSummary,
+        input_contract: SpecialAgentMemoryInputContract::SessionSummary,
+        memory_layer_policy: SpecialAgentMemoryLayerPolicy {
+            default_layer: None,
+            allowed_layers: &[],
+        },
     },
     SpecialAgentDefinition {
         id: "experience",
@@ -197,6 +232,11 @@ const SPECIAL_AGENT_DEFINITIONS: &[SpecialAgentDefinition] = &[
         prompt_id: "experience",
         output_contract: SpecialAgentOutputContract::MemoryReport,
         persistence_handler: SpecialAgentPersistenceHandler::HindsightExperience,
+        input_contract: SpecialAgentMemoryInputContract::ManualMaintenance,
+        memory_layer_policy: SpecialAgentMemoryLayerPolicy {
+            default_layer: Some("experience"),
+            allowed_layers: &["experience"],
+        },
     },
 ];
 
@@ -231,4 +271,5 @@ pub struct SpecialAgentRunRequest {
     pub task: Option<String>,
     pub scope: Option<String>,
     pub parent_session_key: Option<String>,
+    pub context_package: Option<serde_json::Value>,
 }

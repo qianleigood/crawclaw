@@ -320,7 +320,8 @@ Hindsight 暴露 Prometheus 指标：
 ### 7.3 延迟优化
 
 - **Delta Retain**（0.4.21+）：跳过未变更内容的 LLM 处理
-- **Async Retain**：设置 `retainAsync: true` 异步处理保留
+- **Async Retain**：当前 CrawClaw turn-end 保留统一进入 memory outbox；
+  `retainAsync` 仅作为兼容配置保留
 - **Budget 选择**：高频场景用 `low` 延迟最低
 - **Prefetch**：在用户输入前就开始召回（Hermes 模式）
 
@@ -328,23 +329,23 @@ Hindsight 暴露 Prometheus 指标：
 
 基于以上最佳实践，对设计文档的修正和补充：
 
-| 编号  | 最佳实践                   | 对 CrawClaw 的影响                                                |
-| ----- | -------------------------- | ----------------------------------------------------------------- |
-| BP1   | 自动捕获 > agent 决策      | `after_turn` 应直接调 Hindsight `retain`，不依赖 experience agent |
-| BP2   | 自动注入 > 工具检索        | 默认 `hybrid` 模式：自动注入 + 可选工具                           |
-| BP3   | 反馈环路防护必须做         | retain 前剥离所有记忆标签                                         |
-| Bank1 | Mission 导向提取           | 每个 bank 设置中文 mission                                        |
-| Bank2 | Disposition 按用途配置     | 经验=高怀疑，长期=低怀疑，心智模型=平衡                           |
-| Bank3 | Observations 替代 opinions | recall 默认用 `types: ["observation"]`                            |
-| Ret1  | 四路混合检索               | 不要在 CrawClaw 侧重排序，让 Hindsight 处理                       |
-| Ret2  | Budget 按场景选择          | 梦境反思用 `high`，日常召回用 `mid`                               |
-| Ret3  | 时间锚点                   | 时间相关查询传 `query_timestamp`                                  |
-| MM1   | Mental Models 自动刷新     | `trigger_refresh_after_consolidation: true`                       |
-| MM2   | 预置常用 Mental Models     | 用户偏好、项目知识、工作模式、决策历史                            |
-| Dir1  | Directives 用于硬规则      | 用 Directives 设置安全和合规约束                                  |
-| ZH1   | 必须配多语言模型           | bge-m3 + bge-reranker-v2-m3 + pgroonga                            |
-| ZH2   | 实体保留原始文字           | 不音译中文人名/术语                                               |
-| Dep1  | 桌面用 embed 模式          | CrawClaw Desktop 内嵌 hindsight-embed                             |
-| Dep2  | 团队用共享 bank            | 设置 shared_mode 或 dynamicBankGranularity                        |
-| Perf1 | Delta Retain 减少开销      | 启用 delta retain 跳过未变更内容                                  |
-| Perf2 | Async Retain 降低延迟      | 高频场景设 `retainAsync: true`                                    |
+| 编号  | 最佳实践                   | 对 CrawClaw 的影响                                                                          |
+| ----- | -------------------------- | ------------------------------------------------------------------------------------------- |
+| BP1   | 自动捕获 > agent 决策      | `after_turn` 应排入 memory outbox，由 worker 调 Hindsight `retain`，不依赖 experience agent |
+| BP2   | 自动注入 > 工具检索        | 默认 `hybrid` 模式：自动注入 + 可选工具                                                     |
+| BP3   | 反馈环路防护必须做         | retain 前剥离所有记忆标签                                                                   |
+| Bank1 | Mission 导向提取           | 每个 bank 设置中文 mission                                                                  |
+| Bank2 | Disposition 按用途配置     | 经验=高怀疑，长期=低怀疑，心智模型=平衡                                                     |
+| Bank3 | Observations 替代 opinions | recall 默认用 `types: ["observation"]`                                                      |
+| Ret1  | 四路混合检索               | 不要在 CrawClaw 侧重排序，让 Hindsight 处理                                                 |
+| Ret2  | Budget 按场景选择          | 梦境反思用 `high`，日常召回用 `mid`                                                         |
+| Ret3  | 时间锚点                   | 时间相关查询传 `query_timestamp`                                                            |
+| MM1   | Mental Models 自动刷新     | `trigger_refresh_after_consolidation: true`                                                 |
+| MM2   | 预置常用 Mental Models     | 用户偏好、项目知识、工作模式、决策历史                                                      |
+| Dir1  | Directives 用于硬规则      | 用 Directives 设置安全和合规约束                                                            |
+| ZH1   | 必须配多语言模型           | bge-m3 + bge-reranker-v2-m3 + pgroonga                                                      |
+| ZH2   | 实体保留原始文字           | 不音译中文人名/术语                                                                         |
+| Dep1  | 桌面用 embed 模式          | CrawClaw Desktop 内嵌 hindsight-embed                                                       |
+| Dep2  | 团队用共享 bank            | 设置 shared_mode 或 dynamicBankGranularity                                                  |
+| Perf1 | Delta Retain 减少开销      | 启用 delta retain 跳过未变更内容                                                            |
+| Perf2 | Async Retain 降低延迟      | turn-end retain 走 memory outbox，worker 后台处理                                           |

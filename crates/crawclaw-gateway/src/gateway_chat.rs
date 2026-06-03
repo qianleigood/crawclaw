@@ -816,6 +816,10 @@ pub(super) fn agent_run_options(params: &Value) -> BTreeMap<String, Value> {
         "subagent_type",
         "subagentType",
         "agentType",
+        "permissionMode",
+        "permission_mode",
+        "mode",
+        "mcpServers",
     ] {
         if let Some(value) = params.get(key) {
             options
@@ -1043,12 +1047,20 @@ pub(super) async fn special_agent_run_with_agent_runtime(
 ) -> Result<Value, String> {
     let kind = definition.id;
     let run_id = format!("special-{kind}-{}", now_millis());
-    let session_key = request
-        .parent_session_key
-        .clone()
-        .unwrap_or_else(|| format!("special:{kind}:{run_id}"));
+    let session_key = special_agent_session_key(definition, kind, &run_id, &request);
     let scope = request.scope.clone().unwrap_or_else(|| "main".to_string());
-    let task = request.task.unwrap_or_default();
+    let task = special_agent_task_body(definition, &request)?;
+    let mut metadata = BTreeMap::new();
+    if definition.parent_context_policy
+        != crawclaw_runtime::special_agents::SpecialAgentParentContextPolicy::None
+    {
+        if let Some(parent_session_key) = request.parent_session_key.as_deref() {
+            metadata.insert(
+                "parentSessionKey".to_string(),
+                Value::String(parent_session_key.to_string()),
+            );
+        }
+    }
     let agent_request = AgentRunRequest {
         run_id: run_id.clone(),
         agent_id: kind.to_string(),
@@ -1064,7 +1076,7 @@ pub(super) async fn special_agent_run_with_agent_runtime(
             message_id: Some(format!("{run_id}:input")),
             thread_id: Some(session_key.clone()),
             media_urls: Vec::new(),
-            metadata: BTreeMap::new(),
+            metadata,
         },
         model: AgentModelSelection {
             provider: "configured".to_string(),
@@ -1121,6 +1133,49 @@ pub(super) async fn special_agent_run_with_agent_runtime(
     Ok(response)
 }
 
+fn special_agent_session_key(
+    definition: &SpecialAgentDefinition,
+    kind: &str,
+    run_id: &str,
+    request: &SpecialAgentRunRequest,
+) -> String {
+    if definition.guard == Some(SpecialAgentToolGuard::MemoryMaintenance) {
+        return format!("special:{kind}:{run_id}");
+    }
+    request
+        .parent_session_key
+        .clone()
+        .unwrap_or_else(|| format!("special:{kind}:{run_id}"))
+}
+
+fn special_agent_task_body(
+    definition: &SpecialAgentDefinition,
+    request: &SpecialAgentRunRequest,
+) -> Result<String, String> {
+    let task = request.task.clone().unwrap_or_default();
+    if definition.input_contract != SpecialAgentMemoryInputContract::MemoryDelta {
+        return Ok(task);
+    }
+    let package = request.context_package.clone().unwrap_or_else(|| {
+        json!({
+            "task": task,
+            "recentModelVisibleMessages": [],
+            "explicitSignals": {
+                "explicitRememberAsked": false,
+                "explicitForgetAsked": false,
+                "hadDurableWriteThisTurn": false,
+                "hadDurableDeleteThisTurn": false,
+                "hadExperienceWriteThisTurn": false
+            }
+        })
+    });
+    let package_text = serde_json::to_string_pretty(&package)
+        .map_err(|error| format!("failed to encode special-agent context package: {error}"))?;
+    Ok(format!(
+        "Use only the structured memory-maintenance input below. Do not infer durable memories from parent transcript history or hidden parent prompt context.\n\n<context_package>\n{package_text}\n</context_package>"
+    ))
+}
+
 pub(super) fn persist_special_agent_memory_result(
     state: &GatewayState,
     kind: &str,
@@ -1171,6 +1226,7 @@ pub(super) async fn memory_compact_with_agent_runtime(
             )),
             scope: Some(session_id.to_string()),
             parent_session_key: Some(format!("memory:compact:{session_id}")),
+            context_package: None,
         },
         definition,
     )

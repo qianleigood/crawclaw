@@ -258,6 +258,9 @@ pub const GATEWAY_PROTOCOL_METHODS: &[&str] = &[
     "memory.status",
     "memory.refresh",
     "memory.login",
+    "memory.outbox.list",
+    "memory.outbox.process",
+    "memory.activity.list",
     "memory.dream.run",
     "memory.session_summary.status",
     "memory.session_summary.refresh",
@@ -347,6 +350,9 @@ mod tests {
         assert!(GATEWAY_PROTOCOL_METHODS.contains(&"subagents_spawn"));
         assert!(!GATEWAY_PROTOCOL_METHODS.contains(&"sessions.spawn"));
         assert!(GATEWAY_PROTOCOL_METHODS.contains(&"memory.afterTurn"));
+        assert!(GATEWAY_PROTOCOL_METHODS.contains(&"memory.outbox.list"));
+        assert!(GATEWAY_PROTOCOL_METHODS.contains(&"memory.outbox.process"));
+        assert!(GATEWAY_PROTOCOL_METHODS.contains(&"memory.activity.list"));
         assert!(!GATEWAY_PROTOCOL_METHODS
             .iter()
             .any(|method| method.starts_with("wizard.")));

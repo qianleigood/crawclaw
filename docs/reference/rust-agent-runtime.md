@@ -102,6 +102,18 @@ Tool payloads returned by Rust are projected into Gateway and channel-specific
 delivery formats. Channel plugins should call their documented SDK or Gateway
 client surfaces instead of importing agent internals.
 
+Workspace-facing tools honor the active `EnterWorktree` state. `read`, `write`,
+`edit`, `apply_patch`, Bash/PowerShell, `grep`, `find`, `ls`, LSP, and
+`NotebookEdit` resolve paths against the active worktree while session, team,
+configuration, MCP, memory, and special-agent state stays under the runtime
+root.
+
+`NotebookEdit` follows the same read-before-write boundary as the file edit
+tools. The notebook must be read first through `read`; the runtime records the
+file mtime and content, rejects edits when the file changed after that read, and
+refreshes the read state after a successful notebook write so sequential cell
+edits can continue.
+
 Each tool call also produces Rust-owned observability. Permission prompts emit a
 request event before user or policy resolution and a decision event after the
 runtime receives an approval or denial. Completed calls emit a tool-use summary
@@ -109,6 +121,28 @@ with the call id, tool name, status, read-only classification, duration, error
 state, and whether the result was projected or persisted. These events are
 diagnostic surfaces for clients; they do not make Gateway or Desktop own tool
 execution.
+
+## User Visible Task Agents
+
+User-visible task agents are Rust runtime sub-agent definitions, not internal
+special agents. Built-ins live in `agent_definitions.rs` and are resolved from
+`subagent_type`, `agentType`, or the sub-agent `agentId`:
+
+- `general-purpose`: general delegated work, default workspace permission mode,
+  inherited model, default tool policy
+- `Explore`: read-only code and context research, inherited model, read/search
+  and MCP resource tools only
+- `Plan`: read-only implementation planning, inherited model, read/search and
+  MCP resource tools only
+- `verification`: read-only verification, inherited model, read/search and MCP
+  resource tools only, with a required `VERDICT` result line
+
+`model: "inherit"` is treated as the configured parent/default provider model.
+`permissionMode` and `mode` map onto the native permission policy: `readOnly`
+and `plan` select read-only tools, `dontAsk` and `bypassPermissions` select full
+access, and `default`, `acceptEdits`, `auto`, or `workspace` select workspace
+mode. Gateway exposes these built-ins in `agents` and lets configured,
+project-markdown, Desktop, and SDK-supplied agent definitions override them.
 
 ## Memory
 
@@ -128,10 +162,16 @@ Production memory paths must not call legacy TypeScript memory jobs.
 ## Special Agents
 
 Special agents are defined and executed by the Rust runtime. Definitions include
-tool allowlists, parent context policy, timeout, maximum turns, result detail,
-and action-feed behavior.
+tool allowlists, parent context policy, input and output contracts, timeout,
+maximum turns, result detail, persistence behavior, and memory-layer policy.
 
-The `runtime_fork` semantic is an internal Rust runtime fork. It does not call
+Special agents are internal maintenance or review agents such as `review-spec`,
+`review-quality`, `durable-memory`, `dream`, `session-summary`, and
+`experience`. They use `SpecialAgentDefinition` and special-agent-only tools.
+They are intentionally separate from user-visible task agents such as `Explore`,
+`Plan`, and `verification`, which run through the normal sub-agent profile.
+
+The `embedded_fork` semantic is an internal Rust runtime fork. It does not call
 a TypeScript special-agent runner.
 
 ## Cron And Auto Reply

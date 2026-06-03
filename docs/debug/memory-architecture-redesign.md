@@ -349,7 +349,8 @@ Hindsight 的 `retain` 调用后，后台整合引擎自动运行：
 
 #### 5.1.6 异步保留
 
-高频场景下，设置 `retainAsync: true` 异步处理保留，不阻塞主循环。
+当前实现中，turn-end retain 统一进入 memory outbox，并由
+`memory.outbox.process` 后台处理，不阻塞主循环。`retainAsync` 仅作为兼容配置保留。
 
 #### 5.1.7 降级模式
 
@@ -791,7 +792,7 @@ fn expand_bilingual_terms(query: &str) -> String {
       retainRoles: ["user", "assistant"],
       retainEveryNTurns: 1,
       retainOverlapTurns: 0,
-      retainAsync: false,
+      retainAsync: false, // compatibility flag; runtime outbox handles turn-end retain
 
       // 自动召回
       defaultBudget: "mid",
@@ -988,7 +989,7 @@ for result in [durable, experience, resource, mental_models] {
 | 编号 | 问题                             | 建议                                 |
 | ---- | -------------------------------- | ------------------------------------ |
 | D1   | Desktop 内嵌 `hindsight-embed`？ | 是（参考 Hermes 模式）               |
-| D2   | 高频会话的保留节流？             | 每轮 + `retainAsync: true`           |
+| D2   | 高频会话的保留节流？             | 每轮 + memory outbox worker          |
 | D3   | 心智模型质量验证？               | 初期信任 Hindsight，后续加检查工具   |
 | D4   | 提取用独立 LLM？                 | 是，用小模型（gpt-5-mini）控制成本   |
 | D5   | 记忆衰减？                       | 初期不实现，Hindsight 时间检索已足够 |

@@ -144,7 +144,7 @@ impl SessionToolKind {
                     },
                     "model": {
                         "type": "string",
-                        "enum": ["sonnet", "opus", "haiku"],
+                        "enum": ["sonnet", "opus", "haiku", "inherit"],
                         "description": "Optional model override for this agent. Takes precedence over the agent definition's model frontmatter. If omitted, uses the agent definition's model, or inherits from the parent."
                     },
                     "run_in_background": {
@@ -163,6 +163,16 @@ impl SessionToolKind {
                         "type": "string",
                         "enum": ["acceptEdits", "bypassPermissions", "default", "dontAsk", "plan", "auto"],
                         "description": "Permission mode for spawned teammate (e.g., \"plan\" to require plan approval)."
+                    },
+                    "permissionMode": {
+                        "type": "string",
+                        "enum": ["acceptEdits", "bypassPermissions", "default", "dontAsk", "plan", "auto", "readOnly", "workspace", "fullAccess"],
+                        "description": "Agent definition permission mode. Defaults to the selected agent definition."
+                    },
+                    "mcpServers": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Optional MCP server names required by this agent definition."
                     },
                     "isolation": {
                         "type": "string",
@@ -345,6 +355,9 @@ fn subagent_run_options(input: &Value) -> BTreeMap<String, Value> {
         "team_name",
         "teamName",
         "mode",
+        "permissionMode",
+        "permission_mode",
+        "mcpServers",
         "parentContextPolicy",
     ] {
         if let Some(value) = input.get(key) {
@@ -1098,6 +1111,9 @@ fn validate_agent_alias_input(kind: SessionToolKind, input: &Value) -> pi::sdk::
             "name",
             "team_name",
             "mode",
+            "permissionMode",
+            "permission_mode",
+            "mcpServers",
         ],
         kind.name(),
     )?;
@@ -1118,9 +1134,9 @@ fn validate_agent_alias_input(kind: SessionToolKind, input: &Value) -> pi::sdk::
                 kind.name()
             )));
         };
-        if !matches!(model, "sonnet" | "opus" | "haiku") {
+        if !matches!(model, "sonnet" | "opus" | "haiku" | "inherit") {
             return Err(pi::sdk::Error::validation(format!(
-                "{} model must be sonnet, opus, or haiku",
+                "{} model must be sonnet, opus, haiku, or inherit",
                 kind.name()
             )));
         }
@@ -1147,6 +1163,48 @@ fn validate_agent_alias_input(kind: SessionToolKind, input: &Value) -> pi::sdk::
         ) {
             return Err(pi::sdk::Error::validation(format!(
                 "{} mode must be acceptEdits, bypassPermissions, default, dontAsk, plan, or auto",
+                kind.name()
+            )));
+        }
+    }
+    if let Some(permission_mode) = input
+        .get("permissionMode")
+        .or_else(|| input.get("permission_mode"))
+    {
+        let Some(permission_mode) = permission_mode.as_str() else {
+            return Err(pi::sdk::Error::validation(format!(
+                "{} permissionMode must be a string",
+                kind.name()
+            )));
+        };
+        if !matches!(
+            permission_mode,
+            "acceptEdits"
+                | "bypassPermissions"
+                | "default"
+                | "dontAsk"
+                | "plan"
+                | "auto"
+                | "readOnly"
+                | "workspace"
+                | "fullAccess"
+        ) {
+            return Err(pi::sdk::Error::validation(format!(
+                "{} permissionMode must be acceptEdits, bypassPermissions, default, dontAsk, plan, auto, readOnly, workspace, or fullAccess",
+                kind.name()
+            )));
+        }
+    }
+    if let Some(mcp_servers) = input.get("mcpServers") {
+        let Some(mcp_servers) = mcp_servers.as_array() else {
+            return Err(pi::sdk::Error::validation(format!(
+                "{} mcpServers must be an array",
+                kind.name()
+            )));
+        };
+        if mcp_servers.iter().any(|value| !value.is_string()) {
+            return Err(pi::sdk::Error::validation(format!(
+                "{} mcpServers entries must be strings",
                 kind.name()
             )));
         }

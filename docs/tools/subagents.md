@@ -98,6 +98,29 @@ Cost note: each sub-agent has its **own** context and token usage. For heavy or 
 tasks, set a cheaper model for sub-agents and keep your main agent on a higher-quality model.
 You can configure this via `agents.defaults.subagents.model` or per-agent overrides.
 
+## Built-in task agents
+
+Claude Code-compatible `Agent` and `Task` calls can select built-in task agents
+with `subagent_type`:
+
+- `general-purpose`: general delegated work with the default workspace tool
+  policy
+- `Explore`: read-only code and context research
+- `Plan`: read-only implementation planning
+- `verification`: read-only verification; the prompt requires a final
+  `VERDICT: PASS`, `VERDICT: FAIL`, or `VERDICT: BLOCKED` line
+
+These task agents are normal sub-agents. They are separate from internal Rust
+special agents used for review, memory, dreams, and session summaries. `Explore`,
+`Plan`, and `verification` run with read-only permission mode and a read/search
+tool allowlist, so mutating tools such as `write`, `edit`, `apply_patch`,
+`NotebookEdit`, `Agent`, and `ExitPlanMode` are not exposed to them.
+
+`model: "inherit"` keeps the configured provider model. `mode` and
+`permissionMode` map to the native permission policy: `readOnly` and `plan`
+select read-only tools, `dontAsk` and `bypassPermissions` select full access,
+and `default`, `acceptEdits`, `auto`, or `workspace` select workspace mode.
+
 ## Tool
 
 Use `sessions_spawn`:

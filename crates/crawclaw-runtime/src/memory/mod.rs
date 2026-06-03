@@ -44,8 +44,7 @@ impl MemoryRuntime {
     pub fn new(runtime_root: impl Into<PathBuf>) -> Self {
         let runtime_root = runtime_root.into();
         let desktop_policy = read_desktop_memory_policy(&runtime_root);
-        let mut config = MemoryRuntimeConfig::load(&runtime_root);
-        apply_desktop_memory_policy(&mut config, desktop_policy.as_ref());
+        let config = Self::load_effective_config(&runtime_root);
         let bank_resolver = BankResolverConfig::from_hindsight_config(&config.hindsight);
         let hindsight = maybe_hindsight_client(&config.hindsight);
         Self {
@@ -75,6 +74,13 @@ impl MemoryRuntime {
 
     pub fn config(&self) -> &MemoryRuntimeConfig {
         &self.config
+    }
+
+    pub fn load_effective_config(runtime_root: &Path) -> MemoryRuntimeConfig {
+        let desktop_policy = read_desktop_memory_policy(runtime_root);
+        let mut config = MemoryRuntimeConfig::load(runtime_root);
+        apply_desktop_memory_policy(&mut config, desktop_policy.as_ref());
+        config
     }
 
     pub fn hindsight(&self) -> Option<&HindsightClient> {
@@ -153,7 +159,13 @@ impl MemoryRuntime {
         let recall_config = RecallConfig::from(&self.config.hindsight);
         let query = recall_pipeline::compose_recall_query(query_text, &messages, &recall_config);
 
-        let (durable, experience, resource, mental_models) = if let Some(client) = &self.hindsight {
+        let (durable, experience, resource, mental_models) = if !self
+            .config
+            .hindsight
+            .prompt_recall_enabled()
+        {
+            (vec![], vec![], vec![], vec![])
+        } else if let Some(client) = &self.hindsight {
             if client.is_configured() {
                 let items = recall_pipeline::parallel_recall(
                     client,
@@ -231,6 +243,23 @@ impl MemoryRuntime {
         messages: &[Value],
         pre_prompt_message_count: usize,
     ) -> Result<Value, String> {
+        self.after_turn_with_options(
+            session_id,
+            session_key,
+            messages,
+            pre_prompt_message_count,
+            None,
+        )
+    }
+
+    pub fn after_turn_with_options(
+        &self,
+        session_id: &str,
+        session_key: Option<&str>,
+        messages: &[Value],
+        pre_prompt_message_count: usize,
+        memory_directive: Option<&Value>,
+    ) -> Result<Value, String> {
         let new_messages: Vec<Value> = messages
             .iter()
             .skip(pre_prompt_message_count)
@@ -239,17 +268,22 @@ impl MemoryRuntime {
 
         let store = self.store();
         store.init()?;
+        let mut ingested_count = 0usize;
         for (index, message) in new_messages.iter().enumerate() {
-            store.append_message(
+            if store.append_message(
                 session_id,
                 session_key,
                 (pre_prompt_message_count + index) as i64,
                 message,
-            )?;
+            )? {
+                ingested_count += 1;
+            }
         }
 
         let retain_config = RetainConfig::from(&self.config.hindsight);
         let ctx = self.bank_context("main");
+        let policy = EffectiveMemoryPolicy::from_config(&self.config);
+        let directive = MemoryDirective::from_value(memory_directive);
 
         let has_final_assistant = new_messages
             .last()
@@ -257,48 +291,297 @@ impl MemoryRuntime {
             == Some("assistant");
         let has_tool_calls = new_messages
             .last()
-            .and_then(|m| m.get("tool_calls"))
-            .is_some();
+            .is_some_and(memory_message_has_tool_calls);
 
         let turn_number = messages.len() as u32;
-        let should_retain = retain_config.auto_retain
+        let auto_should_retain = retain_config.auto_retain
             && retain_pipeline::should_retain_this_turn(
                 turn_number,
                 retain_config.retain_every_n_turns,
                 has_final_assistant,
                 has_tool_calls,
             );
+        let should_retain = match directive {
+            MemoryDirective::Auto => auto_should_retain,
+            MemoryDirective::Remember { .. } => true,
+            MemoryDirective::Forget { .. } | MemoryDirective::DoNotRemember { .. } => false,
+        };
+        let skip_reason = match directive {
+            MemoryDirective::Auto => retain_skip_reason(
+                retain_config.auto_retain,
+                retain_config.retain_every_n_turns,
+                has_final_assistant,
+                has_tool_calls,
+            ),
+            MemoryDirective::Remember { .. } => "none",
+            MemoryDirective::Forget { .. } => "user_forget_requested",
+            MemoryDirective::DoNotRemember { .. } => "user_do_not_remember",
+        };
 
         let mut result = json!({
             "status": "ok",
-            "ingestedCount": new_messages.len(),
+            "ingestedCount": ingested_count,
             "hindsightEnabled": self.config.hindsight.enabled,
             "shouldRetain": should_retain,
         });
 
-        if should_retain {
-            if let Some(client) = &self.hindsight {
-                if client.is_configured() {
-                    let bank_id = self.bank_resolver.resolve(&ctx, "experience");
-                    if let Some(content) =
-                        retain_pipeline::compose_retain_payload(&new_messages, &ctx, &retain_config)
-                    {
-                        match retain_pipeline::auto_retain(client, &bank_id, &content, &ctx) {
-                            Ok(()) => {
-                                result["retainStatus"] = json!("ok");
-                            }
-                            Err(e) => {
-                                tracing::warn!(error = %e, "auto_retain_failed");
-                                result["retainStatus"] = json!("failed");
-                                result["retainError"] = json!(e);
-                            }
-                        }
-                    }
-                }
+        let mut outbox = json!({
+            "status": "not_queued",
+            "jobId": Value::Null,
+            "enqueued": false,
+        });
+        match &directive {
+            MemoryDirective::Auto if should_retain => {
+                outbox = self.enqueue_retain_job(
+                    &store,
+                    session_id,
+                    &ctx,
+                    "experience",
+                    "retain_experience",
+                    "agent_turn",
+                    retain_pipeline::compose_retain_payload(&new_messages, &ctx, &retain_config),
+                )?;
             }
+            MemoryDirective::Remember { content } => {
+                outbox = self.enqueue_retain_job(
+                    &store,
+                    session_id,
+                    &ctx,
+                    "durable",
+                    "retain_durable",
+                    "explicit_remember",
+                    Some(content.clone()),
+                )?;
+            }
+            MemoryDirective::Forget { content } => {
+                outbox = self.enqueue_forget_job(&store, session_id, content)?;
+            }
+            MemoryDirective::DoNotRemember { .. } => {
+                outbox["status"] = json!("skipped");
+                outbox["skipReason"] = json!("user_do_not_remember");
+            }
+            MemoryDirective::Auto => {}
         }
 
+        let activity_status = if outbox["status"] == "pending" {
+            "enqueued"
+        } else if should_retain {
+            "skipped"
+        } else {
+            "skipped"
+        };
+        store.record_memory_activity(
+            Some(session_id),
+            "after_turn",
+            activity_status,
+            json!({
+                "shouldRetain": should_retain,
+                "skipReason": skip_reason,
+                "directive": directive.diagnostics(),
+                "jobId": outbox.get("jobId").cloned().unwrap_or(Value::Null),
+                "outbox": outbox.clone(),
+            }),
+        )?;
+        result["diagnostics"] = json!({
+            "memory": {
+                "policy": policy,
+                "afterTurn": {
+                    "ran": true,
+                    "shouldRetain": should_retain,
+                    "skipReason": skip_reason,
+                    "directive": directive.diagnostics(),
+                    "outbox": outbox,
+                }
+            }
+        });
+
         Ok(result)
+    }
+
+    fn enqueue_retain_job(
+        &self,
+        store: &RuntimeStore,
+        session_id: &str,
+        ctx: &BankContext,
+        layer: &str,
+        kind: &str,
+        context: &str,
+        content: Option<String>,
+    ) -> Result<Value, String> {
+        if !self.config.hindsight.enabled {
+            return Ok(json!({
+                "status": "skipped",
+                "skipReason": "hindsight_disabled",
+                "jobId": Value::Null,
+                "enqueued": false,
+                "kind": kind,
+                "layer": layer,
+            }));
+        }
+        if self
+            .hindsight
+            .as_ref()
+            .is_none_or(|client| !client.is_configured())
+        {
+            return Ok(json!({
+                "status": "skipped",
+                "skipReason": "hindsight_not_available",
+                "jobId": Value::Null,
+                "enqueued": false,
+                "kind": kind,
+                "layer": layer,
+            }));
+        }
+        let Some(content) = content.filter(|value| !value.trim().is_empty()) else {
+            return Ok(json!({
+                "status": "skipped",
+                "skipReason": "empty_retain_payload",
+                "jobId": Value::Null,
+                "enqueued": false,
+                "kind": kind,
+                "layer": layer,
+            }));
+        };
+        let bank_id = self.bank_resolver.resolve(ctx, layer);
+        let payload = json!({
+            "bankId": bank_id,
+            "content": content,
+            "context": context,
+            "metadata": retain_pipeline::build_retain_metadata(ctx),
+            "tags": retain_pipeline::build_retain_tags(ctx, layer),
+        });
+        let enqueued = store.enqueue_memory_job(session_id, kind, Some(layer), payload)?;
+        Ok(json!({
+            "status": enqueued.status,
+            "jobId": enqueued.job_id,
+            "enqueued": enqueued.enqueued,
+            "kind": kind,
+            "layer": layer,
+        }))
+    }
+
+    fn enqueue_forget_job(
+        &self,
+        store: &RuntimeStore,
+        session_id: &str,
+        content: &str,
+    ) -> Result<Value, String> {
+        if content.trim().is_empty() {
+            return Ok(json!({
+                "status": "skipped",
+                "skipReason": "empty_forget_payload",
+                "jobId": Value::Null,
+                "enqueued": false,
+                "kind": "forget_memory",
+                "layer": Value::Null,
+            }));
+        }
+        let payload = json!({
+            "query": content,
+            "reason": "explicit_forget",
+        });
+        let enqueued = store.enqueue_memory_job(session_id, "forget_memory", None, payload)?;
+        Ok(json!({
+            "status": enqueued.status,
+            "jobId": enqueued.job_id,
+            "enqueued": enqueued.enqueued,
+            "kind": "forget_memory",
+            "layer": Value::Null,
+        }))
+    }
+
+    pub fn process_outbox_once(&self, limit: usize) -> Result<Value, String> {
+        let store = self.store();
+        store.init()?;
+        let jobs = store.list_outbox_jobs(Some("pending"), limit)?;
+        let mut status_counts = serde_json::Map::new();
+        let mut results = Vec::new();
+        for job in jobs {
+            let job_id = job.get("id").and_then(Value::as_str).unwrap_or("");
+            let kind = job.get("kind").and_then(Value::as_str).unwrap_or("");
+            let process_result = self.process_outbox_job(&store, &job);
+            let (status, last_error) = match process_result {
+                Ok(status) => (status, None),
+                Err(error) if error == "hindsight_forget_not_supported" => {
+                    ("unsupported".to_string(), Some(error))
+                }
+                Err(error) if error.starts_with("unsupported_memory_job_kind:") => {
+                    ("unsupported".to_string(), Some(error))
+                }
+                Err(error) => ("failed".to_string(), Some(error)),
+            };
+            store.update_memory_job_status(job_id, &status, last_error.as_deref())?;
+            store.record_memory_activity(
+                job.get("sessionId").and_then(Value::as_str),
+                "outbox_process",
+                &status,
+                json!({
+                    "jobId": job_id,
+                    "kind": kind,
+                    "lastError": last_error,
+                }),
+            )?;
+            let current = status_counts
+                .get(&status)
+                .and_then(Value::as_i64)
+                .unwrap_or(0);
+            status_counts.insert(status.clone(), json!(current + 1));
+            results.push(json!({
+                "jobId": job_id,
+                "kind": kind,
+                "status": status,
+            }));
+        }
+        Ok(json!({
+            "status": "ok",
+            "processedCount": results.len(),
+            "statusCounts": status_counts,
+            "results": results,
+        }))
+    }
+
+    fn process_outbox_job(&self, _store: &RuntimeStore, job: &Value) -> Result<String, String> {
+        let kind = job.get("kind").and_then(Value::as_str).unwrap_or("");
+        if kind == "forget_memory" {
+            return Err("hindsight_forget_not_supported".to_string());
+        }
+        if !matches!(kind, "retain_experience" | "retain_durable") {
+            return Err(format!("unsupported_memory_job_kind:{kind}"));
+        }
+        let Some(client) = &self.hindsight else {
+            return Err("hindsight_not_available".to_string());
+        };
+        if !client.is_configured() {
+            return Err("hindsight_not_available".to_string());
+        }
+        let payload = job.get("payload").unwrap_or(&Value::Null);
+        let bank_id = payload
+            .get("bankId")
+            .and_then(Value::as_str)
+            .ok_or_else(|| "memory_job_missing_bank_id".to_string())?;
+        let content = payload
+            .get("content")
+            .and_then(Value::as_str)
+            .ok_or_else(|| "memory_job_missing_content".to_string())?;
+        let context = payload
+            .get("context")
+            .and_then(Value::as_str)
+            .unwrap_or("memory_outbox");
+        let metadata = payload.get("metadata").cloned().unwrap_or(Value::Null);
+        let tags = payload
+            .get("tags")
+            .and_then(Value::as_array)
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(str::to_string)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        let tag_refs: Vec<&str> = tags.iter().map(String::as_str).collect();
+        client.retain(bank_id, content, context, metadata, &tag_refs)?;
+        Ok("completed".to_string())
     }
 
     pub fn dream_consolidate(&self, session_id: &str) -> Result<Value, String> {
@@ -488,6 +771,9 @@ impl MemoryRuntime {
                 "desktopPolicy": self.desktop_policy.clone(),
             },
             "hindsight": self.hindsight_status(),
+            "policy": EffectiveMemoryPolicy::from_config(&self.config),
+            "outbox": store.memory_outbox_summary()?,
+            "recentActivity": store.list_memory_activity(None, 10)?,
         }))
     }
 }
@@ -497,6 +783,122 @@ fn maybe_hindsight_client(config: &HindsightConfig) -> Option<HindsightClient> {
         return None;
     }
     HindsightClient::new(config).ok()
+}
+
+fn memory_message_has_tool_calls(message: &Value) -> bool {
+    for key in ["tool_calls", "toolCalls"] {
+        if let Some(value) = message.get(key) {
+            return match value {
+                Value::Array(items) => !items.is_empty(),
+                Value::Null => false,
+                _ => true,
+            };
+        }
+    }
+    message
+        .get("blocks")
+        .and_then(Value::as_array)
+        .is_some_and(|blocks| {
+            blocks.iter().any(|block| {
+                block.get("type").and_then(Value::as_str) == Some("toolUse")
+                    || block.get("type").and_then(Value::as_str) == Some("tool_use")
+            })
+        })
+}
+
+fn retain_skip_reason(
+    auto_retain: bool,
+    retain_every_n_turns: u32,
+    has_final_assistant: bool,
+    has_tool_calls: bool,
+) -> &'static str {
+    if !auto_retain {
+        return "auto_retain_disabled";
+    }
+    if !has_final_assistant {
+        return "no_final_assistant";
+    }
+    if has_tool_calls {
+        return "tool_calls";
+    }
+    if retain_every_n_turns == 0 {
+        return "retain_interval_disabled";
+    }
+    "none"
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum MemoryDirective {
+    Auto,
+    Remember { content: String },
+    Forget { content: String },
+    DoNotRemember { reason: Option<String> },
+}
+
+impl MemoryDirective {
+    fn from_value(value: Option<&Value>) -> Self {
+        let Some(value) = value else {
+            return Self::Auto;
+        };
+        if value.as_bool() == Some(true) {
+            return Self::DoNotRemember { reason: None };
+        }
+        if let Some(action) = value.as_str() {
+            return Self::from_action(action, None, None);
+        }
+        if let Some(object) = value.as_object() {
+            if object
+                .get("doNotRemember")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+            {
+                return Self::DoNotRemember {
+                    reason: string_value(value, &["reason"]),
+                };
+            }
+            let action = string_value(value, &["action", "intent", "memoryAction"])
+                .unwrap_or_else(|| "auto".to_string());
+            let content = string_value(value, &["content", "text", "memory", "target", "query"]);
+            let reason = string_value(value, &["reason"]);
+            return Self::from_action(&action, content, reason);
+        }
+        Self::Auto
+    }
+
+    fn from_action(action: &str, content: Option<String>, reason: Option<String>) -> Self {
+        match normalize_memory_action(action).as_str() {
+            "remember" => Self::Remember {
+                content: content.unwrap_or_default(),
+            },
+            "forget" => Self::Forget {
+                content: content.unwrap_or_default(),
+            },
+            "do_not_remember" => Self::DoNotRemember { reason },
+            _ => Self::Auto,
+        }
+    }
+
+    fn diagnostics(&self) -> Value {
+        match self {
+            Self::Auto => json!({ "action": "auto" }),
+            Self::Remember { content } => json!({
+                "action": "remember",
+                "contentChars": content.chars().count(),
+            }),
+            Self::Forget { content } => json!({
+                "action": "forget",
+                "contentChars": content.chars().count(),
+            }),
+            Self::DoNotRemember { reason } => json!({
+                "action": "do-not-remember",
+                "reason": reason,
+            }),
+        }
+    }
+}
+
+fn normalize_memory_action(action: &str) -> String {
+    action.trim().to_ascii_lowercase().replace(['-', ' '], "_")
 }
 
 fn read_desktop_memory_policy(runtime_root: &Path) -> Option<Value> {
@@ -859,12 +1261,43 @@ pub async fn execute_memory_runtime_operation(
                 .get("prePromptMessageCount")
                 .and_then(Value::as_u64)
                 .unwrap_or(0) as usize;
-            runtime.after_turn(
+            let memory_directive = input
+                .get("memoryDirective")
+                .or_else(|| input.get("memoryIntent"))
+                .or_else(|| input.get("memoryAction"))
+                .or_else(|| input.get("doNotRemember"))
+                .or(Some(&input));
+            runtime.after_turn_with_options(
                 &session_id,
                 session_key.as_deref(),
                 &messages,
                 pre_prompt_message_count,
+                memory_directive,
             )
+        }
+        "memory.outbox.list" | "memory_outbox_list" => {
+            let status = string_value(&input, &["status"]);
+            let limit = input.get("limit").and_then(Value::as_u64).unwrap_or(50) as usize;
+            let store = runtime.store();
+            store.init()?;
+            Ok(json!({
+                "status": "ok",
+                "jobs": store.list_outbox_jobs(status.as_deref(), limit)?,
+            }))
+        }
+        "memory.outbox.process" | "memory_outbox_process" => {
+            let limit = input.get("limit").and_then(Value::as_u64).unwrap_or(10) as usize;
+            runtime.process_outbox_once(limit)
+        }
+        "memory.activity.list" | "memory_activity_list" => {
+            let session_id = string_value(&input, &["sessionId", "sessionKey"]);
+            let limit = input.get("limit").and_then(Value::as_u64).unwrap_or(50) as usize;
+            let store = runtime.store();
+            store.init()?;
+            Ok(json!({
+                "status": "ok",
+                "activity": store.list_memory_activity(session_id.as_deref(), limit)?,
+            }))
         }
         "memory.dream" | "memory_dream" => {
             let session_id = string_value(&input, &["sessionId", "sessionKey"])
@@ -885,6 +1318,10 @@ pub async fn execute_memory_runtime_operation(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::thread;
+    use std::time::Duration;
     use tempfile::tempdir;
 
     #[test]
@@ -900,14 +1337,260 @@ mod tests {
         let dir = tempdir().unwrap();
         let runtime = MemoryRuntime::new(dir.path());
         let messages = vec![
-            json!({"role": "user", "content": "hello"}),
-            json!({"role": "assistant", "content": "hi"}),
+            json!({"id": "m1", "role": "user", "content": "hello"}),
+            json!({"id": "m2", "role": "assistant", "content": "hi"}),
         ];
         let result = runtime
             .after_turn("session-1", Some("key"), &messages, 0)
             .unwrap();
         assert_eq!(result["status"], "ok");
         assert_eq!(result["ingestedCount"], 2);
+
+        let replay = runtime
+            .after_turn("session-1", Some("key"), &messages, 0)
+            .unwrap();
+        assert_eq!(replay["status"], "ok");
+        assert_eq!(replay["ingestedCount"], 0);
+        assert_eq!(
+            runtime
+                .store()
+                .list_messages("session-1", 10)
+                .expect("stored messages")
+                .len(),
+            2
+        );
+    }
+
+    #[test]
+    fn after_turn_enqueues_async_retain_job_and_activity() {
+        let dir = tempdir().unwrap();
+        let mut config = MemoryRuntimeConfig::default();
+        config.runtime_store.db_path = dir.path().join("memory.db").to_string_lossy().to_string();
+        config.hindsight.enabled = true;
+        config.hindsight.base_url = "http://127.0.0.1:1".to_string();
+        config.hindsight.auto_retain = true;
+        config.hindsight.retain_every_n_turns = 1;
+        let runtime = MemoryRuntime::with_config(dir.path(), config);
+        let messages = vec![
+            json!({"id": "m1", "role": "user", "content": "remember this preference"}),
+            json!({"id": "m2", "role": "assistant", "content": "stored"}),
+        ];
+
+        let result = runtime
+            .after_turn("session-retain", Some("key"), &messages, 0)
+            .unwrap();
+
+        assert_eq!(result["status"], "ok");
+        assert_eq!(result["shouldRetain"], true);
+        assert_eq!(result["retainStatus"], Value::Null);
+        assert_eq!(
+            result["diagnostics"]["memory"]["afterTurn"]["outbox"]["status"],
+            "pending"
+        );
+        assert!(
+            result["diagnostics"]["memory"]["afterTurn"]["outbox"]["jobId"]
+                .as_str()
+                .expect("job id")
+                .starts_with("memory-job-")
+        );
+
+        let jobs = runtime
+            .store()
+            .list_outbox_jobs(Some("pending"), 10)
+            .expect("outbox jobs");
+        assert_eq!(jobs.len(), 1);
+        assert_eq!(jobs[0]["kind"], "retain_experience");
+        assert_eq!(jobs[0]["layer"], "experience");
+
+        let activity = runtime
+            .store()
+            .list_memory_activity(Some("session-retain"), 10)
+            .expect("activity");
+        assert!(activity.iter().any(|event| {
+            event["kind"] == "after_turn"
+                && event["status"] == "enqueued"
+                && event["payload"]["jobId"] == jobs[0]["id"]
+        }));
+    }
+
+    #[test]
+    fn after_turn_applies_explicit_memory_directives() {
+        let dir = tempdir().unwrap();
+        let mut config = MemoryRuntimeConfig::default();
+        config.runtime_store.db_path = dir.path().join("memory.db").to_string_lossy().to_string();
+        config.hindsight.enabled = true;
+        config.hindsight.base_url = "http://127.0.0.1:1".to_string();
+        let runtime = MemoryRuntime::with_config(dir.path(), config);
+        let messages = vec![
+            json!({"id": "m1", "role": "user", "content": "remember this preference"}),
+            json!({"id": "m2", "role": "assistant", "content": "stored"}),
+        ];
+
+        let remember = runtime
+            .after_turn_with_options(
+                "session-remember",
+                Some("key"),
+                &messages,
+                0,
+                Some(&json!({
+                    "action": "remember",
+                    "content": "User prefers concise answers"
+                })),
+            )
+            .unwrap();
+
+        assert_eq!(
+            remember["diagnostics"]["memory"]["afterTurn"]["directive"]["action"],
+            "remember"
+        );
+        assert_eq!(
+            remember["diagnostics"]["memory"]["afterTurn"]["outbox"]["kind"],
+            "retain_durable"
+        );
+        assert_eq!(
+            remember["diagnostics"]["memory"]["afterTurn"]["outbox"]["layer"],
+            "durable"
+        );
+
+        let do_not_remember = runtime
+            .after_turn_with_options(
+                "session-private",
+                Some("key"),
+                &messages,
+                0,
+                Some(&json!({
+                    "action": "do-not-remember",
+                    "reason": "private turn"
+                })),
+            )
+            .unwrap();
+        assert_eq!(do_not_remember["shouldRetain"], false);
+        assert_eq!(
+            do_not_remember["diagnostics"]["memory"]["afterTurn"]["skipReason"],
+            "user_do_not_remember"
+        );
+        assert_eq!(
+            do_not_remember["diagnostics"]["memory"]["afterTurn"]["outbox"]["status"],
+            "skipped"
+        );
+
+        let forget = runtime
+            .after_turn_with_options(
+                "session-forget",
+                Some("key"),
+                &messages,
+                0,
+                Some(&json!({
+                    "action": "forget",
+                    "content": "old project codename"
+                })),
+            )
+            .unwrap();
+        assert_eq!(
+            forget["diagnostics"]["memory"]["afterTurn"]["directive"]["action"],
+            "forget"
+        );
+        assert_eq!(
+            forget["diagnostics"]["memory"]["afterTurn"]["outbox"]["kind"],
+            "forget_memory"
+        );
+        assert_eq!(
+            forget["diagnostics"]["memory"]["afterTurn"]["outbox"]["status"],
+            "pending"
+        );
+    }
+
+    #[test]
+    fn process_outbox_retains_pending_jobs() {
+        let dir = tempdir().unwrap();
+        let (base_url, request_rx) = start_hindsight_retain_server();
+        let mut config = MemoryRuntimeConfig::default();
+        config.runtime_store.db_path = dir.path().join("memory.db").to_string_lossy().to_string();
+        config.hindsight.enabled = true;
+        config.hindsight.base_url = base_url;
+        let runtime = MemoryRuntime::with_config(dir.path(), config);
+        let messages = vec![
+            json!({"id": "m1", "role": "user", "content": "remember this lesson"}),
+            json!({"id": "m2", "role": "assistant", "content": "stored"}),
+        ];
+        runtime
+            .after_turn("session-process", Some("key"), &messages, 0)
+            .unwrap();
+
+        let result = runtime.process_outbox_once(10).unwrap();
+
+        assert_eq!(result["processedCount"], 1);
+        assert_eq!(result["statusCounts"]["completed"], 1);
+        let jobs = runtime
+            .store()
+            .list_outbox_jobs(Some("completed"), 10)
+            .unwrap();
+        assert_eq!(jobs.len(), 1);
+        assert_eq!(jobs[0]["attempts"], 1);
+        let request = request_rx.recv().expect("retain request");
+        assert!(request.contains("/v1/default/banks/crawclaw:main:experience/memories"));
+        assert!(request.contains("agent_turn"));
+    }
+
+    #[test]
+    fn process_outbox_marks_forget_jobs_unsupported() {
+        let dir = tempdir().unwrap();
+        let mut config = MemoryRuntimeConfig::default();
+        config.runtime_store.db_path = dir.path().join("memory.db").to_string_lossy().to_string();
+        config.hindsight.enabled = true;
+        config.hindsight.base_url = "http://127.0.0.1:1".to_string();
+        let runtime = MemoryRuntime::with_config(dir.path(), config);
+        let messages = vec![
+            json!({"id": "m1", "role": "user", "content": "forget the old code name"}),
+            json!({"id": "m2", "role": "assistant", "content": "I will not use it"}),
+        ];
+        runtime
+            .after_turn_with_options(
+                "session-forget-process",
+                Some("key"),
+                &messages,
+                0,
+                Some(&json!({
+                    "action": "forget",
+                    "content": "old code name"
+                })),
+            )
+            .unwrap();
+
+        let result = runtime.process_outbox_once(10).unwrap();
+
+        assert_eq!(result["processedCount"], 1);
+        assert_eq!(result["statusCounts"]["unsupported"], 1);
+        let jobs = runtime
+            .store()
+            .list_outbox_jobs(Some("unsupported"), 10)
+            .unwrap();
+        assert_eq!(jobs.len(), 1);
+        assert_eq!(jobs[0]["lastError"], "hindsight_forget_not_supported");
+    }
+
+    #[test]
+    fn after_turn_detects_tool_use_blocks_for_retain_skip() {
+        let dir = tempdir().unwrap();
+        let runtime = MemoryRuntime::new(dir.path());
+        let messages = vec![
+            json!({"role": "user", "content": "please inspect the file"}),
+            json!({
+                "role": "assistant",
+                "content": "final after tool",
+                "blocks": [{
+                    "type": "toolUse",
+                    "id": "call-read",
+                    "name": "read",
+                    "input": { "path": "Cargo.toml" }
+                }]
+            }),
+        ];
+        let result = runtime
+            .after_turn("session-tools", Some("key"), &messages, 0)
+            .unwrap();
+        assert_eq!(result["status"], "ok");
+        assert_eq!(result["shouldRetain"], false);
     }
 
     #[test]
@@ -947,5 +1630,76 @@ mod tests {
         let status = runtime.status().unwrap();
         assert_eq!(status["status"], "ok");
         assert_eq!(status["implementation"], "hindsight-native");
+    }
+
+    fn start_hindsight_retain_server() -> (String, std::sync::mpsc::Receiver<String>) {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("hindsight listener");
+        let addr = listener.local_addr().expect("hindsight addr");
+        let (request_tx, request_rx) = std::sync::mpsc::channel();
+        thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("hindsight request");
+            stream
+                .set_read_timeout(Some(Duration::from_millis(500)))
+                .expect("set read timeout");
+            let request = read_http_request(&mut stream);
+            request_tx
+                .send(String::from_utf8_lossy(&request).to_string())
+                .expect("send hindsight request");
+            let body = r#"{"status":"ok"}"#;
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                body.len(),
+                body
+            );
+            stream
+                .write_all(response.as_bytes())
+                .expect("write hindsight response");
+        });
+        (format!("http://{addr}"), request_rx)
+    }
+
+    fn read_http_request(stream: &mut std::net::TcpStream) -> Vec<u8> {
+        let mut request = Vec::new();
+        let mut buffer = [0_u8; 4096];
+        loop {
+            match stream.read(&mut buffer) {
+                Ok(0) => break,
+                Ok(n) => {
+                    request.extend_from_slice(&buffer[..n]);
+                    if request_body_complete(&request) {
+                        break;
+                    }
+                }
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                    ) =>
+                {
+                    break;
+                }
+                Err(error) => panic!("read hindsight request: {error}"),
+            }
+        }
+        request
+    }
+
+    fn request_body_complete(request: &[u8]) -> bool {
+        let text = String::from_utf8_lossy(request);
+        let Some((headers, body)) = text.split_once("\r\n\r\n") else {
+            return false;
+        };
+        let content_length = headers.lines().find_map(|line| {
+            let (name, value) = line.split_once(':')?;
+            if name.trim().eq_ignore_ascii_case("content-length") {
+                value.trim().parse::<usize>().ok()
+            } else {
+                None
+            }
+        });
+        match content_length {
+            Some(length) => body.as_bytes().len() >= length,
+            None => true,
+        }
     }
 }

@@ -54,6 +54,17 @@ pub(super) fn apply_gateway_agent_defaults(
             .entry("systemPrompt".to_string())
             .or_insert(Value::String(system_prompt));
     }
+    if let Some(permission_mode) = agent.permission_mode {
+        params_object
+            .entry("permissionMode".to_string())
+            .or_insert(Value::String(permission_mode));
+    }
+    if !agent.mcp_servers.is_empty() && !params_object.contains_key("mcpServers") {
+        params_object.insert(
+            "mcpServers".to_string(),
+            Value::Array(agent.mcp_servers.into_iter().map(Value::String).collect()),
+        );
+    }
     if let Some(json_schema) = sdk_json_schema(state) {
         params_object
             .entry("jsonSchema".to_string())
@@ -106,6 +117,7 @@ fn gateway_agent_specs(state: &GatewayState) -> Vec<GatewayAgentSpec> {
     );
 
     let config = read_config_value(&config_path(state)).ok();
+    merge_builtin_task_agent_specs(&mut agents);
     merge_markdown_agent_specs(state, config.as_ref(), &mut agents);
     if let Some(config) = config.as_ref() {
         merge_config_agent_specs(state, config, &mut agents);
@@ -114,6 +126,34 @@ fn gateway_agent_specs(state: &GatewayState) -> Vec<GatewayAgentSpec> {
     merge_sdk_agent_specs(state, &mut agents);
     apply_sdk_prompt_settings(state, &mut agents);
     agents.into_values().collect()
+}
+
+fn merge_builtin_task_agent_specs(agents: &mut BTreeMap<String, GatewayAgentSpec>) {
+    for definition in crawclaw_runtime::agent_definitions::user_visible_agent_definitions() {
+        merge_gateway_agent_spec(
+            agents,
+            GatewayAgentSpec {
+                id: definition.id.to_string(),
+                name: definition.label.to_string(),
+                description: Some(definition.description.to_string()),
+                workspace: None,
+                model: Some(Value::String(definition.model.to_string())),
+                reasoning_level: None,
+                system_prompt: Some(definition.prompt.to_string()),
+                enabled_tools: definition
+                    .tool_allowlist
+                    .iter()
+                    .map(|tool| (*tool).to_string())
+                    .collect(),
+                mcp_servers: definition
+                    .mcp_servers
+                    .iter()
+                    .map(|server| (*server).to_string())
+                    .collect(),
+                permission_mode: Some(definition.permission_mode.to_string()),
+            },
+        );
+    }
 }
 
 fn merge_config_agent_specs(

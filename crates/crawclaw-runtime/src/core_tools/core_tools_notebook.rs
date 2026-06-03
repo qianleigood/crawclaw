@@ -106,6 +106,7 @@ fn edit_notebook(runtime_root: &Path, input: NotebookEditInput) -> Result<Value,
     if path.extension().and_then(|value| value.to_str()) != Some("ipynb") {
         return Err("File must be a Jupyter notebook (.ipynb file)".to_string());
     }
+    crate::sdk::validate_fresh_file_read_state(&path)?;
     let original_file =
         fs::read_to_string(&path).map_err(|error| format!("failed to read notebook: {error}"))?;
     let mut notebook = serde_json::from_str::<Value>(&original_file)
@@ -202,6 +203,7 @@ fn edit_notebook(runtime_root: &Path, input: NotebookEditInput) -> Result<Value,
     );
     fs::write(&path, &updated_file)
         .map_err(|error| format!("failed to write notebook: {error}"))?;
+    let _ = crate::sdk::record_file_read_state(&path, &updated_file);
     let text = match effective_mode.as_str() {
         "replace" => format!(
             "Updated cell {} with {}",

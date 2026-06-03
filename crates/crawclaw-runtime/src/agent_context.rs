@@ -539,7 +539,7 @@ fn hindsight_memory_snippets(runtime_root: &Path, user_text: &str) -> Vec<String
     let runtime = MemoryRuntime::new(runtime_root);
     let config = runtime.config();
 
-    if !config.hindsight.enabled {
+    if !config.hindsight.prompt_recall_enabled() {
         return Vec::new();
     }
 
@@ -581,10 +581,7 @@ fn compaction_summary(
     history: &[AgentRuntimeMessage],
     profile: &AgentRunProfile,
 ) -> AgentRuntimeCompactionSummary {
-    let summary_path = runtime_root
-        .join("memory")
-        .join("session-summary")
-        .join(format!("{thread_id}.md"));
+    let summary_path = session_summary_path(runtime_root, thread_id, "md");
     let active =
         profile.compaction_policy == CompactionPolicy::SummaryPlusTail || summary_path.exists();
     let state = read_compaction_state(runtime_root, thread_id);
@@ -610,10 +607,7 @@ fn compaction_summary(
 }
 
 fn compaction_system_section(runtime_root: &Path, thread_id: &str) -> Option<String> {
-    let path = runtime_root
-        .join("memory")
-        .join("session-summary")
-        .join(format!("{thread_id}.md"));
+    let path = session_summary_path(runtime_root, thread_id, "md");
     let Ok(summary) = fs::read_to_string(path) else {
         return None;
     };
@@ -1016,10 +1010,7 @@ struct CompactionState {
 }
 
 fn read_compaction_state(runtime_root: &Path, thread_id: &str) -> CompactionState {
-    let path = runtime_root
-        .join("memory")
-        .join("session-summary")
-        .join(format!("{thread_id}.state.json"));
+    let path = session_summary_path(runtime_root, thread_id, "state.json");
     let Ok(raw) = fs::read_to_string(path) else {
         return CompactionState::default();
     };
@@ -1045,6 +1036,14 @@ fn read_compaction_state(runtime_root: &Path, thread_id: &str) -> CompactionStat
             .and_then(Value::as_u64)
             .map(|value| value as usize),
     }
+}
+
+fn session_summary_path(runtime_root: &Path, thread_id: &str, extension: &str) -> PathBuf {
+    let scope = crate::memory::normalize_scope(thread_id).unwrap_or_else(|_| "main".to_string());
+    runtime_root
+        .join("memory")
+        .join("session-summary")
+        .join(format!("{scope}.{extension}"))
 }
 
 fn safe_tail_start_index(history: &[AgentRuntimeMessage], desired_start: usize) -> usize {

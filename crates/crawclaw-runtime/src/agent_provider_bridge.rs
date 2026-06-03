@@ -68,11 +68,25 @@ fn is_retryable_provider_error_message(message: &str) -> bool {
     .any(|needle| message.contains(needle))
 }
 
+#[cfg(test)]
 pub(super) fn build_filtered_native_runtime_tool_registry(
     runtime_root: &Path,
     enabled_tools: &[String],
 ) -> pi::sdk::ToolRegistry {
-    let registry = build_native_runtime_tool_registry(runtime_root);
+    build_filtered_native_runtime_tool_registry_with_special_agent(
+        runtime_root,
+        enabled_tools,
+        None,
+    )
+}
+
+pub(super) fn build_filtered_native_runtime_tool_registry_with_special_agent(
+    runtime_root: &Path,
+    enabled_tools: &[String],
+    active_special_agent: Option<String>,
+) -> pi::sdk::ToolRegistry {
+    let registry =
+        build_native_runtime_tool_registry_with_special_agent(runtime_root, active_special_agent);
     if enabled_tools.is_empty() {
         return registry;
     }
@@ -112,12 +126,17 @@ pub(crate) fn build_native_runtime_tool_registry_for_selection(
     selection: &AgentRuntimeToolSelection,
     permission_policy: Option<AgentRuntimePermissionPolicy>,
     tool_hook_policy: Option<AgentRuntimeToolHookPolicy>,
+    active_special_agent: Option<String>,
 ) -> pi::sdk::ToolRegistry {
     let registry = match selection {
         AgentRuntimeToolSelection::Default => build_default_profile_tool_registry(runtime_root),
         AgentRuntimeToolSelection::Disabled => pi::sdk::ToolRegistry::from_tools(Vec::new()),
         AgentRuntimeToolSelection::AllowList(enabled_tools) => {
-            build_filtered_native_runtime_tool_registry(runtime_root, enabled_tools)
+            build_filtered_native_runtime_tool_registry_with_special_agent(
+                runtime_root,
+                enabled_tools,
+                active_special_agent,
+            )
         }
     };
     let registry = apply_permission_policy_to_registry(registry, permission_policy);

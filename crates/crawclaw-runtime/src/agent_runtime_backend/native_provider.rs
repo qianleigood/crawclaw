@@ -27,11 +27,14 @@ impl AgentRuntimeBackend for NativeProviderRuntimeBackend {
         Box::pin(async move {
             let mut messages =
                 agent_messages_to_native_provider_messages(&request.runtime_context.messages);
+            let active_special_agent =
+                active_special_agent_for_tools(&request.runtime_context.context_summary);
             let tools = build_native_runtime_tool_registry_for_selection(
                 request.runtime_root,
                 &request.tool_selection,
                 request.permission_policy.clone(),
                 request.tool_hook_policy.clone(),
+                active_special_agent,
             );
             let provider_tools = request
                 .runtime_context
@@ -124,6 +127,13 @@ impl AgentRuntimeBackend for NativeProviderRuntimeBackend {
                 "NativeProvider runtime exceeded max tool iterations ({max_tool_iterations})."
             )))
         })
+    }
+}
+
+fn active_special_agent_for_tools(summary: &AgentRuntimeContextSummary) -> Option<String> {
+    match summary.profile_kind.as_str() {
+        "special_agent" | "compaction" | "memory_maintenance" => summary.agent_definition.clone(),
+        _ => None,
     }
 }
 

@@ -1,434 +1,200 @@
 ---
 read_when:
-  - You want to refactor durable memory auto-write into a background agent
-  - You want the exact trigger rules, input contract, capability boundary, and rollout plan for a durable_memory agent
-  - You want a practical mapping from parent-context durable memory maintenance to CrawClaw's runtime architecture
-summary: Design for refactoring durable memory auto-write into a background durable_memory agent
-title: Durable Memory Agent Design
+  - You are changing durable-memory special-agent behavior
+  - You need the input contract, trigger rules, and capability boundary for durable memory maintenance
+  - You are comparing CrawClaw memory maintenance with Claude Code memory behavior
+summary: "Current durable-memory special-agent design and future automatic extraction boundary"
+title: "Durable Memory Agent Design"
 ---
 
 # Durable Memory Agent Design
 
-This document records the refactor direction that has now been landed:
+CrawClaw keeps normal Hindsight experience writeback in the memory outbox, and
+treats `durable-memory` as a constrained memory-maintenance special agent.
 
-**move CrawClaw durable memory auto-write from the former synchronous extraction
-flow into a constrained background `durable_memory` agent.**
+The design borrows the useful Claude Code idea of an isolated memory-maintenance
+worker, but does not copy Claude Code's file-native memory implementation.
+CrawClaw stores memory in Hindsight layers and enforces those layers through the
+runtime tool wrapper.
 
-The goal was to align with Claude Code's durable-memory mechanics without
-copying its file-native implementation literally. CrawClaw borrows two
-durable-memory properties and fits them into CrawClaw's runtime architecture:
+## Current State
 
-- more complete extraction rules
-- a background execution shape that does not block the main interaction loop
+As of the current runtime:
 
-## Why refactor
+- `memory.afterTurn` records runtime-store rows and enqueues eligible completed
+  turns for Hindsight `experience` retain.
+- `durable-memory` is registered as an `embedded_fork` special agent.
+- `durable-memory` declares `parentContextPolicy: "none"`.
+- `durable-memory` receives a structured `contextPackage`, not the parent
+  transcript or prompt envelope.
+- `durable-memory` can use only the `durable` Hindsight layer.
+- `experience` can use only the `experience` Hindsight layer.
+- `dream` can use only the `mental-models` Hindsight layer.
+- `session-summary` remains the compaction/session-continuity special agent.
 
-The original durable auto-write path had three structural problems:
+There is not currently a landed automatic per-turn durable extraction scheduler.
+Do not describe durable auto-write as fully moved to a background
+`durable-memory` agent unless the scheduler, cursor, skip rules, and
+observability paths are implemented and tested.
 
-1. Trigger point is too early  
-   It used to hang off `afterTurn`, which was closer to "new messages arrived,
-   maybe extract" than "the turn has stabilized, now consolidate memory".
+## Why The Input Must Be Narrow
 
-2. The window is too narrow  
-   It effectively works on something close to "the last 8 visible user/assistant messages from this turn's new messages", which can miss important feedback from the earlier half of the turn.
+Durable memory is long-lived. If the agent inherits the parent transcript, it
+can accidentally turn private task context, exploratory reasoning, or transient
+tool output into durable memory.
 
-3. `feedback` semantics are incomplete  
-   Feedback used to behave more like corrective memory. The stronger rule is:
-   - record corrections
-   - record explicit future-behavior guidance and durable preference/context signal
-   - do not record operational lessons; those belong to experience memory
+The durable-memory agent therefore uses a structured input package:
 
-So this is not just a prompt tweak. It is a lifecycle, windowing, and execution-shape refactor.
+- recent model-visible messages selected by the caller
+- scope/session identifiers
+- existing durable manifest or recall context when available
+- explicit write/delete signals
 
-## Target outcome
+It must not receive:
 
-Durable auto-write should eventually behave like this:
+- the whole transcript
+- hidden parent prompt context
+- the whole project context
+- unrelated session history
 
-- triggers only after a stable top-level turn ends
-- only processes model-visible messages since an extraction cursor
-- explicit durable write/delete wins, so background extraction skips
-- experience knowledge writes no longer suppress durable extraction
-- `feedback` supports bidirectional durable behavior guidance, not operational
-  lessons
-- runs as a task-backed background special agent
-- is visible through Action Feed, Context Archive, and inspect
+## Runtime Contract
 
-In one sentence:
+The canonical special-agent definition is in
+`crates/crawclaw-runtime/src/special_agents.rs`.
 
-**it should become a constrained memory maintenance agent, not a bare LLM helper.**
+`durable-memory` declares:
 
-## Current implementation status
+- `executionMode: "embedded_fork"`
+- `parentContextPolicy: "none"`
+- `inputContract: "memory_delta"`
+- `persistenceHandler: "hindsight_memory"`
+- allowed memory layer: `durable`
+- tool allowlist: `knowledge_recall`, `knowledge_ingest`, `sessions_history`
 
-As of the current version, the main path is already landed:
+The gateway wraps `contextPackage` in a task body that tells the agent to use
+only the structured memory-maintenance input and not infer memory from hidden
+parent context.
 
-- cursor-based incremental extraction window
-- experience knowledge writes no longer suppress durable extraction
-- bidirectional durable `feedback` guidance, with operational experience routed
-  away from durable extraction
-- task-backed background `durable_memory`
-- hard stop at `maxTurns: 5` for the durable memory agent
-- manifest-first prompt workflow: candidate review first, then tightly batched durable writes within the 5-turn budget
-- Hindsight knowledge tools now back the durable memory agent:
-  - `knowledge_recall`
-  - `knowledge_ingest`
-  - `knowledge_model_create`
-  - `knowledge_model_list`
-- Action Feed and Context Archive integration
-- explicit durable scope inheritance for durable-memory child sessions
-- parent fork context inheritance for continuity, with the cursor window kept as
-  the authoritative extraction source
+## Context Package Shape
 
-For the main refactor itself, no blocking follow-up remains.
+The concrete JSON may evolve, but the package should stay narrow and explicit:
 
-The current trigger semantics are now aligned with "settled top-level
-turn end" in a stricter sense:
-
-- `afterTurn` is only reached from post-turn finalization
-- `durable_memory` is scheduled only when the turn's new messages include a
-  final assistant reply
-- if that latest assistant reply still contains tool calls, or ended in
-  `error` / `aborted`, extraction is skipped for that turn
-- subagent sessions are rejected in the worker manager, so automatic durable
-  extraction stays on the top-level session path
-
-Remaining work from here is product polish around observability, not another
-core architecture change.
-
-## Shape choice
-
-### Why the former structured extraction worker was not kept
-
-The current worker has real advantages:
-
-- simple implementation
-- stable structured output
-- deterministic local upsert
-
-But it also has real limits:
-
-- no full agent-grade observability
-- no independent task identity
-- awkward to surface in Action Feed
-- behaves more like a runtime helper than a real background maintenance unit
-
-### Claude mechanism alignment versus file-native copying
-
-Claude's forked extractor writes memory files directly through normal file tools
-restricted by runtime permission checks. That works there, but CrawClaw already
-has better infrastructure for this:
-
-- task-backed runtime
-- guard and capability policy
-- Action Feed
-- Context Archive
-- durable store upsert
-
-So the right approach is:
-
-- **align with the parent-context execution pattern**
-- **keep CrawClaw's durable store and upsert model**
-
-## Core design
-
-### Agent identity
-
-Introduce a special built-in agent profile:
-
-- `agentId: durable_memory`
-- `spawnSource: "durable-memory"`
-- `mode: background`
-- task-backed
-- hidden from ordinary chat transcript by default
-
-This is conceptually similar to review stages:
-
-- review stages = read-only validation agents
-- durable_memory = durable-memory maintenance agent
-
-### Trigger rules
-
-Only trigger when all of these are true:
-
-1. current session is a top-level main session
-2. durable auto-write is enabled
-3. a stable top-level turn has ended
-4. there are new model-visible messages since the last extraction cursor
-5. this turn did not already perform explicit durable write or delete
-
-Explicitly **not** a skip condition:
-
-- experience knowledge writes
-
-### Input contract
-
-The input to `durable_memory` must be narrow and structured:
-
-```ts
-type MemoryExtractorInput = {
-  sessionId: string;
-  sessionKey: string;
-  scope: {
-    scopeKey: string;
-    agentId?: string | null;
-    channel?: string | null;
-    userId?: string | null;
-  };
-  cursorAfter?: {
-    messageId?: string;
-    turn?: number;
-  };
-  recentModelVisibleMessages: Array<{
-    id?: string;
-    role: "user" | "assistant";
-    text: string;
-    turnIndex?: number;
-  }>;
-  existingManifest: Array<{
-    title: string;
-    durableType: "user" | "feedback" | "project" | "reference";
-    description: string;
-    dedupeKey?: string;
-    relativePath: string;
-  }>;
-  explicitSignals: {
-    explicitRememberAsked: boolean;
-    explicitForgetAsked: boolean;
-    hadDurableWriteThisTurn: boolean;
-    hadDurableDeleteThisTurn: boolean;
-    hadExperienceWriteThisTurn: boolean;
-  };
-};
+```json
+{
+  "sessionId": "session-1",
+  "sessionKey": "agent:main:session-1",
+  "scope": {
+    "scopeKey": "main",
+    "agentId": "main",
+    "channel": "cli",
+    "userId": "user"
+  },
+  "cursorAfter": {
+    "messageId": "msg-123",
+    "turn": 42
+  },
+  "recentModelVisibleMessages": [
+    {
+      "id": "msg-124",
+      "role": "user",
+      "text": "Remember that this project uses plugin terminology.",
+      "turnIndex": 43
+    }
+  ],
+  "existingManifest": [
+    {
+      "title": "Project terminology",
+      "durableType": "project",
+      "description": "Use plugin terminology in docs and UI.",
+      "dedupeKey": "project-terminology"
+    }
+  ],
+  "explicitSignals": {
+    "explicitRememberAsked": true,
+    "explicitForgetAsked": false,
+    "hadDurableWriteThisTurn": false,
+    "hadDurableDeleteThisTurn": false,
+    "hadExperienceWriteThisTurn": false
+  }
+}
 ```
 
-The most important constraint is:
+## Capability Boundary
 
-- do not pass the whole transcript
-- do not pass the whole project context
-- do not attach the parent prompt envelope to `durable_memory`
-- only pass the incremental messages and manifest needed for durable extraction
+Allowed behavior:
 
-### Capability boundary
+- recall existing durable notes
+- ingest a new durable note
+- update the durable layer through the Hindsight tool path
+- return a concise maintenance report
 
-This agent should be even narrower than review stages.
+Disallowed behavior:
 
-Allowed:
+- source-code browsing
+- shell execution
+- web or browser access
+- arbitrary session spawning
+- writing non-durable Hindsight layers
+- treating parent transcript content as input
 
-- `knowledge_recall`
-- `knowledge_ingest`
-- `knowledge_model_create`
-- `knowledge_model_list`
+The runtime enforces the Hindsight layer. The prompt explains the job, but the
+tool wrapper is the policy boundary.
 
-Disallowed:
+## Extraction Semantics
 
-- read project source code
-- `exec`
-- `browser`
-- `web`
-- `knowledge_ingest`
-- `sessions_spawn`
-- writes outside the current durable scope
+When automatic durable extraction is implemented, it should follow these rules:
 
-In other words:
+1. Trigger only after a stable top-level turn ends.
+2. Process only model-visible messages since the durable extraction cursor.
+3. Use a safety cap for input size, but do not define the window only by "last
+   N messages".
+4. Skip automatic extraction when the turn already performed an explicit
+   durable write or delete.
+5. Do not skip just because the turn wrote `experience`.
+6. Advance the cursor after a successful write or a policy skip.
+7. Do not advance the cursor after failure.
 
-**it is a tiny agent whose only job is maintaining the durable memory directory.**
+These rules are a future automatic scheduler contract. The current runtime has
+the special-agent boundary and narrow-input path, not the complete automatic
+durable scheduler.
 
-### Output contract
+## Feedback Semantics
 
-The agent should emit a structured result:
+Durable `feedback` should mean stable future-behavior guidance, not operational
+lessons.
 
-```ts
-type MemoryExtractorResult = {
-  status: "written" | "skipped" | "no_change" | "failed";
-  writtenPaths: string[];
-  updatedPaths: string[];
-  deletedPaths: string[];
-  extractedTypes: Array<"user" | "feedback" | "project" | "reference">;
-  reason?: string;
-};
-```
+Good durable feedback examples:
 
-This result does not need to be user-facing by default, but it must feed:
+- "Do not default to a marketing-style page for this product."
+- "Keep project architecture answers grounded in current code."
+- "Use plugin terminology in docs and UI."
 
-- Action Feed
-- Context Archive
-- inspect
+Experience memory should hold reusable operational lessons, command sequences,
+debugging workflows, and implementation patterns.
 
-## Extraction rules
+## Relationship To Other Memory Agents
 
-### Only process model-visible incremental messages
+- `experience` writes reusable operational lessons into Hindsight
+  `experience`.
+- `dream` consolidates durable/session signals into Hindsight `mental-models`.
+- `session-summary` summarizes session continuity for compaction.
+- `durable-memory` writes stable user/project preference and collaboration
+  context into Hindsight `durable`.
 
-The window should become:
+Keeping these surfaces separate avoids parent-context pollution and keeps each
+memory layer auditable.
 
-- `user/assistant` messages since the extraction cursor
-- plus a safety cap, for example 20 to 30 messages
+## Minimum Tests
 
-The cap is only a guardrail. It should not define "recent" by itself.
+Changes to this area should include tests that prove:
 
-### Explicit durable write/delete wins
+- `durable-memory` definitions declare `memory_delta` input and no parent
+  context.
+- `durable-memory` receives `contextPackage` without parent transcript leakage.
+- memory tools resolve the durable layer for `durable-memory`.
+- `experience` and `dream` cannot write the durable layer.
+- `memoryMode` gates prompt recall and knowledge-tool availability according to
+  the Hindsight config.
 
-If the turn already used:
-
-- `knowledge_recall`
-- `knowledge_ingest`
-- `knowledge_model_create`
-- `knowledge_model_list`
-
-then the durable_memory skips that turn and still advances the cursor.
-
-### Experience writes should not suppress durable extraction
-
-Reason:
-
-- Hindsight experience and durable collaboration memory are different layers
-- a turn can validly write experience and still deserve durable feedback/project extraction
-
-### `feedback` stays durable-only
-
-`feedback` should no longer mean only "correction memory", but it must stay
-inside the durable-memory boundary.
-
-It should cover:
-
-- corrective
-  - "don't do this in the future"
-  - "do not default to that response style"
-- reinforcing durable guidance
-  - "keep answering this user's operations questions step-first"
-  - "default this project discussion to the plugin boundary terminology"
-
-It should not cover reusable procedures, command sequences, debugging workflows,
-test strategies, failure patterns, or implementation lessons. Those belong to
-`knowledge_ingest` and the Experience Agent.
-
-The safer first step is:
-
-- keep top-level `feedback`
-- strengthen prompt and note-schema semantics
-
-### Prefer update over duplicate creation
-
-This should align directly with Claude:
-
-- update existing notes when the topic matches
-- only create new notes when needed
-- allow delete when forgetting/removal is explicit
-
-## State design
-
-Introduce a per-session extraction cursor:
-
-```ts
-type DurableExtractionCursor = {
-  sessionKey: string;
-  lastExtractedMessageId?: string;
-  lastExtractedTurn?: number;
-  lastRunAt?: number;
-};
-```
-
-Advance rules:
-
-- advance after successful writes
-- advance when skipping due to explicit durable write/delete
-- do not advance on failure
-
-## Relationship to existing systems
-
-### Action Feed
-
-`durable_memory` should be first-class in Action Feed.
-
-Minimum actions:
-
-- `durable memory agent scheduled`
-- `durable memory agent running`
-- `durable memory agent skipped`
-- `durable memory agent wrote 2 notes`
-- `durable memory agent failed`
-
-### Context Archive
-
-This flow must land cleanly in Context Archive.
-
-At minimum archive:
-
-- input window
-- manifest snapshot
-- skip reason
-- final write result
-
-### inspect
-
-`agent inspect` should later show:
-
-- whether the latest extraction triggered
-- how large the input window was
-- whether it skipped
-- which notes it wrote
-
-## Rollout result
-
-The rollout is now complete. In practice it landed in two phases.
-
-### Phase 1: fix the rules first
-
-Completed:
-
-- cursor-based incremental window
-- remove `experience_write` suppression
-- bidirectional feedback
-
-During this transition, the legacy structured extraction + upsert path was
-briefly reused.
-
-### Phase 2: move execution into a background `durable_memory` agent
-
-Completed:
-
-- durable auto-write becomes a task-backed background special agent
-- scoped memory file tools replace the earlier high-level durable write tools inside `durable_memory`
-- Action Feed / Archive / inspect all integrate cleanly
-
-Current final state:
-
-- the former structured extraction worker has been removed from the durable
-  auto-write path
-- `durable_memory` is the only automatic durable write path
-
-## Completed PR breakdown
-
-### PR-A
-
-cursor-based durable extraction window
-
-### PR-B
-
-remove experience-write suppression
-
-### PR-C
-
-bidirectional durable feedback guidance
-
-### PR-D
-
-background durable_memory agent
-
-### PR-E
-
-Action Feed / Archive / inspect integration
-
-## Bottom line
-
-The most valuable move here is not piling more prompt logic onto the existing after-turn extraction helper.
-
-It is:
-
-**upgrade durable auto-write into a cursor-driven rule set running on a CrawClaw background special agent.**
-
-The key architectural choice is:
-
-- adopt the stronger turn-end extraction rules
-- integrate with CrawClaw task/runtime/action/archive
-- keep CrawClaw's existing durable store and upsert path
-
-That gives us Claude's stronger extraction policy without bypassing the runtime architecture we already built.
+These tests matter more than prompt snapshot changes because they verify the
+actual runtime boundary.

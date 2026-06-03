@@ -9,6 +9,26 @@ pub struct MemoryRuntimeConfig {
     pub session_summary: SessionSummaryConfig,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct EffectiveMemoryPolicy {
+    pub hindsight_enabled: bool,
+    pub memory_mode: String,
+    pub prompt_recall_enabled: bool,
+    pub knowledge_tools_enabled: bool,
+    pub auto_retain_enabled: bool,
+    pub disabled_reasons: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct EffectiveToolAllowlist {
+    pub tool_allowlist: Vec<String>,
+    pub effective_tool_allowlist: Vec<String>,
+    pub disabled_tools: Vec<String>,
+    pub disabled_reason: String,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeStoreConfig {
@@ -162,4 +182,105 @@ impl Default for MemoryRuntimeConfig {
             session_summary: SessionSummaryConfig::default(),
         }
     }
+}
+
+impl HindsightConfig {
+    pub fn prompt_recall_enabled(&self) -> bool {
+        self.enabled && !self.memory_mode.trim().eq_ignore_ascii_case("tools")
+    }
+
+    pub fn knowledge_tools_enabled(&self) -> bool {
+        self.enabled
+            && self.enable_knowledge_tools
+            && !self.memory_mode.trim().eq_ignore_ascii_case("context")
+    }
+}
+
+impl EffectiveMemoryPolicy {
+    pub fn from_config(config: &MemoryRuntimeConfig) -> Self {
+        Self::from_hindsight_config(&config.hindsight)
+    }
+
+    pub fn from_hindsight_config(config: &HindsightConfig) -> Self {
+        let prompt_recall_enabled = config.prompt_recall_enabled();
+        let knowledge_tools_enabled = config.knowledge_tools_enabled();
+        let auto_retain_enabled = config.enabled && config.auto_retain;
+        let mut disabled_reasons = Vec::new();
+        if !config.enabled {
+            disabled_reasons.push("memory.hindsight.enabled=false".to_string());
+        }
+        if config.memory_mode.trim().eq_ignore_ascii_case("context") {
+            disabled_reasons.push(
+                "memory.hindsight.memoryMode=context disables Hindsight knowledge tools"
+                    .to_string(),
+            );
+        }
+        if config.memory_mode.trim().eq_ignore_ascii_case("tools") {
+            disabled_reasons
+                .push("memory.hindsight.memoryMode=tools disables prompt recall".to_string());
+        }
+        if !config.enable_knowledge_tools {
+            disabled_reasons.push("memory.hindsight.enableKnowledgeTools=false".to_string());
+        }
+        if !config.auto_retain {
+            disabled_reasons.push("memory.hindsight.autoRetain=false".to_string());
+        }
+        Self {
+            hindsight_enabled: config.enabled,
+            memory_mode: config.memory_mode.clone(),
+            prompt_recall_enabled,
+            knowledge_tools_enabled,
+            auto_retain_enabled,
+            disabled_reasons,
+        }
+    }
+
+    pub fn apply_tool_allowlist<S: AsRef<str>>(&self, tools: &[S]) -> EffectiveToolAllowlist {
+        let mut tool_allowlist = Vec::new();
+        let mut effective_tool_allowlist = Vec::new();
+        let mut disabled_tools = Vec::new();
+        for tool in tools {
+            let tool = tool.as_ref().to_string();
+            tool_allowlist.push(tool.clone());
+            if is_hindsight_knowledge_tool_name(&tool) && !self.knowledge_tools_enabled {
+                disabled_tools.push(tool);
+            } else {
+                effective_tool_allowlist.push(tool);
+            }
+        }
+        let disabled_reason = if disabled_tools.is_empty() {
+            String::new()
+        } else {
+            self.knowledge_tool_disabled_reason()
+        };
+        EffectiveToolAllowlist {
+            tool_allowlist,
+            effective_tool_allowlist,
+            disabled_tools,
+            disabled_reason,
+        }
+    }
+
+    fn knowledge_tool_disabled_reason(&self) -> String {
+        self.disabled_reasons
+            .iter()
+            .find(|reason| {
+                reason.contains("enabled=false")
+                    || reason.contains("memoryMode=context")
+                    || reason.contains("enableKnowledgeTools=false")
+            })
+            .cloned()
+            .unwrap_or_else(|| "Hindsight knowledge tools are disabled".to_string())
+    }
+}
+
+pub fn is_hindsight_knowledge_tool_name(tool_name: &str) -> bool {
+    matches!(
+        tool_name,
+        "knowledge_recall"
+            | "knowledge_reflect"
+            | "knowledge_ingest"
+            | "knowledge_model_list"
+            | "knowledge_model_create"
+    )
 }

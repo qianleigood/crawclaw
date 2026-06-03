@@ -1,108 +1,110 @@
 ---
 read_when:
-  - You want the current durable-memory auto-write architecture
-  - You want to know which Claude Code ideas CrawClaw intentionally adopted
-  - You want guardrails against reintroducing the old durable extraction path
-summary: Current durable memory agent architecture and anti-regression guardrails
-title: Durable Memory Refactor Status
+  - You want the current durable-memory architecture
+  - You want to know which Claude Code memory ideas CrawClaw intentionally adopted
+  - You want guardrails against parent-context pollution in memory agents
+summary: "Current durable memory architecture and anti-regression guardrails"
+title: "Durable Memory Refactor Status"
 ---
 
 # Durable Memory Refactor Status
 
 This page is the source-grounded status record for CrawClaw durable-memory
-auto-write. CrawClaw intentionally aligns with Claude Code's durable-memory
-mechanics, while keeping CrawClaw's scoped memory tools and Action Feed runtime
-surface.
+maintenance.
+
+CrawClaw intentionally adopts Claude Code's separation between main response
+generation and memory maintenance, but keeps CrawClaw's Hindsight memory
+substrate instead of copying Claude Code's file-native memory writer.
 
 ## Reference Behavior
 
-Claude Code is the reference for five durable-memory rules:
+Claude Code is the reference for these durable-memory ideas:
 
-- run extraction after the top-level turn has ended
-- process only model-visible `user` and `assistant` messages since the last
-  extraction cursor
-- skip background extraction when the main conversation already wrote memory
-- treat `feedback` as both corrective and reinforcing guidance
-- run memory maintenance in a forked agent that can see the parent conversation
-  context while the maintenance prompt keeps the work narrow
+- memory maintenance should not be part of the main reply text path
+- extraction should operate on model-visible conversation evidence
+- stable feedback can be corrective or reinforcing
+- memory maintenance should be a constrained agent/tool surface
+- long-lived memory should not come from arbitrary hidden context
 
-The alignment point is the mechanism, not the raw tool implementation. Claude's
-fork writes files with ordinary file tools restricted by `canUseTool`; CrawClaw's
-fork writes through scoped durable memory tools so the same boundary is enforced
-by the host.
-
-Claude also has a heavier consolidation path. In CrawClaw that role is handled
-by `dream`, not by the per-turn durable memory agent.
+The alignment point is the architecture, not the raw storage layer. Claude Code
+writes memory files through restricted file tools. CrawClaw writes Hindsight
+records through native memory tools whose layer access is enforced by the
+runtime.
 
 ## Current CrawClaw Shape
 
-Durable auto-write is now a turn-end background maintenance flow:
+The current runtime has these memory paths:
 
-- the run loop emits a `stop` lifecycle phase after a final top-level turn
-- `durable_memory` subscribes to that phase
-- subagent sessions are ignored by the durable extraction worker
-- the worker reads model-visible messages from the runtime store using the
-  durable extraction cursor
-- explicit durable writes/deletes suppress background extraction for that turn
-- experience knowledge writes do not suppress durable extraction, because experience
-  notes and durable collaboration memory are separate layers
-- cursor advancement happens only after the turn is handled or intentionally
-  skipped
+- `memory.afterTurn` records runtime-store rows.
+- Eligible completed turns are queued in the memory outbox and later retained
+  into Hindsight `experience` by the outbox worker.
+- `durable-memory` is a special agent with a narrow `memory_delta` input
+  contract.
+- `durable-memory` does not inherit parent transcript or parent prompt context.
+- `durable-memory` writes only the Hindsight `durable` layer.
+- `dream` consolidates only into `mental-models`.
+- `session-summary` handles compaction/session continuity.
 
-The durable memory agent runs as an embedded special agent:
+There is not currently a landed automatic per-turn durable extraction scheduler.
+That means the current durable-memory status is:
 
-- lifecycle metadata may provide a captured parent fork context
-- `durable_memory` declares `parentContextPolicy: "fork_messages_only"`, so the
-  embedded run receives only the forked model-visible messages and does not
-  attach the parent prompt envelope
-- the durable extraction task prompt still makes the cursor-based recent window
-  authoritative for candidate memories
-- older forked context may resolve references in recent messages, but it is not
-  a source for re-extracting old history
-- scoped durable-memory tools constrain writes to the resolved durable scope
+- special-agent definition: landed
+- narrow `contextPackage` handoff: landed
+- memory-layer enforcement: landed
+- automatic stop-phase durable extraction cursor: future work
+- Action Feed / Context Archive observability for automatic durable extraction:
+  future work
 
-The automatic durable write path is now `durable_memory`. Do not reintroduce
-the old in-process structured extraction worker as a hidden prompt-time writer.
+## Parent Context Guardrail
+
+The most important anti-regression rule is:
+
+**do not let `durable-memory` inherit parent context.**
+
+`durable-memory` declares `parentContextPolicy: "none"`. If a caller supplies
+`parentSessionKey`, the gateway uses it only when the selected special-agent
+definition allows parent context. For memory-maintenance agents, the gateway
+uses a fresh `special:{kind}:{runId}` session key and passes a structured
+`contextPackage` in the task body.
+
+This prevents accidental durable-memory writes from:
+
+- earlier parent transcript content
+- hidden prompt extras
+- tool output that was not selected for memory extraction
+- unrelated session history
 
 ## Recall And Consolidation
 
-Durable recall is prompt-time read behavior, separate from writing:
+Durable recall is prompt-time read behavior, separate from durable writing.
 
-- `MEMORY.md` is the first durable index surface for a scope
-- note header metadata is the next selector layer
-- the body index cache gives weak-header notes a cheap way to enter candidate
-  ranking
-- only a bounded candidate slice reads body excerpts for rerank
-- selected-note diagnostics record `index`, `header`, `body_index`, and
-  `body_rerank` provenance
-- prompt assembly can shift a small budget share toward or away from durable
-  memory based on query classification and durable score strength
+`memory.hindsight.memoryMode` controls whether Hindsight recall is injected into
+the prompt, exposed only through tools, or both. Prompt recall is disabled in
+`tools` mode. Knowledge tools are disabled in `context` mode.
 
-`dream` remains the slower consolidation layer. It is enabled by default, but
-run startup is still gated by minimum-session, minimum-hour, scan-throttle, and
-per-scope `.consolidate-lock` file checks. It can repair, dedupe, and improve
-durable notes, but it does not replace per-turn extraction.
+`dream` remains the slower consolidation layer. It is a separate special agent
+that works in the `mental-models` layer and does not replace durable-memory
+extraction.
 
-Promotion is governance, not recall. Promotion candidates are marked as
-`surface: governance_only` so they cannot become a hidden prompt-time recall
-path.
+## Future Durable Extraction Contract
 
-## Do Not Reintroduce
+If automatic durable extraction is added, it should:
 
-Avoid these older behaviors:
+- run after a stable top-level turn ends
+- process only selected model-visible messages since an extraction cursor
+- skip when the turn already performed explicit durable write/delete
+- not skip just because the turn wrote `experience`
+- pass a structured `contextPackage` to `durable-memory`
+- advance the cursor only after success or an intentional policy skip
+- record enough evidence for inspection and replay
 
-- scheduling durable extraction directly from generic `afterTurn` ingestion
-- defining the extraction window as the last N messages from the new in-memory
-  turn slice
-- treating experience knowledge writes as a reason to suppress durable extraction
-- letting subagent sessions auto-write durable memory by default
-- giving the durable memory agent unrestricted project or shell access
-- stuffing full `MEMORY.md` contents into the system prompt as the durable recall
-  strategy
-- making promotion candidates a third prompt-time recall layer
+Do not reintroduce an in-process prompt-time durable writer hidden behind
+`afterTurn`.
 
 ## Relevant Files
 
-- `crates/crawclaw-runtime/src/memory.rs`
+- `crates/crawclaw-runtime/src/memory/mod.rs`
+- `crates/crawclaw-runtime/src/memory/config.rs`
 - `crates/crawclaw-runtime/src/special_agents.rs`
-- `crates/crawclaw-runtime/src/lib.rs`
+- `crates/crawclaw-runtime/src/core_tools/core_tools_special_agents.rs`
+- `crates/crawclaw-gateway/src/gateway_chat.rs`

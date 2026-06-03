@@ -784,6 +784,77 @@ async fn rust_gateway_rpc_manages_special_agents_and_memory() {
 }
 
 #[tokio::test]
+async fn rust_gateway_special_agents_list_reports_effective_memory_tools() {
+    let _guard = env_lock().lock().expect("env lock");
+    let previous_config_path = env::var_os("CRAWCLAW_CONFIG_PATH");
+    let runtime_root = unique_test_runtime_root("gateway-special-agents-effective-tools");
+    let config_dir = runtime_root.join("config");
+    std::fs::create_dir_all(&config_dir).expect("config dir");
+    let config_path = config_dir.join("crawclaw.json");
+    std::fs::write(
+        &config_path,
+        serde_json::to_vec_pretty(&json!({
+            "memory": {
+                "hindsight": {
+                    "enabled": true,
+                    "baseUrl": "http://127.0.0.1:1",
+                    "memoryMode": "context",
+                    "enableKnowledgeTools": true
+                }
+            }
+        }))
+        .expect("memory config json"),
+    )
+    .expect("write memory config");
+    env::set_var("CRAWCLAW_CONFIG_PATH", &config_path);
+
+    let state = GatewayState::new(GatewayRunConfig {
+        runtime_root: Some(runtime_root.clone()),
+        ..GatewayRunConfig::default()
+    });
+    let listed = handle_gateway_method(&state, "special_agents.list", json!({}))
+        .await
+        .expect("list special agents");
+    let durable = listed["agents"]
+        .as_array()
+        .expect("agents")
+        .iter()
+        .find(|agent| agent["id"] == "durable-memory")
+        .expect("durable-memory agent");
+
+    assert!(durable["toolAllowlist"]
+        .as_array()
+        .expect("tool allowlist")
+        .iter()
+        .any(|tool| tool == "knowledge_recall"));
+    assert!(!durable["effectiveToolAllowlist"]
+        .as_array()
+        .expect("effective tool allowlist")
+        .iter()
+        .any(|tool| tool == "knowledge_recall"));
+    assert!(durable["effectiveToolAllowlist"]
+        .as_array()
+        .expect("effective tool allowlist")
+        .iter()
+        .any(|tool| tool == "sessions_history"));
+    assert!(durable["disabledTools"]
+        .as_array()
+        .expect("disabled tools")
+        .iter()
+        .any(|tool| tool == "knowledge_recall"));
+    assert!(durable["disabledReason"]
+        .as_str()
+        .expect("disabled reason")
+        .contains("memory.hindsight.memoryMode=context"));
+
+    match previous_config_path {
+        Some(value) => env::set_var("CRAWCLAW_CONFIG_PATH", value),
+        None => env::remove_var("CRAWCLAW_CONFIG_PATH"),
+    }
+    let _ = std::fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
 async fn rust_gateway_special_agent_run_uses_native_agent_runtime() {
     let runtime_root = unique_test_runtime_root("gateway-special-agent-runtime");
     let (provider_base_url, request_rx) = serve_openai_compatible_once(
@@ -1170,6 +1241,80 @@ async fn rust_gateway_memory_special_agent_uses_native_agent_runtime() {
         .recv_timeout(Duration::from_secs(2))
         .expect("captured dream special agent request");
     assert!(request.contains("consolidate memory"));
+
+    let _ = std::fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn rust_gateway_durable_memory_special_agent_uses_narrow_context_package() {
+    let runtime_root = unique_test_runtime_root("gateway-durable-memory-narrow-context");
+    let (provider_base_url, request_rx) = serve_openai_compatible_once(
+        r#"{"choices":[{"message":{"content":"durable memory completed"}}]}"#,
+    );
+    let config_dir = runtime_root.join("config");
+    std::fs::create_dir_all(&config_dir).expect("config dir");
+    std::fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
+            "provider": "openai-compatible",
+            "baseUrl": provider_base_url,
+            "apiKey": "test-key",
+            "model": "test-model"
+        }))
+        .expect("provider config json"),
+    )
+    .expect("write provider config");
+
+    let parent_session_key = "agent:main:parent-with-sensitive-history";
+    crawclaw_runtime::DesktopSessionStore::new(runtime_root.clone())
+        .append_message(
+            parent_session_key,
+            "user",
+            "PARENT_SECRET_TRANSCRIPT_CONTENT",
+            Some("test"),
+        )
+        .expect("write parent transcript");
+    let state = GatewayState::new(GatewayRunConfig {
+        runtime_root: Some(runtime_root.clone()),
+        ..GatewayRunConfig::default()
+    });
+
+    let run = handle_gateway_method(
+        &state,
+        "special_agents.run",
+        json!({
+            "kind": "durable-memory",
+            "scope": "main",
+            "parentSessionKey": parent_session_key,
+            "contextPackage": {
+                "sessionId": "session-1",
+                "sessionKey": parent_session_key,
+                "recentModelVisibleMessages": [
+                    { "role": "user", "text": "Remember that the durable extraction input is narrow." },
+                    { "role": "assistant", "text": "Acknowledged." }
+                ],
+                "explicitSignals": {
+                    "explicitRememberAsked": true,
+                    "explicitForgetAsked": false,
+                    "hadDurableWriteThisTurn": false,
+                    "hadDurableDeleteThisTurn": false,
+                    "hadExperienceWriteThisTurn": false
+                }
+            }
+        }),
+    )
+    .await
+    .expect("run durable-memory special agent");
+
+    assert_eq!(run["status"], "completed");
+    assert_eq!(run["kind"], "durable-memory");
+    let request = request_rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("captured durable-memory request");
+    assert!(request.contains("<context_package>"));
+    assert!(request.contains("Remember that the durable extraction input is narrow."));
+    assert!(!request.contains("PARENT_SECRET_TRANSCRIPT_CONTENT"));
 
     let _ = std::fs::remove_dir_all(runtime_root);
 }
@@ -1586,6 +1731,88 @@ async fn rust_gateway_memory_after_turn_ingests_from_native_runtime() {
     let _ = std::fs::remove_dir_all(runtime_root);
 }
 
+#[tokio::test]
+async fn rust_gateway_memory_after_turn_accepts_explicit_directives() {
+    let runtime_root = unique_test_runtime_root("gateway-memory-directive");
+    let state = GatewayState::new(GatewayRunConfig {
+        runtime_root: Some(runtime_root.clone()),
+        ..GatewayRunConfig::default()
+    });
+
+    let result = handle_gateway_method(
+        &state,
+        "memory.afterTurn",
+        json!({
+            "sessionId": "session-directive",
+            "sessionKey": "agent:main:directive",
+            "memoryDirective": {
+                "action": "do-not-remember",
+                "reason": "private turn"
+            },
+            "messages": [
+                { "id": "m1", "role": "user", "content": "temporary detail" },
+                { "id": "m2", "role": "assistant", "content": "ack" }
+            ]
+        }),
+    )
+    .await
+    .expect("memory after turn directive");
+
+    assert_eq!(result["status"], "ok");
+    assert_eq!(result["shouldRetain"], false);
+    assert_eq!(
+        result["diagnostics"]["memory"]["afterTurn"]["directive"]["action"],
+        "do-not-remember"
+    );
+    assert_eq!(
+        result["diagnostics"]["memory"]["afterTurn"]["skipReason"],
+        "user_do_not_remember"
+    );
+
+    let activity = handle_gateway_method(
+        &state,
+        "memory.activity.list",
+        json!({
+            "sessionId": "session-directive",
+            "limit": 5
+        }),
+    )
+    .await
+    .expect("memory activity list");
+    assert!(activity["activity"]
+        .as_array()
+        .expect("activity array")
+        .iter()
+        .any(|event| event["kind"] == "after_turn" && event["status"] == "skipped"));
+
+    let remember = handle_gateway_method(
+        &state,
+        "memory.afterTurn",
+        json!({
+            "sessionId": "session-remember-directive",
+            "sessionKey": "agent:main:remember-directive",
+            "memoryAction": "remember",
+            "content": "User prefers concise status reports",
+            "messages": [
+                { "id": "m3", "role": "user", "content": "remember this" },
+                { "id": "m4", "role": "assistant", "content": "ack" }
+            ]
+        }),
+    )
+    .await
+    .expect("memory remember directive");
+    assert_eq!(
+        remember["diagnostics"]["memory"]["afterTurn"]["directive"]["action"],
+        "remember"
+    );
+    assert_eq!(
+        remember["diagnostics"]["memory"]["afterTurn"]["outbox"]["kind"],
+        "retain_durable"
+    );
+
+    let _ = std::fs::remove_dir_all(runtime_root);
+}
+
 #[test]
 fn runtime_status_advertises_rust_core_gateway_methods() {
     let _guard = env_lock().lock().expect("env lock");
@@ -1704,6 +1931,52 @@ fn runtime_status_advertises_rust_core_gateway_methods() {
                 .iter()
                 .any(|tool| tool["id"] == "comfyui_workflow"
                     && tool["approval"]["condition"]["equals"] == "run")));
+
+    let _ = std::fs::remove_dir_all(runtime_root);
+}
+
+#[test]
+fn gateway_agents_list_includes_builtin_task_agents_and_applies_defaults() {
+    let _guard = env_lock().lock().expect("env lock");
+    let runtime_root = unique_test_runtime_root("gateway-builtin-task-agents");
+    let state = GatewayState::new(GatewayRunConfig {
+        runtime_root: Some(runtime_root.clone()),
+        ..GatewayRunConfig::default()
+    });
+
+    let agents = agents_list(&state);
+    let agents = agents["agents"].as_array().expect("agents array");
+    let explore = agents
+        .iter()
+        .find(|agent| agent["id"] == "Explore")
+        .expect("Explore agent");
+    let explore_tools = explore["enabledTools"]
+        .as_array()
+        .expect("Explore enabled tools");
+    assert_eq!(explore["permissionMode"], "readOnly");
+    assert!(explore_tools.contains(&json!("read")));
+    assert!(!explore_tools.contains(&json!("write")));
+    assert!(agents.iter().any(|agent| agent["id"] == "general-purpose"));
+    assert!(agents.iter().any(|agent| agent["id"] == "Plan"));
+    assert!(agents.iter().any(|agent| agent["id"] == "verification"));
+
+    let mut params = json!({
+        "subagent_type": "Explore",
+        "prompt": "inspect runtime",
+        "description": "inspect runtime"
+    });
+    apply_gateway_agent_defaults(&state, &mut params).expect("apply defaults");
+    assert_eq!(params["agentId"], "Explore");
+    assert_eq!(params["model"], "inherit");
+    assert_eq!(params["permissionMode"], "readOnly");
+    assert!(params["systemPrompt"]
+        .as_str()
+        .expect("system prompt")
+        .contains("Explore agent"));
+    assert!(params["enabledTools"]
+        .as_array()
+        .expect("enabled tools")
+        .contains(&json!("read")));
 
     let _ = std::fs::remove_dir_all(runtime_root);
 }

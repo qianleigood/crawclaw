@@ -920,6 +920,10 @@ pub(crate) fn is_special_agent_only_tool(tool_name: &str) -> bool {
     })
 }
 
+pub(crate) fn is_hindsight_knowledge_tool(tool_name: &str) -> bool {
+    crate::memory::is_hindsight_knowledge_tool_name(tool_name)
+}
+
 #[doc(hidden)]
 pub fn build_native_runtime_tool_registry_for_test(runtime_root: &Path) -> pi::sdk::ToolRegistry {
     build_native_runtime_tool_registry(runtime_root)
@@ -1002,12 +1006,43 @@ async fn execute_rust_core_tool_with_profile_guard(
     input: Value,
     active_profile: Option<(AgentRunProfileKind, Option<String>)>,
 ) -> Result<Value, String> {
-    if is_special_agent_only_tool(tool_name) && active_profile.is_none() {
-        return Err(format!(
-            "Rust runtime tool {tool_name} is special-agent-only and requires an active special-agent profile"
-        ));
+    if is_special_agent_only_tool(tool_name) {
+        let Some((profile_kind, special_agent)) = active_profile.as_ref() else {
+            return Err(format!(
+                "Rust runtime tool {tool_name} is special-agent-only and requires an active special-agent profile"
+            ));
+        };
+        if !matches!(
+            profile_kind,
+            AgentRunProfileKind::SpecialAgent
+                | AgentRunProfileKind::Compaction
+                | AgentRunProfileKind::MemoryMaintenance
+        ) {
+            return Err(format!(
+                "Rust runtime tool {tool_name} is special-agent-only and cannot run in profile {}",
+                profile_kind_summary(*profile_kind)
+            ));
+        }
+        if is_hindsight_knowledge_tool(tool_name) {
+            if special_agent.as_deref().is_none() {
+                return Err(format!(
+                    "Rust runtime tool {tool_name} requires a concrete special-agent profile"
+                ));
+            }
+            let config = crate::memory::MemoryRuntimeConfig::load(runtime_root);
+            let policy = crate::memory::EffectiveMemoryPolicy::from_config(&config);
+            if !policy.knowledge_tools_enabled {
+                return Err(format!(
+                    "Rust runtime tool {tool_name} is disabled by memory.hindsight.memoryMode or enableKnowledgeTools"
+                ));
+            }
+        }
     }
-    let registry = build_native_runtime_tool_registry(runtime_root);
+    let active_special_agent = active_profile
+        .as_ref()
+        .and_then(|(_, special_agent)| special_agent.clone());
+    let registry =
+        build_native_runtime_tool_registry_with_special_agent(runtime_root, active_special_agent);
     let tool = registry
         .get(tool_name)
         .ok_or_else(|| format!("unknown Rust runtime tool: {tool_name}"))?;

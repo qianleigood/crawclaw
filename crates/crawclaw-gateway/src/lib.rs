@@ -86,7 +86,7 @@ use crawclaw_runtime::{
     resolve_native_channel_lifecycle_update,
     special_agents::{
         find_special_agent, special_agent_definitions, SpecialAgentDefinition,
-        SpecialAgentRunRequest, SpecialAgentToolGuard,
+        SpecialAgentMemoryInputContract, SpecialAgentRunRequest, SpecialAgentToolGuard,
     },
     AgentModelSelection, AgentRunEvent, AgentRunProfileKind, AgentRunProfileRequest,
     AgentRunRequest, AgentRunResult, AgentRuntime, AgentRuntimePostToolUseDecision,

@@ -109,8 +109,8 @@ impl SpecialAgentToolKind {
                     "context": { "type": "string", "description": "Context about the content" },
                     "layer": {
                         "type": "string",
-                        "enum": ["durable", "experience", "resource"],
-                        "description": "Target layer (default: resource)"
+                        "enum": ["durable", "experience", "resource", "mental-models"],
+                        "description": "Target layer (default: resource, or special-agent policy default)"
                     }
                 },
                 "required": ["content"]
@@ -134,6 +134,11 @@ impl SpecialAgentToolKind {
                         "type": "array",
                         "items": { "type": "string" },
                         "description": "Tags for the model"
+                    },
+                    "layer": {
+                        "type": "string",
+                        "enum": ["mental-models"],
+                        "description": "Bank layer (default: mental-models)"
                     },
                     "maxTokens": { "type": "integer", "description": "Max tokens (default: 2048)" }
                 },
@@ -166,40 +171,71 @@ impl SpecialAgentToolKind {
                 | Self::SessionSummaryFileRead
         )
     }
-
-    fn all() -> &'static [Self] {
-        &[
-            Self::ReviewTask,
-            Self::KnowledgeRecall,
-            Self::KnowledgeReflect,
-            Self::KnowledgeIngest,
-            Self::KnowledgeModelList,
-            Self::KnowledgeModelCreate,
-            Self::SessionSummaryFileRead,
-            Self::SessionSummaryFileEdit,
-        ]
-    }
 }
 
 pub(super) struct SpecialAgentTool {
     runtime_root: PathBuf,
     kind: SpecialAgentToolKind,
+    active_special_agent: Option<String>,
 }
 
 impl SpecialAgentTool {
-    pub(super) fn new(runtime_root: impl Into<PathBuf>, kind: SpecialAgentToolKind) -> Self {
+    pub(super) fn with_special_agent(
+        runtime_root: impl Into<PathBuf>,
+        kind: SpecialAgentToolKind,
+        active_special_agent: Option<String>,
+    ) -> Self {
         Self {
             runtime_root: runtime_root.into(),
             kind,
+            active_special_agent,
         }
     }
+}
 
-    pub(super) fn all(runtime_root: impl Into<PathBuf> + Clone) -> Vec<Self> {
-        SpecialAgentToolKind::all()
-            .iter()
-            .map(|&kind| Self::new(runtime_root.clone(), kind))
-            .collect()
+pub(crate) fn resolve_memory_tool_layer_for_special_agent(
+    _tool_name: &str,
+    input: &Value,
+    active_special_agent: Option<&str>,
+    fallback_layer: &str,
+) -> Result<String, String> {
+    let requested = string_param(input, &["layer"]);
+    let Some(special_agent) = active_special_agent else {
+        return Ok(requested.unwrap_or_else(|| fallback_layer.to_string()));
+    };
+    let Some(definition) = find_special_agent(special_agent) else {
+        return Ok(requested.unwrap_or_else(|| fallback_layer.to_string()));
+    };
+    let policy = definition.memory_layer_policy;
+    if policy.allowed_layers.is_empty() {
+        return Ok(requested.unwrap_or_else(|| fallback_layer.to_string()));
     }
+
+    let layer = requested
+        .or_else(|| policy.default_layer.map(ToOwned::to_owned))
+        .unwrap_or_else(|| fallback_layer.to_string());
+    if policy.allowed_layers.contains(&layer.as_str()) {
+        return Ok(layer);
+    }
+    Err(format!(
+        "special agent '{}' does not allow memory layer '{}'",
+        definition.id, layer
+    ))
+}
+
+#[cfg(test)]
+pub(crate) fn memory_tool_layer_for_special_agent_for_test(
+    tool_name: &str,
+    input: Value,
+    active_special_agent: Option<&str>,
+) -> Result<String, String> {
+    let fallback = match tool_name {
+        "knowledge_recall" => "durable",
+        "knowledge_ingest" => "resource",
+        "knowledge_model_list" | "knowledge_model_create" | "knowledge_reflect" => "mental-models",
+        _ => "durable",
+    };
+    resolve_memory_tool_layer_for_special_agent(tool_name, &input, active_special_agent, fallback)
 }
 
 fn scope_param(input: &Value) -> String {
@@ -250,6 +286,14 @@ fn resolve_bank_id(runtime_root: &Path, layer: &str) -> String {
     resolver.resolve(&ctx, layer)
 }
 
+fn hindsight_tags_for_layer(base_tags: &[String], layer: &str) -> Vec<String> {
+    let mut tags = base_tags.to_vec();
+    tags.push(format!("layer:{layer}"));
+    tags.sort();
+    tags.dedup();
+    tags
+}
+
 #[async_trait]
 impl pi::sdk::Tool for SpecialAgentTool {
     fn name(&self) -> &str {
@@ -291,8 +335,13 @@ impl pi::sdk::Tool for SpecialAgentTool {
             // --- Hindsight Knowledge Tools ---
             SpecialAgentToolKind::KnowledgeRecall => {
                 let query = required_tool_param(self.kind, &input, &["query"])?;
-                let layer =
-                    string_param(&input, &["layer"]).unwrap_or_else(|| "durable".to_string());
+                let layer = resolve_memory_tool_layer_for_special_agent(
+                    self.kind.name(),
+                    &input,
+                    self.active_special_agent.as_deref(),
+                    "durable",
+                )
+                .map_err(|error| pi::sdk::Error::tool(self.kind.name(), error))?;
                 let budget = string_param(&input, &["budget"]).unwrap_or_else(|| "mid".to_string());
                 let max_tokens = input
                     .get("maxTokens")
@@ -305,7 +354,8 @@ impl pi::sdk::Tool for SpecialAgentTool {
                 })?;
                 let bank_id = resolve_bank_id(&self.runtime_root, &layer);
                 let config = runtime.config();
-                let tags: Vec<&str> = config.hindsight.tags.iter().map(|s| s.as_str()).collect();
+                let tags = hindsight_tags_for_layer(&config.hindsight.tags, &layer);
+                let tag_refs: Vec<&str> = tags.iter().map(|s| s.as_str()).collect();
 
                 let response = client
                     .recall(
@@ -319,7 +369,7 @@ impl pi::sdk::Tool for SpecialAgentTool {
                             .collect::<Vec<_>>(),
                         &budget,
                         max_tokens,
-                        &tags,
+                        &tag_refs,
                         &config.hindsight.tags_match,
                     )
                     .map_err(|e| pi::sdk::Error::tool(self.kind.name(), e))?;
@@ -339,6 +389,13 @@ impl pi::sdk::Tool for SpecialAgentTool {
 
             SpecialAgentToolKind::KnowledgeReflect => {
                 let query = required_tool_param(self.kind, &input, &["query"])?;
+                let layer = resolve_memory_tool_layer_for_special_agent(
+                    self.kind.name(),
+                    &input,
+                    self.active_special_agent.as_deref(),
+                    "mental-models",
+                )
+                .map_err(|error| pi::sdk::Error::tool(self.kind.name(), error))?;
                 let budget =
                     string_param(&input, &["budget"]).unwrap_or_else(|| "high".to_string());
                 let max_tokens = input
@@ -350,7 +407,7 @@ impl pi::sdk::Tool for SpecialAgentTool {
                 let client = runtime.hindsight().ok_or_else(|| {
                     pi::sdk::Error::tool(self.kind.name(), "Hindsight not configured")
                 })?;
-                let bank_id = resolve_bank_id(&self.runtime_root, "mental-models");
+                let bank_id = resolve_bank_id(&self.runtime_root, &layer);
 
                 let response = client
                     .reflect(&bank_id, &query, &budget, max_tokens)
@@ -368,8 +425,13 @@ impl pi::sdk::Tool for SpecialAgentTool {
                 let content = required_tool_param(self.kind, &input, &["content"])?;
                 let context = string_param(&input, &["context"])
                     .unwrap_or_else(|| "manual_ingest".to_string());
-                let layer =
-                    string_param(&input, &["layer"]).unwrap_or_else(|| "resource".to_string());
+                let layer = resolve_memory_tool_layer_for_special_agent(
+                    self.kind.name(),
+                    &input,
+                    self.active_special_agent.as_deref(),
+                    "resource",
+                )
+                .map_err(|error| pi::sdk::Error::tool(self.kind.name(), error))?;
 
                 let runtime = crate::memory::MemoryRuntime::new(self.runtime_root.clone());
                 let client = runtime.hindsight().ok_or_else(|| {
@@ -377,7 +439,8 @@ impl pi::sdk::Tool for SpecialAgentTool {
                 })?;
                 let bank_id = resolve_bank_id(&self.runtime_root, &layer);
                 let config = runtime.config();
-                let tags: Vec<&str> = config.hindsight.tags.iter().map(|s| s.as_str()).collect();
+                let tags = hindsight_tags_for_layer(&config.hindsight.tags, &layer);
+                let tag_refs: Vec<&str> = tags.iter().map(|s| s.as_str()).collect();
 
                 let response = client
                     .retain(
@@ -385,7 +448,7 @@ impl pi::sdk::Tool for SpecialAgentTool {
                         &content,
                         &context,
                         json!({ "source": "knowledge_ingest_tool", "layer": layer }),
-                        &tags,
+                        &tag_refs,
                     )
                     .map_err(|e| pi::sdk::Error::tool(self.kind.name(), e))?;
 
@@ -397,8 +460,13 @@ impl pi::sdk::Tool for SpecialAgentTool {
             }
 
             SpecialAgentToolKind::KnowledgeModelList => {
-                let layer =
-                    string_param(&input, &["layer"]).unwrap_or_else(|| "mental-models".to_string());
+                let layer = resolve_memory_tool_layer_for_special_agent(
+                    self.kind.name(),
+                    &input,
+                    self.active_special_agent.as_deref(),
+                    "mental-models",
+                )
+                .map_err(|error| pi::sdk::Error::tool(self.kind.name(), error))?;
 
                 let runtime = crate::memory::MemoryRuntime::new(self.runtime_root.clone());
                 let client = runtime.hindsight().ok_or_else(|| {
@@ -427,6 +495,13 @@ impl pi::sdk::Tool for SpecialAgentTool {
             SpecialAgentToolKind::KnowledgeModelCreate => {
                 let name = required_tool_param(self.kind, &input, &["name"])?;
                 let source_query = required_tool_param(self.kind, &input, &["sourceQuery"])?;
+                let layer = resolve_memory_tool_layer_for_special_agent(
+                    self.kind.name(),
+                    &input,
+                    self.active_special_agent.as_deref(),
+                    "mental-models",
+                )
+                .map_err(|error| pi::sdk::Error::tool(self.kind.name(), error))?;
                 let tags = input
                     .get("tags")
                     .and_then(Value::as_array)
@@ -445,7 +520,7 @@ impl pi::sdk::Tool for SpecialAgentTool {
                 let client = runtime.hindsight().ok_or_else(|| {
                     pi::sdk::Error::tool(self.kind.name(), "Hindsight not configured")
                 })?;
-                let bank_id = resolve_bank_id(&self.runtime_root, "mental-models");
+                let bank_id = resolve_bank_id(&self.runtime_root, &layer);
 
                 client
                     .create_mental_model(&bank_id, &name, &source_query, tags, max_tokens)

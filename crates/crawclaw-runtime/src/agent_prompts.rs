@@ -2,8 +2,9 @@ use super::*;
 
 pub(crate) fn default_agent_definition(profile: &AgentRunProfile) -> AgentDefinition {
     let id = profile
-        .special_agent_id
+        .agent_definition_id
         .clone()
+        .or_else(|| profile.special_agent_id.clone())
         .unwrap_or_else(|| match profile.kind {
             AgentRunKind::Normal => "main".to_string(),
             AgentRunKind::Btw => "btw".to_string(),
@@ -12,8 +13,8 @@ pub(crate) fn default_agent_definition(profile: &AgentRunProfile) -> AgentDefini
             AgentRunKind::Compaction => "session-summary".to_string(),
             AgentRunKind::MemoryMaintenance => "memory-maintenance".to_string(),
         });
-    AgentDefinition {
-        label: match profile.kind {
+    let label = profile.agent_definition_label.clone().unwrap_or_else(|| {
+        match profile.kind {
             AgentRunKind::Normal => "Main agent",
             AgentRunKind::Btw => "BTW side question",
             AgentRunKind::Subagent => "Delegated subagent",
@@ -21,7 +22,10 @@ pub(crate) fn default_agent_definition(profile: &AgentRunProfile) -> AgentDefini
             AgentRunKind::Compaction => "Session summary agent",
             AgentRunKind::MemoryMaintenance => "Memory maintenance agent",
         }
-        .to_string(),
+        .to_string()
+    });
+    AgentDefinition {
+        label,
         prompt_kind: profile.kind.as_summary_str().to_string(),
         execution_mode: format!("{:?}", profile.execution_mode),
         transcript_policy: format!("{:?}", profile.transcript_policy),
@@ -30,7 +34,7 @@ pub(crate) fn default_agent_definition(profile: &AgentRunProfile) -> AgentDefini
             ToolPolicy::AllowList(tools) => tools.clone(),
             ToolPolicy::Default | ToolPolicy::Disabled => Vec::new(),
         },
-        mcp_servers: Vec::new(),
+        mcp_servers: profile.mcp_servers.clone(),
         id,
     }
 }

@@ -58,6 +58,34 @@ fn is_gateway_workflow_method(method: &str) -> bool {
     )
 }
 
+fn effective_special_agent_definitions(state: &GatewayState) -> Vec<Value> {
+    let config =
+        crawclaw_runtime::memory::MemoryRuntime::load_effective_config(&state.runtime_root);
+    let policy = crawclaw_runtime::memory::EffectiveMemoryPolicy::from_config(&config);
+    special_agent_definitions()
+        .iter()
+        .map(|definition| {
+            let effective_tools = policy.apply_tool_allowlist(definition.tool_allowlist);
+            let mut value = serde_json::to_value(definition).unwrap_or_else(|_| json!({}));
+            if let Some(object) = value.as_object_mut() {
+                object.insert(
+                    "effectiveToolAllowlist".to_string(),
+                    json!(effective_tools.effective_tool_allowlist),
+                );
+                object.insert(
+                    "disabledTools".to_string(),
+                    json!(effective_tools.disabled_tools),
+                );
+                object.insert(
+                    "disabledReason".to_string(),
+                    json!(effective_tools.disabled_reason),
+                );
+            }
+            value
+        })
+        .collect()
+}
+
 fn handle_gateway_workflow_method(
     state: &GatewayState,
     method: &str,
@@ -275,7 +303,7 @@ async fn handle_gateway_method_inner(
         }
         "special_agents.list" | "special_agents_list" => Ok(json!({
             "status": "ok",
-            "agents": special_agent_definitions()
+            "agents": effective_special_agent_definitions(state)
         })),
         "special_agents.run" | "special_agents_run" => special_agent_run(state, params).await,
         "review_task" => {
@@ -298,12 +326,39 @@ async fn handle_gateway_method_inner(
                     task: Some(task),
                     scope: None,
                     parent_session_key: string_param(&params, &["parentSessionKey", "sessionKey"]),
+                    context_package: None,
                 },
                 definition,
             )
             .await
         }
         "memory.status" | "memory_status" => memory_runtime(state).status(),
+        "memory.outbox.list" | "memory_outbox_list" => {
+            let status = string_param(&params, &["status"]);
+            let limit = params.get("limit").and_then(Value::as_u64).unwrap_or(50) as usize;
+            let runtime = memory_runtime(state);
+            let store = runtime.store();
+            store.init()?;
+            Ok(json!({
+                "status": "ok",
+                "jobs": store.list_outbox_jobs(status.as_deref(), limit)?,
+            }))
+        }
+        "memory.outbox.process" | "memory_outbox_process" => {
+            let limit = params.get("limit").and_then(Value::as_u64).unwrap_or(10) as usize;
+            memory_runtime(state).process_outbox_once(limit)
+        }
+        "memory.activity.list" | "memory_activity_list" => {
+            let session_id = string_param(&params, &["sessionId", "sessionKey"]);
+            let limit = params.get("limit").and_then(Value::as_u64).unwrap_or(50) as usize;
+            let runtime = memory_runtime(state);
+            let store = runtime.store();
+            store.init()?;
+            Ok(json!({
+                "status": "ok",
+                "activity": store.list_memory_activity(session_id.as_deref(), limit)?,
+            }))
+        }
         "memory.refresh" | "memory_refresh" => Ok(json!({
             "status": "ok",
             "provider": memory_runtime(state).hindsight_status()
@@ -326,6 +381,7 @@ async fn handle_gateway_method_inner(
                     task: Some(task),
                     scope: Some(scope),
                     parent_session_key: None,
+                    context_package: None,
                 },
                 definition,
             )
@@ -357,6 +413,7 @@ async fn handle_gateway_method_inner(
                     task: Some(content),
                     scope: Some(scope),
                     parent_session_key: None,
+                    context_package: None,
                 },
                 definition,
             )
@@ -410,11 +467,18 @@ async fn handle_gateway_method_inner(
                 .get("prePromptMessageCount")
                 .and_then(Value::as_u64)
                 .unwrap_or(0) as usize;
-            memory_runtime(state).after_turn(
+            let memory_directive = params
+                .get("memoryDirective")
+                .or_else(|| params.get("memoryIntent"))
+                .or_else(|| params.get("memoryAction"))
+                .or_else(|| params.get("doNotRemember"))
+                .or(Some(&params));
+            memory_runtime(state).after_turn_with_options(
                 &session_id,
                 session_key.as_deref(),
                 &messages,
                 pre_prompt_message_count,
+                memory_directive,
             )
         }
         "sessions.list" | "sessions_list" => sessions_list(state),

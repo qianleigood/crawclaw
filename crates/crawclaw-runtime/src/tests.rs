@@ -939,6 +939,10 @@ async fn notebook_edit_replaces_inserts_and_deletes_cells() {
     )
     .expect("write notebook");
 
+    execute_rust_core_tool(&runtime_root, "read", json!({ "path": "analysis.ipynb" }))
+        .await
+        .expect("read notebook before editing");
+
     let replaced = execute_rust_core_tool(
         &runtime_root,
         "NotebookEdit",
@@ -995,6 +999,129 @@ async fn notebook_edit_replaces_inserts_and_deletes_cells() {
     assert!(!cells.iter().any(|cell| cell["id"] == "calc"));
 
     let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn notebook_edit_requires_fresh_read_state() {
+    let runtime_root = unique_test_runtime_root("notebook-edit-read-state");
+    fs::create_dir_all(&runtime_root).expect("runtime root");
+    let notebook_path = runtime_root.join("analysis.ipynb");
+    fs::write(
+        &notebook_path,
+        serde_json::to_vec_pretty(&json!({
+            "cells": [{
+                "cell_type": "markdown",
+                "id": "intro",
+                "metadata": {},
+                "source": "# Old title\n"
+            }],
+            "metadata": {},
+            "nbformat": 4,
+            "nbformat_minor": 5
+        }))
+        .expect("notebook json"),
+    )
+    .expect("write notebook");
+
+    let unread_error = execute_rust_core_tool(
+        &runtime_root,
+        "NotebookEdit",
+        json!({
+            "notebook_path": "analysis.ipynb",
+            "cell_id": "intro",
+            "new_source": "# New title\n"
+        }),
+    )
+    .await
+    .expect_err("NotebookEdit should require a prior read");
+    assert!(unread_error.contains("read"));
+
+    execute_rust_core_tool(&runtime_root, "read", json!({ "path": "analysis.ipynb" }))
+        .await
+        .expect("read notebook before stale edit");
+    std::thread::sleep(std::time::Duration::from_millis(5));
+    fs::write(
+        &notebook_path,
+        serde_json::to_vec_pretty(&json!({
+            "cells": [{
+                "cell_type": "markdown",
+                "id": "intro",
+                "metadata": {},
+                "source": "# External title\n"
+            }],
+            "metadata": {},
+            "nbformat": 4,
+            "nbformat_minor": 5
+        }))
+        .expect("stale notebook json"),
+    )
+    .expect("external notebook edit");
+
+    let stale_error = execute_rust_core_tool(
+        &runtime_root,
+        "NotebookEdit",
+        json!({
+            "notebook_path": "analysis.ipynb",
+            "cell_id": "intro",
+            "new_source": "# New title\n"
+        }),
+    )
+    .await
+    .expect_err("NotebookEdit should reject stale read state");
+    assert!(stale_error.contains("modified since it was read"));
+
+    let notebook: Value =
+        serde_json::from_str(&fs::read_to_string(&notebook_path).expect("read notebook"))
+            .expect("parse notebook");
+    assert_eq!(notebook["cells"][0]["source"], "# External title\n");
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[test]
+fn user_visible_agent_definitions_keep_task_agents_separate_from_special_agents() {
+    let definitions = crate::agent_definitions::user_visible_agent_definitions();
+    let ids = definitions
+        .iter()
+        .map(|definition| definition.id)
+        .collect::<Vec<_>>();
+    assert_eq!(
+        ids,
+        vec!["general-purpose", "Explore", "Plan", "verification"]
+    );
+
+    let explore = definitions
+        .iter()
+        .find(|definition| definition.id == "Explore")
+        .expect("Explore definition");
+    assert_eq!(explore.permission_mode, "readOnly");
+    assert!(explore.tool_allowlist.contains(&"read"));
+    assert!(explore.tool_allowlist.contains(&"grep"));
+    assert!(!explore.tool_allowlist.contains(&"write"));
+    assert!(!explore.tool_allowlist.contains(&"NotebookEdit"));
+    assert!(explore.prompt.contains("Explore agent"));
+
+    let plan = definitions
+        .iter()
+        .find(|definition| definition.id == "Plan")
+        .expect("Plan definition");
+    assert_eq!(plan.permission_mode, "readOnly");
+    assert!(plan.prompt.contains("Do not modify files"));
+
+    let verification = definitions
+        .iter()
+        .find(|definition| definition.id == "verification")
+        .expect("verification definition");
+    assert!(verification.background);
+    assert!(verification.prompt.contains("VERDICT"));
+
+    let special_ids = crate::special_agents::special_agent_definitions()
+        .iter()
+        .map(|definition| definition.id)
+        .collect::<Vec<_>>();
+    assert!(!special_ids.contains(&"Explore"));
+    assert!(!special_ids.contains(&"Plan"));
+    assert!(!special_ids.contains(&"verification"));
 }
 
 #[cfg(unix)]
@@ -1258,6 +1385,73 @@ async fn permission_policy_confirm_high_risk_blocks_workflow_tools() {
     assert_eq!(requests.len(), 1);
     assert_eq!(requests[0].tool_name, "workflow");
 
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn enter_worktree_retargets_workspace_file_tools() {
+    let runtime_root = unique_test_runtime_root("worktree-retargets-file-tools");
+    fs::create_dir_all(&runtime_root).expect("runtime root");
+    let run_git = |args: &[&str]| {
+        let output = std::process::Command::new("git")
+            .args(args)
+            .current_dir(&runtime_root)
+            .output()
+            .expect("run git");
+        assert!(
+            output.status.success(),
+            "git {:?} failed: {}",
+            args,
+            String::from_utf8_lossy(&output.stderr)
+        );
+    };
+    run_git(&["init"]);
+    run_git(&["config", "user.email", "test@example.invalid"]);
+    run_git(&["config", "user.name", "CrawClaw Test"]);
+    fs::write(runtime_root.join("marker.txt"), "root\n").expect("marker");
+    run_git(&["add", "marker.txt"]);
+    run_git(&["commit", "-m", "initial"]);
+
+    let registry = build_native_runtime_tool_registry(&runtime_root);
+    let enter = registry.get("EnterWorktree").expect("EnterWorktree");
+    let entered = enter
+        .execute("enter-worktree", json!({ "name": "isolation-test" }), None)
+        .await
+        .expect("enter worktree");
+    let worktree_path = entered
+        .details
+        .as_ref()
+        .and_then(|details| details.get("worktreePath"))
+        .and_then(Value::as_str)
+        .map(PathBuf::from)
+        .expect("worktree path");
+    fs::write(worktree_path.join("marker.txt"), "worktree\n").expect("worktree marker");
+
+    let worktree_registry = build_native_runtime_tool_registry(&runtime_root);
+    let read = worktree_registry.get("read").expect("read");
+    let output = read
+        .execute("read-marker", json!({ "path": "marker.txt" }), None)
+        .await
+        .expect("read marker");
+    assert_eq!(tool_output_text(&output), "worktree\n");
+
+    let write = worktree_registry.get("write").expect("write");
+    write
+        .execute(
+            "write-worktree-only",
+            json!({ "path": "worktree-only.txt", "content": "created in worktree" }),
+            None,
+        )
+        .await
+        .expect("write in worktree");
+    assert!(worktree_path.join("worktree-only.txt").is_file());
+    assert!(!runtime_root.join("worktree-only.txt").exists());
+
+    let exit = worktree_registry.get("ExitWorktree").expect("ExitWorktree");
+    exit.execute("exit-worktree", json!({ "action": "keep" }), None)
+        .await
+        .expect("exit worktree");
     let _ = fs::remove_dir_all(runtime_root);
 }
 
@@ -1557,6 +1751,61 @@ async fn profiled_tool_runtime_allows_special_agent_only_tools() {
 }
 
 #[tokio::test]
+async fn profiled_tool_runtime_rejects_special_tools_from_normal_profile() {
+    let runtime_root = unique_test_runtime_root("profiled-special-tool-normal-guard");
+    let error = execute_rust_core_tool_for_profile(
+        &runtime_root,
+        "session_summary_file_read",
+        json!({ "scope": "main" }),
+        AgentRunProfileKind::Normal,
+        Some("session-summary"),
+    )
+    .await
+    .expect_err("normal profile should reject special-only tool");
+
+    assert!(error.contains("special-agent-only"));
+    assert!(error.contains("profile normal"));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn profiled_hindsight_tools_require_concrete_special_agent() {
+    let runtime_root = unique_test_runtime_root("profiled-hindsight-tool-agent-guard");
+    let error = execute_rust_core_tool_for_profile(
+        &runtime_root,
+        "knowledge_recall",
+        json!({ "query": "project preference" }),
+        AgentRunProfileKind::Compaction,
+        None,
+    )
+    .await
+    .expect_err("hindsight knowledge tool should require a concrete special-agent profile");
+
+    assert!(error.contains("requires a concrete special-agent profile"));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn profiled_hindsight_tools_honor_memory_config_disablement() {
+    let runtime_root = unique_test_runtime_root("profiled-hindsight-tool-config-guard");
+    let error = execute_rust_core_tool_for_profile(
+        &runtime_root,
+        "knowledge_recall",
+        json!({ "query": "project preference" }),
+        AgentRunProfileKind::SpecialAgent,
+        Some("durable-memory"),
+    )
+    .await
+    .expect_err("disabled hindsight knowledge tool should not execute");
+
+    assert!(error.contains("disabled by memory.hindsight.memoryMode or enableKnowledgeTools"));
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
 async fn core_tools_workflow_lifecycle_is_rust_backed() {
     let runtime_root = unique_test_runtime_root("core-tools-workflow-lifecycle");
     let created = execute_rust_core_tool(
@@ -1701,6 +1950,188 @@ fn special_agent_registry_tracks_all_native_agents() {
     assert!(definitions
         .iter()
         .all(|definition| !definition.tool_allowlist.is_empty()));
+}
+
+#[test]
+fn memory_special_agents_declare_narrow_context_and_layer_policies() {
+    use crate::special_agents::{
+        SpecialAgentMemoryInputContract, SpecialAgentParentContextPolicy,
+        SpecialAgentPersistenceHandler,
+    };
+
+    let durable = crate::special_agents::find_special_agent("durable-memory")
+        .expect("durable-memory special agent");
+    assert_eq!(
+        durable.parent_context_policy,
+        SpecialAgentParentContextPolicy::None
+    );
+    assert_eq!(
+        durable.input_contract,
+        SpecialAgentMemoryInputContract::MemoryDelta
+    );
+    assert_eq!(durable.memory_layer_policy.default_layer, Some("durable"));
+    assert_eq!(durable.memory_layer_policy.allowed_layers, &["durable"]);
+    assert_eq!(
+        durable.persistence_handler,
+        SpecialAgentPersistenceHandler::HindsightMemory
+    );
+
+    let experience =
+        crate::special_agents::find_special_agent("experience").expect("experience special agent");
+    assert_eq!(
+        experience.input_contract,
+        SpecialAgentMemoryInputContract::ManualMaintenance
+    );
+    assert_eq!(
+        experience.memory_layer_policy.default_layer,
+        Some("experience")
+    );
+    assert_eq!(
+        experience.memory_layer_policy.allowed_layers,
+        &["experience"]
+    );
+    assert!(
+        !experience
+            .tool_allowlist
+            .contains(&"knowledge_model_create"),
+        "experience notes must use knowledge_ingest, not mental-model creation"
+    );
+
+    let dream = crate::special_agents::find_special_agent("dream").expect("dream special agent");
+    assert_eq!(
+        dream.input_contract,
+        SpecialAgentMemoryInputContract::ManualMaintenance
+    );
+    assert_eq!(
+        dream.memory_layer_policy.default_layer,
+        Some("mental-models")
+    );
+    assert_eq!(dream.memory_layer_policy.allowed_layers, &["mental-models"]);
+}
+
+#[test]
+fn hindsight_memory_mode_controls_prompt_recall_and_knowledge_tools() {
+    let context = crate::memory::HindsightConfig::from_value(&json!({
+        "enabled": true,
+        "memoryMode": "context",
+        "enableKnowledgeTools": true
+    }));
+    assert!(context.prompt_recall_enabled());
+    assert!(!context.knowledge_tools_enabled());
+
+    let tools = crate::memory::HindsightConfig::from_value(&json!({
+        "enabled": true,
+        "memoryMode": "tools",
+        "enableKnowledgeTools": true
+    }));
+    assert!(!tools.prompt_recall_enabled());
+    assert!(tools.knowledge_tools_enabled());
+
+    let hybrid = crate::memory::HindsightConfig::from_value(&json!({
+        "enabled": true,
+        "memoryMode": "hybrid",
+        "enableKnowledgeTools": true
+    }));
+    assert!(hybrid.prompt_recall_enabled());
+    assert!(hybrid.knowledge_tools_enabled());
+}
+
+#[test]
+fn hindsight_context_mode_filters_special_agent_knowledge_tools() {
+    let context = crate::memory::HindsightConfig::from_value(&json!({
+        "enabled": true,
+        "memoryMode": "context",
+        "enableKnowledgeTools": true
+    }));
+    let filtered = crate::agent_runtime_backend::filter_hindsight_tools_for_config_for_test(
+        vec![
+            "knowledge_ingest".to_string(),
+            "knowledge_recall".to_string(),
+            "sessions_history".to_string(),
+        ],
+        &context,
+    );
+    assert_eq!(filtered, vec!["sessions_history"]);
+
+    let hybrid = crate::memory::HindsightConfig::from_value(&json!({
+        "enabled": true,
+        "memoryMode": "hybrid",
+        "enableKnowledgeTools": true
+    }));
+    let retained = crate::agent_runtime_backend::filter_hindsight_tools_for_config_for_test(
+        vec![
+            "knowledge_ingest".to_string(),
+            "knowledge_recall".to_string(),
+            "sessions_history".to_string(),
+        ],
+        &hybrid,
+    );
+    assert_eq!(
+        retained,
+        vec!["knowledge_ingest", "knowledge_recall", "sessions_history"]
+    );
+}
+
+#[test]
+fn effective_memory_policy_reports_tool_filtering_and_reasons() {
+    let config = crate::memory::MemoryRuntimeConfig::from_value(&json!({
+        "hindsight": {
+            "enabled": true,
+            "memoryMode": "context",
+            "enableKnowledgeTools": true,
+            "autoRetain": true
+        }
+    }));
+    let policy = crate::memory::EffectiveMemoryPolicy::from_config(&config);
+
+    assert!(policy.prompt_recall_enabled);
+    assert!(!policy.knowledge_tools_enabled);
+    assert!(policy.auto_retain_enabled);
+
+    let tools =
+        policy.apply_tool_allowlist(&["knowledge_recall", "knowledge_ingest", "sessions_history"]);
+    assert_eq!(
+        tools.effective_tool_allowlist,
+        vec!["sessions_history".to_string()]
+    );
+    assert_eq!(
+        tools.disabled_tools,
+        vec![
+            "knowledge_recall".to_string(),
+            "knowledge_ingest".to_string()
+        ]
+    );
+    assert!(tools
+        .disabled_reason
+        .contains("memory.hindsight.memoryMode=context"));
+}
+
+#[test]
+fn profiled_memory_special_tools_resolve_agent_owned_layers() {
+    let durable_default = crate::core_tools::memory_tool_layer_for_special_agent_for_test(
+        "knowledge_ingest",
+        json!({}),
+        Some("durable-memory"),
+    )
+    .expect("durable default layer");
+    assert_eq!(durable_default, "durable");
+
+    let durable_resource = crate::core_tools::memory_tool_layer_for_special_agent_for_test(
+        "knowledge_ingest",
+        json!({ "layer": "resource" }),
+        Some("durable-memory"),
+    );
+    assert!(durable_resource
+        .expect_err("durable-memory cannot write resource")
+        .contains("does not allow memory layer 'resource'"));
+
+    let experience_default = crate::core_tools::memory_tool_layer_for_special_agent_for_test(
+        "knowledge_ingest",
+        json!({}),
+        Some("experience"),
+    )
+    .expect("experience default layer");
+    assert_eq!(experience_default, "experience");
 }
 
 #[tokio::test]
@@ -2111,6 +2542,89 @@ async fn agent_runtime_run_turn_emits_rust_event_contract() {
             .list_messages("thread-events", 10)
             .expect("memory messages");
     assert_eq!(memory_messages.len(), 2);
+}
+
+#[tokio::test]
+async fn agent_runtime_memory_after_turn_marks_tool_calls_to_skip_retain() {
+    let runtime_root = unique_test_runtime_root("agent-run-turn-memory-tool-call");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+
+    let runtime = AgentRuntime::with_native_provider_backend(
+        runtime_root.clone(),
+        Arc::new(LoopEventAgentRuntimeBackend {
+            reply: "final after tool".to_string(),
+            loop_events: vec![AgentLoopEvent::ToolExecution {
+                event: ToolExecutionEvent::Started {
+                    call_id: "call-read".to_string(),
+                    tool_name: "read".to_string(),
+                    arguments: json!({ "path": "Cargo.toml" }),
+                },
+            }],
+        }),
+    );
+    let result = runtime
+        .run_turn(AgentRunRequest {
+            run_id: "run-tool-memory".to_string(),
+            agent_id: "main".to_string(),
+            session_key: "thread-tool-memory".to_string(),
+            inbound: ChannelInboundEnvelope {
+                channel: "gateway".to_string(),
+                account_id: Some("local".to_string()),
+                from: "user".to_string(),
+                to: "agent:main".to_string(),
+                chat_type: ChannelChatType::Direct,
+                body: "read then answer".to_string(),
+                raw_body: Some("read then answer".to_string()),
+                message_id: Some("in-tool-memory".to_string()),
+                thread_id: Some("thread-tool-memory".to_string()),
+                media_urls: Vec::new(),
+                metadata: BTreeMap::new(),
+            },
+            model: AgentModelSelection {
+                provider: "test-provider".to_string(),
+                model: "test-model".to_string(),
+                reasoning_level: None,
+            },
+            enabled_tools: Vec::new(),
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Normal,
+                special_agent: None,
+                memory_after_turn: Some(true),
+            }),
+            options: BTreeMap::new(),
+        })
+        .await
+        .expect("run turn");
+
+    let events = serde_json::to_value(&result.events).expect("events json");
+    let memory_result = events
+        .as_array()
+        .expect("events array")
+        .iter()
+        .find(|event| event["type"] == "toolResult" && event["toolName"] == "memory.afterTurn")
+        .expect("memory afterTurn result");
+    assert_eq!(memory_result["result"]["shouldRetain"], false);
+
+    let memory_messages =
+        crate::memory::RuntimeStore::new(runtime_root.join("memory").join("runtime.db"))
+            .list_messages("thread-tool-memory", 10)
+            .expect("memory messages");
+    assert_eq!(memory_messages.len(), 2);
+    assert_eq!(memory_messages[1]["tool_calls"], json!(["read"]));
+
+    let _ = fs::remove_dir_all(runtime_root);
 }
 
 #[tokio::test]
@@ -3189,6 +3703,7 @@ struct CapturedAgentRequest {
     memory_snippets: Vec<String>,
     profile_kind: String,
     parent_context_policy: String,
+    permission_mode: Option<String>,
     activated_tools: Vec<String>,
 }
 
@@ -3274,6 +3789,10 @@ impl AgentRuntimeBackend for CapturingAgentRuntimeBackend {
                         .context_summary
                         .parent_context_policy
                         .clone(),
+                    permission_mode: request
+                        .permission_policy
+                        .as_ref()
+                        .map(|policy| format!("{:?}", policy.mode)),
                     activated_tools: request
                         .runtime_context
                         .context_summary
@@ -4453,12 +4972,9 @@ async fn agent_runtime_context_includes_compacted_summary_for_thread() {
         .expect("config json"),
     )
     .expect("write config");
-    fs::create_dir_all(runtime_root.join("memory/session-summary")).expect("summary dir");
-    fs::write(
-        runtime_root.join("memory/session-summary/thread-compacted.md"),
-        "# Session summary\n\nOlder context was compacted here.\n",
-    )
-    .expect("summary file");
+    crate::memory::SessionSummaryStore::new(runtime_root.clone())
+        .refresh("thread:compacted", "Older context was compacted here.")
+        .expect("summary file");
 
     let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
     let runtime = AgentRuntime::with_native_provider_backend(
@@ -4470,7 +4986,7 @@ async fn agent_runtime_context_includes_compacted_summary_for_thread() {
     );
     let result = runtime
         .send_message_with_options(
-            "thread-compacted".to_string(),
+            "thread:compacted".to_string(),
             "continue after compaction".to_string(),
             AgentRuntimeSendOptions::default(),
         )
@@ -4899,6 +5415,176 @@ fn desktop_session_spawn_creates_child_without_visible_task_history() {
         .session_history(&session.key)
         .expect("child history")
         .is_empty());
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn subagent_type_explore_uses_builtin_definition_and_read_only_policy() {
+    let runtime_root = unique_test_runtime_root("subagent-explore-definition");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_native_provider_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "explore result".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    let result = runtime
+        .run_turn(AgentRunRequest {
+            run_id: "run-explore-subagent".to_string(),
+            agent_id: "Explore".to_string(),
+            session_key: "explore-thread".to_string(),
+            inbound: ChannelInboundEnvelope {
+                channel: "subagent".to_string(),
+                account_id: Some("rust-runtime".to_string()),
+                from: "main".to_string(),
+                to: "agent:subagent".to_string(),
+                chat_type: ChannelChatType::Direct,
+                body: "inspect the runtime".to_string(),
+                raw_body: None,
+                message_id: Some("run-explore-subagent:input".to_string()),
+                thread_id: Some("explore-thread".to_string()),
+                media_urls: Vec::new(),
+                metadata: BTreeMap::from([("agentType".to_string(), json!("Explore"))]),
+            },
+            model: AgentModelSelection {
+                provider: "configured".to_string(),
+                model: "inherit".to_string(),
+                reasoning_level: None,
+            },
+            enabled_tools: vec!["write".to_string(), "read".to_string()],
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Subagent,
+                special_agent: None,
+                memory_after_turn: Some(false),
+            }),
+            options: BTreeMap::from([("subagent_type".to_string(), json!("Explore"))]),
+        })
+        .await
+        .expect("Explore subagent run");
+
+    assert_eq!(
+        result.context_summary.agent_definition.as_deref(),
+        Some("Explore")
+    );
+    let requests = captured.lock().expect("captured requests");
+    let request = requests.first().expect("provider request");
+    assert_eq!(request.permission_mode.as_deref(), Some("ReadOnly"));
+    assert!(request
+        .system_sections
+        .iter()
+        .any(|section| section.contains("Explore agent")));
+    assert!(request.included_tools.contains(&"read".to_string()));
+    assert!(request.included_tools.contains(&"grep".to_string()));
+    for blocked in [
+        "write",
+        "edit",
+        "NotebookEdit",
+        "Agent",
+        "ExitPlanMode",
+        "bash",
+    ] {
+        assert!(
+            !request.included_tools.contains(&blocked.to_string()),
+            "Explore should not include {blocked}"
+        );
+    }
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[tokio::test]
+async fn subagent_type_verification_uses_verdict_prompt_and_read_only_policy() {
+    let runtime_root = unique_test_runtime_root("subagent-verification-definition");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("config json"),
+    )
+    .expect("write config");
+
+    let captured = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let runtime = AgentRuntime::with_native_provider_backend(
+        runtime_root.clone(),
+        Arc::new(CapturingAgentRuntimeBackend {
+            reply: "VERDICT: PASS".to_string(),
+            requests: Arc::clone(&captured),
+        }),
+    );
+    let result = runtime
+        .run_turn(AgentRunRequest {
+            run_id: "run-verification-subagent".to_string(),
+            agent_id: "verification".to_string(),
+            session_key: "verification-thread".to_string(),
+            inbound: ChannelInboundEnvelope {
+                channel: "subagent".to_string(),
+                account_id: Some("rust-runtime".to_string()),
+                from: "main".to_string(),
+                to: "agent:subagent".to_string(),
+                chat_type: ChannelChatType::Direct,
+                body: "verify the patch".to_string(),
+                raw_body: None,
+                message_id: Some("run-verification-subagent:input".to_string()),
+                thread_id: Some("verification-thread".to_string()),
+                media_urls: Vec::new(),
+                metadata: BTreeMap::from([("agentType".to_string(), json!("verification"))]),
+            },
+            model: AgentModelSelection {
+                provider: "configured".to_string(),
+                model: "configured".to_string(),
+                reasoning_level: None,
+            },
+            enabled_tools: Vec::new(),
+            profile: Some(AgentRunProfileRequest {
+                kind: AgentRunProfileKind::Subagent,
+                special_agent: None,
+                memory_after_turn: Some(false),
+            }),
+            options: BTreeMap::from([("subagent_type".to_string(), json!("verification"))]),
+        })
+        .await
+        .expect("verification subagent run");
+
+    assert_eq!(
+        result.context_summary.agent_definition.as_deref(),
+        Some("verification")
+    );
+    let requests = captured.lock().expect("captured requests");
+    let request = requests.first().expect("provider request");
+    assert_eq!(request.permission_mode.as_deref(), Some("ReadOnly"));
+    assert!(request
+        .system_sections
+        .iter()
+        .any(|section| section.contains("VERDICT")));
+    assert!(request.included_tools.contains(&"read".to_string()));
+    for blocked in ["write", "edit", "NotebookEdit", "Agent", "ExitPlanMode"] {
+        assert!(
+            !request.included_tools.contains(&blocked.to_string()),
+            "verification should not include {blocked}"
+        );
+    }
 
     let _ = fs::remove_dir_all(runtime_root);
 }

@@ -11,6 +11,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+pub mod agent_definitions;
 pub mod core_tools;
 pub mod cron;
 pub mod memory;
@@ -40,9 +41,11 @@ pub use self::agent_runtime_types::*;
 pub use self::desktop_runtime_stores::*;
 pub use self::runtime_tool_catalog::*;
 
-use core_tools::build_native_runtime_tool_registry;
 pub use core_tools::core_tools_mcp::{
     mcp_prompt_slash_commands, mcp_server_runtime_statuses, send_mcp_jsonrpc_message,
+};
+use core_tools::{
+    build_native_runtime_tool_registry, build_native_runtime_tool_registry_with_special_agent,
 };
 pub use message_policy::execute_message_policy_operation;
 pub use native_plugin_registry::{

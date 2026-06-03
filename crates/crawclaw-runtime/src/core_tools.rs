@@ -131,16 +131,25 @@ impl pi::sdk::Tool for StructuredOutputTool {
 }
 
 pub(crate) fn build_native_runtime_tool_registry(runtime_root: &Path) -> pi::sdk::ToolRegistry {
-    let process_registry = process_registry_for_root(runtime_root);
+    build_native_runtime_tool_registry_with_special_agent(runtime_root, None)
+}
+
+pub(crate) fn build_native_runtime_tool_registry_with_special_agent(
+    runtime_root: &Path,
+    active_special_agent: Option<String>,
+) -> pi::sdk::ToolRegistry {
+    let tool_root = effective_tool_root(runtime_root);
+    let workspace_root = tool_root.as_path();
+    let process_registry = process_registry_for_root(workspace_root);
     let mut tools: Vec<Box<dyn pi::sdk::Tool>> = vec![
-        pi::sdk::create_read_tool(runtime_root),
-        pi::sdk::create_write_tool(runtime_root),
-        pi::sdk::create_edit_tool(runtime_root),
-        Box::new(ApplyPatchTool::new(runtime_root)),
-        Box::new(BashTool::new(runtime_root, Arc::clone(&process_registry))),
+        pi::sdk::create_read_tool(workspace_root),
+        pi::sdk::create_write_tool(workspace_root),
+        pi::sdk::create_edit_tool(workspace_root),
+        Box::new(ApplyPatchTool::new(workspace_root)),
+        Box::new(BashTool::new(workspace_root, Arc::clone(&process_registry))),
         Box::new(ProcessTool::new(process_registry.clone())),
         Box::new(PowerShellTool::new(
-            runtime_root,
+            workspace_root,
             Arc::clone(&process_registry),
         )),
     ];
@@ -154,9 +163,9 @@ pub(crate) fn build_native_runtime_tool_registry(runtime_root: &Path) -> pi::sdk
             }),
     );
     tools.extend([
-        pi::sdk::create_grep_tool(runtime_root),
-        pi::sdk::create_find_tool(runtime_root),
-        pi::sdk::create_ls_tool(runtime_root),
+        pi::sdk::create_grep_tool(workspace_root),
+        pi::sdk::create_find_tool(workspace_root),
+        pi::sdk::create_ls_tool(workspace_root),
         Box::new(WebTool::new(WebToolKind::Search)) as Box<dyn pi::sdk::Tool>,
         Box::new(WebTool::new(WebToolKind::Fetch)) as Box<dyn pi::sdk::Tool>,
         Box::new(SessionTool::new(runtime_root, SessionToolKind::Status)),
@@ -196,15 +205,15 @@ pub(crate) fn build_native_runtime_tool_registry(runtime_root: &Path) -> pi::sdk
         )),
         // --- Process control tools ---
         Box::new(TaskOutputTool::new(
-            runtime_root,
+            workspace_root,
             Arc::clone(&process_registry),
         )),
         Box::new(TaskStopTool::new(
-            runtime_root,
+            workspace_root,
             Arc::clone(&process_registry),
         )),
         // --- LSP tool ---
-        Box::new(LspTool::new(runtime_root)),
+        Box::new(LspTool::new(workspace_root)),
         // --- MCP resource tools ---
         Box::new(McpResourceTool::new(
             runtime_root,
@@ -276,41 +285,62 @@ pub(crate) fn build_native_runtime_tool_registry(runtime_root: &Path) -> pi::sdk
             runtime_root,
             CoreRuntimeToolKind::Config,
         )),
-        Box::new(NotebookEditTool::new(runtime_root)),
-        Box::new(SpecialAgentTool::new(
+        Box::new(NotebookEditTool::new(workspace_root)),
+        Box::new(SpecialAgentTool::with_special_agent(
             runtime_root.to_path_buf(),
             SpecialAgentToolKind::ReviewTask,
+            active_special_agent.clone(),
         )),
-        Box::new(SpecialAgentTool::new(
+        Box::new(SpecialAgentTool::with_special_agent(
             runtime_root.to_path_buf(),
             SpecialAgentToolKind::KnowledgeRecall,
+            active_special_agent.clone(),
         )),
-        Box::new(SpecialAgentTool::new(
+        Box::new(SpecialAgentTool::with_special_agent(
             runtime_root.to_path_buf(),
             SpecialAgentToolKind::KnowledgeReflect,
+            active_special_agent.clone(),
         )),
-        Box::new(SpecialAgentTool::new(
+        Box::new(SpecialAgentTool::with_special_agent(
             runtime_root.to_path_buf(),
             SpecialAgentToolKind::KnowledgeIngest,
+            active_special_agent.clone(),
         )),
-        Box::new(SpecialAgentTool::new(
+        Box::new(SpecialAgentTool::with_special_agent(
             runtime_root.to_path_buf(),
             SpecialAgentToolKind::KnowledgeModelList,
+            active_special_agent.clone(),
         )),
-        Box::new(SpecialAgentTool::new(
+        Box::new(SpecialAgentTool::with_special_agent(
             runtime_root.to_path_buf(),
             SpecialAgentToolKind::KnowledgeModelCreate,
+            active_special_agent.clone(),
         )),
-        Box::new(SpecialAgentTool::new(
+        Box::new(SpecialAgentTool::with_special_agent(
             runtime_root.to_path_buf(),
             SpecialAgentToolKind::SessionSummaryFileRead,
+            active_special_agent.clone(),
         )),
-        Box::new(SpecialAgentTool::new(
+        Box::new(SpecialAgentTool::with_special_agent(
             runtime_root.to_path_buf(),
             SpecialAgentToolKind::SessionSummaryFileEdit,
+            active_special_agent,
         )),
     ]);
     pi::sdk::ToolRegistry::from_tools(tools)
+}
+
+#[cfg(test)]
+pub(crate) fn memory_tool_layer_for_special_agent_for_test(
+    tool_name: &str,
+    input: Value,
+    active_special_agent: Option<&str>,
+) -> Result<String, String> {
+    core_tools_special_agents::memory_tool_layer_for_special_agent_for_test(
+        tool_name,
+        input,
+        active_special_agent,
+    )
 }
 
 fn process_registry_for_root(runtime_root: &Path) -> Arc<ProcessRegistry> {

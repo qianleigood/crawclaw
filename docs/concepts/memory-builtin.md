@@ -15,6 +15,8 @@ the agent lifecycle and provides:
 - **Durable memory** for scoped long-term facts and preferences in Hindsight
 - **Experience memory** for reusable procedures, decisions, and failure patterns
   in Hindsight
+- **Resource memory** for document, code, and reference recall in Hindsight
+- **Mental models** for reflective synthesis in Hindsight
 - **Session summaries** for compacted long-session continuity
 - **Dream consolidation** for lower-frequency reflection and mental-model refresh
 
@@ -45,11 +47,21 @@ remote service; CrawClaw only needs the HTTP API endpoint and bank configuration
 ## Operational notes
 
 - Durable, experience, resource, and mental-model layers are Hindsight banks.
-- Auto retain runs after eligible completed turns and strips injected memory
-  tags before writeback.
+- Auto retain runs after eligible completed turns, strips injected memory tags,
+  and enqueues Hindsight `experience` writeback in the runtime outbox.
+- `memory.outbox.process` is the worker entrypoint that drains pending retain
+  jobs. `memory.status`, `memory.outbox.list`, and `memory.activity.list`
+  expose queue health and recent activity.
+- Explicit `remember` enqueues durable retain work; explicit
+  `do-not-remember` skips Hindsight writeback for the turn; explicit `forget`
+  is observable but currently marked unsupported because the Hindsight client
+  has no delete API.
 - Recall reads Hindsight only; if Hindsight is unavailable, recall sections are
   empty for that turn.
 - Session summaries are maintained separately from durable memory and are used
   as compaction continuity.
+- The `durable-memory`, `experience`, and `dream` special agents are constrained
+  maintenance surfaces. They do not replace the normal prompt-time recall or
+  `afterTurn` experience retain path.
 
 For the full memory model, see [Memory Overview](/concepts/memory).

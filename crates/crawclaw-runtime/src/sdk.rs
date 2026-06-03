@@ -1,6 +1,9 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
+use std::time::UNIX_EPOCH;
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -208,6 +211,69 @@ fn resolve_workspace_path(cwd: &Path, raw_path: &str) -> Result<PathBuf> {
     Ok(cwd.join(path))
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FileReadState {
+    pub timestamp_millis: u128,
+    pub content: String,
+}
+
+fn file_read_states() -> &'static Mutex<HashMap<PathBuf, FileReadState>> {
+    static STATES: OnceLock<Mutex<HashMap<PathBuf, FileReadState>>> = OnceLock::new();
+    STATES.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn file_read_state_key(path: &Path) -> PathBuf {
+    path.canonicalize().unwrap_or_else(|_| path.to_path_buf())
+}
+
+fn file_mtime_millis(path: &Path) -> Option<u128> {
+    fs::metadata(path)
+        .ok()?
+        .modified()
+        .ok()?
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .map(|duration| duration.as_millis())
+}
+
+pub fn record_file_read_state(path: &Path, content: &str) -> Option<FileReadState> {
+    let state = FileReadState {
+        timestamp_millis: file_mtime_millis(path)?,
+        content: content.to_string(),
+    };
+    file_read_states()
+        .lock()
+        .expect("file read state")
+        .insert(file_read_state_key(path), state.clone());
+    Some(state)
+}
+
+pub fn validate_fresh_file_read_state(path: &Path) -> std::result::Result<FileReadState, String> {
+    let key = file_read_state_key(path);
+    let state = file_read_states()
+        .lock()
+        .map_err(|_| "file read state lock poisoned".to_string())?
+        .get(&key)
+        .cloned()
+        .ok_or_else(|| {
+            format!(
+                "File must be read before editing: {}. Call read on this file, then retry NotebookEdit.",
+                path.display()
+            )
+        })?;
+    let disk_timestamp = file_mtime_millis(path)
+        .ok_or_else(|| format!("failed to read file metadata: {}", path.display()))?;
+    let disk_content =
+        fs::read_to_string(path).map_err(|error| format!("failed to read file: {error}"))?;
+    if disk_timestamp > state.timestamp_millis || disk_content != state.content {
+        return Err(format!(
+            "File was modified since it was read: {}. Read the file again before editing.",
+            path.display()
+        ));
+    }
+    Ok(state)
+}
+
 #[derive(Clone)]
 struct ReadTool {
     cwd: PathBuf,
@@ -258,11 +324,16 @@ impl Tool for ReadTool {
             .ok_or_else(|| Error::validation("read requires path"))?;
         let resolved = resolve_workspace_path(&self.cwd, path)?;
         let content = fs::read_to_string(&resolved).map_err(|error| Error::tool("read", error))?;
+        let metadata = fs::metadata(&resolved);
+        let mtime = file_mtime_millis(&resolved);
+        let _ = record_file_read_state(&resolved, &content);
         Ok(text_output(
             content,
-            Some(
-                json!({ "path": path, "bytes": fs::metadata(&resolved).map(|m| m.len()).unwrap_or_default() }),
-            ),
+            Some(json!({
+                "path": path,
+                "bytes": metadata.map(|m| m.len()).unwrap_or_default(),
+                "mtime": mtime
+            })),
         ))
     }
 
