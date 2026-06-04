@@ -357,6 +357,13 @@ mod tests {
         assert!(!entries.iter().any(|entry| entry["path"]
             .as_str()
             .is_some_and(|path| path.starts_with("hooks.internal.handlers"))));
+        assert!(entries.iter().any(|entry| {
+            entry["path"] == "memory.hindsight.quality.recallMinScore"
+                && entry["type"] == "number"
+                && entry["help"]
+                    .as_str()
+                    .is_some_and(|help| help.contains("Minimum local relevance score"))
+        }));
 
         let mut lines = config_doc_baseline_jsonl().lines();
         let meta: Value =

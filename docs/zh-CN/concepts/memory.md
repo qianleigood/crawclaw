@@ -1,232 +1,151 @@
 ---
 read_when:
-  - 你想要了解记忆的工作原理
-  - 你想要了解应该写入哪些记忆文件
-  - 你想要了解什么是可重放的，什么是仅用于调试的
-summary: CrawClaw 如何使用会话记忆、持久记忆、体验记忆和 Context Archive
+  - 你想了解记忆是如何工作的
+  - 你想了解 Hindsight 支持的持久记忆和经验记忆
+  - 你想了解什么是可回放的与保留的
+summary: CrawClaw 如何使用 Hindsight 记忆库、会话摘要和 Context Archive
 title: 记忆概览
 x-i18n:
-  generated_at: "2026-05-02T05:43:36Z"
+  generated_at: "2026-06-04T03:23:49Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 04e63fa2bbe940596c5752bae2ca253644801d6c05a3d6a65509d7def1a3fbf7
+  source_hash: 9d9a80642ea144bbf8451b71e0bcdc86c25204a20e1b17ba3dc3a920422986e5
   source_path: concepts/memory.md
   workflow: 15
 ---
 
 # 记忆概览
 
-CrawClaw 通过分层记忆系统来记住事物：
+CrawClaw 记忆在保留知识方面原生支持 Hindsight，在会话连续性方面采用本地存储：
 
-- **会话记忆** 用于单个会话内的短期任务连续性
-- **持久记忆** 用于长期用户和协作事实，按 `agentId` 作用域限定
-- **体验记忆** 由 Hindsight 提示时召回和特殊智能体 knowledge 工具写回提供支持
-- **Context Archive** 用于重放/导出/调试运行实际看到和执行的内容的记录
+- **会话记录**记录在一个运行时会话中发生的事情。
+- **会话摘要**在 `memory/session-summary` 下存储压缩的会话连续性。
+- **持久记忆**在 Hindsight `durable` 层中存储稳定的用户偏好、项目事实和协作上下文。
+- **经验记忆**在 Hindsight `experience` 层中存储可重用的经验和程序。
+- **资源记忆**在 Hindsight `resource` 层中存储文档、代码和参考资料。
+- **心智模型**在 Hindsight `mental-models` 层中存储低频反思性综合。
+- **Context Archive**记录运行所看到和所做的回放和调试证据。
 
-模型只“记住”持久化到这些层中的内容——没有隐藏状态。
+模型仅记住这些层持久化并在后来回忆的内容。没有隐藏的模型状态。
 
-记忆维护工具只面向特殊智能体开放。持久、体验、资源和心智模型维护使用 Hindsight-backed 的 `knowledge_recall`、`knowledge_reflect`、`knowledge_ingest`、`knowledge_model_list` 和 `knowledge_model_create` 工具。会话摘要文件编辑仍通过 `session_summary_file_read` 和 `session_summary_file_edit` 限制在所属后台智能体中。
+## 目标产品设计
 
-## 持久记忆文件
+产品目标是实现一个明确的、可观察的记忆循环：
 
-持久记忆以纯 Markdown 文件形式存储在作用域限定的持久记忆目录下。每个记忆是一个独立笔记，每个作用域有自己的
-`MEMORY.md` 索引。
+- 轮次结束时的记忆工作不得阻塞主响应路径
+- `memory.afterTurn` 记录模型可见的消息增量，并在运行时存储中排队记忆任务
+- 网关启动自动发件箱工作器，将排队的保留任务写入 Hindsight 并记录本地遗忘墓碑标记；`memory.outbox.process` 仍然是手动排出入口
+- CrawClaw Desktop 打包在捆绑嵌入式运行时之前暂存并 sha256 验证固定的 `hindsight-embed` sidecar 二进制文件
+- `memory.status`、`memory.outbox.list` 和 `memory.activity.list` 公开策略、Hindsight 生命周期、工作器状态、队列状态和最近活动
+- 显式 `remember` 写入持久记忆保留任务
+- 显式 `do-not-remember` 阻止该轮次的 Hindsight 回写，同时保留本地会话连续性记录
+- 显式 `forget` 记录本地墓碑标记。墓碑标记抑制匹配的将来回忆，而 CrawClaw 避免声称破坏性远程删除，直到 Hindsight 公开稳定的删除操作
+- Desktop 记忆项目使用相同的运行时发件箱。本地项目携带 provider、layer、bank 和同步状态字段，以便 UI 可以显示它们是待 Hindsight 回写、本地独占还是待本地删除
 
-`MEMORY.md` 现在遵循有界持久索引约束：
+这保持了理想设计的小型化：CrawClaw 拥有策略、幂等本地状态和可观察性；Hindsight 拥有语义存储、回忆、排序和将来的删除支持。
 
-- 它仅是索引，而非记忆体的存放位置
-- 它不能包含 frontmatter
-- 每个指针行应保持单行且大约 150 个字符或更少
-- 整个文件应保持在约 200 行和 25KB 以下
-- 过时的详情应移回主题笔记，而非扩展索引
+## Hindsight 层
 
-在召回时，CrawClaw 不会盲目注入整个持久记忆目录，也不会后备为放入整个 `MEMORY.md` 文件到系统提示中。持久化召回现在在提示组装期间同步运行：
+内置运行时从配置的 prefix、granularity 和 layer 派生 Hindsight bank id。默认 bank granularity 为 `agent`，因此主智能体解析 banks 如下：
 
-- `MEMORY.md` 作为当前作用域的第一个持久记忆索引界面
-- 标题、描述和持久类型等 header 元数据提供下一层召回
-- 一个轻量级正文索引缓存为每个笔记保留简短摘要和关键词集，因此正文明显相关时，标题/描述较弱的旧笔记仍可进入候选集
-- 只有有限的高排名候选集读取正文摘要以进行第二轮重新排序
-- 持久化召回诊断现在记录所选笔记在实际使用时是否被采纳 `index`，
-  `header`， `body_index`，和/或 `body_rerank` 信号，以便 inspect/debug 流程可以解释为什么某条笔记被选中或遗漏
-- 仅对最终选中项加载完整笔记内容
-- 提示组装接收持久化召回评分细分，可以将少量记忆预算转向持久记忆以适应持久密集型查询，或在体验/SOP 召回更合适时从持久记忆中移开
-- 选中的超过一天的持久笔记仍带有新鲜度提醒，模型被明确告知在将其作为事实之前，要根据当前实际情况验证文件/代码/仓库状态声明
+- `crawclaw:main:durable`
+- `crawclaw:main:experience`
+- `crawclaw:main:resource`
+- `crawclaw:main:mental-models`
 
-持久自动写入也遵循回合结束完成触发器：
+共享模式可以通过配置的共享 bank id 路由所有作用域。完整的配置面请参阅[记忆配置参考](/reference/memory-config)。
 
-- 运行循环现在发出 `stop` 在最终顶级回合之后生命周期阶段，和 `durable_memory` 作为订阅者消费该阶段
-- 同一个停止事件可以携带捕获的父分支上下文，包括父提示信封和完整的模型可见消息上下文；嵌入的
-  `durable_memory` 继承该分支并仅附加一个窄范围的持久记忆维护提示
-- 基于游标的最近消息窗口仍然是提取边界；较旧的分支上下文仅可用于解析最近消息中的引用，而非作为重新提取过时历史的数据源
-- `durable_memory` 仅写入持久 profile/上下文记忆：用户偏好、明确的未来行为反馈、稳定项目事实和稳定引用。可复用流程、命令序列、调试工作流、测试策略、失败模式和实现经验教训应属于体验记忆。
-- 该回合的新消息必须包含最终助手回复
-- 如果最新的助手回复仍包含工具调用，或以
-  `error` / `aborted`：该回合跳过持久记忆智能体
-- 游标前进仅在回合实际处理后才发生，因此不完整的工具调用回合不会意外消耗提取历史
+## 回忆
 
-CrawClaw 也有第二层持久记忆维护层：
+提示词时的回忆由 Rust 记忆运行时拥有。当 Hindsight 启用且 `memory.hindsight.memoryMode` 允许提示词回忆时，CrawClaw 查询 durable、experience、resource 和 mental-model 层，并将有界结果注入运行时上下文。
 
-- `durable_memory` 是轻量级每回合后台写入器
-- `dream` 是轻量级每回合后台写入器
-- `session_summary` 是单个会话的短期连续性智能体
-- 两者 `durable_memory` 和 `dream` 现在订阅相同的 run-loop `stop` 阶段，而不是直接从 `afterTurn`
-- Dream 作为独立的后台维护任务运行，而非作为父运行嵌入式分支。停止事件仅触发调度和作用域解析；Dream 不接收父提示信封、父模型可见消息、父运行 ID 或父提供商/模型选择。
-- Dream 使用自己的系统提示和生成的特殊智能体会话以及 dream 工具策略，因此它不会继承默认嵌入式主智能体提示、表面 Skills、引导上下文文件或工作区提醒。
-- auto-dream 使用按作用域的 `.consolidate-lock` 文件用于持久记忆作用域目录中的锁所有权及其整合水印；锁文件 `mtime` 在运行开始时前进，如果运行失败则回滚
-- auto-dream 按以下方式扫描智能体会话转录文件 `mtime` 并在之前的文件水印之后传递所触及会话的引用；Dream 可能使用窄
-  `read` 或只读 `exec` 在这些引用上进行搜索，同时主机防护阻止变更性 Bash 并阻止原始 `write` / `edit` 在持久记忆目录之外
-- Dream 不会消耗 `session_summary` 文件或压缩摘要
-  `summaryOverrideText`；这些保持在单个会话连续性和压缩范围内，而非跨会话持久化整合
-- auto-dream 由其运行超时限制，而非固定的回合数上限，因此大型跨会话整合不会仅仅因为需要更多智能体回合而被中断
-- auto-dream 整合相同的持久 profile/上下文层，并且不得将可复用操作经验转化为持久笔记
-- auto-dream 现在通过操作源呈现用于定向/收集/整合/修剪的阶段级操作
-- 手动 dream 运行现在可以用以下方式限制 `--session-limit` / `--feishu-limit`
-  并使用以下方式预览 `--dry-run` ：无需获取 dream 锁或写入记忆即可预览。
-- status 和 inspect 界面明确报告 dream 闭环针对所检查的持久作用域是否处于活跃状态，而非将 dream 保留为不透明的可选后台行为
-- dream status 和 inspect 界面报告文件水印、锁路径以及当前是否有锁处于活跃状态；dream 运行历史不再持久化到运行时数据库中
+`memory.hindsight.memoryMode` 具有以下效果：
 
-晋升与召回和维护是分开的：
+- `hybrid`：启用提示词回忆；配置的 knowledge 工具也可能在运行时允许的地方暴露。
+- `context`：启用提示词回忆；面向用户的 knowledge 工具保持关闭。
+- `tools`：禁用提示词回忆；工具是启用时的显式访问路径。
 
-- 持久化召回直接读取作用域限定的持久笔记
-- `dream` 整合和修复那些持久笔记
-- 晋升候选是用于后续审核/写回的管理工件，而非提示时持久化召回输入
-- 晋升负载被明确标记 `surface: governance_only` 以使该边界既可被机器读取，也有文档记录
+回忆受当前模型上下文预算约束。较小的上下文窗口接收更紧凑的记忆片段；较大的上下文窗口可以接收更多回忆而不会变得无界。
 
-## 会话记忆
+中文和混合中英文回忆使用相同的 Hindsight 后端，但增加了本地质量层。CrawClaw 使用确定性双语技术别名重写中文密集型回忆查询，在查询正文中保留原始最近上下文，应用最小相关性评分，并在提示词预算修剪前限制 top reranked 项目。这保持了常见中文术语（如 gateway、cache、database、plugin 和 memory）在中英文项目笔记中对齐。有效质量配置文件在 `memory.status` 中可见；高级部署可以在 `memory.hindsight.quality` 下覆盖分块、本地评分阈值、top-k 准入和查询重写。
 
-会话记忆现在遵循单轨设计：
+回忆在 Hindsight 返回结果后也应用本地墓碑过滤。如果墓碑针对 Desktop 记忆项目 id，则通过元数据移除匹配的回忆项目。否则，CrawClaw 抑制文本与 forget 查询匹配的项目。
 
-- 每个会话有一个 `summary.md` 文件
-- 一个后台 `session_summary` 智能体从运行循环后采样钩子维护该文件
-- 摘要智能体从一个捕获的父分支上下文运行：运行循环生命周期事件同时携带父提示信封和完整的当前模型可见消息上下文，然后摘要运行附加一个窄
-  `summary.md` 维护提示，而非添加另一个特定于摘要的系统提示
-- 分支上下文从活跃运行循环中捕获，而非从更旧的持久化行重新构造或从单独的持久化提示产物重新组装，因此压缩边界与主智能体实际看到的内容保持一致
-- 自动生命周期更新在分支上下文缺失时跳过；显式 CLI 或网关刷新从持久化的模型可见行重建有限的手动分支上下文
-- session-summary 为该分支保留短期缓存保留，但不会派生或重用父提示缓存密钥
-- 调度器可以更早地使用轻量级摘要配置文件启动，然后稍后将同一文件升级为完整配置文件
-- 自然的稳定回合仍会触发摘要更新，但调度器也可以在令牌增长阈值和工具调用阈值同时满足时更早刷新该文件
-- 运行时数据库仅存储边界/进度状态，例如
-  `lastSummarizedMessageId`， `lastSummaryUpdatedAt`， `tokensAtLastSummary`和
-  `summaryInProgress`
+## 回写
 
-`summary.md` 是唯一持久化的会话摘要来源。CrawClaw 不再保留单独的运行时“会话卡片”作为主要会话记忆记录。
+轮次结束时的回写按记忆类型故意拆分：
 
-摘要文件使用固定结构，包括以下部分：
+- `memory.afterTurn` 在运行时存储中记录新的模型可见用户和助手消息。
+- 符合条件的已完成轮次排队 Hindsight `experience` 保留任务。工作器稍后将其写入 Hindsight。此路径不调用 `experience` 特殊智能体。
+- 长的中文密集型保留载荷在发送给 Hindsight 之前被拆分为带重叠和块元数据的句子边界块。这保持了长中文轮次的可检查性，并避免了一个过大的记忆项目。
+- 显式 `remember` 请求排队 Hindsight `durable` 保留任务。
+- 显式 `do-not-remember` 请求跳过该轮次的 Hindsight 回写。
+- 显式 `forget` 请求被跟踪为记忆活动和发件箱工作；工作器记录本地墓碑标记并将任务标记为 `completed_local`。
+- Desktop 创建和编辑操作在 Hindsight 可用时排队保留工作到匹配的 Hindsight 层。Desktop 清理隐藏本地项目并为同一项目 id 排队遗忘墓碑标记。
+- `durable-memory` 是稳定的长期事实的受限维护特殊智能体。它接收结构化记忆增量输入，不继承父级记录历史。
+- `dream` 是用于手动反思性维护的维护特殊智能体。自动 dream 整合路径使用 Rust Hindsight 反思管道。
+- `session-summary` 是压缩和会话连续性特殊智能体。它写入本地会话摘要文件，而不是 Hindsight 持久记忆。
 
-- `Session Title`
-- `Current State`
-- `Open Loops`
-- `Task specification`
-- `Files and Functions`
-- `Workflow`
-- `Errors & Corrections`
-- `Codebase and System Documentation`
-- `Learnings`
-- `Key results`
-- `Worklog`
+记忆维护工具仅限特殊智能体使用。运行时还为记忆特殊智能体强制执行目标 Hindsight 层：
 
-该文件现在有两种维护模式：
+- `durable-memory` 只能写入 `durable`
+- `experience` 只能写入 `experience`
+- `dream` 只能写入 `mental-models`
 
-- **轻量配置文件** 首先更新最小工作状态部分：
-  `Current State`， `Open Loops`， `Task specification`和 `Key results`
-- **完整配置文件** 扩展到更丰富的长期运行部分，例如
-  `Files and Functions`， `Workflow`， `Errors & Corrections`， `Learnings`和
-  `Worklog`
+这防止记忆维护提示词静默写入错误的 bank。
 
-提示组装不再注入 `summary.md` 进入模型可见的系统上下文。在压缩之前，连续性来自当前转录文本，后台摘要智能体保留 `summary.md` 从同一模型可见转录文本中的当前内容。当会话稍后压缩时，CrawClaw 消费
-`summary.md` 作为压缩历史的真相来源，将该渲染的压缩视图存储在压缩状态中，并在摘要边界之后仅保留最近的尾部。
+## 持久记忆
 
-压缩也，不再消耗原始 `summary.md` 正文。它从最关键的连续性部分渲染结构化压缩视图，包括
-`Current State`， `Open Loops`， `Task specification`， `Files and Functions`，
-`Workflow`， `Errors & Corrections`和 `Key results`。压缩后，提示组装在该保留尾部之前将该渲染的压缩摘要作为转录摘要消息进行前置；它仍不注入完整的 `summary.md` 文件作为普通回合的系统上下文。
+持久记忆用于稳定事实、持久偏好、未来行为指导和长期项目上下文。它不是记录副本，也不是可重用程序的地方。
 
-会话摘要也可以为持久记忆晋升候选提供种子。成功的摘要更新后，CrawClaw 从结构化摘要部分提炼稳定的长期事实，并将其记录为晋升候选，而非直接写入持久记忆。这些候选进入晋升/治理管道；它们不是第三层召回层，在后续工作流明确将其具体化到其他地方之前，不会被注入到提示组装中。
+`durable-memory` 特殊智能体使用窄结构化输入包。输入可能包括最近的模型可见消息增量、作用域元数据、光标状态、现有清单数据和显式 remember 或 forget 信号。它不得包含完整的父级记录、父级系统提示词或隐藏的父级提示词上下文。
 
-会话记忆仍然以 `sessionId`，因此父智能体和派生的子智能体确实 **不** 共享相同的摘要文件。每个子运行拥有自己的
-`summary.md`。
+此边界防止持久提取被旧父级上下文或无关运行历史污染。
 
-<Tip>
-如果你希望你的智能体长期记住某事，请明确告诉它。它可以根据应该保留的内容写入持久记忆或体验笔记。
-</Tip>
+## 经验记忆
 
-## 体验召回
+经验记忆用于可重用的操作知识：
 
-体验记忆是一个独立的记忆层，用于存储来自之前工作的已验证经验。它存储可复用流程、决策、运行时模式、失败模式、工作流模式和引用。Hindsight 是面向提示的体验召回提供者和写入目标。CrawClaw 可以：
+- 成功的程序
+- 失败模式
+- 调试经验
+- 工作流模式
+- 适用性边界
 
-- 查询 Hindsight 以获取相关可复用体验
-- 通过特殊智能体 `knowledge_ingest` 工具写入结构化体验
-- 在顶级回合后运行后台体验智能体以提取可复用体验，而不阻塞主任务
-- 通过 CrawClaw Desktop 或本地 Gateway API 管理 Hindsight 提供商状态
-- 通过以下方式汇总夜间记忆提示诊断 `crawclaw memory prompt-journal-summary`
+正常的自动路径直接将符合条件的已完成轮次写入 Hindsight experience。手动或维护经验提取仍可使用 `experience` 特殊智能体，但它不是默认的轮次结束写入器。
 
-体验提取和召回是故意分开的：
+## 会话摘要
 
-- 生命周期 `stop` 捕获刚刚完成的顶级回合
-- 体验智能体审查最近的模型可见消息、会话摘要上下文和 Hindsight 召回上下文
-- 智能体只能使用 Hindsight knowledge 工具；它不能运行 shell 命令、浏览、检查源文件或生成智能体
-- 下一个提示组装同步地从 Hindsight 召回最相关的体验
+会话摘要是本地连续性产物。它们帮助压缩用简洁摘要替换更旧的记录历史，同时保留最近的尾部。
 
-体验召回在每个智能体回合的上下文组装阶段运行。运行时首先对用户查询进行分类，然后根据该分类构建提供商查询计划：
+会话摘要维护与持久记忆和经验记忆分开：
 
-- 纯偏好提示被路由到持久记忆，并跳过体验提供商查询
-- SOP 和操作手册提示可以借用少量提供商搜索预算，这样较弱的元数据不会使操作体验匮乏
-- 成功的 `knowledge_ingest` 调用写入 Hindsight，不保留完整的本地体验副本
-- 如果 Hindsight 返回无结果或不可用，则该回合的体验召回为空，而非回退到本地条目
-- Hindsight 拥有体验召回的语义相关性和排序权；CrawClaw 保留提供商顺序，仅应用确定性防护栏，如仅 Hindsight 源过滤、去重、非空内容检查和提示预算限制
-- 体验召回诊断暴露保留的 `providerOrder` 和选择原因，而非本地评分细分；本地评分字段保留给持久记忆可观测性
-- 选中的体验召回仍受记忆提示预算限制；层分配是软性指导，但组装的体验部分必须符合该回合的全局体验预算
-- 选中的目标层、提供商 ID、原因和限制被写入记忆召回诊断，以便 inspect/debug 流程可以解释为什么查询或跳过了体验
+- 它按会话作用域键控
+- 它写入 `memory/session-summary`
+- 它被压缩消耗
+- 它不会自动提升到持久记忆
 
-如果没有适用于当前回合的提示，运行时完全跳过体验提供商查询。
+## 梦境整合
 
-`knowledge_ingest` 是当前体验写入路径。它通过运行时 Hindsight client 写入解析后的 Hindsight bank，并带上严格的层标签。体验笔记应捕获可复用上下文、触发器、行动、结果、经验教训、适用边界和支持证据，而非临时任务状态。
+梦境整合是低频反思层。自动路径使用 Hindsight 反思处理最近的会话摘要，并将综合内容存储在 `mental-models` 中。
+
+`dream` 特殊智能体仍可作为具有窄记忆维护工具策略的手动维护面使用。它不继承父级记录上下文。
 
 ## Context Archive
 
-Context Archive 是面向重放的智能体运行记录层。
+Context Archive 是智能体运行的面向回放的记录层。它捕获：
 
-它捕获：
+- 模型可见上下文
+- 工具准入决策
+- 工具结果
+- 运行时事件和结果
 
-- 模型可见上下文，包括组装的提示/消息/工具界面
-- 工具准入决策、循环策略操作和工具结果
-- 回合后更新，如会话摘要维护、压缩、完成和审核结果
+Context Archive 与记忆不同。它是回放和检查的证据，不是提示词时回忆存储。
 
-Context Archive 与旧的记录层不同：
+## 进一步阅读
 
-- **会话转录文本** 是面向产品的对话记录，之后可能会被压缩或重写
-- **Prompt Journal** 仅用于调试，故意有损/截断
-- **诊断会话状态** 是内存镜像/缓存，不是持久化真相来源
-
-如果你需要导出或重放任务支持的运行，Context Archive 是要使用的层。
-
-## 作用域与共享
-
-这些层的边界不相同：
-
-- **会话记忆** 按会话隔离。
-- **持久记忆** 在运行解析到相同 `agentId` 作用域时共享。
-- **体验记忆** 跨运行使用相同的 Hindsight 提供商配置和面向提示的召回，同时提取 cursor 仍按会话跟踪。
-
-所有使用内置记忆运行时的智能体都收到相同的智能体记忆路由契约。此指导不仅限于 `main` 智能体。
-
-## 会话摘要维护
-
-之前 [压缩](/concepts/compaction) 修剪会话时，CrawClaw 等待当前的 `session_summary` 运行在短限定窗口内完成后，然后使用 `summary.md` 加上 `lastSummarizedMessageId` 作为压缩边界。压缩在该摘要边界之后立即开始，仅在需要满足最小保留尾部条件时向后扩展。如果崩溃的进程留下 `summaryInProgress` 设置超过过期租约窗口，压缩会清除过期租约，而不是等待已终止的摘要运行。
-
-这使短期连续性保持在一个真相来源上：
-
-- 后台智能体更新 `summary.md`
-- 该智能体看到由捕获的父分支上下文携带的当前模型可见消息上下文
-- 自动摘要更新需要该父分支上下文；显式 CLI/网关刷新从持久化的模型可见行重建有限的手动分支上下文
-- 压缩在摘要边界之后保留尾部，仅向后扩展到足以保持可用的最近工作集
-- 压缩后，模型可见历史包含压缩摘要消息加上该保留尾部
-- 提示组装继续使用最近的转录文本，不单独注入 `summary.md`
-
-## Desktop 和 Gateway API
-
-交互式记忆设置和诊断使用 CrawClaw Desktop。自动化应调用本地 Gateway API，而不是包装命令行。
-
-## 延伸阅读
-
-- [记忆配置参考](/reference/memory-config) -- 所有配置旋钮
-- [压缩](/concepts/compaction) -- 压缩如何与记忆交互
+- [记忆配置参考](/reference/memory-config)
+- [内置记忆运行时](/concepts/memory-builtin)
+- [会话与记忆](/concepts/session-vs-memory)
+- [记忆与 Skill](/concepts/memory-vs-skill)
+- [压缩](/concepts/compaction)

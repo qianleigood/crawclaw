@@ -64,6 +64,12 @@ configuration.
   enqueues a local tombstone. Tombstones suppress matching future recall by
   target id or forget query while avoiding destructive remote deletes until the
   Hindsight API exposes a stable delete operation.
+- Chinese and mixed Chinese-English memory paths use built-in quality guards:
+  long retain payloads are sentence-chunked with overlap metadata, recall
+  queries get deterministic bilingual technical aliases, and local score plus
+  top-rerank caps run before prompt injection. The active quality profile is
+  reported by `memory.status`, and advanced deployments can override these
+  guardrails under `memory.hindsight.quality`.
 - Desktop local memory items carry `provider`, `layer`, `bankId`, and sync
   status metadata. Create and edit operations enqueue retain work for Hindsight
   when available; cleanup enqueues a forget tombstone and hides the local item.

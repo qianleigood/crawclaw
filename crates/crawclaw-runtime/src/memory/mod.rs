@@ -2,6 +2,7 @@ pub mod bank_resolver;
 pub mod config;
 pub mod feedback_guard;
 pub mod hindsight_client;
+pub mod quality;
 pub mod recall_pipeline;
 pub mod reflect_pipeline;
 pub mod retain_pipeline;
@@ -26,7 +27,7 @@ pub use self::runtime_store::RuntimeStore;
 pub use self::session_summary_store::SessionSummaryStore;
 
 use self::bank_resolver::{BankContext, BankResolverConfig};
-use self::hindsight_client::{HindsightClient, RecallItem};
+use self::hindsight_client::{HindsightClient, RecallItem, RetainMemoryItem};
 use self::recall_pipeline::RecallConfig;
 use self::reflect_pipeline::ReflectConfig;
 use self::retain_pipeline::RetainConfig;
@@ -344,6 +345,7 @@ impl MemoryRuntime {
                     "retain_experience",
                     "agent_turn",
                     retain_pipeline::compose_retain_payload(&new_messages, &ctx, &retain_config),
+                    &retain_config,
                 )?;
             }
             MemoryDirective::Remember { content } => {
@@ -355,6 +357,7 @@ impl MemoryRuntime {
                     "retain_durable",
                     "explicit_remember",
                     Some(content.clone()),
+                    &retain_config,
                 )?;
             }
             MemoryDirective::Forget { content } => {
@@ -411,6 +414,7 @@ impl MemoryRuntime {
         kind: &str,
         context: &str,
         content: Option<String>,
+        retain_config: &RetainConfig,
     ) -> Result<Value, String> {
         if !self.config.hindsight.enabled {
             return Ok(json!({
@@ -447,9 +451,20 @@ impl MemoryRuntime {
             }));
         };
         let bank_id = self.bank_resolver.resolve(ctx, layer);
+        let chunks = retain_pipeline::chunk_retain_content(&content, retain_config);
+        let chunk_values = chunks
+            .iter()
+            .map(|chunk| {
+                json!({
+                    "content": chunk.content,
+                    "metadata": chunk.metadata,
+                })
+            })
+            .collect::<Vec<_>>();
         let payload = json!({
             "bankId": bank_id,
             "content": content,
+            "chunks": chunk_values,
             "context": context,
             "metadata": retain_pipeline::build_retain_metadata(ctx),
             "tags": retain_pipeline::build_retain_tags(ctx, layer),
@@ -539,6 +554,7 @@ impl MemoryRuntime {
         }
         let ctx = self.bank_context(agent_id);
         let bank_id = self.bank_resolver.resolve(&ctx, layer);
+        let retain_config = RetainConfig::from(&self.config.hindsight);
         let content = [title.trim(), summary.trim(), content.trim()]
             .into_iter()
             .filter(|value| !value.is_empty())
@@ -560,10 +576,17 @@ impl MemoryRuntime {
         retain_tags.push(format!("category:{category}"));
         retain_tags.extend(tags.iter().filter(|tag| !tag.trim().is_empty()).cloned());
         let payload = json!({
-            "bankId": bank_id,
-            "content": content,
-            "context": "desktop_memory_item",
-            "metadata": {
+                "bankId": bank_id,
+                "content": content,
+                "chunks": retain_pipeline::chunk_retain_content(&content, &retain_config)
+                    .into_iter()
+                    .map(|chunk| json!({
+                        "content": chunk.content,
+                        "metadata": chunk.metadata,
+                    }))
+                    .collect::<Vec<_>>(),
+                "context": "desktop_memory_item",
+                "metadata": {
                 "layer": layer,
                 "agentId": agent_id,
                 "desktopMemoryItemId": item_id,
@@ -703,6 +726,28 @@ impl MemoryRuntime {
             })
             .unwrap_or_default();
         let tag_refs: Vec<&str> = tags.iter().map(String::as_str).collect();
+        if let Some(chunks) = payload.get("chunks").and_then(Value::as_array) {
+            let items = chunks
+                .iter()
+                .filter_map(|chunk| {
+                    let content = chunk.get("content").and_then(Value::as_str)?;
+                    if content.trim().is_empty() {
+                        return None;
+                    }
+                    let chunk_metadata = chunk.get("metadata").cloned().unwrap_or(Value::Null);
+                    Some(RetainMemoryItem {
+                        content: content.to_string(),
+                        context: context.to_string(),
+                        metadata: merge_retain_metadata(&metadata, &chunk_metadata),
+                        tags: tags.clone(),
+                    })
+                })
+                .collect::<Vec<_>>();
+            if !items.is_empty() {
+                client.retain_items(bank_id, &items)?;
+                return Ok("completed".to_string());
+            }
+        }
         client.retain(bank_id, content, context, metadata, &tag_refs)?;
         Ok("completed".to_string())
     }
@@ -913,6 +958,10 @@ impl MemoryRuntime {
                 "desktopPolicy": self.desktop_policy.clone(),
             },
             "hindsight": self.hindsight_status(),
+            "quality": quality::MemoryQualityProfile::for_language_hint_with_config(
+                &self.config.hindsight.language_hints.primary_language,
+                &self.config.hindsight.quality,
+            ).diagnostics(),
             "policy": EffectiveMemoryPolicy::from_config(&self.config),
             "outbox": store.memory_outbox_summary()?,
             "worker": store.memory_worker_status(self.memory_worker_enabled())?,
@@ -1047,6 +1096,20 @@ fn retain_kind_for_layer(layer: &str) -> &'static str {
         "resource" => "retain_resource",
         _ => "retain_resource",
     }
+}
+
+fn merge_retain_metadata(base: &Value, chunk: &Value) -> Value {
+    let mut merged = base.clone();
+    if let (Some(merged), Some(chunk)) = (merged.as_object_mut(), chunk.as_object()) {
+        for (key, value) in chunk {
+            merged.insert(key.clone(), value.clone());
+        }
+        return Value::Object(merged.clone());
+    }
+    json!({
+        "base": base,
+        "chunk": chunk,
+    })
 }
 
 fn filter_tombstoned_recall_items(items: Vec<RecallItem>, tombstones: &[Value]) -> Vec<RecallItem> {
@@ -1359,6 +1422,14 @@ impl HindsightConfig {
                 .and_then(Value::as_bool)
                 .unwrap_or(defaults.language_hints.bilingual_technical_terms),
         };
+        let quality_raw = raw.get("quality").unwrap_or(&Value::Null);
+        let quality = HindsightQualityConfig {
+            retain_chunk_max_chars: optional_positive_usize(quality_raw, "retainChunkMaxChars"),
+            retain_chunk_overlap_chars: optional_usize(quality_raw, "retainChunkOverlapChars"),
+            recall_min_score: optional_score(quality_raw, "recallMinScore"),
+            recall_rerank_top_k: optional_positive_usize(quality_raw, "recallRerankTopK"),
+            query_rewrite: quality_raw.get("queryRewrite").and_then(Value::as_bool),
+        };
 
         Self {
             enabled: raw
@@ -1439,8 +1510,25 @@ impl HindsightConfig {
                 .and_then(Value::as_u64)
                 .unwrap_or(defaults.timeout_ms),
             language_hints,
+            quality,
         }
     }
+}
+
+fn optional_usize(raw: &Value, key: &str) -> Option<usize> {
+    raw.get(key)
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+}
+
+fn optional_positive_usize(raw: &Value, key: &str) -> Option<usize> {
+    optional_usize(raw, key).filter(|value| *value > 0)
+}
+
+fn optional_score(raw: &Value, key: &str) -> Option<f64> {
+    raw.get(key)
+        .and_then(Value::as_f64)
+        .filter(|value| (0.0..=1.0).contains(value))
 }
 
 impl DreamingConfig {
@@ -1849,6 +1937,41 @@ mod tests {
     }
 
     #[test]
+    fn process_outbox_retains_long_chinese_content_as_chunked_items() {
+        let dir = tempdir().unwrap();
+        let (base_url, request_rx) = start_hindsight_retain_server();
+        let mut config = MemoryRuntimeConfig::default();
+        config.runtime_store.db_path = dir.path().join("memory.db").to_string_lossy().to_string();
+        config.hindsight.enabled = true;
+        config.hindsight.base_url = base_url;
+        config.hindsight.language_hints.primary_language = "zh-CN".to_string();
+        let runtime = MemoryRuntime::with_config(dir.path(), config);
+        let messages = vec![
+            json!({
+                "id": "m1",
+                "role": "user",
+                "content": "用户要求记忆系统保留中文排障过程，包括网关、缓存、数据库和日志分析。".repeat(90),
+            }),
+            json!({"id": "m2", "role": "assistant", "content": "已记录中文排障过程。"}),
+        ];
+        runtime
+            .after_turn("session-chinese-chunks", Some("key"), &messages, 0)
+            .unwrap();
+
+        let result = runtime.process_outbox_once(10).unwrap();
+
+        assert_eq!(result["processedCount"], 1);
+        let request = request_rx.recv().expect("retain request");
+        let body = http_request_body_json(&request);
+        let items = body["items"].as_array().expect("retain items");
+        assert!(items.len() > 1);
+        assert_eq!(items[0]["metadata"]["language"], "zh-CN");
+        assert_eq!(items[0]["metadata"]["chunkIndex"], 0);
+        assert_eq!(items[0]["metadata"]["chunkTotal"], items.len());
+        assert!(items[0]["content"].as_str().unwrap_or("").ends_with('。'));
+    }
+
+    #[test]
     fn process_outbox_records_forget_jobs_as_local_tombstones() {
         let dir = tempdir().unwrap();
         let mut config = MemoryRuntimeConfig::default();
@@ -1959,6 +2082,9 @@ mod tests {
         config.runtime_store.db_path = dir.path().join("memory.db").to_string_lossy().to_string();
         config.hindsight.enabled = true;
         config.hindsight.base_url = "http://127.0.0.1:1".to_string();
+        config.hindsight.language_hints.primary_language = "zh-CN".to_string();
+        config.hindsight.quality.recall_min_score = Some(0.31);
+        config.hindsight.quality.recall_rerank_top_k = Some(7);
         let runtime = MemoryRuntime::with_config(dir.path(), config);
 
         let status = runtime.status().unwrap();
@@ -1968,6 +2094,9 @@ mod tests {
         assert_eq!(status["hindsight"]["lifecycle"]["provider"], "hindsight");
         assert_eq!(status["hindsight"]["lifecycle"]["mode"], "local");
         assert_eq!(status["hindsight"]["lifecycle"]["status"], "degraded");
+        assert_eq!(status["quality"]["language"], "zh-CN");
+        assert_eq!(status["quality"]["recallMinScore"], 0.31);
+        assert_eq!(status["quality"]["recallRerankTopK"], 7);
     }
 
     #[test]
@@ -2057,6 +2186,11 @@ mod tests {
                 .expect("write hindsight response");
         });
         (format!("http://{addr}"), request_rx)
+    }
+
+    fn http_request_body_json(request: &str) -> Value {
+        let body = request.split("\r\n\r\n").nth(1).expect("HTTP request body");
+        serde_json::from_str(body).expect("JSON request body")
     }
 
     fn read_http_request(stream: &mut std::net::TcpStream) -> Vec<u8> {

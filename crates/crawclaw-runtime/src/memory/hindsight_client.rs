@@ -52,6 +52,14 @@ pub struct RetainResponse {
 }
 
 #[derive(Clone, Debug)]
+pub struct RetainMemoryItem {
+    pub content: String,
+    pub context: String,
+    pub metadata: Value,
+    pub tags: Vec<String>,
+}
+
+#[derive(Clone, Debug)]
 pub struct HindsightClient {
     base_url: String,
     api_key: String,
@@ -96,14 +104,37 @@ impl HindsightClient {
         metadata: Value,
         tags: &[&str],
     ) -> Result<RetainResponse, String> {
+        let item = RetainMemoryItem {
+            content: content.to_string(),
+            context: context.to_string(),
+            metadata,
+            tags: tags.iter().map(|tag| (*tag).to_string()).collect(),
+        };
+        self.retain_items(bank_id, &[item])
+    }
+
+    pub fn retain_items(
+        &self,
+        bank_id: &str,
+        items: &[RetainMemoryItem],
+    ) -> Result<RetainResponse, String> {
+        if items.is_empty() {
+            return Err("Retain requires at least one item".to_string());
+        }
         let url = format!("{}/v1/default/banks/{bank_id}/memories", self.base_url);
+        let items = items
+            .iter()
+            .map(|item| {
+                json!({
+                    "content": item.content,
+                    "context": item.context,
+                    "metadata": item.metadata.clone(),
+                    "tags": item.tags.clone(),
+                })
+            })
+            .collect::<Vec<_>>();
         let payload = json!({
-            "items": [{
-                "content": content,
-                "context": context,
-                "metadata": metadata,
-                "tags": tags,
-            }],
+            "items": items,
             "async": false,
         });
 

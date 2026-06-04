@@ -2037,6 +2037,29 @@ fn hindsight_memory_mode_controls_prompt_recall_and_knowledge_tools() {
 }
 
 #[test]
+fn hindsight_quality_config_parses_chinese_quality_overrides() {
+    let config = crate::memory::HindsightConfig::from_value(&json!({
+        "languageHints": {
+            "primaryLanguage": "zh-CN",
+            "bilingualTechnicalTerms": true
+        },
+        "quality": {
+            "retainChunkMaxChars": 320,
+            "retainChunkOverlapChars": 32,
+            "recallMinScore": 0.27,
+            "recallRerankTopK": 8,
+            "queryRewrite": false
+        }
+    }));
+
+    assert_eq!(config.quality.retain_chunk_max_chars, Some(320));
+    assert_eq!(config.quality.retain_chunk_overlap_chars, Some(32));
+    assert_eq!(config.quality.recall_min_score, Some(0.27));
+    assert_eq!(config.quality.recall_rerank_top_k, Some(8));
+    assert_eq!(config.quality.query_rewrite, Some(false));
+}
+
+#[test]
 fn hindsight_context_mode_filters_special_agent_knowledge_tools() {
     let context = crate::memory::HindsightConfig::from_value(&json!({
         "enabled": true,

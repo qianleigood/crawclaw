@@ -3,9 +3,10 @@ use std::collections::HashSet;
 use serde_json::{json, Value};
 
 use super::bank_resolver::{BankContext, BankResolverConfig};
-use super::config::HindsightConfig;
+use super::config::{HindsightConfig, HindsightQualityConfig};
 use super::feedback_guard::extract_text_content;
 use super::hindsight_client::{HindsightClient, RecallItem};
+use super::quality::{rewrite_recall_query_with_config, MemoryQualityProfile};
 
 #[derive(Clone, Debug)]
 pub struct RecallConfig {
@@ -18,10 +19,17 @@ pub struct RecallConfig {
     pub tags: Vec<String>,
     pub bilingual_technical_terms: bool,
     pub primary_language: String,
+    pub recall_min_score: f64,
+    pub recall_rerank_top_k: usize,
+    pub quality: HindsightQualityConfig,
 }
 
 impl From<&HindsightConfig> for RecallConfig {
     fn from(config: &HindsightConfig) -> Self {
+        let profile = MemoryQualityProfile::for_language_hint_with_config(
+            &config.language_hints.primary_language,
+            &config.quality,
+        );
         Self {
             default_budget: config.default_budget.clone(),
             max_tokens: config.max_tokens,
@@ -32,6 +40,9 @@ impl From<&HindsightConfig> for RecallConfig {
             tags: config.tags.clone(),
             bilingual_technical_terms: config.language_hints.bilingual_technical_terms,
             primary_language: config.language_hints.primary_language.clone(),
+            recall_min_score: profile.recall_min_score,
+            recall_rerank_top_k: profile.recall_rerank_top_k,
+            quality: config.quality.clone(),
         }
     }
 }
@@ -56,8 +67,14 @@ pub fn compose_recall_query(user_text: &str, messages: &[Value], config: &Recall
     } else {
         combined
     };
+    let rewritten = rewrite_recall_query_with_config(
+        &expanded,
+        &config.primary_language,
+        config.bilingual_technical_terms,
+        &config.quality,
+    );
 
-    truncate_at_sentence_boundary(&expanded, config.recall_max_query_chars)
+    truncate_at_sentence_boundary(&rewritten, config.recall_max_query_chars)
 }
 
 pub fn truncate_at_sentence_boundary(text: &str, max_chars: usize) -> String {
@@ -162,6 +179,11 @@ pub fn parallel_recall(
             .unwrap_or(std::cmp::Ordering::Equal)
     });
     let all_items = dedupe_recall_items(all_items);
+    let all_items = apply_recall_quality(
+        all_items,
+        config.recall_min_score,
+        config.recall_rerank_top_k,
+    );
 
     let budget = config.max_tokens as usize;
     enforce_token_budget(all_items, budget)
@@ -200,6 +222,30 @@ fn tag_recall_items_with_layer_for_test(items: Vec<RecallItem>, layer: &str) -> 
 #[cfg(test)]
 fn dedupe_recall_items_for_test(items: Vec<RecallItem>) -> Vec<RecallItem> {
     dedupe_recall_items(items)
+}
+
+fn apply_recall_quality(
+    items: Vec<RecallItem>,
+    min_score: f64,
+    rerank_top_k: usize,
+) -> Vec<RecallItem> {
+    let mut result: Vec<RecallItem> = items
+        .into_iter()
+        .filter(|item| item.score >= min_score)
+        .collect();
+    if rerank_top_k > 0 && result.len() > rerank_top_k {
+        result.truncate(rerank_top_k);
+    }
+    result
+}
+
+#[cfg(test)]
+fn apply_recall_quality_for_test(
+    items: Vec<RecallItem>,
+    min_score: f64,
+    rerank_top_k: usize,
+) -> Vec<RecallItem> {
+    apply_recall_quality(items, min_score, rerank_top_k)
 }
 
 fn enforce_token_budget(items: Vec<RecallItem>, max_tokens: usize) -> Vec<RecallItem> {
@@ -291,6 +337,9 @@ mod tests {
             tags: vec!["agent:main".to_string()],
             bilingual_technical_terms: false,
             primary_language: "auto".to_string(),
+            recall_min_score: 0.0,
+            recall_rerank_top_k: 12,
+            quality: HindsightQualityConfig::default(),
         };
         let query = compose_recall_query("current question", &messages, &config);
         assert!(query.contains("current question"));
@@ -306,6 +355,68 @@ mod tests {
     fn expand_bilingual_terms_en_to_zh() {
         let result = expand_bilingual_terms("how to configure gateway");
         assert!(result.contains("网关"));
+    }
+
+    #[test]
+    fn chinese_recall_query_rewrite_preserves_terms_and_aliases() {
+        let messages = vec![
+            json!({"role": "user", "content": "线上网关在高峰期出现超时，需要排查缓存和数据库。"}),
+            json!({"role": "assistant", "content": "建议先看 gateway 日志，再检查 cache hit rate。"}),
+        ];
+        let config = RecallConfig {
+            default_budget: "mid".to_string(),
+            max_tokens: 2048,
+            recall_context_turns: 1,
+            recall_max_query_chars: 800,
+            recall_types: vec!["observation".to_string()],
+            tags_match: "all_strict".to_string(),
+            tags: vec!["agent:main".to_string()],
+            bilingual_technical_terms: true,
+            primary_language: "zh-CN".to_string(),
+            recall_min_score: 0.15,
+            recall_rerank_top_k: 12,
+            quality: HindsightQualityConfig::default(),
+        };
+
+        let query = compose_recall_query("如何恢复网关稳定性？", &messages, &config);
+
+        assert!(query.contains("检索问题"));
+        assert!(query.contains("如何恢复网关稳定性"));
+        assert!(query.contains("gateway"));
+        assert!(query.contains("cache"));
+        assert!(query.contains("数据库"));
+    }
+
+    #[test]
+    fn recall_quality_filters_low_scores_and_caps_rerank_top_k() {
+        let items = vec![
+            RecallItem {
+                id: "high".to_string(),
+                text: "高相关中文记忆".to_string(),
+                memory_type: "observation".to_string(),
+                score: 0.92,
+                metadata: json!({}),
+            },
+            RecallItem {
+                id: "mid".to_string(),
+                text: "中等相关记忆".to_string(),
+                memory_type: "observation".to_string(),
+                score: 0.41,
+                metadata: json!({}),
+            },
+            RecallItem {
+                id: "low".to_string(),
+                text: "低相关噪声".to_string(),
+                memory_type: "observation".to_string(),
+                score: 0.04,
+                metadata: json!({}),
+            },
+        ];
+
+        let filtered = apply_recall_quality_for_test(items, 0.1, 1);
+
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].id, "high");
     }
 
     #[test]
@@ -376,5 +487,33 @@ mod tests {
         let text = "no sentence boundary here at all";
         let result = truncate_at_sentence_boundary(text, 10);
         assert!(result.chars().count() <= 10);
+    }
+
+    #[test]
+    fn recall_config_uses_quality_overrides() {
+        let mut config = HindsightConfig::default();
+        config.language_hints.primary_language = "zh-CN".to_string();
+        config.quality.recall_min_score = Some(0.33);
+        config.quality.recall_rerank_top_k = Some(4);
+
+        let recall = RecallConfig::from(&config);
+
+        assert_eq!(recall.recall_min_score, 0.33);
+        assert_eq!(recall.recall_rerank_top_k, 4);
+    }
+
+    #[test]
+    fn recall_config_can_disable_chinese_query_rewrite() {
+        let messages = vec![json!({"role": "user", "content": "网关 cache 报错"})];
+        let mut hindsight = HindsightConfig::default();
+        hindsight.language_hints.primary_language = "zh-CN".to_string();
+        hindsight.quality.query_rewrite = Some(false);
+        let config = RecallConfig::from(&hindsight);
+
+        let query = compose_recall_query("排查网关", &messages, &config);
+
+        assert!(!query.contains("检索问题"));
+        assert!(query.contains("gateway"));
+        assert!(query.contains("缓存"));
     }
 }

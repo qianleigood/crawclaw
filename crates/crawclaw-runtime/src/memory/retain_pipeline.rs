@@ -1,9 +1,10 @@
 use serde_json::{json, Value};
 
 use super::bank_resolver::BankContext;
-use super::config::HindsightConfig;
+use super::config::{HindsightConfig, HindsightQualityConfig};
 use super::feedback_guard::{extract_text_content, strip_memory_tags};
 use super::hindsight_client::HindsightClient;
+use super::quality::{chunk_metadata, chunk_text_for_retain_with_config};
 
 #[derive(Clone, Debug)]
 pub struct RetainConfig {
@@ -11,6 +12,15 @@ pub struct RetainConfig {
     pub retain_roles: Vec<String>,
     pub retain_every_n_turns: u32,
     pub retain_async: bool,
+    pub primary_language: String,
+    pub bilingual_technical_terms: bool,
+    pub quality: HindsightQualityConfig,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RetainChunk {
+    pub content: String,
+    pub metadata: Value,
 }
 
 impl From<&HindsightConfig> for RetainConfig {
@@ -20,6 +30,9 @@ impl From<&HindsightConfig> for RetainConfig {
             retain_roles: config.retain_roles.clone(),
             retain_every_n_turns: config.retain_every_n_turns,
             retain_async: config.retain_async,
+            primary_language: config.language_hints.primary_language.clone(),
+            bilingual_technical_terms: config.language_hints.bilingual_technical_terms,
+            quality: config.quality.clone(),
         }
     }
 }
@@ -58,6 +71,29 @@ pub fn compose_retain_payload(
     }
 
     Some(content)
+}
+
+pub fn compose_retain_chunks(
+    messages: &[Value],
+    ctx: &BankContext,
+    config: &RetainConfig,
+) -> Option<Vec<RetainChunk>> {
+    let content = compose_retain_payload(messages, ctx, config)?;
+    Some(chunk_retain_content(&content, config))
+}
+
+pub fn chunk_retain_content(content: &str, config: &RetainConfig) -> Vec<RetainChunk> {
+    let (profile, chunks) =
+        chunk_text_for_retain_with_config(content, &config.primary_language, &config.quality);
+    let total = chunks.len();
+    chunks
+        .into_iter()
+        .enumerate()
+        .map(|(index, content)| RetainChunk {
+            content,
+            metadata: chunk_metadata(&profile, index, total),
+        })
+        .collect()
 }
 
 pub fn build_retain_tags(ctx: &BankContext, layer: &str) -> Vec<String> {
@@ -133,6 +169,9 @@ mod tests {
             retain_roles: vec!["user".to_string(), "assistant".to_string()],
             retain_every_n_turns: 1,
             retain_async: false,
+            primary_language: "auto".to_string(),
+            bilingual_technical_terms: true,
+            quality: HindsightQualityConfig::default(),
         };
         let ctx = BankContext {
             agent_id: "main".to_string(),
@@ -158,6 +197,9 @@ mod tests {
             retain_roles: vec!["user".to_string()],
             retain_every_n_turns: 1,
             retain_async: false,
+            primary_language: "auto".to_string(),
+            bilingual_technical_terms: true,
+            quality: HindsightQualityConfig::default(),
         };
         let ctx = BankContext {
             agent_id: "main".to_string(),
@@ -185,5 +227,53 @@ mod tests {
     #[test]
     fn should_retain_rejects_with_tool_calls() {
         assert!(!should_retain_this_turn(1, 1, true, true));
+    }
+
+    #[test]
+    fn compose_retain_chunks_splits_long_chinese_content_on_sentence_boundaries() {
+        let long_sentence = "用户要求中文记忆系统在高峰期排查网关、缓存和数据库问题。";
+        let messages = vec![
+            json!({"role": "user", "content": long_sentence.repeat(80)}),
+            json!({"role": "assistant", "content": "已记录中文排障策略。"}),
+        ];
+        let config = RetainConfig {
+            auto_retain: true,
+            retain_roles: vec!["user".to_string(), "assistant".to_string()],
+            retain_every_n_turns: 1,
+            retain_async: false,
+            primary_language: "zh-CN".to_string(),
+            bilingual_technical_terms: true,
+            quality: HindsightQualityConfig::default(),
+        };
+        let ctx = BankContext {
+            agent_id: "main".to_string(),
+            channel: None,
+            user_id: None,
+        };
+
+        let chunks = compose_retain_chunks(&messages, &ctx, &config).expect("retain chunks");
+
+        assert!(chunks.len() > 1);
+        assert!(chunks.iter().all(|chunk| chunk.content.ends_with('。')));
+        assert_eq!(chunks[0].metadata["chunkIndex"], 0);
+        assert_eq!(chunks[0].metadata["language"], "zh-CN");
+        assert_eq!(chunks[0].metadata["chunkTotal"], chunks.len());
+    }
+
+    #[test]
+    fn retain_config_uses_quality_chunk_overrides() {
+        let mut hindsight = HindsightConfig::default();
+        hindsight.language_hints.primary_language = "zh-CN".to_string();
+        hindsight.quality.retain_chunk_max_chars = Some(240);
+        hindsight.quality.retain_chunk_overlap_chars = Some(24);
+        let config = RetainConfig::from(&hindsight);
+        let chunks = chunk_retain_content(
+            &"用户要求中文记忆系统保留网关和缓存排障记录。".repeat(30),
+            &config,
+        );
+
+        assert!(chunks.len() > 1);
+        assert_eq!(chunks[0].metadata["chunkMaxChars"], 240);
+        assert_eq!(chunks[0].metadata["chunkOverlapChars"], 24);
     }
 }

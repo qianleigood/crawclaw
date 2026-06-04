@@ -7883,6 +7883,78 @@
       "hasChildren": false
     },
     {
+      "path": "memory.hindsight.quality",
+      "kind": "core",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": ["advanced", "performance"],
+      "label": "Hindsight Quality Guard",
+      "help": "Optional local quality guard overrides for Chinese and mixed-language memory recall and retain behavior.",
+      "hasChildren": true
+    },
+    {
+      "path": "memory.hindsight.quality.retainChunkMaxChars",
+      "kind": "core",
+      "type": "integer",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": ["advanced", "performance"],
+      "label": "Hindsight Retain Chunk Max Characters",
+      "help": "Maximum characters per retained memory chunk before CrawClaw splits long Chinese or mixed-language payloads.",
+      "hasChildren": false
+    },
+    {
+      "path": "memory.hindsight.quality.retainChunkOverlapChars",
+      "kind": "core",
+      "type": "integer",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": ["advanced", "performance"],
+      "label": "Hindsight Retain Chunk Overlap Characters",
+      "help": "Approximate sentence-bound overlap between retained memory chunks. Keep this lower than the chunk max.",
+      "hasChildren": false
+    },
+    {
+      "path": "memory.hindsight.quality.recallMinScore",
+      "kind": "core",
+      "type": "number",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": ["advanced", "performance"],
+      "label": "Hindsight Recall Minimum Score",
+      "help": "Minimum local relevance score required before a Hindsight recall item can enter prompt-budget trimming.",
+      "hasChildren": false
+    },
+    {
+      "path": "memory.hindsight.quality.recallRerankTopK",
+      "kind": "core",
+      "type": "integer",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": ["advanced", "performance"],
+      "label": "Hindsight Recall Rerank Top K",
+      "help": "Maximum number of locally admitted reranked recall items before final prompt-budget trimming.",
+      "hasChildren": false
+    },
+    {
+      "path": "memory.hindsight.quality.queryRewrite",
+      "kind": "core",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": ["advanced"],
+      "label": "Hindsight Query Rewrite",
+      "help": "Overrides whether Chinese-heavy recall queries are rewritten with deterministic bilingual context.",
+      "hasChildren": false
+    },
+    {
       "path": "memory.dreaming",
       "kind": "core",
       "type": "object",

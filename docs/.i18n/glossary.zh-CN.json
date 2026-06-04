@@ -662,5 +662,21 @@
   {
     "source": "release-check",
     "target": "release-check"
+  },
+  {
+    "source": "Hindsight Quality Guard",
+    "target": "Hindsight 质量防护"
+  },
+  {
+    "source": "query rewrite",
+    "target": "query rewrite"
+  },
+  {
+    "source": "top-k",
+    "target": "top-k"
+  },
+  {
+    "source": "rerank",
+    "target": "rerank"
   }
 ]

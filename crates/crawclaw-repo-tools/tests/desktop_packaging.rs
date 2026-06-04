@@ -229,6 +229,7 @@ fn write_release_fixture(root: &Path, options: FixtureOptions) {
         &json!({ "readModel": true, "jsPluginRuntime": "none" }),
     );
     write_searxng_runtime(&paths.runtime_root);
+    write_hindsight_embed_runtime(&paths.runtime_root);
     write_agent_browser_runtime(
         &paths.runtime_root,
         options.extra_agent_browser_platform_binary,
@@ -269,6 +270,33 @@ fn write_searxng_runtime(runtime_root: &Path) {
         &json!({
             "sourceCommit": "afafca93f30939f213c1bc3fa3379e5ed883122d",
             "license": "AGPL-3.0-or-later"
+        }),
+    );
+}
+
+fn write_hindsight_embed_runtime(runtime_root: &Path) {
+    let binary_name = if cfg!(windows) {
+        "hindsight-embed.exe"
+    } else {
+        "hindsight-embed"
+    };
+    write_executable(&runtime_root.join("bin").join(binary_name));
+    write_json(
+        runtime_root.join("runtimes/hindsight/manifest.json"),
+        &json!({
+            "id": "hindsight",
+            "provider": "hindsight",
+            "runtime": "rust-native-binary",
+            "binaryName": binary_name,
+            "binaryPath": format!("bin/{binary_name}")
+        }),
+    );
+    write_json(
+        runtime_root.join("runtimes/hindsight/source.lock.json"),
+        &json!({
+            "runtime": "rust-native-binary",
+            "binaryName": binary_name,
+            "source": { "source": "fixture" }
         }),
     );
 }

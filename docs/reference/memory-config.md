@@ -49,6 +49,15 @@ multilingual Hindsight setup such as `BAAI/bge-m3` embeddings plus
 `BAAI/bge-reranker-v2-m3` reranking, and configure the Hindsight text-search
 extension that best supports Chinese keyword segmentation.
 
+For Chinese and mixed Chinese-English projects, CrawClaw also applies a local
+quality guard before and after Hindsight calls. Long retain payloads are split
+on Chinese and English sentence boundaries with small overlap metadata, recall
+queries are rewritten with bilingual technical aliases when
+`memory.hindsight.languageHints.bilingualTechnicalTerms` is enabled, and returned
+items are locally filtered by a minimum relevance score before the top reranked
+items are admitted to the prompt budget. These defaults work without tuning, and
+advanced deployments can override them under `memory.hindsight.quality`.
+
 CrawClaw Desktop prepares a local `hindsight-embed` sidecar when no explicit
 Hindsight endpoint is configured. Desktop packaging stages the pinned
 Hindsight release binary into the embedded runtime and verifies its sha256
@@ -90,6 +99,11 @@ lifecycle instead of creating a permanently failing outbox.
 | `memory.hindsight.timeoutMs`                             | `number`  | `15000`             | HTTP timeout for Hindsight calls                                 |
 | `memory.hindsight.languageHints.primaryLanguage`         | `string`  | `auto`              | Language hint for bank descriptions                              |
 | `memory.hindsight.languageHints.bilingualTechnicalTerms` | `boolean` | `true`              | Expand Chinese and English technical terms                       |
+| `memory.hindsight.quality.retainChunkMaxChars`           | `number`  | language based      | Override maximum retain chunk characters                         |
+| `memory.hindsight.quality.retainChunkOverlapChars`       | `number`  | language based      | Override retain chunk overlap characters                         |
+| `memory.hindsight.quality.recallMinScore`                | `number`  | language based      | Override local minimum recall relevance score                    |
+| `memory.hindsight.quality.recallRerankTopK`              | `number`  | language based      | Override top reranked recall items before prompt-budget trimming |
+| `memory.hindsight.quality.queryRewrite`                  | `boolean` | language based      | Override Chinese-heavy deterministic query rewriting             |
 
 `memory.hindsight.memoryMode` controls prompt recall and tool access:
 

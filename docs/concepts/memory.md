@@ -91,6 +91,16 @@ Recall is bounded by the current model context budget. Smaller context windows
 receive tighter memory snippets; larger context windows can receive more recall
 without becoming unbounded.
 
+Chinese and mixed Chinese-English recall uses the same Hindsight backend but
+adds a local quality layer. CrawClaw rewrites Chinese-heavy recall queries with
+deterministic bilingual technical aliases, keeps the original recent context in
+the query body, applies a minimum relevance score, and caps the top reranked
+items before prompt-budget trimming. This keeps common Chinese terms such as
+gateway, cache, database, plugin, and memory aligned across Chinese and English
+project notes. The effective quality profile is visible in `memory.status`;
+advanced deployments can override chunking, local score thresholds, top-k
+admission, and query rewriting under `memory.hindsight.quality`.
+
 Recall also applies local tombstone filtering after Hindsight returns results.
 If a tombstone targets a Desktop memory item id, matching recall items are
 removed by metadata. Otherwise, CrawClaw suppresses items whose text matches the
@@ -105,6 +115,9 @@ Turn-end writeback is intentionally split by memory type:
 - Eligible completed turns enqueue a Hindsight `experience` retain job. The
   outbox worker later writes it to Hindsight. This path does not call the
   `experience` special agent.
+- Long Chinese-heavy retain payloads are split into sentence-bound chunks with
+  overlap and chunk metadata before the worker sends them to Hindsight. This
+  keeps long Chinese turns inspectable and avoids one oversized memory item.
 - Explicit `remember` requests enqueue a Hindsight `durable` retain job.
 - Explicit `do-not-remember` requests skip Hindsight writeback for the turn.
 - Explicit `forget` requests are tracked as memory activity and outbox work;

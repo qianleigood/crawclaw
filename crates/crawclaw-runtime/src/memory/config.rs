@@ -66,6 +66,7 @@ pub struct HindsightConfig {
     pub tags: Vec<String>,
     pub timeout_ms: u64,
     pub language_hints: LanguageHints,
+    pub quality: HindsightQualityConfig,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -73,6 +74,16 @@ pub struct HindsightConfig {
 pub struct LanguageHints {
     pub primary_language: String,
     pub bilingual_technical_terms: bool,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HindsightQualityConfig {
+    pub retain_chunk_max_chars: Option<usize>,
+    pub retain_chunk_overlap_chars: Option<usize>,
+    pub recall_min_score: Option<f64>,
+    pub recall_rerank_top_k: Option<usize>,
+    pub query_rewrite: Option<bool>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -127,6 +138,7 @@ impl Default for HindsightConfig {
             tags: vec!["agent:main".to_string()],
             timeout_ms: 15_000,
             language_hints: LanguageHints::default(),
+            quality: HindsightQualityConfig::default(),
         }
     }
 }

@@ -7204,6 +7204,35 @@
                   }
                 },
                 "additionalProperties": false
+              },
+              "quality": {
+                "type": "object",
+                "properties": {
+                  "retainChunkMaxChars": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "retainChunkOverlapChars": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "recallMinScore": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "recallRerankTopK": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "queryRewrite": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "additionalProperties": false
@@ -9507,6 +9536,36 @@
     "memory.hindsight.languageHints.bilingualTechnicalTerms": {
       "label": "Hindsight Bilingual Technical Terms",
       "help": "Expands common Chinese and English technical terms in recall queries for mixed-language projects.",
+      "tags": ["advanced"]
+    },
+    "memory.hindsight.quality": {
+      "label": "Hindsight Quality Guard",
+      "help": "Optional local quality guard overrides for Chinese and mixed-language memory recall and retain behavior.",
+      "tags": ["advanced", "performance"]
+    },
+    "memory.hindsight.quality.retainChunkMaxChars": {
+      "label": "Hindsight Retain Chunk Max Characters",
+      "help": "Maximum characters per retained memory chunk before CrawClaw splits long Chinese or mixed-language payloads.",
+      "tags": ["advanced", "performance"]
+    },
+    "memory.hindsight.quality.retainChunkOverlapChars": {
+      "label": "Hindsight Retain Chunk Overlap Characters",
+      "help": "Approximate sentence-bound overlap between retained memory chunks. Keep this lower than the chunk max.",
+      "tags": ["advanced", "performance"]
+    },
+    "memory.hindsight.quality.recallMinScore": {
+      "label": "Hindsight Recall Minimum Score",
+      "help": "Minimum local relevance score required before a Hindsight recall item can enter prompt-budget trimming.",
+      "tags": ["advanced", "performance"]
+    },
+    "memory.hindsight.quality.recallRerankTopK": {
+      "label": "Hindsight Recall Rerank Top K",
+      "help": "Maximum number of locally admitted reranked recall items before final prompt-budget trimming.",
+      "tags": ["advanced", "performance"]
+    },
+    "memory.hindsight.quality.queryRewrite": {
+      "label": "Hindsight Query Rewrite",
+      "help": "Overrides whether Chinese-heavy recall queries are rewritten with deterministic bilingual context.",
       "tags": ["advanced"]
     },
     "auth": {
