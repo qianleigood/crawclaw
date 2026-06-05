@@ -24,10 +24,10 @@
       "path": "install.sh",
       "publishedAs": "crawclaw-automation-n8n-install.sh",
       "url": "https://github.com/qianleigood/crawclaw/releases/download/v2026.5.3/crawclaw-automation-n8n-install.sh",
-      "sha256": "53513b41f8a3f3669bdc2ed42b30c9d1a592717ad6680e3cd852167ca95f440c"
+      "sha256": "ba56a100967b2743633c924f4924572e2a3c7fb474e1fe96f3b96a92c736c4ab"
     }
   },
-  "environment": ["CRAWCLAW_AUTOMATION_HOME", "N8N_VERSION", "N8N_PORT"],
+  "environment": ["CRAWCLAW_AUTOMATION_HOME", "N8N_VERSION", "N8N_PORT", "N8N_NPM_BIN", "PYTHON"],
   "health": {
     "kind": "http",
     "url": "http://127.0.0.1:5679/healthz"

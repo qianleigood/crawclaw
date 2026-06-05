@@ -311,7 +311,7 @@ pub fn stage_desktop_runtime_manifests(output: &Path) -> Result<(), String> {
                         "manifestUrl": format!("{automation_release_download_base}/crawclaw-automation-n8n-manifest.json"),
                         "scriptUrl": format!("{automation_release_download_base}/crawclaw-automation-n8n-install.sh"),
                         "publishedAs": "crawclaw-automation-n8n-install.sh",
-                        "sha256": "53513b41f8a3f3669bdc2ed42b30c9d1a592717ad6680e3cd852167ca95f440c"
+                        "sha256": "ba56a100967b2743633c924f4924572e2a3c7fb474e1fe96f3b96a92c736c4ab"
                     },
                     "license": "Sustainable Use License"
                 },
