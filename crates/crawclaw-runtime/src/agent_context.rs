@@ -551,6 +551,10 @@ fn hindsight_memory_snippets(runtime_root: &Path, user_text: &str) -> Vec<String
         return Vec::new();
     }
 
+    if !client.health_check() {
+        return Vec::new();
+    }
+
     let ctx = runtime.bank_context("main");
     let recall_config = recall_pipeline::RecallConfig::from(&config.hindsight);
     let query = recall_pipeline::compose_recall_query(user_text, &[], &recall_config);

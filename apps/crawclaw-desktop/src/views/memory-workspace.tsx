@@ -223,7 +223,7 @@ export function MemoryWorkspace({
   }
 
   return (
-    <div className="memory-workspace">
+    <div className="memory-workspace" data-testid="memory-workspace">
       <header className="config-workspace__header memory-workspace__header">
         <h1>记忆</h1>
         <div className="memory-workspace__top-actions">
@@ -231,6 +231,7 @@ export function MemoryWorkspace({
             <span>智能体</span>
             <select
               aria-label="选择智能体"
+              data-testid="memory-agent-select"
               onChange={(event) => onSelectAgent(event.currentTarget.value)}
               value={memoryWorkspace.selectedAgentId}
             >
@@ -244,17 +245,18 @@ export function MemoryWorkspace({
             <Search aria-hidden="true" size={15} strokeWidth={2} />
             <input
               aria-label="搜索记忆"
+              data-testid="memory-search-input"
               onChange={(event) => onSetQuery(event.currentTarget.value)}
               placeholder="搜索 CrawClaw 记住了什么"
               role="searchbox"
               value={memorySearchQuery}
             />
           </label>
-          <button className="workspace-secondary-button" disabled={isMemoryDreaming} onClick={onStartMemoryDream} type="button">
+          <button className="workspace-secondary-button" data-testid="memory-dream-run" disabled={isMemoryDreaming} onClick={onStartMemoryDream} type="button">
             <Sparkles aria-hidden="true" size={15} strokeWidth={2.1} />
             {isMemoryDreaming ? '做梦中' : '做梦'}
           </button>
-          <button className="workspace-primary-button" onClick={() => onSetFormOpen((open) => !open)} type="button">
+          <button className="workspace-primary-button" data-testid="memory-add-open" onClick={() => onSetFormOpen((open) => !open)} type="button">
             <Plus aria-hidden="true" size={15} strokeWidth={2.2} />
             添加记忆
           </button>
@@ -276,20 +278,20 @@ export function MemoryWorkspace({
         ))}
       </div>
 
-      <div className="memory-runtime-strip" aria-label="记忆运行状态">
-        <div className="memory-runtime-strip__item">
+      <div className="memory-runtime-strip" aria-label="记忆运行状态" data-testid="memory-runtime-strip">
+        <div className="memory-runtime-strip__item" data-testid="memory-runtime-hindsight">
           <Database aria-hidden="true" size={15} strokeWidth={2.1} />
           <span>Hindsight</span>
           <strong>{formatRuntimeStatus(hindsightLifecycle?.status ?? runtimeStatus.status)}</strong>
           <small>{formatHindsightMode(hindsightLifecycle?.mode, hindsightLifecycle?.managed)}</small>
         </div>
-        <div className="memory-runtime-strip__item">
+        <div className="memory-runtime-strip__item" data-testid="memory-runtime-worker">
           <Activity aria-hidden="true" size={15} strokeWidth={2.1} />
           <span>Worker</span>
           <strong>{workerStatus?.enabled === false ? '关闭' : formatRuntimeStatus(workerStatus?.lastRunStatus)}</strong>
           <small>{workerStatus?.lastProcessedCount ?? 0} processed</small>
         </div>
-        <div className="memory-runtime-strip__item">
+        <div className="memory-runtime-strip__item" data-testid="memory-runtime-outbox">
           <Sparkles aria-hidden="true" size={15} strokeWidth={2.1} />
           <span>Outbox</span>
           <strong>{outboxStatus?.total ?? 0}</strong>
@@ -315,10 +317,11 @@ export function MemoryWorkspace({
       ) : null}
 
       {isFormOpen ? (
-        <form aria-label="添加记忆" className="workspace-form memory-form" onSubmit={onSubmitMemory}>
+        <form aria-label="添加记忆" className="workspace-form memory-form" data-testid="memory-add-form" onSubmit={onSubmitMemory}>
           <label>
             标题
             <input
+              data-testid="memory-add-title"
               onChange={(event) => updateMemoryDraft('title', event.currentTarget.value)}
               value={memoryDraft.title}
             />
@@ -326,6 +329,7 @@ export function MemoryWorkspace({
           <label>
             一句话摘要
             <input
+              data-testid="memory-add-summary"
               onChange={(event) => updateMemoryDraft('summary', event.currentTarget.value)}
               value={memoryDraft.summary}
             />
@@ -333,6 +337,7 @@ export function MemoryWorkspace({
           <label>
             内容
             <textarea
+              data-testid="memory-add-content"
               onChange={(event) => updateMemoryDraft('content', event.currentTarget.value)}
               value={memoryDraft.content}
             />
@@ -365,7 +370,7 @@ export function MemoryWorkspace({
               value={memoryDraft.source}
             />
           </label>
-          <button className="workspace-primary-button" type="submit">保存记忆</button>
+          <button className="workspace-primary-button" data-testid="memory-add-submit" type="submit">保存记忆</button>
         </form>
       ) : null}
 
@@ -376,6 +381,8 @@ export function MemoryWorkspace({
               <button
                 aria-pressed={selectedMemory?.id === memory.id}
                 className={selectedMemory?.id === memory.id ? 'memory-list__item is-active' : 'memory-list__item'}
+                data-memory-id={memory.id}
+                data-testid="memory-list-item"
                 key={memory.id}
                 onClick={() => {
                   setIsEditing(false)
@@ -453,7 +460,7 @@ export function MemoryWorkspace({
               </form>
             ) : (
               <>
-                <div className="memory-detail__header">
+                <div className="memory-detail__header" data-memory-id={selectedMemory.id} data-testid="memory-detail">
                   <div>
                     <div className="memory-detail__meta">
                       {selectedMemoryAgent ? <Badge tone="neutral">{selectedMemoryAgent.name}</Badge> : null}
@@ -465,8 +472,8 @@ export function MemoryWorkspace({
                     <h2>{selectedMemory.title}</h2>
                   </div>
                   <div className="memory-detail__actions">
-                    <button className="workspace-secondary-button" onClick={onStartEdit} type="button">编辑记忆</button>
-                    <button className="workspace-secondary-button" onClick={onArchiveSelectedMemory} type="button">清理记忆</button>
+                    <button className="workspace-secondary-button" data-testid="memory-edit-open" onClick={onStartEdit} type="button">编辑记忆</button>
+                    <button className="workspace-secondary-button" data-testid="memory-archive" onClick={onArchiveSelectedMemory} type="button">清理记忆</button>
                   </div>
                 </div>
                 <p>{selectedMemory.summary}</p>

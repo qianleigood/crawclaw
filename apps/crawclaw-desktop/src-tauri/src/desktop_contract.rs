@@ -82,6 +82,7 @@ export interface DesktopState {
   sidebar: SidebarState
   conversation: ConversationState
   agentWorkspace: AgentWorkspaceState
+  automationWorkspace: AutomationWorkspaceState
   memoryWorkspace: MemoryWorkspaceState
   pluginsWorkspace: PluginsWorkspaceState
   preferences: DesktopPreferences
@@ -510,6 +511,38 @@ export interface AddAgentSkillInput {
   description: string
 }
 
+export interface AutomationWorkspaceState {
+  runtimes: AutomationRuntimeSummary[]
+}
+
+export interface AutomationRuntimeSummary {
+  id: string
+  name: string
+  status: string
+  detail: string
+  runtime: string
+  provider: string
+  service: string
+  mode: string
+  baseUrl: string
+  defaultPort: number
+  install: AutomationRuntimeInstallSummary
+  license: string
+  computeProfiles: AutomationRuntimeComputeProfile[]
+}
+
+export interface AutomationRuntimeInstallSummary {
+  channel: string
+  scriptPolicy: string
+  manifestPath: string
+}
+
+export interface AutomationRuntimeComputeProfile {
+  id: string
+  backend: string
+  experimental: boolean
+}
+
 export interface PluginsWorkspaceState {
   tools: PluginTool[]
   skills: PluginSkill[]
@@ -677,7 +710,7 @@ export type DesktopEvent =
   | { type: 'messageDelta'; threadId: string; text: string }
   | { type: 'toolCall'; threadId: string; toolId: string }
   | { type: 'toolResult'; threadId: string; toolId: string; ok: boolean }
-  | { type: 'messageFinal'; threadId: string; text: string }
+  | { type: 'messageFinal'; threadId: string; role: 'assistant' | 'user'; text: string }
   | { type: 'permissionRequested'; permissionRequest: PermissionRequest }
   | { type: 'operationFailed'; code: string; message: string }
   | { type: 'stateChanged'; desktopState: DesktopState }

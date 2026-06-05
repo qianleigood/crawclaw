@@ -430,6 +430,72 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
+async fn gateway_bootstrap_exposes_automation_runtime_manager_services() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-automation-runtime-manager",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    crawclaw_runtime::stage_desktop_runtime_manifests(&runtime_layout.runtime_root)
+        .expect("stage managed runtime manifest");
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, body) = request(
+        server.addr,
+        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
+    let runtimes = json["desktopState"]["automationWorkspace"]["runtimes"]
+        .as_array()
+        .expect("automation runtimes");
+    let n8n = runtimes
+        .iter()
+        .find(|runtime| runtime["id"] == "n8n")
+        .expect("n8n runtime");
+    assert_eq!(n8n["name"], "n8n");
+    assert_eq!(n8n["status"], "notInstalled");
+    assert_eq!(n8n["baseUrl"], "http://127.0.0.1:5679");
+    assert_eq!(n8n["install"]["channel"], "github-release");
+    assert_eq!(n8n["install"]["scriptPolicy"], "release-asset-checksum");
+
+    let comfyui = runtimes
+        .iter()
+        .find(|runtime| runtime["id"] == "comfyui")
+        .expect("ComfyUI runtime");
+    assert_eq!(comfyui["name"], "ComfyUI");
+    assert_eq!(comfyui["status"], "notInstalled");
+    assert_eq!(comfyui["baseUrl"], "http://127.0.0.1:8188");
+    let profiles = comfyui["computeProfiles"]
+        .as_array()
+        .expect("ComfyUI compute profiles");
+    assert!(profiles
+        .iter()
+        .any(|profile| profile["id"] == "nvidia-cuda" && profile["backend"] == "cuda"));
+    assert!(profiles
+        .iter()
+        .any(|profile| profile["id"] == "apple-metal" && profile["backend"] == "mps"));
+    assert!(profiles
+        .iter()
+        .any(|profile| profile["id"] == "external" && profile["backend"] == "external"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn gateway_plugin_toggle_state_persists_through_rust_plugin_host() {
     let runtime_layout = create_runtime_fixture(
         "desktop-plugin-toggle-state",
@@ -3908,6 +3974,7 @@ esac
     let events = read_stream_until(&mut events, "event: messageFinal").await;
     assert!(events.contains("event: messageDelta"));
     assert!(events.contains("event: messageFinal"));
+    assert!(events.contains(r#""role":"assistant""#));
     let json = wait_for_assistant_text(server.addr, "provider says hello").await;
     assert!(json["conversation"]["resultItems"]
         .as_array()
@@ -4090,6 +4157,23 @@ esac
     let events = read_stream_until(&mut events, "event: messageFinal").await;
     assert!(events.contains("event: messageFinal"));
     assert!(events.contains("delayed reply"));
+
+    let body = r#"{"navId":"new-chat"}"#;
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/navigation/select HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        ),
+    )
+    .await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("new chat state json");
+    assert!(
+        json["conversation"].get("contextSummary").is_none(),
+        "new chat must not retain the previous thread context summary"
+    );
 }
 
 #[cfg(unix)]
@@ -4389,6 +4473,17 @@ esac
     .await
     .expect("gateway should start");
 
+    let mut events = tokio::net::TcpStream::connect(server.addr)
+        .await
+        .expect("connect events");
+    events
+        .write_all(
+            b"GET /api/desktop/events?sessionToken=session HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n",
+        )
+        .await
+        .expect("write events request");
+    let _ = read_stream_until(&mut events, "event: runtime").await;
+
     let spawn_body =
         r#"{"task":"inspect Rust gateway","label":"gateway worker","parentSessionKey":"main"}"#;
     let (status, body) = request(
@@ -4422,6 +4517,9 @@ esac
     )
     .await;
     assert_eq!(status, 200);
+    let events = read_stream_until(&mut events, "event: messageFinal").await;
+    assert!(events.contains("event: messageFinal"));
+    assert!(events.contains(r#""role":"user""#));
 
     let yield_body = format!(
         r#"{{"sessionKey":{}}}"#,
@@ -5400,6 +5498,84 @@ created: 2025-12-05
     .expect("persisted desktop memory");
     assert!(persisted.contains("workspace-memory-user-preference-chinese"));
     assert!(!persisted.contains("MEMORY.md"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_memory_create_with_hindsight_policy_returns_state_from_async_handler() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-memory-hindsight-policy",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let memory_policy_path = runtime_layout
+        .runtime_root
+        .join("config")
+        .join("desktop-memory-policy.json");
+    fs::create_dir_all(memory_policy_path.parent().expect("policy parent")).expect("config dir");
+    fs::write(
+        &memory_policy_path,
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "hindsightEnabled": true,
+            "hindsightBaseUrl": "http://127.0.0.1:1",
+            "hindsightMode": "local",
+            "hindsightManaged": false,
+            "hindsightLifecycleStatus": "external"
+        }))
+        .expect("memory policy json"),
+    )
+    .expect("memory policy");
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+    fs::write(
+        &memory_policy_path,
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "hindsightEnabled": true,
+            "hindsightBaseUrl": "http://127.0.0.1:1",
+            "hindsightMode": "local",
+            "hindsightManaged": false,
+            "hindsightLifecycleStatus": "external"
+        }))
+        .expect("memory policy json"),
+    )
+    .expect("memory policy");
+
+    let create_body = r#"{"agentId":"agent-alpha","title":"Hindsight-backed fact","summary":"initial summary","content":"remember this through Hindsight outbox","category":"偏好","tags":["desktop"],"source":"Desktop test"}"#;
+    let (status, body) = request(
+        server.addr,
+        format!(
+            "POST /api/desktop/memory/items HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            create_body.len(),
+            create_body
+        ),
+    )
+    .await;
+
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("create state json");
+    let item_id = json["memoryWorkspace"]["selectedItemId"]
+        .as_str()
+        .expect("created memory item id");
+    let item = json["memoryWorkspace"]["items"]
+        .as_array()
+        .expect("memory items")
+        .iter()
+        .find(|item| item["id"] == item_id)
+        .expect("created memory item");
+    assert_eq!(item["provider"], "hindsight");
+    assert_eq!(item["syncStatus"], "pending");
+    assert_eq!(item["layer"], "durable");
 }
 
 #[cfg(unix)]

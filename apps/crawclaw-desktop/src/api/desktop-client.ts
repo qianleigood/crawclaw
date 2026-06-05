@@ -20,6 +20,7 @@ import type {
   ModelProfileSetupInput,
   PermissionStatus,
   PluginInstallInput,
+  RuntimeStatus,
   SearchSuggestion,
   SendMessageInput,
   UpdateAgentInput,
@@ -76,6 +77,11 @@ export async function loadBootstrap(): Promise<BootstrapResponse> {
 export async function loadDesktopState(): Promise<DesktopState> {
   const context = await ensureContext()
   return requestDesktopState(context, '/api/desktop/state')
+}
+
+export async function loadRuntimeStatus(): Promise<RuntimeStatus> {
+  const context = await ensureContext()
+  return requestDesktop<RuntimeStatus>(context, '/api/desktop/runtime')
 }
 
 export async function searchDesktop(query: string): Promise<SearchSuggestion[]> {

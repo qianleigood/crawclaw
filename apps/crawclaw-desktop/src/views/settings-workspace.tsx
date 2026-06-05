@@ -528,6 +528,7 @@ const settingsCopy = {
       rememberProjectContext: ['整理项目上下文', '允许 CrawClaw 将项目相关事实整理为长期上下文。'],
       resetState: ['重置桌面状态', '只重置桌面 UI 状态，不删除真实项目文件。'],
       responseSpeed: ['回复模式', '控制聊天里展示多少过程信息：简洁只保留关键回复，标准显示简短过程，详细显示完整工具输出。'],
+      refreshRuntime: ['刷新 Runtime', '重新读取本机 CrawClaw runtime 当前状态。'],
       runtimeStatus: ['Runtime 状态', '当前本机 CrawClaw runtime 的摘要状态。'],
       selectedThinking: ['思考等级', '决定回复前花多少时间推理。'],
       selectedThinkingUnsupported: ['思考等级', '当前模型不支持可调思考等级，会按模型默认策略运行。'],
@@ -654,6 +655,7 @@ const settingsCopy = {
       rememberProjectContext: ['Organize project context', 'Allow CrawClaw to organize project facts as long-term context.'],
       resetState: ['Reset desktop state', 'Reset only desktop UI state without deleting real project files.'],
       responseSpeed: ['Reply mode', 'Controls how much process detail appears in chat: Compact keeps key replies, Standard shows brief progress, and Detailed shows full tool output.'],
+      refreshRuntime: ['Refresh runtime', 'Read the current local CrawClaw runtime status again.'],
       runtimeStatus: ['Runtime status', 'Current local CrawClaw runtime summary.'],
       selectedThinking: ['Reasoning level', 'Decide how much reasoning time replies use.'],
       selectedThinkingUnsupported: ['Reasoning level', 'The current model does not support configurable reasoning and will use its model default.'],
@@ -677,6 +679,7 @@ type SettingsWorkspaceProps = {
   onGenerateDiagnostics: () => void
   onModelProfileTestAndSave: (input: ModelProfileSetupInput) => Promise<void>
   onPreferenceUpdate: (patch: SettingsPreferencePatch) => void
+  onRefreshRuntimeStatus: () => void
   onResetState: () => void
   preferences: DesktopPreferences
   runtimeStatus: string
@@ -699,6 +702,7 @@ export function SettingsWorkspace({
   onGenerateDiagnostics,
   onModelProfileTestAndSave,
   onPreferenceUpdate,
+  onRefreshRuntimeStatus,
   onResetState,
   preferences,
   runtimeStatus,
@@ -782,7 +786,7 @@ export function SettingsWorkspace({
     getSelectedDetail?: (value: string) => string,
     getOptionLabel: (value: string) => string = (option) => settingValueLabel(language, option),
   ) => (
-    <div className="settings-field">
+    <div className="settings-field" data-setting-label={label} data-testid="settings-select-row">
       <div className="settings-field__label">
         <strong>{label}</strong>
         <span>{detail}</span>
@@ -791,6 +795,7 @@ export function SettingsWorkspace({
         <select
           aria-label={label}
           className="settings-select"
+          data-testid="settings-select"
           onChange={(event) => onSelect(event.currentTarget.value)}
           value={value}
         >
@@ -821,7 +826,7 @@ export function SettingsWorkspace({
     onToggle: () => void,
     disabled = false,
   ) => (
-    <div className="settings-field">
+    <div className="settings-field" data-setting-label={label} data-testid="settings-toggle-row">
       <div className="settings-field__label">
         <strong>{label}</strong>
         <span>{detail}</span>
@@ -830,6 +835,7 @@ export function SettingsWorkspace({
         aria-label={label}
         aria-pressed={checked}
         className={checked ? 'settings-switch is-on' : 'settings-switch'}
+        data-testid="settings-toggle"
         disabled={disabled}
         onClick={onToggle}
         type="button"
@@ -845,7 +851,7 @@ export function SettingsWorkspace({
     detail: string,
     value: string,
   ) => (
-    <div className="settings-field">
+    <div className="settings-field" data-setting-label={label} data-testid="settings-value-row">
       <div className="settings-field__label">
         <strong>{label}</strong>
         <span>{detail}</span>
@@ -860,24 +866,24 @@ export function SettingsWorkspace({
     onClick: () => void,
     tone: 'neutral' | 'danger' = 'neutral',
   ) => (
-    <div className="settings-field">
+    <div className="settings-field" data-setting-label={label} data-testid="settings-action-row">
       <div className="settings-field__label">
         <strong>{label}</strong>
         <span>{detail}</span>
       </div>
-      <button className={`settings-action-button is-${tone}`} onClick={onClick} type="button">
+      <button className={`settings-action-button is-${tone}`} data-testid="settings-action" onClick={onClick} type="button">
         {copy.actions.execute}
       </button>
     </div>
   )
 
   const renderAddModelRow = () => (
-    <div className="settings-field settings-field--model-add">
+    <div className="settings-field settings-field--model-add" data-setting-label={copy.rows.addModel[0]} data-testid="settings-add-model-row">
       <div className="settings-field__label">
         <strong>{copy.rows.addModel[0]}</strong>
         <span>{copy.rows.addModel[1]}</span>
       </div>
-      <button className="settings-action-button" onClick={() => setIsModelSetupOpen(true)} type="button">
+      <button className="settings-action-button" data-testid="settings-add-model-open" onClick={() => setIsModelSetupOpen(true)} type="button">
         <PlugZap aria-hidden="true" size={14} strokeWidth={2} />
         {copy.actions.addModel}
       </button>
@@ -894,7 +900,7 @@ export function SettingsWorkspace({
   )
 
   return (
-    <div className="settings-workspace">
+    <div className="settings-workspace" data-testid="settings-workspace">
       {isModelSetupOpen ? (
         <ModelSetupDialog
           language={language}
@@ -904,7 +910,7 @@ export function SettingsWorkspace({
         />
       ) : null}
       <div className="settings-workspace__body">
-        <section aria-label={copy.aria.sections.general} className={getSettingsSectionClass('general')} id="settings-general">
+        <section aria-label={copy.aria.sections.general} className={getSettingsSectionClass('general')} data-settings-section="general" data-testid="settings-section" id="settings-general">
           <header className="settings-section__header">
             <h2>{copy.sections.general.title}</h2>
             <p>{copy.sections.general.detail}</p>
@@ -918,7 +924,7 @@ export function SettingsWorkspace({
           </div>
         </section>
 
-        <section aria-label={copy.aria.sections.model} className={getSettingsSectionClass('model')} id="settings-model">
+        <section aria-label={copy.aria.sections.model} className={getSettingsSectionClass('model')} data-settings-section="model" data-testid="settings-section" id="settings-model">
           <header className="settings-section__header">
             <h2>{copy.sections.model.title}</h2>
             <p>{copy.sections.model.detail}</p>
@@ -933,7 +939,7 @@ export function SettingsWorkspace({
           </div>
         </section>
 
-        <section aria-label={copy.aria.sections.permissions} className={getSettingsSectionClass('permissions')} id="settings-permissions">
+        <section aria-label={copy.aria.sections.permissions} className={getSettingsSectionClass('permissions')} data-settings-section="permissions" data-testid="settings-section" id="settings-permissions">
           <header className="settings-section__header">
             <h2>{copy.sections.permissions.title}</h2>
             <p>{copy.sections.permissions.detail}</p>
@@ -954,7 +960,7 @@ export function SettingsWorkspace({
           </div>
         </section>
 
-        <section aria-label={copy.aria.sections.memory} className={getSettingsSectionClass('memory')} id="settings-memory">
+        <section aria-label={copy.aria.sections.memory} className={getSettingsSectionClass('memory')} data-settings-section="memory" data-testid="settings-section" id="settings-memory">
           <header className="settings-section__header">
             <h2>{copy.sections.memory.title}</h2>
             <p>{copy.sections.memory.detail}</p>
@@ -968,7 +974,7 @@ export function SettingsWorkspace({
           </div>
         </section>
 
-        <section aria-label={copy.aria.sections.notifications} className={getSettingsSectionClass('notifications')} id="settings-notifications">
+        <section aria-label={copy.aria.sections.notifications} className={getSettingsSectionClass('notifications')} data-settings-section="notifications" data-testid="settings-section" id="settings-notifications">
           <header className="settings-section__header">
             <h2>{copy.sections.notifications.title}</h2>
             <p>{copy.sections.notifications.detail}</p>
@@ -982,7 +988,7 @@ export function SettingsWorkspace({
           </div>
         </section>
 
-        <section aria-label={copy.aria.sections.privacy} className={getSettingsSectionClass('privacy')} id="settings-privacy">
+        <section aria-label={copy.aria.sections.privacy} className={getSettingsSectionClass('privacy')} data-settings-section="privacy" data-testid="settings-section" id="settings-privacy">
           <header className="settings-section__header">
             <h2>{copy.sections.privacy.title}</h2>
             <p>{copy.sections.privacy.detail}</p>
@@ -995,7 +1001,7 @@ export function SettingsWorkspace({
           </div>
         </section>
 
-        <section aria-label={copy.aria.sections.advanced} className={getSettingsSectionClass('advanced')} id="settings-advanced">
+        <section aria-label={copy.aria.sections.advanced} className={getSettingsSectionClass('advanced')} data-settings-section="advanced" data-testid="settings-section" id="settings-advanced">
           <header className="settings-section__header">
             <h2>{copy.sections.advanced.title}</h2>
             <p>{copy.sections.advanced.detail}</p>
@@ -1003,6 +1009,7 @@ export function SettingsWorkspace({
           <div className="settings-group">
             {renderSettingsSelectRow(copy.rows.logLevel[0], copy.rows.logLevel[1], advancedDefaults.logLevel, ['标准', '详细', '错误'], (value) => updateAdvancedDefaults({ logLevel: value }))}
             {renderSettingsValueRow(copy.rows.runtimeStatus[0], copy.rows.runtimeStatus[1], runtimeStatus)}
+            {renderSettingsActionRow(copy.rows.refreshRuntime[0], copy.rows.refreshRuntime[1], onRefreshRuntimeStatus)}
             {renderSettingsActionRow(copy.rows.diagnostics[0], copy.rows.diagnostics[1], onGenerateDiagnostics)}
             {renderSettingsActionRow(copy.rows.resetState[0], copy.rows.resetState[1], onResetState, 'danger')}
           </div>
@@ -1426,6 +1433,8 @@ export function SettingsSidebar({
         {settingsSections.map((section) => (
           <button
             className={activeSettingsSection === section.id ? 'is-active' : ''}
+            data-settings-section={section.id}
+            data-testid="settings-sidebar-section"
             key={section.id}
             onClick={() => onSelectSection(section.id)}
             type="button"

@@ -823,15 +823,16 @@ impl AgentRuntime {
             ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
         apply_agent_model_selection(&mut provider_config, model_selection)?;
         let budget_basis = resolve_context_budget_basis(&self.runtime_root, Some(&provider_config));
-        let runtime_context = build_runtime_model_context(
-            &self.runtime_root,
-            &thread_id,
-            &user_text,
-            &history,
-            &options,
-            &profile,
-            &budget_basis,
-        );
+        let runtime_context = self
+            .build_runtime_model_context_blocking(
+                &thread_id,
+                &user_text,
+                &history,
+                &options,
+                &profile,
+                &budget_basis,
+            )
+            .await?;
         let reasoning_level = if runtime_context.context_summary.budget.supports_reasoning {
             model_selection.and_then(|model| model.reasoning_level.clone())
         } else {
@@ -880,21 +881,26 @@ impl AgentRuntime {
         if profile.transcript_policy != TranscriptPolicy::None {
             self.append_transcript(&thread_id, &user_text, &assistant_text, &loop_events)?;
         }
-        let memory_result = memory_after_turn.then(|| {
+        let memory_result = if memory_after_turn {
             tracing::debug!(
                 runtime_root = %self.runtime_root.display(),
                 thread_id = %thread_id,
                 "agent_runtime_memory_after_turn_started"
             );
-            self.record_memory_after_turn(
-                &thread_id,
-                &thread_id,
-                &format!("send-{}", runtime_now_millis()),
-                &user_text,
-                &assistant_text,
-                &loop_events,
+            Some(
+                self.record_memory_after_turn_blocking(
+                    &thread_id,
+                    &thread_id,
+                    &format!("send-{}", runtime_now_millis()),
+                    &user_text,
+                    &assistant_text,
+                    &loop_events,
+                )
+                .await,
             )
-        });
+        } else {
+            None
+        };
         tracing::info!(
             runtime_root = %self.runtime_root.display(),
             thread_id = %thread_id,
@@ -953,15 +959,16 @@ impl AgentRuntime {
             ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
         apply_agent_model_selection(&mut provider_config, model_selection)?;
         let budget_basis = resolve_context_budget_basis(&self.runtime_root, Some(&provider_config));
-        let runtime_context = build_runtime_model_context(
-            &self.runtime_root,
-            &thread_id,
-            &user_text,
-            &history,
-            &options,
-            &profile,
-            &budget_basis,
-        );
+        let runtime_context = self
+            .build_runtime_model_context_blocking(
+                &thread_id,
+                &user_text,
+                &history,
+                &options,
+                &profile,
+                &budget_basis,
+            )
+            .await?;
         let reasoning_level = if runtime_context.context_summary.budget.supports_reasoning {
             model_selection.and_then(|model| model.reasoning_level.clone())
         } else {
@@ -1071,7 +1078,42 @@ impl AgentRuntime {
         Ok(())
     }
 
-    fn record_memory_after_turn(
+    async fn build_runtime_model_context_blocking(
+        &self,
+        thread_id: &str,
+        user_text: &str,
+        history: &[AgentRuntimeMessage],
+        options: &AgentRuntimeSendOptions,
+        profile: &AgentRunProfile,
+        budget_basis: &ContextBudgetBasis,
+    ) -> Result<RuntimeModelContext, AgentRuntimeError> {
+        let runtime_root = self.runtime_root.clone();
+        let thread_id = thread_id.to_string();
+        let user_text = user_text.to_string();
+        let history = history.to_vec();
+        let options = options.clone();
+        let profile = profile.clone();
+        let budget_basis = budget_basis.clone();
+        tokio::task::spawn_blocking(move || {
+            Ok(build_runtime_model_context(
+                &runtime_root,
+                &thread_id,
+                &user_text,
+                &history,
+                &options,
+                &profile,
+                &budget_basis,
+            ))
+        })
+        .await
+        .map_err(|error| {
+            AgentRuntimeError::ProviderFailed(format!(
+                "agent runtime context build failed: {error}"
+            ))
+        })?
+    }
+
+    async fn record_memory_after_turn_blocking(
         &self,
         session_id: &str,
         session_key: &str,
@@ -1080,44 +1122,74 @@ impl AgentRuntime {
         assistant_text: &str,
         loop_events: &[AgentLoopEvent],
     ) -> Result<Value, String> {
-        let mut memory_config = crate::memory::MemoryRuntimeConfig::load(&self.runtime_root);
-        memory_config.runtime_store.db_path = self
-            .runtime_root
-            .join("memory")
-            .join("runtime.db")
-            .to_string_lossy()
-            .to_string();
-        let runtime =
-            crate::memory::MemoryRuntime::with_config(self.runtime_root.clone(), memory_config);
-        let tool_calls = memory_after_turn_tool_calls(loop_events);
-        let mut assistant_message = json!({
-            "id": format!("{run_id}:assistant"),
-            "role": "assistant",
-            "content": assistant_text,
-            "source": "agent-runtime"
-        });
-        if !tool_calls.is_empty() {
-            assistant_message["tool_calls"] = json!(tool_calls);
-        }
-        let messages = vec![
-            json!({
-                "id": format!("{run_id}:user"),
-                "role": "user",
-                "content": user_text,
-                "source": "agent-runtime"
-            }),
-            assistant_message,
-        ];
-        let result = runtime.after_turn(session_id, Some(session_key), &messages, 0);
-        tracing::debug!(
-            runtime_root = %self.runtime_root.display(),
-            session_id,
-            session_key,
-            ok = result.is_ok(),
-            "agent_runtime_memory_after_turn_completed"
-        );
-        result
+        let runtime_root = self.runtime_root.clone();
+        let session_id = session_id.to_string();
+        let session_key = session_key.to_string();
+        let run_id = run_id.to_string();
+        let user_text = user_text.to_string();
+        let assistant_text = assistant_text.to_string();
+        let loop_events = loop_events.to_vec();
+        tokio::task::spawn_blocking(move || {
+            record_memory_after_turn_for_runtime_root(
+                &runtime_root,
+                &session_id,
+                &session_key,
+                &run_id,
+                &user_text,
+                &assistant_text,
+                &loop_events,
+            )
+        })
+        .await
+        .map_err(|error| format!("agent runtime memory after-turn join failed: {error}"))?
     }
+}
+
+fn record_memory_after_turn_for_runtime_root(
+    runtime_root: &Path,
+    session_id: &str,
+    session_key: &str,
+    run_id: &str,
+    user_text: &str,
+    assistant_text: &str,
+    loop_events: &[AgentLoopEvent],
+) -> Result<Value, String> {
+    let mut memory_config = crate::memory::MemoryRuntimeConfig::load(runtime_root);
+    memory_config.runtime_store.db_path = runtime_root
+        .join("memory")
+        .join("runtime.db")
+        .to_string_lossy()
+        .to_string();
+    let runtime =
+        crate::memory::MemoryRuntime::with_config(runtime_root.to_path_buf(), memory_config);
+    let tool_calls = memory_after_turn_tool_calls(loop_events);
+    let mut assistant_message = json!({
+        "id": format!("{run_id}:assistant"),
+        "role": "assistant",
+        "content": assistant_text,
+        "source": "agent-runtime"
+    });
+    if !tool_calls.is_empty() {
+        assistant_message["tool_calls"] = json!(tool_calls);
+    }
+    let messages = vec![
+        json!({
+            "id": format!("{run_id}:user"),
+            "role": "user",
+            "content": user_text,
+            "source": "agent-runtime"
+        }),
+        assistant_message,
+    ];
+    let result = runtime.after_turn(session_id, Some(session_key), &messages, 0);
+    tracing::debug!(
+        runtime_root = %runtime_root.display(),
+        session_id,
+        session_key,
+        ok = result.is_ok(),
+        "agent_runtime_memory_after_turn_completed"
+    );
+    result
 }
 
 fn memory_after_turn_tool_calls(loop_events: &[AgentLoopEvent]) -> Vec<String> {

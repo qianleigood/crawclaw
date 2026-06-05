@@ -58,6 +58,11 @@ export function Sidebar({
     y: number
   } | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
+  const hasActiveThread = [...pinnedThreads, ...threads, ...discussionThreads].some((thread) => thread.active)
+  const activePrimaryNavLabel = activeNavLabel ?? navItems.find((item) => item.active)?.label
+  const isNavItemActive = (item: SidebarNavItem) => (
+    activePrimaryNavLabel === item.label && !(item.id === 'new-chat' && hasActiveThread)
+  )
 
   const pinThread = (item: SidebarThread) => {
     onThreadPin?.(item)
@@ -120,7 +125,9 @@ export function Sidebar({
       <nav className="sidebar-nav" aria-label="Primary">
         {navItems.map((item) => (
           <Button
-            className={(activeNavLabel ?? (item.active ? item.label : '')) === item.label ? 'sidebar-nav__item is-active' : 'sidebar-nav__item'}
+            className={isNavItemActive(item) ? 'sidebar-nav__item is-active' : 'sidebar-nav__item'}
+            data-nav-id={item.id}
+            data-testid="sidebar-nav-item"
             key={item.label}
             onClick={() => onNavItemClick?.(item)}
           >
@@ -152,6 +159,7 @@ export function Sidebar({
 
       <Button
         className={activeNavLabel === '设置' ? 'sidebar-settings is-active' : 'sidebar-settings'}
+        data-testid="sidebar-settings"
         onClick={onSettingsClick}
       >
         <Settings aria-hidden="true" size={15} strokeWidth={2} />
@@ -262,6 +270,8 @@ function ThreadGroup({
           className={[item.active ? 'thread-row is-active' : 'thread-row', item.agentAvatar ? 'thread-row--with-avatar' : '']
             .filter(Boolean)
             .join(' ')}
+          data-thread-id={item.id}
+          data-testid="sidebar-thread"
           key={item.id}
           onContextMenu={(event) => onThreadContextMenu?.(event, item)}
         >

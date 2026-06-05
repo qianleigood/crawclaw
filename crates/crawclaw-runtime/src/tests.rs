@@ -1,5 +1,6 @@
 use super::*;
 use serde_json::json;
+use sha2::{Digest, Sha256};
 use std::future::Future;
 use std::io::Read;
 use std::net::TcpListener;
@@ -543,6 +544,38 @@ fn rust_runtime_repo_guardrails_keep_desktop_chat_view_split() {
 }
 
 #[test]
+fn rust_runtime_repo_guardrails_keep_desktop_ui_copy_current_with_backend() {
+    let root = repo_root();
+    let source_root = root.join("apps/crawclaw-desktop/src");
+    let mut files = Vec::new();
+    collect_ts_files(&source_root, &mut files);
+
+    let forbidden_needles = [
+        "后端先不要接",
+        "静态设计",
+        "静态入口",
+        "后续接 Rust Desktop API",
+        "后续会接入运行状态",
+        "保留后续语音唤醒入口",
+    ];
+    let mut hits = Vec::new();
+    for file in files {
+        let relative = slash_path(file.strip_prefix(&root).expect("relative source path"));
+        let source = fs::read_to_string(&file).expect("read desktop source");
+        for needle in forbidden_needles {
+            if source.contains(needle) {
+                hits.push(format!("{relative}: {needle}"));
+            }
+        }
+    }
+
+    assert!(
+        hits.is_empty(),
+        "desktop UI copy must not describe backend-backed surfaces as static or future work: {hits:?}"
+    );
+}
+
+#[test]
 fn rust_runtime_repo_guardrails_keep_non_desktop_script_sources_absent() {
     let root = repo_root();
     let existing = tracked_files(&root)
@@ -831,6 +864,110 @@ fn desktop_runtime_manifest_advertises_managed_searxng_runtime() {
     );
 
     let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[test]
+fn desktop_runtime_manifest_advertises_automation_runtime_manager_services() {
+    let runtime_root = unique_test_runtime_root("runtime-automation-manifest");
+
+    stage_desktop_runtime_manifests(&runtime_root).expect("stage runtime manifests");
+    let raw = fs::read_to_string(runtime_root.join("runtimes").join("manifest.json"))
+        .expect("runtime manifest");
+    let manifest: Value = serde_json::from_str(&raw).expect("manifest json");
+    let managed = &manifest["managedRuntimes"];
+
+    assert_eq!(managed["n8n"]["runtime"], "node-service");
+    assert_eq!(managed["n8n"]["provider"], "n8n");
+    assert_eq!(managed["n8n"]["service"], "n8n");
+    assert_eq!(managed["n8n"]["baseUrl"], "http://127.0.0.1:5679");
+    assert_eq!(managed["n8n"]["install"]["channel"], "github-release");
+    assert_eq!(
+        managed["n8n"]["install"]["scriptPolicy"],
+        "release-asset-checksum"
+    );
+    assert_eq!(managed["n8n"]["license"], "Sustainable Use License");
+
+    assert_eq!(managed["comfyui"]["runtime"], "python-service");
+    assert_eq!(managed["comfyui"]["provider"], "comfyui");
+    assert_eq!(managed["comfyui"]["service"], "comfyui");
+    assert_eq!(managed["comfyui"]["baseUrl"], "http://127.0.0.1:8188");
+    assert_eq!(managed["comfyui"]["install"]["channel"], "github-release");
+    assert_eq!(
+        managed["comfyui"]["install"]["scriptPolicy"],
+        "release-asset-checksum"
+    );
+    assert_eq!(managed["comfyui"]["license"], "GPL-3.0");
+
+    let profiles = managed["comfyui"]["computeProfiles"]
+        .as_array()
+        .expect("compute profiles");
+    for expected in [
+        "apple-metal",
+        "nvidia-cuda",
+        "amd-rocm",
+        "intel-xpu",
+        "cpu",
+        "external",
+    ] {
+        assert!(
+            profiles.iter().any(|profile| profile["id"] == expected),
+            "missing ComfyUI compute profile {expected}"
+        );
+    }
+
+    let _ = fs::remove_dir_all(runtime_root);
+}
+
+#[test]
+fn automation_runtime_release_manifests_match_install_scripts() {
+    let root = repo_root();
+
+    for runtime_id in ["n8n", "comfyui"] {
+        let runtime_dir = root.join("automation").join(runtime_id);
+        let manifest_path = runtime_dir.join("manifest.json");
+        let script_path = runtime_dir.join("install.sh");
+        let manifest_raw = fs::read_to_string(&manifest_path).unwrap_or_else(|error| {
+            panic!("read {}: {error}", slash_path(&manifest_path));
+        });
+        let manifest: Value = serde_json::from_str(&manifest_raw).unwrap_or_else(|error| {
+            panic!("parse {}: {error}", slash_path(&manifest_path));
+        });
+        let script = fs::read(&script_path).unwrap_or_else(|error| {
+            panic!("read {}: {error}", slash_path(&script_path));
+        });
+        let script_text = String::from_utf8(script.clone()).expect("install script utf8");
+
+        assert_eq!(manifest["runtimeId"], runtime_id);
+        assert_eq!(manifest["install"]["channel"], "github-release");
+        assert_eq!(
+            manifest["install"]["scriptPolicy"],
+            "release-asset-checksum"
+        );
+        assert_eq!(manifest["assets"]["installScript"]["path"], "install.sh");
+        assert_eq!(
+            manifest["assets"]["installScript"]["publishedAs"],
+            format!("crawclaw-automation-{runtime_id}-install.sh")
+        );
+        assert_eq!(
+            manifest["assets"]["installScript"]["sha256"]
+                .as_str()
+                .expect("install script sha256"),
+            sha256_hex(&script)
+        );
+        assert!(
+            script_text.starts_with("#!/usr/bin/env bash\nset -euo pipefail\n"),
+            "install script must use bash strict mode"
+        );
+        assert!(
+            !script_text.contains("curl | sh"),
+            "install script must not pipe remote scripts directly into a shell"
+        );
+    }
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    format!("{digest:x}")
 }
 
 #[test]
@@ -2472,6 +2609,56 @@ async fn agent_runtime_uses_native_provider_backend_by_default() {
             .list_messages("thread-native-default", 10)
             .expect("memory messages");
     assert_eq!(memory_messages.len(), 2);
+}
+
+#[tokio::test]
+async fn agent_runtime_send_message_with_hindsight_policy_stays_out_of_async_blocking_context() {
+    let runtime_root = unique_test_runtime_root("native-provider-hindsight-policy");
+    let config_dir = runtime_root.join("config");
+    fs::create_dir_all(&config_dir).expect("config dir");
+    fs::write(
+        config_dir.join("desktop-agent-provider.json"),
+        serde_json::to_vec_pretty(&json!({
+            "runtime": "native-provider",
+            "provider": "test-provider",
+            "model": "test-model",
+            "apiKey": "test-key"
+        }))
+        .expect("provider config json"),
+    )
+    .expect("write provider config");
+    fs::write(
+        config_dir.join("desktop-memory-policy.json"),
+        serde_json::to_vec_pretty(&json!({
+            "hindsightEnabled": true,
+            "hindsightBaseUrl": "http://127.0.0.1:1",
+            "hindsightMode": "local",
+            "hindsightManaged": false,
+            "hindsightLifecycleStatus": "external"
+        }))
+        .expect("memory policy json"),
+    )
+    .expect("write memory policy");
+
+    let runtime = AgentRuntime::with_native_provider_backend(
+        runtime_root.clone(),
+        Arc::new(FakeAgentRuntimeBackend {
+            reply: "hello with memory policy".to_string(),
+        }),
+    );
+    let result = runtime
+        .send_message(
+            "thread-hindsight-policy".to_string(),
+            "hello memory context".to_string(),
+        )
+        .await
+        .expect("native provider result");
+
+    assert_eq!(result.assistant_text, "hello with memory policy");
+    assert!(
+        result.memory_result.is_some(),
+        "memory.afterTurn should still run under the Hindsight policy"
+    );
 }
 
 #[tokio::test]

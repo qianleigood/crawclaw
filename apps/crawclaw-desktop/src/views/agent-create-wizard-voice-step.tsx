@@ -63,7 +63,7 @@ export function AgentVoiceStep({
               />
               <span>
                 <strong>唤醒响应</strong>
-                <small>保留后续语音唤醒入口</small>
+                <small>允许支持的本机语音通道响应唤醒</small>
               </span>
             </label>
           </div>

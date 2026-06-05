@@ -13,6 +13,7 @@ import {
   UserRound,
   Wrench,
 } from 'lucide-react'
+import { memo, useMemo } from 'react'
 import {
   desktopAssetContentUrl,
   type BadgeTone,
@@ -33,7 +34,7 @@ type ConversationMessageListProps = {
   replyMode: string
 }
 
-export function ConversationMessageList({
+export const ConversationMessageList = memo(function ConversationMessageList({
   messages,
   onDecidePermission,
   onOpenAsset,
@@ -42,7 +43,10 @@ export function ConversationMessageList({
   replyMode: replyModeValue,
 }: ConversationMessageListProps) {
   const replyMode = normalizeReplyMode(replyModeValue)
-  const visibleMessages = messages.filter((message) => shouldShowMessage(message, replyMode))
+  const visibleMessages = useMemo(
+    () => messages.filter((message) => shouldShowMessage(message, replyMode)),
+    [messages, replyMode],
+  )
 
   if (messages.length === 0) {
     return (
@@ -57,7 +61,12 @@ export function ConversationMessageList({
   return (
     <ol className="chat-thread">
       {visibleMessages.map((message) => (
-        <li className={`chat-row chat-row--${message.kind}`} key={message.id}>
+        <li
+          className={`chat-row chat-row--${message.kind}`}
+          data-message-kind={message.kind}
+          data-testid="conversation-message"
+          key={message.id}
+        >
           <MessageBubble
             message={message}
             onDecidePermission={onDecidePermission}
@@ -70,9 +79,9 @@ export function ConversationMessageList({
       ))}
     </ol>
   )
-}
+})
 
-function MessageBubble({
+const MessageBubble = memo(function MessageBubble({
   message,
   onDecidePermission,
   onOpenAsset,
@@ -363,7 +372,7 @@ function MessageBubble({
   }
 
   return null
-}
+})
 
 function AssetMediaPreview({ item }: { item: ConversationMediaItem }) {
   const assetUrl = item.assetId ? desktopAssetContentUrl(item.assetId) : null

@@ -547,6 +547,7 @@ fn health_url(base_url: &str, health_path: &str) -> NativeResult<String> {
 async fn probe_ready(base_url: &str, health_path: &str) -> NativeResult<bool> {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(2))
+        .no_proxy()
         .build()?;
     let response = client
         .get(health_url(base_url, health_path)?)
@@ -726,6 +727,7 @@ pub async fn synthesize_qwen3_tts(input: Value) -> NativeResult<Value> {
     let url = sidecar_url(&input)?;
     let client = reqwest::Client::builder()
         .timeout(timeout(&input))
+        .no_proxy()
         .build()?;
     let response = client
         .post(url)

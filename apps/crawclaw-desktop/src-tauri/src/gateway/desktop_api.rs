@@ -30,14 +30,14 @@ use crawclaw_plugin_host::{
 use crawclaw_runtime::{
     memory::MemoryRuntime, special_agents::find_special_agent, AgentLoopEvent, AgentModelSelection,
     AgentRunProfileKind, AgentRunProfileRequest, AgentRunRequest, AgentRuntime,
-    AgentRuntimeConfirmationPolicy, AgentRuntimeContextSummary, AgentRuntimePermissionCategory,
-    AgentRuntimePermissionDecision, AgentRuntimePermissionMode, AgentRuntimePermissionPolicy,
-    AgentRuntimePermissionRequest, AgentRuntimePermissionRequester, AgentRuntimeSendOptions,
-    AgentRuntimeToolSelection, ChannelChatType, ChannelInboundEnvelope, DesktopAgentStore,
-    DesktopAgentStoreError, DesktopMemoryRecord, DesktopMemoryStore, DesktopMemoryStoreError,
-    DesktopModelProfileStore, DesktopPreferencesRecord, DesktopPreferencesStore,
-    DesktopPreferencesStoreError, DesktopSessionRecord, DesktopSessionStore,
-    DesktopSessionStoreError, ToolExecutionEvent,
+    AgentRuntimeConfirmationPolicy, AgentRuntimeContextSummary, AgentRuntimeError,
+    AgentRuntimePermissionCategory, AgentRuntimePermissionDecision, AgentRuntimePermissionMode,
+    AgentRuntimePermissionPolicy, AgentRuntimePermissionRequest, AgentRuntimePermissionRequester,
+    AgentRuntimeSendOptions, AgentRuntimeToolSelection, ChannelChatType, ChannelInboundEnvelope,
+    DesktopAgentStore, DesktopAgentStoreError, DesktopMemoryRecord, DesktopMemoryStore,
+    DesktopMemoryStoreError, DesktopModelProfileStore, DesktopPreferencesRecord,
+    DesktopPreferencesStore, DesktopPreferencesStoreError, DesktopSessionRecord,
+    DesktopSessionStore, DesktopSessionStoreError, ToolExecutionEvent,
 };
 
 use crate::gateway::desktop_state::initial_desktop_state;
@@ -45,7 +45,8 @@ use crate::gateway::runtime_supervisor::RuntimeSupervisor;
 use crate::models::{
     AdvancedDefaults, AgentAvatarProfile, AgentChannelBinding, AgentChannelConfig,
     AgentChannelConfigField, AgentEmotionProfile, AgentProfile, AgentSkill, AgentTool,
-    AgentVoiceConfig, ConfirmationDefaults, ConversationContextSkillSummary,
+    AgentVoiceConfig, AutomationRuntimeComputeProfile, AutomationRuntimeInstallSummary,
+    AutomationRuntimeSummary, ConfirmationDefaults, ConversationContextSkillSummary,
     ConversationContextSummary, ConversationMediaItem, ConversationMessage,
     ConversationWorkflowStep, DesktopApiInfo, DesktopAppInfo, DesktopEvent, DesktopPreferences,
     DesktopState, InstalledPlugin, MemoryDefaults, MemoryItem, NotificationDefaults,
@@ -115,6 +116,7 @@ use self::desktop_settings_effects::{
 
 const SESSION_HEADER: &str = "x-crawclaw-desktop-session";
 pub(super) const DEFAULT_MEMORY_AGENT_ID: &str = "main";
+const MEMORY_BOOTSTRAP_SESSION_ID: &str = "desktop-memory:bootstrap";
 const MEMORY_OUTBOX_WORKER_INTERVAL: std::time::Duration = std::time::Duration::from_secs(15);
 const MEMORY_OUTBOX_WORKER_LIMIT: usize = 10;
 
@@ -267,6 +269,7 @@ async fn build_state(
     merge_persisted_model_profiles(&mut desktop_state, &model_profile_store);
     merge_persisted_sessions(&mut desktop_state, &session_store);
     merge_plugin_manifest(&mut desktop_state, &runtime_layout);
+    merge_automation_runtime_manifest(&mut desktop_state, &runtime_layout);
     if let Err(error) = apply_active_model_profile_for_selection(
         &runtime_layout.runtime_root,
         &model_profile_store,
@@ -388,7 +391,7 @@ async fn run_memory_outbox_worker_tick(state: &GatewayState) {
     let runtime_root = state.runtime_root.clone();
     let result = tokio::task::spawn_blocking(move || {
         let runtime = MemoryRuntime::new(runtime_root);
-        runtime.process_outbox_once(MEMORY_OUTBOX_WORKER_LIMIT)
+        run_memory_outbox_worker_tick_for_runtime(runtime)
     })
     .await;
 
@@ -411,6 +414,11 @@ async fn run_memory_outbox_worker_tick(state: &GatewayState) {
         }
         Err(error) => tracing::warn!(error = %error, "desktop_memory_outbox_worker_join_failed"),
     }
+}
+
+fn run_memory_outbox_worker_tick_for_runtime(runtime: MemoryRuntime) -> Result<Value, String> {
+    runtime.bootstrap(MEMORY_BOOTSTRAP_SESSION_ID, Some(DEFAULT_MEMORY_AGENT_ID))?;
+    runtime.process_outbox_once(MEMORY_OUTBOX_WORKER_LIMIT)
 }
 
 #[derive(Clone)]
@@ -541,6 +549,137 @@ fn merge_plugin_manifest(desktop_state: &mut DesktopState, runtime_layout: &Runt
                 tone: "error".to_string(),
             }),
     }
+}
+
+fn merge_automation_runtime_manifest(
+    desktop_state: &mut DesktopState,
+    runtime_layout: &RuntimeLayout,
+) {
+    match automation_runtime_summaries_from_manifest_path(&runtime_layout.manifest_path) {
+        Ok(runtimes) => {
+            desktop_state.automation_workspace.runtimes = runtimes;
+        }
+        Err(error) => desktop_state
+            .conversation
+            .runtime_checks
+            .push(RuntimeCheck {
+                label: "Automation runtimes".to_string(),
+                value: error,
+                tone: "error".to_string(),
+            }),
+    }
+}
+
+fn automation_runtime_summaries_from_manifest_path(
+    manifest_path: &Path,
+) -> Result<Vec<AutomationRuntimeSummary>, String> {
+    if !manifest_path.exists() {
+        return Ok(Vec::new());
+    }
+    let raw = fs::read_to_string(manifest_path)
+        .map_err(|error| format!("Failed to read automation runtime manifest: {error}"))?;
+    let manifest: Value = serde_json::from_str(&raw)
+        .map_err(|error| format!("Failed to parse automation runtime manifest: {error}"))?;
+    let Some(managed) = manifest.get("managedRuntimes").and_then(Value::as_object) else {
+        return Ok(Vec::new());
+    };
+
+    let mut runtimes = Vec::new();
+    for runtime_id in ["n8n", "comfyui"] {
+        if let Some(summary) = managed
+            .get(runtime_id)
+            .and_then(Value::as_object)
+            .map(|runtime| automation_runtime_summary(runtime_id, runtime))
+        {
+            runtimes.push(summary);
+        }
+    }
+    Ok(runtimes)
+}
+
+fn automation_runtime_summary(
+    runtime_id: &str,
+    runtime: &Map<String, Value>,
+) -> AutomationRuntimeSummary {
+    let install = runtime
+        .get("install")
+        .and_then(Value::as_object)
+        .map(automation_runtime_install_summary)
+        .unwrap_or_else(|| AutomationRuntimeInstallSummary {
+            channel: String::new(),
+            script_policy: String::new(),
+            manifest_path: String::new(),
+        });
+    let compute_profiles = runtime
+        .get("computeProfiles")
+        .and_then(Value::as_array)
+        .map(|profiles| {
+            profiles
+                .iter()
+                .filter_map(Value::as_object)
+                .map(automation_runtime_compute_profile)
+                .collect()
+        })
+        .unwrap_or_default();
+
+    AutomationRuntimeSummary {
+        id: runtime_id.to_string(),
+        name: automation_runtime_name(runtime_id).to_string(),
+        status: "notInstalled".to_string(),
+        detail: "可通过 Automation Runtime Manager 安装并绑定到本机服务。".to_string(),
+        runtime: manifest_string(runtime, "runtime"),
+        provider: manifest_string(runtime, "provider"),
+        service: manifest_string(runtime, "service"),
+        mode: "managed".to_string(),
+        base_url: manifest_string(runtime, "baseUrl"),
+        default_port: runtime
+            .get("defaultPort")
+            .and_then(Value::as_u64)
+            .and_then(|value| u16::try_from(value).ok())
+            .unwrap_or_default(),
+        install,
+        license: manifest_string(runtime, "license"),
+        compute_profiles,
+    }
+}
+
+fn automation_runtime_install_summary(
+    install: &Map<String, Value>,
+) -> AutomationRuntimeInstallSummary {
+    AutomationRuntimeInstallSummary {
+        channel: manifest_string(install, "channel"),
+        script_policy: manifest_string(install, "scriptPolicy"),
+        manifest_path: manifest_string(install, "manifestPath"),
+    }
+}
+
+fn automation_runtime_compute_profile(
+    profile: &Map<String, Value>,
+) -> AutomationRuntimeComputeProfile {
+    AutomationRuntimeComputeProfile {
+        id: manifest_string(profile, "id"),
+        backend: manifest_string(profile, "backend"),
+        experimental: profile
+            .get("experimental")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+    }
+}
+
+fn automation_runtime_name(runtime_id: &str) -> &str {
+    match runtime_id {
+        "comfyui" => "ComfyUI",
+        "n8n" => "n8n",
+        _ => runtime_id,
+    }
+}
+
+fn manifest_string(object: &Map<String, Value>, key: &str) -> String {
+    object
+        .get(key)
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string()
 }
 
 async fn refresh_plugins_workspace(state: &GatewayState) -> Result<(), StatusCode> {
@@ -803,6 +942,7 @@ fn apply_session_conversation(
 ) {
     desktop_state.conversation.messages = conversation_messages_from_session(thread_id, session);
     desktop_state.conversation.result_items = session.result_items.clone();
+    desktop_state.conversation.context_summary = None;
 }
 
 pub(super) fn clear_active_thread_conversation(desktop_state: &mut DesktopState) {
@@ -817,6 +957,7 @@ pub(super) fn clear_active_thread_conversation(desktop_state: &mut DesktopState)
     }
     desktop_state.conversation.messages.clear();
     desktop_state.conversation.result_items.clear();
+    desktop_state.conversation.context_summary = None;
 }
 
 fn conversation_messages_from_session(
@@ -1079,10 +1220,13 @@ mod tests {
     use axum::Json;
     use crawclaw_core::{RuntimeCompatStatus, RuntimeStatusValue};
     use crawclaw_runtime::{
-        AgentRuntimePermissionCategory, AgentRuntimePermissionDecision,
-        AgentRuntimePermissionRequest,
+        memory::MemoryRuntimeConfig, AgentRuntimePermissionCategory,
+        AgentRuntimePermissionDecision, AgentRuntimePermissionRequest,
     };
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
     use std::sync::Mutex as StdMutex;
+    use std::thread;
     use std::time::Duration;
 
     static HOME_ENV_LOCK: StdMutex<()> = StdMutex::new(());
@@ -1390,6 +1534,44 @@ mod tests {
     }
 
     #[test]
+    fn memory_outbox_worker_bootstraps_hindsight_banks_before_processing() {
+        let temp_root = std::env::temp_dir().join(format!(
+            "crawclaw-desktop-memory-bootstrap-{}",
+            Uuid::new_v4()
+        ));
+        let (base_url, request_rx) = start_hindsight_bootstrap_server(4);
+        let mut config = MemoryRuntimeConfig::default();
+        config.runtime_store.db_path = temp_root
+            .join("memory-runtime.db")
+            .to_string_lossy()
+            .to_string();
+        config.hindsight.enabled = true;
+        config.hindsight.base_url = base_url;
+        config.hindsight.default_mental_models = false;
+        let runtime = MemoryRuntime::with_config(&temp_root, config);
+
+        run_memory_outbox_worker_tick_for_runtime(runtime).expect("worker tick");
+
+        let requests = (0..4)
+            .map(|_| request_rx.recv().expect("hindsight request"))
+            .collect::<Vec<_>>();
+        assert!(requests
+            .iter()
+            .any(|request| request.starts_with("PUT /v1/default/banks/crawclaw:main:durable ")));
+        assert!(requests
+            .iter()
+            .any(|request| request.starts_with("PUT /v1/default/banks/crawclaw:main:experience ")));
+        assert!(requests
+            .iter()
+            .any(|request| request.starts_with("PUT /v1/default/banks/crawclaw:main:resource ")));
+        assert!(requests.iter().any(
+            |request| request.starts_with("PUT /v1/default/banks/crawclaw:main:mental-models ")
+        ));
+
+        let _ = fs::remove_dir_all(temp_root);
+    }
+
+    #[test]
     fn workspace_memory_dirs_include_legacy_home_memory() {
         let runtime_root =
             PathBuf::from("/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw");
@@ -1462,6 +1644,76 @@ created: 2025-12-05
             channel_manifest_path: runtime_root.join("channels").join("manifest.json"),
             manifest_path: runtime_root.join("runtimes").join("manifest.json"),
             runtime_root,
+        }
+    }
+
+    fn start_hindsight_bootstrap_server(
+        expected_requests: usize,
+    ) -> (String, std::sync::mpsc::Receiver<String>) {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("hindsight listener");
+        let addr = listener.local_addr().expect("hindsight addr");
+        let (request_tx, request_rx) = std::sync::mpsc::channel();
+        thread::spawn(move || {
+            for _ in 0..expected_requests {
+                let (mut stream, _) = listener.accept().expect("hindsight request");
+                stream
+                    .set_read_timeout(Some(Duration::from_millis(500)))
+                    .expect("set read timeout");
+                let request = read_http_request(&mut stream);
+                request_tx
+                    .send(String::from_utf8_lossy(&request).to_string())
+                    .expect("send hindsight request");
+                let response = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}";
+                stream
+                    .write_all(response.as_bytes())
+                    .expect("write hindsight response");
+            }
+        });
+        (format!("http://{addr}"), request_rx)
+    }
+
+    fn read_http_request(stream: &mut std::net::TcpStream) -> Vec<u8> {
+        let mut request = Vec::new();
+        let mut buffer = [0_u8; 4096];
+        loop {
+            match stream.read(&mut buffer) {
+                Ok(0) => break,
+                Ok(n) => {
+                    request.extend_from_slice(&buffer[..n]);
+                    if request_body_complete(&request) {
+                        break;
+                    }
+                }
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                    ) =>
+                {
+                    break;
+                }
+                Err(error) => panic!("read hindsight request: {error}"),
+            }
+        }
+        request
+    }
+
+    fn request_body_complete(request: &[u8]) -> bool {
+        let text = String::from_utf8_lossy(request);
+        let Some((headers, body)) = text.split_once("\r\n\r\n") else {
+            return false;
+        };
+        let content_length = headers.lines().find_map(|line| {
+            let (name, value) = line.split_once(':')?;
+            if name.trim().eq_ignore_ascii_case("content-length") {
+                value.trim().parse::<usize>().ok()
+            } else {
+                None
+            }
+        });
+        match content_length {
+            Some(length) => body.as_bytes().len() >= length,
+            None => true,
         }
     }
 }
@@ -2272,19 +2524,27 @@ fn persist_memory_item(state: &GatewayState, item: &MemoryItem) -> Result<(), St
         .map_err(|error| memory_store_status(state, error))
 }
 
-fn apply_memory_item_retain_sync(state: &GatewayState, item: &mut MemoryItem) {
+async fn apply_memory_item_retain_sync(state: &GatewayState, item: &mut MemoryItem) {
     item.layer = desktop_memory_layer(&item.category).to_string();
     item.sync_error = None;
-    match MemoryRuntime::new(state.runtime_root.clone()).enqueue_desktop_memory_item(
-        &item.id,
-        &item.agent_id,
-        &item.title,
-        &item.summary,
-        &item.content,
-        &item.category,
-        &item.source,
-        &item.tags,
-    ) {
+    let runtime_root = state.runtime_root.clone();
+    let item_id = item.id.clone();
+    let agent_id = item.agent_id.clone();
+    let title = item.title.clone();
+    let summary = item.summary.clone();
+    let content = item.content.clone();
+    let category = item.category.clone();
+    let source = item.source.clone();
+    let tags = item.tags.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        MemoryRuntime::new(runtime_root).enqueue_desktop_memory_item(
+            &item_id, &agent_id, &title, &summary, &content, &category, &source, &tags,
+        )
+    })
+    .await
+    .map_err(|error| format!("memory retain join failed: {error}"))
+    .and_then(|result| result);
+    match result {
         Ok(result) if result["status"] == "pending" => {
             item.provider = "hindsight".to_string();
             item.bank_id = result
@@ -2320,20 +2580,28 @@ fn apply_memory_item_retain_sync(state: &GatewayState, item: &mut MemoryItem) {
     }
 }
 
-fn apply_memory_item_forget_sync(state: &GatewayState, item: &mut MemoryItem) {
+async fn apply_memory_item_forget_sync(state: &GatewayState, item: &mut MemoryItem) {
     item.sync_status = "pending_delete".to_string();
     item.sync_error = None;
+    let runtime_root = state.runtime_root.clone();
     let session_id = format!("desktop-memory:{}", item.agent_id);
     let content = [item.title.trim(), item.summary.trim(), item.content.trim()]
         .into_iter()
         .filter(|value| !value.is_empty())
         .collect::<Vec<_>>()
         .join("\n\n");
-    match MemoryRuntime::new(state.runtime_root.clone()).enqueue_forget_memory(
-        &session_id,
-        &content,
-        Some(&item.id),
-    ) {
+    let item_id = item.id.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        MemoryRuntime::new(runtime_root).enqueue_forget_memory(
+            &session_id,
+            &content,
+            Some(&item_id),
+        )
+    })
+    .await
+    .map_err(|error| format!("memory forget join failed: {error}"))
+    .and_then(|result| result);
+    match result {
         Ok(result) if result["status"] == "pending" => {}
         Ok(result) => {
             item.sync_status = "local_delete_only".to_string();

@@ -46,6 +46,7 @@
     "config:docs:gen": "cargo run -q -p crawclaw-repo-tools -- emit-config-doc-baseline --json-output docs/.generated/config-baseline.json --jsonl-output docs/.generated/config-baseline.jsonl --write",
     "desktop:contract:check": "cargo run --manifest-path apps/crawclaw-desktop/src-tauri/Cargo.toml -- emit-desktop-api-contract --output apps/crawclaw-desktop/src/generated/desktop-api-contract.generated.ts --check",
     "desktop:contract:gen": "cargo run --manifest-path apps/crawclaw-desktop/src-tauri/Cargo.toml -- emit-desktop-api-contract --output apps/crawclaw-desktop/src/generated/desktop-api-contract.generated.ts --write",
+    "desktop:e2e:smoke": "node apps/crawclaw-desktop/e2e/run-desktop-e2e.mjs --suite smoke",
     "desktop:tauri:build": "cargo run -q -p crawclaw-repo-tools -- desktop-renderer tauri-build",
     "desktop:tauri:dev": "cargo run -q -p crawclaw-repo-tools -- desktop-renderer tauri-dev",
     "desktop:tauri:release-check": "cargo run --quiet --release -p crawclaw-repo-tools -- desktop-check --root .",

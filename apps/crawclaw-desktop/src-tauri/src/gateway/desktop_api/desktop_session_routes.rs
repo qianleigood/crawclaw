@@ -135,6 +135,7 @@ pub(super) async fn send_session(
     }
     let _ = state.events.send(DesktopEvent::MessageFinal {
         thread_id: session.key.clone(),
+        role: "user".to_string(),
         text: message.to_string(),
     });
     let _ = state.events.send(DesktopEvent::StateChanged {

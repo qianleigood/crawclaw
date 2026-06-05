@@ -35,6 +35,27 @@ pub(super) async fn prepare_desktop_hindsight_lifecycle(
         }));
     }
 
+    if let Some(policy_base_url) = existing_external_hindsight_base_url(runtime_root) {
+        let mode = if is_loopback_url(&policy_base_url) {
+            "local"
+        } else {
+            "remote"
+        };
+        let lifecycle = json!({
+            "hindsightMode": mode,
+            "hindsightManaged": false,
+            "hindsightLifecycleStatus": "external",
+            "hindsightLifecycleReason": Value::Null,
+        });
+        update_desktop_memory_policy(runtime_root, &lifecycle)?;
+        return Ok(json!({
+            "status": "external",
+            "mode": mode,
+            "managed": false,
+            "baseUrl": policy_base_url,
+        }));
+    }
+
     let Some(binary_path) = find_hindsight_binary(runtime_root) else {
         let lifecycle = json!({
             "hindsightEnabled": Value::Null,
@@ -52,6 +73,24 @@ pub(super) async fn prepare_desktop_hindsight_lifecycle(
             "reason": "hindsight_embed_missing",
         }));
     };
+
+    if !hindsight_embed_binary_supports_sidecar_server(&binary_path).await {
+        let lifecycle = json!({
+            "hindsightEnabled": Value::Null,
+            "hindsightBaseUrl": Value::Null,
+            "hindsightMode": "local",
+            "hindsightManaged": true,
+            "hindsightLifecycleStatus": "unavailable",
+            "hindsightLifecycleReason": "hindsight_embed_cli_only",
+        });
+        update_desktop_memory_policy(runtime_root, &lifecycle)?;
+        return Ok(json!({
+            "status": "unavailable",
+            "mode": "local",
+            "managed": true,
+            "reason": "hindsight_embed_cli_only",
+        }));
+    }
 
     let port = pick_free_port()?;
     let base_url = format!("http://127.0.0.1:{port}");
@@ -151,6 +190,23 @@ async fn pipe_hindsight_logs(stream_name: &'static str, stream: impl tokio::io::
     }
 }
 
+async fn hindsight_embed_binary_supports_sidecar_server(binary_path: &Path) -> bool {
+    let Ok(output) = Command::new(binary_path).arg("--help").output().await else {
+        return false;
+    };
+    let mut help = String::from_utf8_lossy(&output.stdout).to_string();
+    help.push_str(&String::from_utf8_lossy(&output.stderr));
+    hindsight_embed_supports_sidecar_server(&help)
+}
+
+fn hindsight_embed_supports_sidecar_server(help: &str) -> bool {
+    let help = help.to_ascii_lowercase();
+    help.contains("--port")
+        && help.contains("--host")
+        && help.contains("--data-dir")
+        && !help.contains("[options] <command>")
+}
+
 fn find_hindsight_binary(runtime_root: &Path) -> Option<PathBuf> {
     if let Some(path) = env::var_os("CRAWCLAW_HINDSIGHT_EMBED_BIN")
         .filter(|value| !value.is_empty())
@@ -201,6 +257,25 @@ fn path_candidates(binary_name: &str) -> Vec<PathBuf> {
         .unwrap_or_default()
 }
 
+fn existing_external_hindsight_base_url(runtime_root: &Path) -> Option<String> {
+    let path = runtime_root
+        .join("config")
+        .join("desktop-memory-policy.json");
+    let policy: Value = serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()?;
+    if policy.get("hindsightEnabled").and_then(Value::as_bool) != Some(true) {
+        return None;
+    }
+    if policy.get("hindsightManaged").and_then(Value::as_bool) != Some(false) {
+        return None;
+    }
+    policy
+        .get("hindsightBaseUrl")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+}
+
 fn pick_free_port() -> Result<u16, String> {
     let listener = TcpListener::bind(("127.0.0.1", 0))
         .map_err(|error| format!("Failed to reserve Hindsight port: {error}"))?;
@@ -218,7 +293,7 @@ fn is_loopback_url(value: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::hindsight_binary_names;
+    use super::{hindsight_binary_names, hindsight_embed_supports_sidecar_server};
 
     #[test]
     fn hindsight_binary_names_include_windows_exe_candidate() {
@@ -227,5 +302,33 @@ mod tests {
             vec!["hindsight-embed.exe", "hindsight-embed"]
         );
         assert_eq!(hindsight_binary_names("macos"), vec!["hindsight-embed"]);
+    }
+
+    #[test]
+    fn hindsight_embed_cli_help_is_not_sidecar_server() {
+        let cli_help = r#"Hindsight CLI - Semantic memory system
+
+Usage: hindsight-embed [OPTIONS] <COMMAND>
+
+Commands:
+  bank      Manage banks
+  memory    Manage memories
+  health    Check API health status
+"#;
+
+        assert!(!hindsight_embed_supports_sidecar_server(cli_help));
+    }
+
+    #[test]
+    fn hindsight_embed_server_help_supports_sidecar_server() {
+        let server_help = r#"Usage: hindsight-embed [OPTIONS]
+
+Options:
+  --host <HOST>
+  --port <PORT>
+  --data-dir <DATA_DIR>
+"#;
+
+        assert!(hindsight_embed_supports_sidecar_server(server_help));
     }
 }

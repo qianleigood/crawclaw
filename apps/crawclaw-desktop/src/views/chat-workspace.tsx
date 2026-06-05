@@ -35,6 +35,7 @@ import type {
   PermissionRequest,
   SkillSuggestion,
 } from '../desktop-api'
+import { markDesktopPerformance } from '../app/performance'
 import { Composer, PermissionModeButton } from '../ui/composer'
 import type { ConfirmationRequestInput } from '../ui/confirmation-dialog'
 import { IconButton } from '../ui/icon-button'
@@ -67,6 +68,7 @@ type ChatWorkspaceProps = {
   queuedInputText?: string
   renderDesktopIcon: (icon: DesktopIconKey) => ReactNode
   selectedChatAgentId: string
+  sessionPanel?: ReactNode
 }
 
 export function ChatWorkspace({
@@ -93,15 +95,19 @@ export function ChatWorkspace({
   queuedInputText,
   renderDesktopIcon,
   selectedChatAgentId,
+  sessionPanel,
 }: ChatWorkspaceProps) {
   const [composerText, setComposerText] = useState('')
   const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false)
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false)
   const [isListening, setIsListening] = useState(false)
+  const [isSendAnimating, setIsSendAnimating] = useState(false)
   const [steerText, setSteerText] = useState('')
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const voiceChunksRef = useRef<Blob[]>([])
   const voiceStartedAtRef = useRef<number>(0)
+  const sendAnimationFrameRef = useRef<number | null>(null)
+  const sendAnimationTimeoutRef = useRef<number | null>(null)
   const [selectorOpen, setSelectorOpen] = useState<'agent' | 'thinking' | 'model' | 'permission' | null>(null)
   const slashCommands = conversation.slashCommands
   const selectedAgent = agents.find((agent) => agent.id === selectedChatAgentId) ?? null
@@ -157,6 +163,15 @@ export function ChatWorkspace({
 
     document.addEventListener('keydown', closeOnEscape)
     return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [])
+
+  useEffect(() => () => {
+    if (sendAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(sendAnimationFrameRef.current)
+    }
+    if (sendAnimationTimeoutRef.current !== null) {
+      window.clearTimeout(sendAnimationTimeoutRef.current)
+    }
   }, [])
 
   useEffect(() => {
@@ -218,6 +233,22 @@ export function ChatWorkspace({
       return
     }
 
+    markDesktopPerformance('send.click', { textLength: message.length })
+    setIsSendAnimating(false)
+    if (sendAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(sendAnimationFrameRef.current)
+    }
+    if (sendAnimationTimeoutRef.current !== null) {
+      window.clearTimeout(sendAnimationTimeoutRef.current)
+    }
+    sendAnimationFrameRef.current = window.requestAnimationFrame(() => {
+      sendAnimationFrameRef.current = null
+      setIsSendAnimating(true)
+      sendAnimationTimeoutRef.current = window.setTimeout(() => {
+        setIsSendAnimating(false)
+        sendAnimationTimeoutRef.current = null
+      }, 560)
+    })
     onSendMessage(message)
     setComposerText('')
     setIsCommandMenuOpen(false)
@@ -436,14 +467,19 @@ export function ChatWorkspace({
 
   return (
     <>
-      <ChatThread
-        conversation={conversation}
-        onDecidePermission={onDecidePermission}
-        onOpenAsset={onOpenAsset}
-        onRevealAsset={onRevealAsset}
-        permissionRequest={permissionRequest}
-        replyMode={replyMode}
-      />
+      <div className={sessionPanel ? 'chat-workspace-layout has-session-panel' : 'chat-workspace-layout'}>
+        <div className="chat-workspace-main">
+          <ChatThread
+            conversation={conversation}
+            onDecidePermission={onDecidePermission}
+            onOpenAsset={onOpenAsset}
+            onRevealAsset={onRevealAsset}
+            permissionRequest={permissionRequest}
+            replyMode={replyMode}
+          />
+        </div>
+        {sessionPanel}
+      </div>
 
       <Composer
         approvalNotice={hasRunningGeneration || hasPermissionRequest
@@ -770,9 +806,21 @@ export function ChatWorkspace({
               onClick={toggleVoiceInput}
             />
             {hasRunningGeneration ? (
-              <IconButton className="composer-send is-stopping" icon={CircleStop} label="停止" onClick={onAbortMessage} />
-            ) : (
-              <IconButton className="composer-send" icon={ArrowUp} label="发送" onClick={submitDraft} />
+            <IconButton
+              className={isSendAnimating ? 'composer-send is-stopping is-sending' : 'composer-send is-stopping'}
+              data-testid="composer-stop"
+              icon={CircleStop}
+              label="停止"
+              onClick={onAbortMessage}
+            />
+          ) : (
+            <IconButton
+              className={isSendAnimating ? 'composer-send is-sending' : 'composer-send'}
+              data-testid="composer-send"
+              icon={ArrowUp}
+              label="发送"
+              onClick={submitDraft}
+              />
             )}
           </>
         }

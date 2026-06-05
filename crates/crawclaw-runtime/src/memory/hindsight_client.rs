@@ -70,6 +70,7 @@ impl HindsightClient {
     pub fn new(config: &HindsightConfig) -> Result<Self, String> {
         let client = Client::builder()
             .timeout(Duration::from_millis(config.timeout_ms))
+            .no_proxy()
             .build()
             .map_err(|e| format!("Failed to create HTTP client: {e}"))?;
 
@@ -270,9 +271,8 @@ impl HindsightClient {
         mission: &str,
         disposition: (i32, i32, i32),
     ) -> Result<(), String> {
-        let url = format!("{}/v1/default/banks", self.base_url);
+        let url = format!("{}/v1/default/banks/{bank_id}", self.base_url);
         let payload = json!({
-            "bank_id": bank_id,
             "name": name,
             "mission": mission,
             "disposition": {
@@ -283,7 +283,7 @@ impl HindsightClient {
         });
 
         let response = self
-            .auth_request(reqwest::Method::POST, &url)
+            .auth_request(reqwest::Method::PUT, &url)
             .json(&payload)
             .send()
             .map_err(|e| format!("Create bank request failed: {e}"))?;
@@ -403,7 +403,7 @@ impl HindsightClient {
         let url = format!("{}/health", self.base_url);
         self.client
             .get(&url)
-            .timeout(Duration::from_secs(5))
+            .timeout(Duration::from_secs(1))
             .send()
             .map(|r| r.status().is_success())
             .unwrap_or(false)
@@ -473,6 +473,34 @@ fn extract_recall_items(payload: &Value) -> Vec<RecallItem> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::memory::config::HindsightConfig;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::thread;
+    use std::time::Duration;
+
+    #[test]
+    fn create_bank_uses_hindsight_put_bank_endpoint() {
+        let (base_url, request_rx) = start_single_request_server(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}",
+        );
+        let mut config = HindsightConfig::default();
+        config.base_url = base_url;
+        let client = HindsightClient::new(&config).expect("hindsight client");
+
+        client
+            .create_bank("crawclaw:main:durable", "Durable", "Mission", (2, 4, 3))
+            .expect("create bank");
+
+        let request = request_rx.recv().expect("request");
+        assert!(request.starts_with("PUT /v1/default/banks/crawclaw:main:durable "));
+        let body = http_request_body_json(&request);
+        assert_eq!(body["name"], "Durable");
+        assert_eq!(body["mission"], "Mission");
+        assert_eq!(body["disposition"]["skepticism"], 2);
+        assert_eq!(body["disposition"]["literalism"], 4);
+        assert_eq!(body["disposition"]["empathy"], 3);
+    }
 
     #[test]
     fn extract_recall_items_from_results_format() {
@@ -509,5 +537,77 @@ mod tests {
         let items = extract_recall_items(&payload);
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].text, "Valid");
+    }
+
+    fn start_single_request_server(
+        response: &'static str,
+    ) -> (String, std::sync::mpsc::Receiver<String>) {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("hindsight listener");
+        let addr = listener.local_addr().expect("hindsight addr");
+        let (request_tx, request_rx) = std::sync::mpsc::channel();
+        thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("hindsight request");
+            stream
+                .set_read_timeout(Some(Duration::from_millis(500)))
+                .expect("set read timeout");
+            let request = read_http_request(&mut stream);
+            request_tx
+                .send(String::from_utf8_lossy(&request).to_string())
+                .expect("send hindsight request");
+            stream
+                .write_all(response.as_bytes())
+                .expect("write hindsight response");
+        });
+        (format!("http://{addr}"), request_rx)
+    }
+
+    fn http_request_body_json(request: &str) -> Value {
+        let body = request.split("\r\n\r\n").nth(1).expect("HTTP request body");
+        serde_json::from_str(body).expect("JSON request body")
+    }
+
+    fn read_http_request(stream: &mut std::net::TcpStream) -> Vec<u8> {
+        let mut request = Vec::new();
+        let mut buffer = [0_u8; 4096];
+        loop {
+            match stream.read(&mut buffer) {
+                Ok(0) => break,
+                Ok(n) => {
+                    request.extend_from_slice(&buffer[..n]);
+                    if request_body_complete(&request) {
+                        break;
+                    }
+                }
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                    ) =>
+                {
+                    break;
+                }
+                Err(error) => panic!("read hindsight request: {error}"),
+            }
+        }
+        request
+    }
+
+    fn request_body_complete(request: &[u8]) -> bool {
+        let text = String::from_utf8_lossy(request);
+        let Some((headers, body)) = text.split_once("\r\n\r\n") else {
+            return false;
+        };
+        let content_length = headers.lines().find_map(|line| {
+            let (name, value) = line.split_once(':')?;
+            if name.trim().eq_ignore_ascii_case("content-length") {
+                value.trim().parse::<usize>().ok()
+            } else {
+                None
+            }
+        });
+        match content_length {
+            Some(length) => body.as_bytes().len() >= length,
+            None => true,
+        }
     }
 }

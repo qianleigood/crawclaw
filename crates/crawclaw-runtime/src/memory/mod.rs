@@ -117,11 +117,9 @@ impl MemoryRuntime {
                 for layer in bank_resolver::LAYERS {
                     let ctx = self.bank_context("main");
                     let bank_id = self.bank_resolver.resolve(&ctx, layer);
-                    let _ = client.ensure_bank(&bank_id, layer, language);
+                    client.ensure_bank(&bank_id, layer, language)?;
                     if *layer == "mental-models" && self.config.hindsight.default_mental_models {
-                        let _ = reflect_pipeline::ensure_default_mental_models(
-                            client, &bank_id, language,
-                        );
+                        reflect_pipeline::ensure_default_mental_models(client, &bank_id, language)?;
                     }
                 }
             }
@@ -1281,16 +1279,28 @@ fn apply_desktop_memory_policy(config: &mut MemoryRuntimeConfig, policy: Option<
     let Some(policy) = policy else {
         return;
     };
-    if let Some(enabled) = policy.get("hindsightEnabled").and_then(Value::as_bool) {
-        config.hindsight.enabled = enabled;
-    }
-    if let Some(base_url) = policy
-        .get("hindsightBaseUrl")
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-    {
-        config.hindsight.base_url = base_url.to_string();
+    let managed_unavailable = policy.get("hindsightManaged").and_then(Value::as_bool) == Some(true)
+        && matches!(
+            policy
+                .get("hindsightLifecycleStatus")
+                .and_then(Value::as_str),
+            Some("failed" | "unavailable")
+        );
+    if managed_unavailable {
+        config.hindsight.enabled = false;
+        config.hindsight.base_url.clear();
+    } else {
+        if let Some(enabled) = policy.get("hindsightEnabled").and_then(Value::as_bool) {
+            config.hindsight.enabled = enabled;
+        }
+        if let Some(base_url) = policy
+            .get("hindsightBaseUrl")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            config.hindsight.base_url = base_url.to_string();
+        }
     }
     if policy.get("memoryDreamEnabled").and_then(Value::as_bool) == Some(false) {
         config.dreaming.enabled = false;
@@ -1737,6 +1747,26 @@ mod tests {
     }
 
     #[test]
+    fn bootstrap_surfaces_hindsight_bank_create_failure() {
+        let dir = tempdir().unwrap();
+        let (base_url, _request_rx) = start_hindsight_response_server(
+            "HTTP/1.1 405 Method Not Allowed\r\nContent-Type: application/json\r\nContent-Length: 31\r\nConnection: close\r\n\r\n{\"detail\":\"Method Not Allowed\"}",
+        );
+        let mut config = MemoryRuntimeConfig::default();
+        config.runtime_store.db_path = dir.path().join("memory.db").to_string_lossy().to_string();
+        config.hindsight.enabled = true;
+        config.hindsight.base_url = base_url;
+        config.hindsight.default_mental_models = false;
+        let runtime = MemoryRuntime::with_config(dir.path(), config);
+
+        let error = runtime
+            .bootstrap("test-session", Some("key"))
+            .expect_err("bank create failure should surface");
+
+        assert!(error.contains("Create bank failed with HTTP 405"));
+    }
+
+    #[test]
     fn after_turn_ingests_and_skips_retain_without_hindsight() {
         let dir = tempdir().unwrap();
         let runtime = MemoryRuntime::new(dir.path());
@@ -2137,6 +2167,36 @@ mod tests {
     }
 
     #[test]
+    fn desktop_policy_unavailable_managed_hindsight_disables_runtime_config() {
+        let dir = tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("config")).unwrap();
+        std::fs::write(
+            dir.path().join("config").join("desktop-memory-policy.json"),
+            serde_json::to_vec_pretty(&json!({
+                "hindsightEnabled": true,
+                "hindsightBaseUrl": "http://127.0.0.1:1",
+                "hindsightMode": "local",
+                "hindsightManaged": true,
+                "hindsightLifecycleStatus": "unavailable",
+                "hindsightLifecycleReason": "hindsight_embed_cli_only"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let mut config = MemoryRuntimeConfig::default();
+        config.runtime_store.db_path = dir.path().join("memory.db").to_string_lossy().to_string();
+        let runtime = MemoryRuntime::with_config(dir.path(), config);
+
+        let status = runtime.status().unwrap();
+
+        assert_eq!(status["config"]["hindsight"]["enabled"], false);
+        assert_eq!(
+            status["hindsight"]["lifecycle"]["reason"],
+            "hindsight_embed_cli_only"
+        );
+    }
+
+    #[test]
     fn process_outbox_updates_worker_observability() {
         let dir = tempdir().unwrap();
         let (base_url, _request_rx) = start_hindsight_retain_server();
@@ -2163,6 +2223,14 @@ mod tests {
     }
 
     fn start_hindsight_retain_server() -> (String, std::sync::mpsc::Receiver<String>) {
+        start_hindsight_response_server(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 15\r\nConnection: close\r\n\r\n{\"status\":\"ok\"}",
+        )
+    }
+
+    fn start_hindsight_response_server(
+        response: &'static str,
+    ) -> (String, std::sync::mpsc::Receiver<String>) {
         let listener = TcpListener::bind("127.0.0.1:0").expect("hindsight listener");
         let addr = listener.local_addr().expect("hindsight addr");
         let (request_tx, request_rx) = std::sync::mpsc::channel();
@@ -2175,12 +2243,6 @@ mod tests {
             request_tx
                 .send(String::from_utf8_lossy(&request).to_string())
                 .expect("send hindsight request");
-            let body = r#"{"status":"ok"}"#;
-            let response = format!(
-                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                body.len(),
-                body
-            );
             stream
                 .write_all(response.as_bytes())
                 .expect("write hindsight response");

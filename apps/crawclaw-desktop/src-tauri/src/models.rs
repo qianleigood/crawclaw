@@ -77,6 +77,7 @@ pub enum DesktopEvent {
     },
     MessageFinal {
         thread_id: String,
+        role: String,
         text: String,
     },
     PermissionRequested {
@@ -101,6 +102,7 @@ pub struct DesktopState {
     pub sidebar: SidebarState,
     pub conversation: ConversationState,
     pub agent_workspace: AgentWorkspaceState,
+    pub automation_workspace: AutomationWorkspaceState,
     pub memory_workspace: MemoryWorkspaceState,
     pub plugins_workspace: PluginsWorkspaceState,
     pub preferences: DesktopPreferences,
@@ -736,6 +738,46 @@ pub struct InstalledPlugin {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub manifest_path: Option<String>,
     pub open: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AutomationWorkspaceState {
+    pub runtimes: Vec<AutomationRuntimeSummary>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AutomationRuntimeSummary {
+    pub id: String,
+    pub name: String,
+    pub status: String,
+    pub detail: String,
+    pub runtime: String,
+    pub provider: String,
+    pub service: String,
+    pub mode: String,
+    pub base_url: String,
+    pub default_port: u16,
+    pub install: AutomationRuntimeInstallSummary,
+    pub license: String,
+    pub compute_profiles: Vec<AutomationRuntimeComputeProfile>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AutomationRuntimeInstallSummary {
+    pub channel: String,
+    pub script_policy: String,
+    pub manifest_path: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AutomationRuntimeComputeProfile {
+    pub id: String,
+    pub backend: String,
+    pub experimental: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

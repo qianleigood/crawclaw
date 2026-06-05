@@ -13,12 +13,15 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useRef,
   useState,
 } from 'react'
 import {
+  addAgentSkill,
   addAttachmentMessage,
   addMediaMessage,
   addPluginSkill,
@@ -55,32 +58,32 @@ import {
   generateDesktopDiagnostics,
   installPlugin,
   invokePluginTool,
+  listSubagents,
+  loadRuntimeStatus,
   openDesktopAsset,
   resetDesktopState,
   revealDesktopAsset,
+  toggleAgentSkill,
+  toggleAgentTool,
   unpinThread,
   uninstallPlugin,
   updateAgent,
   updateMemoryItem,
   updatePreferences,
+  type AddAgentSkillInput,
   type AgentProfile,
+  type DesktopSessionSummary,
   type DesktopPreferencesPatch,
   type DesktopPreferences,
   type DesktopIconKey,
   type DesktopState,
   type ModelProfileSetupInput,
+  type RuntimeStatus,
 } from './desktop-api'
 import { useDesktopStateController } from './app/use-desktop-state'
-import { AgentWorkspace } from './views/agent-workspace'
-import { AutomationWorkspace } from './views/automation-workspace'
 import { ChatWorkspace } from './views/chat-workspace'
-import { MemoryWorkspace } from './views/memory-workspace'
-import { PluginsWorkspace } from './views/plugins-workspace'
-import {
-  SettingsSidebar,
-  SettingsWorkspace,
-  type SettingsSectionId,
-} from './views/settings-workspace'
+import { SessionWorkspace } from './views/session-workspace'
+import type { SettingsSectionId } from './views/settings-workspace'
 import { SearchOverlay } from './ui/search-overlay'
 import { Sidebar } from './ui/sidebar'
 import type { SidebarNavItem, SidebarThread } from './ui/sidebar'
@@ -89,6 +92,37 @@ import {
   type ConfirmationRequestInput,
 } from './ui/confirmation-dialog'
 import { getCurrentDesktopApiContext } from './api/desktop-transport'
+
+const AgentWorkspace = lazy(() =>
+  import('./views/agent-workspace').then((module) => ({
+    default: module.AgentWorkspace,
+  }))
+)
+const AutomationWorkspace = lazy(() =>
+  import('./views/automation-workspace').then((module) => ({
+    default: module.AutomationWorkspace,
+  }))
+)
+const MemoryWorkspace = lazy(() =>
+  import('./views/memory-workspace').then((module) => ({
+    default: module.MemoryWorkspace,
+  }))
+)
+const PluginsWorkspace = lazy(() =>
+  import('./views/plugins-workspace').then((module) => ({
+    default: module.PluginsWorkspace,
+  }))
+)
+const SettingsSidebar = lazy(() =>
+  import('./views/settings-workspace').then((module) => ({
+    default: module.SettingsSidebar,
+  }))
+)
+const SettingsWorkspace = lazy(() =>
+  import('./views/settings-workspace').then((module) => ({
+    default: module.SettingsWorkspace,
+  }))
+)
 
 const iconByKey: Record<DesktopIconKey, LucideIcon> = {
   blocks: Blocks,
@@ -107,7 +141,7 @@ const iconByKey: Record<DesktopIconKey, LucideIcon> = {
 const navPanels: Record<string, { detail: string; items: string[]; title: string }> = {
   agent: {
     title: '智能体工作区',
-    detail: '选择或配置本机智能体，后续会接入运行状态与技能能力。',
+    detail: '选择或配置本机智能体、技能和工具能力。',
     items: ['CrawClaw', 'UI Polish', 'Workflow Runner'],
   },
   plugins: {
@@ -117,7 +151,7 @@ const navPanels: Record<string, { detail: string; items: string[]; title: string
   },
   automation: {
     title: '自动化工作区',
-    detail: '管理 n8n、ComfyUI 和定时任务的静态入口。',
+    detail: '管理 n8n、ComfyUI 和定时任务入口。',
     items: ['n8n 工作流', 'ComfyUI 工作流', '每日环境巡检'],
   },
   memory: {
@@ -269,6 +303,54 @@ type PendingConfirmation = ConfirmationRequestInput & {
   resolve: (confirmed: boolean) => void
 }
 
+function SettingsSidebarFallback() {
+  return <aside aria-label="设置导航" className="desktop-sidebar settings-sidebar" />
+}
+
+function WorkspaceFallback() {
+  return <div aria-label="工作区加载中" className="nav-workspace-panel" />
+}
+
+type SessionPanelState = {
+  subagents: DesktopSessionSummary[]
+}
+
+const initialSessionPanelState: SessionPanelState = {
+  subagents: [],
+}
+
+function isRunningSubagent(session: DesktopSessionSummary) {
+  if (session.yielded) {
+    return false
+  }
+  const status = session.status.trim().toLowerCase()
+  return status === 'running'
+    || status === 'working'
+    || status === 'active'
+    || status === 'busy'
+    || status === 'pending'
+}
+
+function sameSessionSummaries(
+  left: DesktopSessionSummary[],
+  right: DesktopSessionSummary[],
+) {
+  if (left.length !== right.length) {
+    return false
+  }
+  return left.every((session, index) => {
+    const other = right[index]
+    return Boolean(other)
+      && session.key === other.key
+      && session.title === other.title
+      && session.messageCount === other.messageCount
+      && session.pinned === other.pinned
+      && session.spawnedBy === other.spawnedBy
+      && session.status === other.status
+      && session.yielded === other.yielded
+  })
+}
+
 function clearActiveConversation(state: DesktopState): DesktopState {
   return {
     ...state,
@@ -284,6 +366,27 @@ function clearActiveConversation(state: DesktopState): DesktopState {
       discussionThreads: state.sidebar.discussionThreads.map((thread) => ({ ...thread, active: false })),
       pinnedThreads: state.sidebar.pinnedThreads.map((thread) => ({ ...thread, active: false })),
       threads: state.sidebar.threads.map((thread) => ({ ...thread, active: false })),
+    },
+  }
+}
+
+function setRuntimeStatusLocally(state: DesktopState, runtime: RuntimeStatus): DesktopState {
+  return {
+    ...state,
+    conversation: {
+      ...state.conversation,
+      resultItems: state.conversation.resultItems.length > 0
+        ? state.conversation.resultItems
+        : [runtime.detail],
+      runtimeChecks: state.conversation.runtimeChecks.map((item) =>
+        item.label === 'Runtime'
+          ? {
+              ...item,
+              tone: runtime.status === 'ready' ? 'ok' : runtime.status === 'checking' ? 'neutral' : 'danger',
+              value: runtime.status,
+            }
+          : item,
+      ),
     },
   }
 }
@@ -355,6 +458,7 @@ function languageCode(language: string): 'en' | 'zh-CN' {
 export default function App() {
   const {
     applyDesktopState,
+    appendOptimisticConversationTurn,
     desktopState,
     searchResults,
     setDesktopState,
@@ -364,6 +468,7 @@ export default function App() {
   const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsSectionId>('general')
   const [queuedChatInputText, setQueuedChatInputText] = useState('')
   const [selectedChatAgentId, setSelectedChatAgentId] = useState('')
+  const [sessionPanel, setSessionPanel] = useState<SessionPanelState>(initialSessionPanelState)
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null)
   const pendingConfirmationResolverRef = useRef<((confirmed: boolean) => void) | null>(null)
   const activeNavId = desktopState.activeNavId
@@ -389,6 +494,13 @@ export default function App() {
   const pinnedThreads: SidebarThread[] = desktopState.sidebar.pinnedThreads
   const conversations: SidebarThread[] = desktopState.sidebar.threads
   const discussionThreads: SidebarThread[] = desktopState.sidebar.discussionThreads
+  const activeRegularThread = [...pinnedThreads, ...conversations].find((thread) => thread.active) ?? null
+  const activeDiscussionThread = discussionThreads.find((thread) => thread.active) ?? null
+  const activeSessionParentKey = activeDiscussionThread?.id ?? activeRegularThread?.id ?? undefined
+  const hasRunningGeneration = desktopState.conversation.messages.some((message) => (
+    message.kind === 'assistant' && message.status === 'running'
+  ))
+  const runningSubagents = sessionPanel.subagents.filter(isRunningSubagent)
 
   useEffect(() => {
     if (
@@ -414,6 +526,70 @@ export default function App() {
     appLanguageCode,
     desktopState.preferences.uiDefaults.appearance,
     desktopState.preferences.uiDefaults.language,
+  ])
+
+  const refreshSessionPanel = useCallback(async () => {
+    if (!getCurrentDesktopApiContext()) {
+      return
+    }
+    if (!activeSessionParentKey) {
+      setSessionPanel((state) => state.subagents.length === 0
+        ? state
+        : {
+          subagents: [],
+        })
+      return
+    }
+
+    try {
+      const subagentsResponse = await listSubagents(activeSessionParentKey)
+
+      setSessionPanel((state) => sameSessionSummaries(state.subagents, subagentsResponse.subagents)
+        ? state
+        : {
+          subagents: subagentsResponse.subagents,
+        })
+    } catch {
+      setSessionPanel((state) => state.subagents.length === 0
+        ? state
+        : {
+          subagents: [],
+        })
+    }
+  }, [activeSessionParentKey])
+
+  useEffect(() => {
+    if (activeNavId !== 'new-chat') {
+      return
+    }
+
+    void refreshSessionPanel()
+  }, [activeNavId, discussionThreads.length, refreshSessionPanel])
+
+  useEffect(() => {
+    let intervalId: number | undefined
+    if (
+        activeNavId === 'new-chat'
+        && activeSessionParentKey
+        && (hasRunningGeneration || runningSubagents.length > 0)
+    ) {
+      void refreshSessionPanel()
+      intervalId = window.setInterval(() => {
+        void refreshSessionPanel()
+      }, 2500)
+    }
+
+    return () => {
+      if (intervalId !== undefined) {
+        window.clearInterval(intervalId)
+      }
+    }
+  }, [
+    activeNavId,
+    activeSessionParentKey,
+    hasRunningGeneration,
+    refreshSessionPanel,
+    runningSubagents.length,
   ])
 
   const applyPreferenceUpdate = (patch: DesktopPreferencesPatch) => {
@@ -492,6 +668,18 @@ export default function App() {
     void applyDesktopState(() => setInstalledPluginEnabled(pluginId, enabled))
   }
 
+  const toggleAgentToolFromUi = (agentId: string, toolId: string) => {
+    void applyDesktopState(() => toggleAgentTool(agentId, toolId))
+  }
+
+  const toggleAgentSkillFromUi = (agentId: string, skillId: string) => {
+    void applyDesktopState(() => toggleAgentSkill(agentId, skillId))
+  }
+
+  const addAgentSkillFromUi = (agentId: string, skill: AddAgentSkillInput) => {
+    void applyDesktopState(() => addAgentSkill(agentId, skill))
+  }
+
   const selectSettingsSection = (id: SettingsSectionId) => {
     setActiveSettingsSection(id)
   }
@@ -509,6 +697,23 @@ export default function App() {
         activeNavId: item.id,
       })
     void applyDesktopState(() => selectNav(item.id))
+  }
+
+  const refreshRuntimeStatus = () => {
+    void loadRuntimeStatus()
+      .then((runtime) => {
+        setDesktopState((state) => setRuntimeStatusLocally(state, runtime))
+      })
+      .catch((error: unknown) => {
+        const detail = error instanceof Error ? error.message : '刷新 runtime 状态失败。'
+        setDesktopState((state) => ({
+          ...state,
+          conversation: {
+            ...state.conversation,
+            resultItems: [detail],
+          },
+        }))
+      })
   }
 
   const openSettings = () => {
@@ -558,12 +763,14 @@ export default function App() {
       data-language={appLanguageCode}
     >
       {activeNavId === 'settings' ? (
-        <SettingsSidebar
-          activeSettingsSection={activeSettingsSection}
-          language={appLanguageCode}
-          onReturnToApp={returnToApp}
-          onSelectSection={selectSettingsSection}
-        />
+        <Suspense fallback={<SettingsSidebarFallback />}>
+          <SettingsSidebar
+            activeSettingsSection={activeSettingsSection}
+            language={appLanguageCode}
+            onReturnToApp={returnToApp}
+            onSelectSection={selectSettingsSection}
+          />
+        </Suspense>
       ) : (
         <Sidebar
           activeNavLabel={activeNavLabel}
@@ -623,25 +830,37 @@ export default function App() {
             onRevealAsset={(assetId) => void applyDesktopState(() => revealDesktopAsset(assetId))}
             onRequestConfirmation={requestConfirmation}
             onSelectedChatAgentChange={setSelectedChatAgentId}
-            onSendMessage={(message) => void applyDesktopState(() => sendMessage(message, {
-              agentId: selectedChatAgentId || undefined,
-            }))}
+            onSendMessage={(message) => {
+              appendOptimisticConversationTurn(message)
+              void applyDesktopState(() => sendMessage(message, {
+                agentId: selectedChatAgentId || undefined,
+              }))
+            }}
             onSteerMessage={(text, mode) => void applyDesktopState(() => steerMessage(text, mode))}
             permissionRequest={desktopState.permissionRequest}
             preferences={desktopState.preferences}
             queuedInputText={queuedChatInputText}
             renderDesktopIcon={(icon) => <DesktopIcon icon={icon} />}
             selectedChatAgentId={selectedChatAgentId}
+            sessionPanel={runningSubagents.length > 0 ? (
+              <SessionWorkspace
+                subagents={runningSubagents}
+              />
+            ) : undefined}
           />
         ) : (
           <section className="desktop-content" aria-label={`${activeNavLabel} 工作区`}>
-            {activeNavId === 'agent' ? (
+            <Suspense fallback={<WorkspaceFallback />}>
+              {activeNavId === 'agent' ? (
               <AgentWorkspace
                 availableSkills={desktopState.pluginsWorkspace.skills}
                 availableTools={desktopState.pluginsWorkspace.tools}
                 modelOptions={modelOptions}
+                onAddAgentSkill={addAgentSkillFromUi}
                 onCreateAgent={(input) => void applyDesktopState(() => createAgent(input))}
                 onSelectAgent={(agentId) => void applyDesktopState(() => selectAgent(agentId))}
+                onToggleAgentSkill={toggleAgentSkillFromUi}
+                onToggleAgentTool={toggleAgentToolFromUi}
                 onUpdateAgent={(agentId, input) => void applyDesktopState(() => updateAgent(agentId, input))}
                 preferences={desktopState.preferences}
                 workspace={desktopState.agentWorkspace}
@@ -679,6 +898,7 @@ export default function App() {
               />
             ) : activeNavId === 'automation' ? (
               <AutomationWorkspace
+                automationWorkspace={desktopState.automationWorkspace}
                 confirmHighRisk={desktopState.preferences.confirmationDefaults.confirmHighRisk}
                 onAddWorkflowMessage={(input) => void applyDesktopState(() => addWorkflowMessage(input))}
                 onRequestConfirmation={requestConfirmation}
@@ -721,6 +941,7 @@ export default function App() {
                 onGenerateDiagnostics={() => void applyDesktopState(() => generateDesktopDiagnostics())}
                 onModelProfileTestAndSave={saveModelProfile}
                 onPreferenceUpdate={applyPreferenceUpdate}
+                onRefreshRuntimeStatus={refreshRuntimeStatus}
                 onResetState={() => {
                   void (async () => {
                     const confirmed = await requestConfirmation({
@@ -750,7 +971,8 @@ export default function App() {
                   </div>
                 </div>
               </div>
-            ) : null}
+              ) : null}
+            </Suspense>
           </section>
         )}
       </main>

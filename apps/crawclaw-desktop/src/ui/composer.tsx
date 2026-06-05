@@ -40,6 +40,7 @@ export function Composer({
         {commandMenu}
         <textarea
           aria-label={placeholder}
+          data-testid="composer-input"
           onChange={(event) => onInputChange?.(event.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}

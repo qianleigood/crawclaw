@@ -110,6 +110,27 @@ fn conversation_context_summary(summary: AgentRuntimeContextSummary) -> Conversa
     }
 }
 
+async fn preview_message_context_blocking(
+    state: &GatewayState,
+    thread_id: &str,
+    text: &str,
+    options: &AgentRuntimeSendOptions,
+) -> Result<AgentRuntimeContextSummary, AgentRuntimeError> {
+    let agent_runtime = state.agent_runtime.clone();
+    let thread_id = thread_id.to_string();
+    let text = text.to_string();
+    let options = options.clone();
+    tokio::task::spawn_blocking(move || {
+        agent_runtime.preview_message_context(&thread_id, &text, &options)
+    })
+    .await
+    .map_err(|error| {
+        AgentRuntimeError::ProviderFailed(format!(
+            "Failed to join model context preview task: {error}"
+        ))
+    })?
+}
+
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct AddAttachmentMessageInput {
@@ -525,7 +546,7 @@ pub(super) async fn apply_native_operation(
                 updated_at: "刚刚".to_string(),
                 archived: false,
             };
-            apply_memory_item_retain_sync(state, &mut item);
+            apply_memory_item_retain_sync(state, &mut item).await;
             let item_agent_id = item.agent_id.clone();
             persist_memory_item(state, &item)?;
             {
@@ -552,7 +573,7 @@ pub(super) async fn apply_native_operation(
             ensure_memory_cleanup_allowed(state, &item, confirmed).await?;
             item.archived = true;
             item.updated_at = "刚刚".to_string();
-            apply_memory_item_forget_sync(state, &mut item);
+            apply_memory_item_forget_sync(state, &mut item).await;
             persist_memory_item(state, &item)?;
             {
                 let mut desktop_state = state.desktop_state.write().await;
@@ -598,7 +619,7 @@ pub(super) async fn apply_native_operation(
                 updated_item.source = source;
             }
             updated_item.updated_at = "刚刚".to_string();
-            apply_memory_item_retain_sync(state, &mut updated_item);
+            apply_memory_item_retain_sync(state, &mut updated_item).await;
             persist_memory_item(state, &updated_item)?;
             {
                 let mut desktop_state = state.desktop_state.write().await;
@@ -902,18 +923,22 @@ async fn start_desktop_message_generation_task(
     let task_text = text.clone();
     let task_run_id = run_id.clone();
     let task_assistant_message_id = assistant_message_id.clone();
-    let context_summary = state
-        .agent_runtime
-        .preview_message_context(&send_context.thread_id, &text, &send_context.options)
-        .map(conversation_context_summary)
-        .map_err(|error| {
-            emit_operation_failed(
-                &state,
-                error.code(),
-                format!("Failed to build model context: {}", error.message()),
-            );
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    let context_summary = preview_message_context_blocking(
+        &state,
+        &send_context.thread_id,
+        &text,
+        &send_context.options,
+    )
+    .await
+    .map(conversation_context_summary)
+    .map_err(|error| {
+        emit_operation_failed(
+            &state,
+            error.code(),
+            format!("Failed to build model context: {}", error.message()),
+        );
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
     let handle = tokio::spawn(async move {
         let _ = start_receiver.await;
         finish_desktop_message_generation(
@@ -1099,6 +1124,7 @@ async fn finish_desktop_message_generation(
             });
             let _ = state.events.send(DesktopEvent::MessageFinal {
                 thread_id: send_result.thread_id.clone(),
+                role: "assistant".to_string(),
                 text: send_result.assistant_text,
             });
             notify_desktop(
@@ -1192,9 +1218,8 @@ async fn run_queued_follow_up_generations(
             &assistant_message_id,
             &run_id,
             &follow_up,
-            state
-                .agent_runtime
-                .preview_message_context(&thread_id, &follow_up, &options)
+            preview_message_context_blocking(&state, &thread_id, &follow_up, &options)
+                .await
                 .ok()
                 .map(conversation_context_summary),
         )
@@ -1268,6 +1293,7 @@ async fn run_queued_follow_up_generations(
                 });
                 let _ = state.events.send(DesktopEvent::MessageFinal {
                     thread_id: send_result.thread_id,
+                    role: "assistant".to_string(),
                     text: send_result.assistant_text,
                 });
                 let _ = emit_state_changed(&state).await;
@@ -2819,6 +2845,7 @@ pub(super) async fn update_thread_operation(
                 if next_thread_id.is_none() {
                     desktop_state.conversation.messages.clear();
                     desktop_state.conversation.result_items.clear();
+                    desktop_state.conversation.context_summary = None;
                 }
             }
         }

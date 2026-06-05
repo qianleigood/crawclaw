@@ -850,7 +850,7 @@ export function PluginsWorkspace({
   }, [])
 
   return (
-    <div className="plugin-catalog">
+    <div className="plugin-catalog" data-testid="plugin-workspace">
       <header className="plugin-catalog__header">
         <h1>插件</h1>
         <div className="plugin-catalog__actions">
@@ -1098,7 +1098,7 @@ function PluginSection({
   title: string
 }) {
   return (
-    <section className="plugin-featured" aria-labelledby={`plugin-section-${sectionId}`}>
+    <section className="plugin-featured" aria-labelledby={`plugin-section-${sectionId}`} data-plugin-section={sectionId} data-testid="plugin-section">
       <div className="plugin-featured__header">
         <h2 id={`plugin-section-${sectionId}`}>{title}</h2>
         <span className="plugin-section-count">{count}</span>
@@ -1119,9 +1119,9 @@ function PluginToolRow({
 }) {
   const presentation = getToolPresentation(tool)
   return (
-    <article className="plugin-market-row">
+    <article className="plugin-market-row" data-plugin-id={tool.pluginId} data-testid="plugin-tool-row" data-tool-id={tool.id}>
       <div className="plugin-market-row__main">
-        <button aria-label={`打开工具详情：${presentation.name}`} className="plugin-market-row__summary" onClick={onOpen} type="button">
+        <button aria-label={`打开工具详情：${presentation.name}`} className="plugin-market-row__summary" data-testid="plugin-tool-open" onClick={onOpen} type="button">
           <span className="plugin-market-row__icon">
             <PluginVisualIcon tone={presentation.tone} />
           </span>
@@ -1150,9 +1150,9 @@ function PluginSkillRow({
 }) {
   const presentation = getSkillPresentation(skill)
   return (
-    <article className="plugin-market-row">
+    <article className="plugin-market-row" data-skill-id={skill.id} data-testid="plugin-skill-row">
       <div className="plugin-market-row__main">
-        <button aria-label={`打开技能详情：${presentation.name}`} className="plugin-market-row__summary" onClick={onOpen} type="button">
+        <button aria-label={`打开技能详情：${presentation.name}`} className="plugin-market-row__summary" data-testid="plugin-skill-open" onClick={onOpen} type="button">
           <span className="plugin-market-row__icon">
             <PluginVisualIcon tone={presentation.tone} />
           </span>
@@ -1184,6 +1184,7 @@ function PluginUseSwitch({
       aria-label={`${enabled ? '停用' : '启用'}${label}`}
       aria-pressed={enabled}
       className={enabled ? 'plugin-use-switch is-on' : 'plugin-use-switch'}
+      data-testid="plugin-use-switch"
       onClick={onChange}
       type="button"
     >
@@ -1203,9 +1204,9 @@ function InstalledPluginRow({
   status: string
 }) {
   return (
-    <article className="plugin-market-row">
+    <article className="plugin-market-row" data-installed-plugin-id={plugin.id} data-testid="plugin-installed-row">
       <div className="plugin-market-row__main">
-        <button aria-label={`打开插件详情：${plugin.name}`} className="plugin-market-row__summary" onClick={onOpen} type="button">
+        <button aria-label={`打开插件详情：${plugin.name}`} className="plugin-market-row__summary" data-testid="plugin-installed-open" onClick={onOpen} type="button">
           <span className="plugin-market-row__icon">
             <PluginVisualIcon tone="installed" />
           </span>
@@ -1243,7 +1244,7 @@ function PluginToolDialog({
   const presentation = getToolPresentation(tool)
   return (
     <PluginDetailOverlay onClose={onClose}>
-      <section aria-labelledby="plugin-tool-detail-title" aria-modal="true" className="plugin-skill-dialog plugin-detail-dialog" role="dialog">
+      <section aria-labelledby="plugin-tool-detail-title" aria-modal="true" className="plugin-skill-dialog plugin-detail-dialog" data-testid="plugin-tool-dialog" role="dialog">
         <DialogHeader
           icon={<PluginVisualIcon tone={presentation.tone} />}
           isSaving={false}
@@ -1265,6 +1266,7 @@ function PluginToolDialog({
           <label className="plugin-tool-input">
             <span>JSON 输入</span>
             <textarea
+              data-testid="plugin-tool-input"
               onChange={(event) => onInputChange(event.currentTarget.value)}
               rows={6}
               spellCheck={false}
@@ -1272,7 +1274,7 @@ function PluginToolDialog({
             />
           </label>
           <div className="plugin-tool-actions">
-            <button className="workspace-secondary-button" disabled={!tool.enabled} onClick={onRun} type="button">
+            <button className="workspace-secondary-button" data-testid="plugin-tool-run" disabled={!tool.enabled} onClick={onRun} type="button">
               <Play aria-hidden="true" size={14} strokeWidth={2.2} />
               试运行
             </button>

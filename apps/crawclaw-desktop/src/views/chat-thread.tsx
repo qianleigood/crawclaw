@@ -13,6 +13,7 @@ import {
   Sparkles,
   Wrench,
 } from 'lucide-react'
+import { memo, useEffect, useRef } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
 import type { ConversationState, PermissionRequest } from '../desktop-api'
 import { Badge } from '../ui/badge'
@@ -63,9 +64,23 @@ type ChatThreadShowcaseProps = {
   visibleBatchImageTiles: string[]
 }
 
+type ChatThreadMessage = ConversationState['messages'][number]
+
+function getMessageScrollRevision(message: ChatThreadMessage | undefined): string {
+  if (!message) {
+    return 'empty'
+  }
+
+  const status = 'status' in message ? message.status ?? '' : ''
+  const textLength = 'text' in message ? message.text.length : 0
+  const detailLength = 'detail' in message ? message.detail?.length ?? 0 : 0
+  const transcriptLength = 'transcript' in message ? message.transcript?.length ?? 0 : 0
+  return `${message.kind}:${message.id}:${status}:${textLength}:${detailLength}:${transcriptLength}`
+}
+
 function ContextSummaryPanel({ conversation }: { conversation: ConversationState }) {
   const summary = conversation.contextSummary
-  if (!summary) {
+  if (!summary || conversation.messages.length === 0) {
     return null
   }
 
@@ -84,7 +99,7 @@ function ContextSummaryPanel({ conversation }: { conversation: ConversationState
     summary.overflowProjectionApplied ? 'overflow' : undefined,
   ].filter(Boolean)
   return (
-    <details className="context-summary-panel">
+    <details className="context-summary-panel" data-testid="context-summary">
       <summary>
         <span>
           <Wrench aria-hidden="true" size={14} strokeWidth={2.1} />
@@ -169,7 +184,7 @@ function ContextSummaryPanel({ conversation }: { conversation: ConversationState
   )
 }
 
-export function ChatThread({
+export const ChatThread = memo(function ChatThread({
   conversation,
   onDecidePermission,
   onOpenAsset,
@@ -177,8 +192,25 @@ export function ChatThread({
   permissionRequest,
   replyMode,
 }: ChatThreadProps) {
+  const scrollContainerRef = useRef<HTMLElement | null>(null)
+  const latestMessage = conversation.messages[conversation.messages.length - 1]
+  const scrollRevision = getMessageScrollRevision(latestMessage)
+
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) {
+      return undefined
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      container.scrollTop = container.scrollHeight
+    })
+
+    return () => window.cancelAnimationFrame(frameId)
+  }, [conversation.messages.length, scrollRevision])
+
   return (
-    <section className="desktop-content" aria-label="对话工作区">
+    <section className="desktop-content" aria-label="对话工作区" ref={scrollContainerRef}>
       <ContextSummaryPanel conversation={conversation} />
       <ConversationMessageList
         messages={conversation.messages}
@@ -190,7 +222,7 @@ export function ChatThread({
       />
     </section>
   )
-}
+})
 
 // Hidden showcase retained for the current media, tool, workflow, and voice bubbles.
 export function ChatThreadShowcase({
@@ -257,14 +289,14 @@ export function ChatThreadShowcase({
 
           <li className="chat-row chat-row--user">
             <article className="chat-message">
-              <p>后端先不要接，先把静态会话、运行状态和结果呈现打磨好。</p>
+              <p>本机会话、运行状态和执行结果会同步进入这条对话流。</p>
             </article>
             <ChatAvatar author="user" />
           </li>
 
           <li className="chat-row chat-row--user">
             <article className="chat-message">
-              <p>对话里也需要图片、视频、附件这些不同气泡，先看下静态设计。</p>
+              <p>图片、视频和附件会作为独立消息进入对话流。</p>
             </article>
             <ChatAvatar author="user" />
           </li>
@@ -459,7 +491,7 @@ export function ChatThreadShowcase({
                 <div className="call-bubble__body">
                   <div className="call-bubble__header">
                     <strong>Skill 执行</strong>
-                    <Badge tone="neutral">设计中</Badge>
+                    <Badge tone="neutral">示例</Badge>
                   </div>
                   <p>macOS UI polish</p>
                   <span>整理对话气泡、媒体预览与底部输入体验</span>
@@ -589,7 +621,7 @@ export function ChatThreadShowcase({
           <li className="chat-row chat-row--assistant">
             <ChatAvatar author="assistant" />
             <article className="chat-message">
-              <p>当前运行状态先作为对话上下文展示，后续接 Rust Desktop API 后再切换为真实状态。</p>
+              <p>当前运行状态来自本机 Desktop API，并会随 runtime 事件刷新。</p>
               <div className="chat-status-strip" aria-label="运行状态">
                 {runtimeChecks.map((item) => (
                   <span className="chat-status-strip__item" key={item.label}>

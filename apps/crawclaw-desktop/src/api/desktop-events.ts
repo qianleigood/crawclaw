@@ -18,6 +18,7 @@ export function subscribeDesktopEvents(onEvent: (event: DesktopEvent) => void): 
   }
 
   source.addEventListener('runtime', handleMessage)
+  source.addEventListener('runtimeChanged', handleMessage)
   source.addEventListener('sessionStarted', handleMessage)
   source.addEventListener('messageDelta', handleMessage)
   source.addEventListener('messageFinal', handleMessage)
