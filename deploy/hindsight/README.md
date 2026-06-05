@@ -40,7 +40,13 @@ deploy/hindsight/
 curl -fsSL https://raw.githubusercontent.com/qianleigood/crawclaw/main/scripts/install-hindsight-service.sh | bash
 ```
 
-脚本会下载 `deploy/hindsight/docker-compose.yml`，在 `~/.crawclaw/hindsight-service` 写入本地 `.env`，启动 Hindsight，并检查 `http://127.0.0.1:8888/health`。如果需要覆盖端口或服务目录，可以设置 `CRAWCLAW_HINDSIGHT_PORT`、`CRAWCLAW_HINDSIGHT_WEB_PORT`、`CRAWCLAW_HINDSIGHT_HOME`。
+脚本会下载 `deploy/hindsight/docker-compose.yml`，在 `~/.crawclaw/hindsight-service` 写入本地 `.env`，启动 Hindsight，并检查 `http://127.0.0.1:8888/health`。默认模型策略是中文质量优先：`BAAI/bge-m3` 嵌入模型 + `BAAI/bge-reranker-v2-m3` 重排序模型。首次启动会下载模型，模型文件会持久化到 Docker volume `hindsight-model-cache`。
+
+如果需要覆盖端口或服务目录，可以设置 `CRAWCLAW_HINDSIGHT_PORT`、`CRAWCLAW_HINDSIGHT_WEB_PORT`、`CRAWCLAW_HINDSIGHT_HOME`。如果网络环境需要 Hugging Face 镜像，可以设置 `CRAWCLAW_HINDSIGHT_HF_ENDPOINT`。如果只想快速启动而不下载中文质量模型，可以显式使用 fast profile：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/qianleigood/crawclaw/main/scripts/install-hindsight-service.sh | CRAWCLAW_HINDSIGHT_MODEL_PROFILE=fast bash
+```
 
 ### 1. 首次部署
 

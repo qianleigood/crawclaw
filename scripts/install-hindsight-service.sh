@@ -8,6 +8,7 @@ REF="${CRAWCLAW_REF:-main}"
 SERVICE_DIR="${CRAWCLAW_HINDSIGHT_HOME:-${HOME}/.crawclaw/hindsight-service}"
 API_PORT="${CRAWCLAW_HINDSIGHT_PORT:-8888}"
 WEB_PORT="${CRAWCLAW_HINDSIGHT_WEB_PORT:-9999}"
+MODEL_PROFILE="${CRAWCLAW_HINDSIGHT_MODEL_PROFILE:-zh-quality}"
 RAW_BASE="https://raw.githubusercontent.com/${REPO}/${REF}"
 
 log() {
@@ -34,7 +35,7 @@ compose() {
 wait_for_health() {
   local health_url="http://127.0.0.1:${API_PORT}/health"
   local elapsed=0
-  local timeout="${CRAWCLAW_HINDSIGHT_HEALTH_TIMEOUT:-180}"
+  local timeout="${CRAWCLAW_HINDSIGHT_HEALTH_TIMEOUT:-900}"
 
   log "waiting for Hindsight health at ${health_url}"
   while [ "${elapsed}" -lt "${timeout}" ]; do
@@ -47,8 +48,29 @@ wait_for_health() {
   done
 
   log "ERROR: Hindsight did not become ready within ${timeout}s"
+  log "If this is a first run, model downloads may still be in progress."
   compose -f "${SERVICE_DIR}/docker-compose.yml" --env-file "${SERVICE_DIR}/.env" logs hindsight | tail -40 || true
   exit 1
+}
+
+resolve_model_profile() {
+  case "${MODEL_PROFILE}" in
+    zh-quality)
+      EMBEDDINGS_MODEL="${CRAWCLAW_HINDSIGHT_EMBEDDINGS_MODEL:-BAAI/bge-m3}"
+      RERANKER_PROVIDER="${CRAWCLAW_HINDSIGHT_RERANKER_PROVIDER:-local}"
+      RERANKER_MODEL="${CRAWCLAW_HINDSIGHT_RERANKER_MODEL:-BAAI/bge-reranker-v2-m3}"
+      ;;
+    fast)
+      EMBEDDINGS_MODEL="${CRAWCLAW_HINDSIGHT_EMBEDDINGS_MODEL:-BAAI/bge-small-en-v1.5}"
+      RERANKER_PROVIDER="${CRAWCLAW_HINDSIGHT_RERANKER_PROVIDER:-rrf}"
+      RERANKER_MODEL="${CRAWCLAW_HINDSIGHT_RERANKER_MODEL:-}"
+      ;;
+    *)
+      log "ERROR: unsupported CRAWCLAW_HINDSIGHT_MODEL_PROFILE=${MODEL_PROFILE}"
+      log "Supported values: zh-quality, fast"
+      exit 1
+      ;;
+  esac
 }
 
 write_env() {
@@ -66,11 +88,20 @@ HINDSIGHT_API_PORT=${API_PORT}
 HINDSIGHT_API_HOST=0.0.0.0
 HINDSIGHT_WEB_PORT=${WEB_PORT}
 
-# Chinese-ready defaults that avoid a slow first-run reranker download.
-HINDSIGHT_API_EMBEDDINGS_LOCAL_MODEL=${CRAWCLAW_HINDSIGHT_EMBEDDINGS_MODEL:-BAAI/bge-small-en-v1.5}
-HINDSIGHT_API_RERANKER_PROVIDER=${CRAWCLAW_HINDSIGHT_RERANKER_PROVIDER:-rrf}
+# Model profile: zh-quality downloads larger multilingual models; fast uses a
+# smaller embedding model and RRF reranking. Model files are cached by Docker in
+# the hindsight-model-cache volume.
+CRAWCLAW_HINDSIGHT_MODEL_PROFILE=${MODEL_PROFILE}
+HINDSIGHT_API_EMBEDDINGS_LOCAL_MODEL=${EMBEDDINGS_MODEL}
+HINDSIGHT_API_RERANKER_PROVIDER=${RERANKER_PROVIDER}
+HINDSIGHT_API_RERANKER_LOCAL_MODEL=${RERANKER_MODEL}
 HINDSIGHT_API_TEXT_SEARCH_EXTENSION=${CRAWCLAW_HINDSIGHT_TEXT_SEARCH_EXTENSION:-native}
 HINDSIGHT_API_TEXT_SEARCH_EXTENSION_NATIVE_LANGUAGE=${CRAWCLAW_HINDSIGHT_TEXT_SEARCH_LANGUAGE:-simple}
+HF_HOME=/home/hindsight/.cache/huggingface
+HUGGINGFACE_HUB_CACHE=/home/hindsight/.cache/huggingface/hub
+TRANSFORMERS_CACHE=/home/hindsight/.cache/huggingface/transformers
+SENTENCE_TRANSFORMERS_HOME=/home/hindsight/.cache/sentence-transformers
+HF_ENDPOINT=${CRAWCLAW_HINDSIGHT_HF_ENDPOINT:-}
 
 # Optional LLM settings for memory extraction. Export these before running the
 # installer or edit this file after installation.
@@ -89,11 +120,24 @@ main() {
     log "ERROR: Docker Compose v2 is required"
     exit 1
   fi
+  resolve_model_profile
 
   mkdir -p "${SERVICE_DIR}"
   log "installing service files into ${SERVICE_DIR}"
   download "deploy/hindsight/docker-compose.yml" "${SERVICE_DIR}/docker-compose.yml"
   write_env
+
+  log "model profile: ${MODEL_PROFILE}"
+  log "embedding model: ${EMBEDDINGS_MODEL}"
+  log "reranker provider: ${RERANKER_PROVIDER}"
+  if [ -n "${RERANKER_MODEL}" ]; then
+    log "reranker model: ${RERANKER_MODEL}"
+  fi
+  if [ -n "${CRAWCLAW_HINDSIGHT_HF_ENDPOINT:-}" ]; then
+    log "Hugging Face endpoint: ${CRAWCLAW_HINDSIGHT_HF_ENDPOINT}"
+  fi
+  log "model cache: Docker volume hindsight-model-cache"
+  log "first run may take several minutes while models download"
 
   log "starting Hindsight"
   compose -f "${SERVICE_DIR}/docker-compose.yml" --env-file "${SERVICE_DIR}/.env" up -d

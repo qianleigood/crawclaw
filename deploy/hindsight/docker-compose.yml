@@ -1,8 +1,6 @@
 # Hindsight 部署配置 - 中文优化版
 # 使用方式：cd deploy/hindsight && docker compose up -d
 
-version: "3.8"
-
 services:
   hindsight:
     image: ghcr.io/vectorize-io/hindsight:latest
@@ -15,6 +13,7 @@ services:
       - .env
     volumes:
       - hindsight-data:/home/hindsight/.pg0
+      - hindsight-model-cache:/home/hindsight/.cache
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:${HINDSIGHT_API_PORT:-8888}/health"]
       interval: 30s
@@ -24,4 +23,6 @@ services:
 
 volumes:
   hindsight-data:
+    driver: local
+  hindsight-model-cache:
     driver: local
