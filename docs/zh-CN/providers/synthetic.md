@@ -1,31 +1,30 @@
 ---
 read_when:
-  - 你想将 Synthetic 用作模型提供商
-  - 你需要 Synthetic API key 或 base URL 设置
+  - 你想使用 Synthetic 作为模型提供商
+  - 你需要 Synthetic API 密钥或 base URL 设置
 summary: 在 CrawClaw 中使用 Synthetic 的 Anthropic 兼容 API
 title: Synthetic
 x-i18n:
-  generated_at: "2026-03-16T06:27:11Z"
-  model: gpt-5.4
-  provider: openai
-  source_hash: 3a2adb0b831babe3e88b027772167748764d85ee72d402ff759571420a91757f
+  generated_at: "2026-06-05T14:45:27Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 5dc77e01a40e70e84d1b56ab3d9f8ff4265f674e7e2de71945350a3d87a545ec
   source_path: providers/synthetic.md
   workflow: 15
 ---
 
 # Synthetic
 
-Synthetic 提供与 Anthropic 兼容的端点。CrawClaw 将其注册为
-`synthetic` 提供商，并使用 Anthropic Messages API。
+Synthetic 暴露了 Anthropic 兼容端点。CrawClaw 将其注册为 `synthetic` 提供商并使用 Anthropic Messages API。
 
 ## 快速设置
 
-1. 设置 `SYNTHETIC_API_KEY`（或运行下面的向导）。
-2. 运行新手引导：
+1. 设置 `SYNTHETIC_API_KEY`（或运行以下向导）。
+2. 运行入门引导：
 
-使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
 
-默认模型会设置为：
+默认模型设置为：
 
 ```
 synthetic/hf:MiniMaxAI/MiniMax-M2.5
@@ -66,13 +65,11 @@ synthetic/hf:MiniMaxAI/MiniMax-M2.5
 }
 ```
 
-注意：CrawClaw 的 Anthropic 客户端会将 `/v1` 追加到 base URL 后面，因此请使用
-`https://api.synthetic.new/anthropic`（而不是 `/anthropic/v1`）。如果 Synthetic 更改了
-其 base URL，请覆盖 `models.providers.synthetic.baseUrl`。
+注意：CrawClaw 的 Anthropic 客户端会将 `/v1` 附加到 base URL，因此使用 `https://api.synthetic.new/anthropic`（而非 `/anthropic/v1`）。如果 Synthetic 更改其 base URL，请覆盖 `models.providers.synthetic.baseUrl`。
 
 ## 模型目录
 
-下面所有模型的成本都为 `0`（输入/输出/缓存）。
+以下所有模型的成本均为 `0`（输入/输出/缓存）。
 
 | 模型 ID                                                | 上下文窗口 | 最大 tokens | 推理  | 输入         |
 | ------------------------------------------------------ | ---------- | ----------- | ----- | ------------ |
@@ -96,9 +93,8 @@ synthetic/hf:MiniMaxAI/MiniMax-M2.5
 | `hf:deepseek-ai/DeepSeek-V3`                           | 128000     | 8192        | false | text         |
 | `hf:Qwen/Qwen3-235B-A22B-Thinking-2507`                | 256000     | 8192        | true  | text         |
 
-## 说明
+## 注意事项
 
 - 模型引用使用 `synthetic/<modelId>`。
-- 如果你启用了模型允许列表（`agents.defaults.models`），请添加你
-  计划使用的每个模型。
-- 有关提供商规则，请参阅 [Model providers](/concepts/model-providers)。
+- 如果你启用了模型允许列表（`agents.defaults.models`），请添加你计划使用的每个模型。
+- 有关提供商规则，请参阅[模型提供商](/concepts/model-providers)。

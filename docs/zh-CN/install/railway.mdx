@@ -1,25 +1,28 @@
 ---
-title: 在 Railway 上部署
+read_when:
+  - 在 Railway 上部署 CrawClaw
+  - 你希望使用一键云部署并通过浏览器访问 gateway
+summary: 使用一键模板在 Railway 上部署 CrawClaw
+title: Railway
 x-i18n:
-  generated_at: "2026-02-01T21:36:21Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: 6d5c2ec2f779bb240e778b5e18ffb8138ce175c4bbdf58b2064a6ad200bf4d1b
-  source_path: railway.mdx
+  generated_at: "2026-06-05T14:39:57Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: bf647d82cef0d03991b78b8e92f864a3fb2833e348eb384f9c7e01ea22957a5f
+  source_path: install/railway.mdx
   workflow: 15
 ---
 
-通过一键模板在 Railway 上部署 CrawClaw，并在浏览器中完成设置。
-这是最简单的"无需在服务器上使用终端"的方式：Railway 为你运行 Gateway网关，
-你只需通过 `/setup` 网页向导完成所有配置。
+使用一键模板在 Railway 上部署 CrawClaw，并使用支持的 gateway 客户端连接。
+这是最简易的"服务器端无需终端"方案：Railway 为你运行 Gateway。
 
-## 快速检查清单（新用户）
+## 快速清单（新用户）
 
-1. 点击下方的 **Deploy on Railway**。
-2. 添加一个挂载到 `/data` 的 **Volume**。
-3. 设置必需的**变量**（至少需要 `SETUP_PASSWORD`）。
+1. 点击 **Deploy on Railway**（下方）。
+2. 添加挂载在 `/data` 的 **Volume**。
+3. 设置必需的 **Variables**（至少需要 `CRAWCLAW_GATEWAY_PORT` 和 `CRAWCLAW_GATEWAY_TOKEN`）。
 4. 在端口 `8080` 上启用 **HTTP Proxy**。
-5. 打开 `https://<your-railway-domain>/setup` 并完成向导。
+5. 使用支持的 gateway 客户端连接到 `https://<your-railway-domain>`，并使用你的 `CRAWCLAW_GATEWAY_TOKEN` 进行认证。
 
 ## 一键部署
 
@@ -27,24 +30,17 @@ x-i18n:
   Deploy on Railway
 </a>
 
-部署完成后，在 **Railway → 你的服务 → Settings → Domains** 中找到你的公开 URL。
+部署后，在 **Railway → 你的服务 → Settings → Domains** 中找到你的公共 URL。
 
-Railway 会：
+Railway 将会：
 
-- 为你生成一个域名（通常是 `https://<something>.up.railway.app`），或者
-- 使用你绑定的自定义域名。
-
-然后打开：
-
-- `https://<your-railway-domain>/setup` — 设置向导（需密码保护）
-- `https://<your-railway-domain>/crawclaw` — 控制面板 UI
+- 为你分配一个生成域名（通常是 `https://<something>.up.railway.app`），或
+- 如果你绑定了自定义域名，则使用该域名。
 
 ## 你将获得
 
-- 托管的 CrawClaw Gateway网关 + 控制面板 UI
-- `/setup` 网页设置向导（无需终端命令）
-- 通过 Railway Volume（`/data`）实现持久化存储，配置/凭证/工作区在重新部署后不会丢失
-- 在 `/setup/export` 导出备份，方便日后从 Railway 迁移
+- 托管式 CrawClaw Gateway
+- 通过 Railway Volume（`/data`）实现持久化存储，确保配置/凭证/工作区在重新部署后仍然保留
 
 ## 必需的 Railway 设置
 
@@ -56,51 +52,37 @@ Railway 会：
 
 ### Volume（必需）
 
-挂载一个 Volume 到：
+挂载一个 Volume 在：
 
 - `/data`
 
-### 变量
+### Variables
 
 在服务上设置以下变量：
 
-- `SETUP_PASSWORD`（必需）
-- `PORT=8080`（必需 — 必须与公共网络中的端口一致）
+- `CRAWCLAW_GATEWAY_PORT=8080`（必需 — 必须与公共网络中的端口一致）
+- `CRAWCLAW_GATEWAY_TOKEN`（必需；请作为管理员密钥妥善保管）
 - `CRAWCLAW_STATE_DIR=/data/.crawclaw`（推荐）
 - `CRAWCLAW_WORKSPACE_DIR=/data/workspace`（推荐）
-- `CRAWCLAW_GATEWAY_TOKEN`（推荐；请视为管理员密钥）
 
-## 设置流程
+## 连接渠道
 
-1. 访问 `https://<your-railway-domain>/setup` 并输入你的 `SETUP_PASSWORD`。
-2. 选择模型/认证提供商并粘贴你的密钥。
-3. （可选）添加 Feishu/QQBot/DingTalk 令牌。
-4. 点击 **Run setup**。
+通过 Railway 的 shell 运行 CrawClaw Desktop 或本地 Gateway API 获取渠道设置说明：
 
-如果 Feishu 私信设置为配对模式，设置向导可以批准配对码。
-
-## 获取聊天令牌
-
-### Feishu 机器人令牌
-
-1. 在 Feishu 中给 `@BotFather` 发消息
-2. 执行 `/newbot`
-3. 复制令牌（格式类似 `123456789:AA...`）
-4. 将其粘贴到 `/setup` 中
-
-### QQBot 机器人令牌
-
-1. 前往 https://qqbot.com/developers/applications
-2. **New Application** → 选择一个名称
-3. **Bot** → **Add Bot**
-4. 在 Bot → Privileged Gateway Intents 下**启用 MESSAGE CONTENT INTENT**（必需，否则机器人启动时会崩溃）
-5. 复制 **Bot Token** 并粘贴到 `/setup` 中
-6. 邀请机器人加入你的服务器（OAuth2 URL Generator；scopes：`bot`、`applications.commands`）
+- [Feishu](/channels/index)（最快 — 只需一个 bot token）
+- [QQBot](/channels/index)
+- [所有渠道](/channels)
 
 ## 备份与迁移
 
-在以下地址下载备份：
+导出你的配置和工作区：
 
-- `https://<your-railway-domain>/setup/export`
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
 
-这会导出你的 CrawClaw 状态和工作区，方便你迁移到其他主机而不丢失配置或记忆。
+这将创建一个可移植的备份压缩包，你可以在任何 CrawClaw 主机上恢复。详情请参阅[备份](/install/migrating)。
+
+## 下一步
+
+- 设置消息渠道：[渠道](/channels)
+- 配置 Gateway：[Gateway 配置](/gateway/configuration)
+- 保持 CrawClaw 最新：[更新](/install/updating)

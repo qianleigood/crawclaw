@@ -1,26 +1,25 @@
 ---
 read_when:
   - 你想选择一个模型提供商
-  - 你想要 LLM 身份验证 + 模型选择的快速设置示例
+  - 你想要 LLM 认证和模型选择的快速设置示例
 summary: CrawClaw 支持的模型提供商（LLM）
-title: 模型提供商快速开始
+title: 模型提供商快速入门
 x-i18n:
-  generated_at: "2026-03-16T06:26:02Z"
-  model: gpt-5.4
-  provider: openai
-  source_hash: 7a868ba56e93e6332f0e9dd3d3e2c79a08f369dbc96c400dfba141f347d40e8f
+  generated_at: "2026-06-05T14:44:29Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 0e7fe5b05bae59f97bf3ea9161418358aebfbbb77e0064934c103b4103d69c7c
   source_path: providers/models.md
   workflow: 15
 ---
 
 # 模型提供商
 
-CrawClaw 可以使用许多 LLM 提供商。选择一个，完成身份验证，然后将默认
-模型设置为 `provider/model`。
+CrawClaw 可以使用多种 LLM 提供商。选择一个进行认证，然后将默认模型设置为 `provider/model`。
 
-## 快速开始（两步）
+## 快速开始（两个步骤）
 
-1. 使用 CrawClaw Desktop 或本地 Gateway API 为该提供商完成身份验证。
+1. 通过提供商进行认证（通常通过 CrawClaw Desktop 或本地 Gateway API）。
 2. 设置默认模型：
 
 ```json5
@@ -29,7 +28,7 @@ CrawClaw 可以使用许多 LLM 提供商。选择一个，完成身份验证，
 }
 ```
 
-## 支持的提供商（入门集合）
+## 支持的提供商（入门集）
 
 - [OpenAI（API + Codex）](/providers/openai)
 - [Anthropic（API + Claude Code CLI）](/providers/anthropic)
@@ -46,6 +45,6 @@ CrawClaw 可以使用许多 LLM 提供商。选择一个，完成身份验证，
 - [Venice（Venice AI）](/providers/venice)
 - [Amazon Bedrock](/providers/bedrock)
 - [Qianfan](/providers/qianfan)
+- [xAI](/providers/xai)
 
-有关完整的提供商目录（xAI、Groq、Mistral 等）和高级配置，
-请参见 [模型提供商](/concepts/model-providers)。
+完整的提供商目录（xAI、Groq、Mistral 等）和高级配置，请参阅[模型提供商](/concepts/model-providers)。

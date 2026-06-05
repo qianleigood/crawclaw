@@ -1,237 +1,121 @@
 ---
 read_when:
-  - 你需要 /new、/stop 和智能体生命周期事件的事件驱动自动化
-  - 你需要构建、安装或调试钩子
-summary: 钩子：命令和生命周期事件的事件驱动自动化
-title: 钩子
+  - 你想要注册 Claude Code 兼容的 SDK 生命周期 Hooks
+  - 你想要响应 Gateway 生命周期事件或外部 Webhooks
+summary: Hooks：Gateway SDK 生命周期回调和外部 Webhooks
+title: Hooks
 x-i18n:
-  generated_at: "2026-05-19T00:56:49Z"
+  generated_at: "2026-06-05T13:50:53Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 1345e872da400c2261455d70e3d10e6a5ebb952b47eb53d1e9b673f452f503ab
+  source_hash: 1f09b16944199cd8c3edf8129259be8736ac481e0d85288db5199d8b017c95e3
   source_path: automation/hooks.md
   workflow: 15
 ---
 
-# 钩子
+# Hooks
 
-钩子是小型脚本，当 Gateway 网关内部发生某些事情时自动运行。它们从目录中自动发现，可以通过 CrawClaw Desktop 或本地 Gateway API 进行检查。
+CrawClaw 有两个活跃的 Hook 边界：
 
-CrawClaw 中有两种钩子：
+- **SDK 生命周期 Hooks**：由 SDK 客户端在 Gateway `initialize` 期间提供的 Claude Code 兼容回调匹配器。这些 Hook 通过实时 SDK 控制传输运行，可以添加上下文、阻止或调整工具调用，以及响应生命周期事件。
+- **Webhooks**：外部 HTTP 端点，允许其他系统在 CrawClaw 中触发工作。参见 [Webhooks](/automation/cron-jobs#webhooks)。
 
-- **内置钩子**（此页）：当智能体事件触发时在 Gateway 内运行，例如 `/new`, `/stop` 或生命周期事件。
-- **网页钩子**：外部 HTTP 端点，允许其他系统触发 CrawClaw 中的工作。请参阅 [网页钩子](/automation/cron-jobs#webhooks)。
+较旧的托管或工作区内部 Hook 模块加载器不属于当前 Rust Gateway 运行时。不要将 `HOOK.md` 和 `handler.ts` 文件放在 `~/.crawclaw/hooks` 或 `<workspace>/hooks` 下，期望自动发现。
 
-钩子也可以打包在插件中。CrawClaw Desktop 或本地 Gateway API 会显示独立钩子和插件管理的钩子。
+## SDK 生命周期 Hooks
 
-## 快速开始
+SDK 生命周期 Hooks 通过在 Gateway SDK `initialize` 请求中发送 `hooks` 来注册。每个条目由 Hook 事件键控，包含带有 `hookCallbackIds` 的回调匹配器。
 
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+当匹配的事件触发时，Gateway 会向连接的 SDK 客户端发送 `hook_callback` 控制请求。如果没有连接实时 SDK 控制传输，Gateway 会创建一个待处理的 Hook 回调请求，操作员客户端可以使用 `hook_callback.list` 检查该请求，并使用 `hook_callback.respond` 回答。
 
-## 事件类型
+完整的控制协议结构，请参见 [Gateway Protocol](/gateway/protocol)。
 
-| Event                    | When it fires                                    |
-| ------------------------ | ------------------------------------------------ |
-| `command:new`            | `/new` command issued                            |
-| `command:stop`           | `/stop` command issued                           |
-| `command`                | Any command event (general listener)             |
-| `session:compact:before` | Before compaction summarizes history             |
-| `session:compact:after`  | After compaction completes                       |
-| `session:patch`          | When session properties are modified             |
-| `agent:bootstrap`        | Before workspace bootstrap files are injected    |
-| `gateway:startup`        | After channels start and hooks are loaded        |
-| `message:received`       | Inbound message from any channel                 |
-| `message:transcribed`    | After audio transcription completes              |
-| `message:preprocessed`   | After all media and link understanding completes |
-| `message:sent`           | Outbound message delivered                       |
+## 支持的事件
 
-## 编写钩子
+| 事件                 | 触发时机                                                           |
+| -------------------- | ------------------------------------------------------------------ |
+| `Setup`              | SDK `initialize` 期间                                              |
+| `SessionStart`       | 新 Gateway 会话的第一个轮次之前                                    |
+| `UserPromptSubmit`   | 提交的用户提示进入智能体运行之前                                   |
+| `PreToolUse`         | Rust 工具执行之前立即                                              |
+| `PostToolUse`        | 成功的工具调用之后立即                                             |
+| `PostToolUseFailure` | 失败的工具调用之后立即                                             |
+| `PermissionRequest`  | `can_use_tool` 权限检查期间                                        |
+| `PermissionDenied`   | Gateway 权限拒绝之后                                               |
+| `Stop`               | 成功的智能体轮次完成之后                                           |
+| `StopFailure`        | Gateway 智能体轮次在完成前失败时                                   |
+| `SessionEnd`         | 会话重置清除转录状态之前                                           |
+| `SubagentStart`      | `Agent` 或 `Task` 子运行启动之前                                   |
+| `SubagentStop`       | `Agent` 或 `Task` 子运行停止之后                                   |
+| `Notification`       | SDK 面向的提示以及 Hook 回调或请求失败                             |
+| `ConfigChange`       | `config.set`、`config.apply` 或 `config.patch` 写入 Gateway 配置后 |
+| `Elicitation`        | 显示 SDK MCP 请求提示之前                                          |
+| `ElicitationResult`  | 返回 SDK MCP 请求结果之前                                          |
+| `PreCompact`         | Gateway 压缩之前                                                   |
+| `PostCompact`        | Gateway 压缩之后                                                   |
 
-### 钩子结构
+## Hook 响应
 
-每个钩子是一个包含两个文件的目录：
+回调返回 Claude Code HookJSONOutput 结构。CrawClaw 目前使用以下字段：
 
-```
-my-hook/
-├── HOOK.md          # Metadata + documentation
-└── handler.ts       # Handler implementation
-```
+| 字段                                      | 效果                                      |
+| ----------------------------------------- | ----------------------------------------- |
+| `continue: false`                         | 阻止支持阻止的当前生命周期步骤            |
+| `decision: "block"`                       | 使用 `reason` 阻止当前生命周期步骤        |
+| `hookSpecificOutput.additionalContext`    | 为支持的事件添加上下文                    |
+| `hookSpecificOutput.initialUserMessage`   | 在 `SessionStart` 之前预置初始用户文本    |
+| `hookSpecificOutput.updatedInput`         | 替换 `PreToolUse` 的工具输入              |
+| `hookSpecificOutput.updatedMCPToolOutput` | 替换 `PostToolUse` 的 MCP 工具输出        |
+| `hookSpecificOutput.decision`             | 允许或拒绝 `PermissionRequest`            |
+| `hookSpecificOutput.retry`                | 将 `PermissionDenied` 标记为可重试        |
+| `hookSpecificOutput.action` 和 `content`  | 覆盖 `Elicitation` 或 `ElicitationResult` |
 
-### HOOK.md 格式
+`PreToolUse`、`PostToolUse` 和 `PostToolUseFailure` 的附加上下文作为系统提醒返回给模型，附加到相关工具结果上。`Setup` 的附加上下文附加到主智能体系统提示中，供后续运行使用。
 
-```markdown
----
-name: my-hook
-description: "Short description of what this hook does"
-metadata:
-  { "crawclaw": { "emoji": "🔗", "events": ["command:new"], "requires": { "bins": ["node"] } } }
----
+## 匹配器
 
-# My Hook
+Hook 匹配器字符串与事件特定的值进行匹配：
 
-Detailed documentation goes here.
-```
+| 事件类型                             | 匹配器输入     |
+| ------------------------------------ | -------------- |
+| 工具和权限事件                       | 工具名称       |
+| `SessionStart`                       | 启动来源       |
+| `Setup`                              | 触发器         |
+| `PreCompact` 和 `PostCompact`        | 压缩触发器     |
+| `Notification`                       | 通知类型       |
+| `SessionEnd`                         | 结束原因       |
+| `StopFailure`                        | 错误文本       |
+| `SubagentStart` 和 `SubagentStop`    | 智能体类型     |
+| `ConfigChange`                       | 配置来源       |
+| `Elicitation` 和 `ElicitationResult` | MCP 服务器名称 |
 
-**元数据字段** （`metadata.crawclaw`）：
+空匹配器或 `*` 匹配所有值。简单的 `A|B` 字符串匹配精确值，其他匹配器字符串被视为正则表达式。
 
-| Field      | Description                                          |
-| ---------- | ---------------------------------------------------- |
-| `emoji`    | Display emoji for CLI                                |
-| `events`   | Array of events to listen for                        |
-| `export`   | Named export to use (defaults to `"default"`)        |
-| `os`       | Required platforms (e.g., `["darwin", "linux"]`)     |
-| `requires` | Required `bins`, `anyBins`, `env`, or `config` paths |
-| `always`   | Bypass eligibility checks (boolean)                  |
-| `install`  | Installation methods                                 |
+## Webhooks
 
-### 处理器实现
+当外部服务应该通过 HTTP 触发 CrawClaw 时使用 Webhooks。Webhook 路由、映射、转换和传递设置位于 `hooks` Gateway 配置键下。参见 [Webhooks](/automation/cron-jobs#webhooks) 和 [Configuration](/gateway/configuration-reference#hooks)。
 
-```typescript
-const handler = async (event) => {
-  if (event.type !== "command" || event.action !== "new") {
-    return;
-  }
+## 已移除的本地模块加载器
 
-  console.log(`[my-hook] New command triggered`);
-  // Your logic here
+生成的配置引用仍然包含用于兼容性的旧 `hooks.internal.*` 键，但当前 Rust Gateway 运行时不会从托管或工作区 Hook 目录加载本地 TypeScript Hook 模块。
 
-  // Optionally send message to user
-  event.messages.push("Hook executed!");
-};
-
-export default handler;
-```
-
-每个事件包含： `type`, `action`, `sessionKey`, `timestamp`, `messages` （推送给用户），和 `context` （事件特定数据）。
-
-### 事件上下文要点
-
-**命令事件** （`command:new`）：`context.sessionEntry`, `context.previousSessionEntry`, `context.commandSource`, `context.workspaceDir`, `context.cfg`。
-
-**消息事件** （`message:received`）：`context.from`, `context.content`, `context.channelId`, `context.metadata` 消息事件（提供商特定数据，包括 `senderId`, `senderName`, `guildId`）
-
-**消息事件** （`message:sent`）：`context.to`, `context.content`, `context.success`, `context.channelId`。
-
-**消息事件** （`message:transcribed`）：`context.transcript`, `context.from`, `context.channelId`, `context.mediaPath`。
-
-**消息事件** （`message:preprocessed`）：`context.bodyForAgent` （富化后的最终正文）， `context.from`, `context.channelId`。
-
-**启动事件** （`agent:bootstrap`）：`context.bootstrapFiles` （可变数组）， `context.agentId`。
-
-**会话补丁事件** （`session:patch`）：`context.sessionEntry`, `context.patch` （仅包含变更的字段）， `context.cfg`只有特权客户端才能触发补丁事件。
-
-**压缩事件**： `session:compact:before` 包括 `messageCount`, `tokenCount`。`session:compact:after` 添加 `compactedCount`, `summaryLength`, `tokensBefore`, `tokensAfter`。
-
-## 钩子发现
-
-钩子从以下目录中发现，按覆盖优先级递增排序：
-
-1. **托管钩子**： `~/.crawclaw/hooks/` （用户安装的工作区共享钩子）。额外目录来自 `hooks.internal.load.extraDirs` 共享此优先级。
-2. **工作区钩子**： `<workspace>/hooks/` （每个智能体，默认禁用，需要显式启用）
-
-工作区钩子可以添加新的钩子名称，但不能覆盖同名托管钩子。
-
-### 钩子模块
-
-独立 hook-pack 安装/更新命令已从默认产品路径中移除。将可信的钩子模块放入托管钩子或工作区钩子目录中，或发布原生插件能力以实现可分发的扩展行为。
-
-## 已移除的捆绑钩子
-
-CrawClaw 不再附带 TypeScript 捆绑钩子处理器。旧的
-`bootstrap-extra-files`, `command-logger`和 `boot-md` 处理器已从产品运行时边界中移除；当你需要本地自动化时，请使用托管钩子模块或工作区钩子。
-
-## 插件钩子
-
-类型化插件 SDK 生命周期钩子已移除。插件不再注册
-`before_tool_call`, `before_agent_reply`, `before_install`、模型解析或通过已移除的类型化插件 API 注册消息流钩子；请使用本页中的内部钩子和网页钩子系统进行运营自动化。
-
-## 配置
-
-```json
-{
-  "hooks": {
-    "internal": {
-      "enabled": true,
-      "entries": {
-        "my-hook": { "enabled": true }
-      }
-    }
-  }
-}
-```
-
-每个钩子的环境变量：
-
-```json
-{
-  "hooks": {
-    "internal": {
-      "entries": {
-        "my-hook": {
-          "enabled": true,
-          "env": { "MY_CUSTOM_VAR": "value" }
-        }
-      }
-    }
-  }
-}
-```
-
-额外钩子目录：
-
-```json
-{
-  "hooks": {
-    "internal": {
-      "load": {
-        "extraDirs": ["/path/to/more/hooks"]
-      }
-    }
-  }
-}
-```
-
-<Note>
-旧版 `hooks.internal.handlers` 数组配置格式仍保持向后兼容，但新钩子应使用基于发现机制的系统。
-</Note>
-
-## Gateway API 参考
-
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
-
-## 最佳实践
-
-- **保持处理器快速。** 钩子在命令处理期间运行。对于繁重的工作，使用后台执行配合 `void processInBackground(event)`。
-- **优雅地处理错误。** 将风险操作包装在 try/catch 中；不要抛出异常，以便其他处理器能够运行。
-- **尽早过滤事件。** 如果事件类型/动作不相关，请立即返回。
-- **使用特定的事件键。** 优先使用 `"events": ["command:new"]` 而不是 `"events": ["command"]` 以减少开销。
+已移除的本地模块加载器使用 `HOOK.md`、`handler.ts`、`hooks.internal.entries` 和 `hooks.internal.load.extraDirs`。这些文件和键不应用于新的自动化。请使用 SDK 生命周期 Hooks 进行 Gateway 生命周期拦截，使用 Webhooks 进行外部触发，或使用 Rust 原生插件功能进行可分发插件行为。
 
 ## 故障排除
 
-### 钩子未被检测到
+### SDK Hook 未触发
 
-```bash
-# Verify directory structure
-ls -la ~/.crawclaw/hooks/my-hook/
-# Should show: HOOK.md, handler.ts
-```
+1. 确认 SDK 客户端在 `initialize` 期间发送了 `hooks`。
+2. 确认回调 ID 出现在预期事件的匹配器中。
+3. 确认匹配器匹配事件特定的值，例如 `PreToolUse` 的工具名称。
+4. 保持 SDK 控制传输连接，或使用 `hook_callback.respond` 响应待处理的回调。
 
-使用 CrawClaw Desktop 或本地 Gateway API 检查已发现的钩子列表。
+### 外部 Webhook 未触发
 
-### 钩子不符合条件
+检查 `hooks.enabled` 是否设置，请求路径是否匹配 `hooks.mappings` 条目，以及在使用配置令牌时请求是否使用了配置的令牌。
 
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+## 相关
 
-检查是否缺少二进制文件（PATH）、环境变量、配置值或操作系统兼容性。
-
-### 钩子未执行
-
-1. 验证钩子已启用：CrawClaw Desktop 或本地 Gateway API
-2. 重启 Gateway 进程以便重新加载钩子。
-3. 检查 Gateway 日志： `./scripts/clawlog.sh | grep hook`
-
-## 相关内容
-
-- [Gateway API 参考：钩子](/automation/hooks)
-- [网页钩子](/automation/cron-jobs#webhooks)
-- [配置](/gateway/configuration-reference#hooks)
+- [Gateway Protocol](/gateway/protocol)
+- [Webhooks](/automation/cron-jobs#webhooks)
+- [Configuration](/gateway/configuration-reference#hooks)

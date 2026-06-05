@@ -1,53 +1,53 @@
 ---
 read_when:
-  - CrawClaw 无法工作，需要最快的修复路径
-  - 想要在深入查看详细手册前进行分类排查
-summary: CrawClaw 症状优先故障排除中心
+  - CrawClaw 无法工作，你需要最快的修复路径
+  - 你想在深入阅读详细手册前进行分类排查
+summary: 症状优先的 CrawClaw 故障排除门户
 title: 常见故障排除
 x-i18n:
-  generated_at: "2026-05-22T03:00:56Z"
+  generated_at: "2026-06-05T14:39:02Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: b5f920dcb764a45e63ccbf2c40bbc37fb107df49f019404804a3c85913b62b55
+  source_hash: e5c2abd8a71f251de73c32d8ca976b3766912d0a6ab3878cbd70b0d8e69d00a1
   source_path: help/troubleshooting.md
   workflow: 15
 ---
 
 # 故障排除
 
-如果你只有 2 分钟，把本页作为分诊入口。
+如果你只有 2 分钟，使用此页面作为分类排查的入口。
 
 ## 最初的六十秒
 
-按顺序执行以下确切的排查步骤：
+按顺序执行以下检查清单：
 
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
 
-正常输出的判断标准：
+良好输出的判断标准：
 
-- CrawClaw Desktop 或 local loopback Gateway API → 显示已配置的渠道，无明显认证错误。
-- CrawClaw Desktop 或 local loopback Gateway API → 完整报告存在且可分享。
-- CrawClaw Desktop 或 local loopback Gateway API → 预期 gateway 目标可访问（`Reachable: yes`）。`RPC: limited - missing scope: operator.read` 是降级的诊断状态，不是连接失败。
-- CrawClaw Desktop 或 local loopback Gateway API → `Runtime: running` 且 `RPC probe: ok`。
-- CrawClaw Desktop 或 local loopback Gateway API → 无阻止性的配置/服务错误。
-- CrawClaw Desktop 或 local loopback Gateway API → 渠道报告 `connected` 或 `ready`。
-- CrawClaw Desktop 或 local loopback Gateway API → 活动稳定，无重复的致命错误。
+- CrawClaw Desktop 或本地 Gateway API → 显示已配置的渠道，无明显认证错误。
+- CrawClaw Desktop 或本地 Gateway API → 完整报告存在且可分享。
+- CrawClaw Desktop 或本地 Gateway API → 预期的 gateway 目标可达（`Reachable: yes`）。`RPC: limited - missing scope: operator.read` 是降级的诊断信息，不是连接失败。
+- CrawClaw Desktop 或本地 Gateway API → `Runtime: running` 且 `RPC probe: ok`。
+- CrawClaw Desktop 或本地 Gateway API → 无阻塞性配置/服务错误。
+- CrawClaw Desktop 或本地 Gateway API → 渠道报告 `connected` 或 `ready`。
+- CrawClaw Desktop 或本地 Gateway API → 活动稳定，无重复的致命错误。
 
-## Anthropic long context 429
+## Anthropic 长上下文 429
 
-如果你看到：
+如果看到：
 `HTTP 429: rate_limit_error: Extra usage is required for long context requests`,
-请访问 [/gateway/troubleshooting#anthropic-429-extra-usage-required-for-long-context](/gateway/troubleshooting#anthropic-429-extra-usage-required-for-long-context)。
+请前往 [/gateway/troubleshooting#anthropic-429-extra-usage-required-for-long-context](/gateway/troubleshooting#anthropic-429-extra-usage-required-for-long-context)。
 
-## 插件安装失败，旧的 executable 条目
+## 插件安装失败，使用旧的可执行文件条目
 
-如果安装失败是因为某个包依赖 `crawclaw.extensions`，说明该插件包使用了 CrawClaw 不再接受的旧 TypeScript 运行时结构。
+如果安装失败是因为某个包依赖 `crawclaw.extensions`，则该插件包使用的是 CrawClaw 不再接受的旧 TypeScript 运行时结构。
 
 在插件包中修复：
 
-1. 删除旧的 JavaScript 扩展条目。
+1. 移除遗留的 JavaScript 扩展条目。
 2. 将插件重新构建为 Rust 原生插件描述符。
-3. 重新发布插件，然后再次运行 CrawClaw Desktop 或 local loopback Gateway API。
+3. 重新发布插件，并再次运行 CrawClaw Desktop 或本地 Gateway API。
 
 示例：
 
@@ -70,39 +70,39 @@ x-i18n:
 
 ```mermaid
 flowchart TD
-  A[CrawClaw is not working] --> B{What breaks first}
-  B --> C[No replies]
-  B --> D[Browser client will not connect]
-  B --> E[Gateway will not start or service not running]
-  B --> F[Channel connects but messages do not flow]
-  B --> G[Cron or main-session wake did not fire or deliver]
-  B --> H[Node is paired but camera canvas screen exec fails]
-  B --> I[Browser tool fails]
+  A[CrawClaw 无法工作] --> B{最先出现什么问题}
+  B --> C[无回复]
+  B --> D[浏览器客户端无法连接]
+  B --> E[Gateway 网关无法启动或服务未运行]
+  B --> F[渠道已连接但消息未流动]
+  B --> G[定时任务或主会话唤醒未触发或未送达]
+  B --> H[节点已配对但摄像头画布屏幕 exec 失败]
+  B --> I[浏览器工具失败]
 
-  C --> C1[/No replies section/]
-  D --> D1[/Browser client section/]
-  E --> E1[/Gateway section/]
-  F --> F1[/Channel flow section/]
-  G --> G1[/Automation section/]
-  H --> H1[/Node tools section/]
-  I --> I1[/Browser section/]
+  C --> C1[/无回复部分/]
+  D --> D1[/浏览器客户端部分/]
+  E --> E1[/Gateway 网关部分/]
+  F --> F1[/渠道流部分/]
+  G --> G1[/自动化部分/]
+  H --> H1[/节点工具部分/]
+  I --> I1[/浏览器部分/]
 ```
 
 <AccordionGroup>
   <Accordion title="无回复">
-    使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
 
-    正常输出的判断标准：
+    良好输出的判断标准：
 
     - `Runtime: running`
     - `RPC probe: ok`
-    - 你的渠道在 `channels status --probe` 中显示 connected/ready
-    - 发送者显示已批准（或私信策略为 open/allowlist）
+    - 你的渠道在 `channels status --probe` 中显示已连接/就绪
+    - 发送者显示已批准（或私信策略为开放/允许列表）
 
     常见日志特征：
 
-    - `drop guild message (mention required` → 提及门控在 community chat 中阻止了消息。
-    - `pairing request` → 发送者未批准，等待私信配对批准。
+    - `drop guild message (mention required` → 在 community chat 中，提及限制阻止了消息。
+    - `pairing request` → 发送者未批准，正在等待私信配对批准。
     - `blocked` / `allowlist` 在渠道日志中 → 发送者、房间或群组被过滤。
 
     深入页面：
@@ -114,18 +114,18 @@ flowchart TD
   </Accordion>
 
   <Accordion title="浏览器客户端无法连接">
-    使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
 
-    正常输出的判断标准：
+    良好输出的判断标准：
 
-    - 在你选择的访问路径中显示一个可访问的客户端目标
+    - 在你选择的访问路径中显示可到达的客户端目标
     - `RPC probe: ok`
     - 日志中无认证循环
 
     常见日志特征：
 
-    - `AUTH_TOKEN_MISMATCH` → token/password 错误或认证模式不匹配。
-    - `gateway connect failed:` → 客户端指向了错误的 URL/端口或 gateway 不可达。
+    - `AUTH_TOKEN_MISMATCH` → 令牌/密码错误或认证模式不匹配。
+    - `gateway connect failed:` → 客户端指向了错误的 URL/端口或无法访问的 gateway。
 
     深入页面：
 
@@ -134,10 +134,10 @@ flowchart TD
 
   </Accordion>
 
-  <Accordion title="Gateway 无法启动或服务已安装但未运行">
-    使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+  <Accordion title="Gateway 网关无法启动或服务已安装但未运行">
+    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
 
-    正常输出的判断标准：
+    良好输出的判断标准：
 
     - `Service: ... (loaded)`
     - `Runtime: running`
@@ -145,8 +145,8 @@ flowchart TD
 
     常见日志特征：
 
-    - `Gateway start blocked: set gateway.mode=local` → gateway 模式未设置或为 remote。
-    - `refusing to bind gateway ... without auth` → 在非 loopback 绑定时没有 token/password。
+    - `Gateway start blocked: set gateway.mode=local` → gateway 模式未设置/为远程模式。
+    - `refusing to bind gateway ... without auth` → 非 local loopback 绑定时未设置令牌/密码。
     - `another gateway instance is already listening` 或 `EADDRINUSE` → 端口已被占用。
 
     深入页面：
@@ -157,20 +157,20 @@ flowchart TD
 
   </Accordion>
 
-  <Accordion title="渠道连接但消息不流转">
-    使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+  <Accordion title="渠道已连接但消息未流动">
+    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
 
-    正常输出的判断标准：
+    良好输出的判断标准：
 
     - 渠道传输已连接。
     - 配对/允许列表检查通过。
-    - 在需要的地方检测到提及。
+    - 在需要时检测到提及。
 
     常见日志特征：
 
-    - `mention required` → 群组提及门控阻止了处理。
+    - `mention required` → 群组提及限制阻止了处理。
     - `pairing` / `pending` → 私信发送者尚未批准。
-    - `not_in_channel`、`missing_scope`、`Forbidden`、`401/403` → 渠道权限 token 问题。
+    - `not_in_channel`, `missing_scope`, `Forbidden`, `401/403` → 渠道权限令牌问题。
 
     深入页面：
 
@@ -179,19 +179,19 @@ flowchart TD
 
   </Accordion>
 
-  <Accordion title="Cron 或 main-session wake 未触发或未投递">
-    使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+  <Accordion title="定时任务或主会话唤醒未触发或未送达">
+    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
 
-    正常输出的判断标准：
+    良好输出的判断标准：
 
-    - `cron.status` 显示已启用且有下一次唤醒时间。
+    - `cron.status` 显示已启用且有下次唤醒时间。
     - `cron runs` 显示最近的 `ok` 条目。
-    - 通过 CrawClaw Desktop 或 local loopback Gateway API 可以看到排队的 main-session wake 事件。
+    - 通过 CrawClaw Desktop 或本地 Gateway API 可以看到排队的主会话唤醒事件。
 
     常见日志特征：
 
-    - `cron: scheduler disabled; jobs will not run automatically` → cron 被禁用。
-    - `requests-in-flight` → 主通道忙；wake 被推迟。
+    - `cron: scheduler disabled; jobs will not run automatically` → 定时任务已禁用。
+    - `requests-in-flight` → 主通道忙碌；唤醒被延迟。
     - `unknown accountId` → 遗留 heartbeat 投递目标账户不存在。
 
     深入页面：
@@ -202,30 +202,30 @@ flowchart TD
 
   </Accordion>
 
-  <Accordion title="Exec 突然要求批准">
-    使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+  <Accordion title="Exec 突然请求审批">
+    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
 
     发生了什么变化：
 
     - 如果 `tools.exec.host` 未设置，默认为 `auto`。
-    - `host=auto` 仅做路由；无提示的"YOLO"行为来自 Gateway 主机上的 `security=full` 加 `ask=off`。
+    - `host=auto` 仅用于路由；无提示的"YOLO"行为来自 Gateway 主机上的 `security=full` 加 `ask=off`。
     - 在 `gateway` 上，未设置的 `tools.exec.security` 默认为 `full`。
     - 未设置的 `tools.exec.ask` 默认为 `off`。
-    - 结果：如果你看到批准提示，说明某些主机本地或每会话策略收紧了 exec，远离了当前默认值。
+    - 结果：如果你看到审批请求，说明某些主机本地或按会话的策略收紧了 exec，远离了当前默认值。
 
-    恢复当前默认的无批准行为：
+    恢复当前默认的无审批行为：
 
-    使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
 
     更安全的替代方案：
 
-    - 如果你只想稳定的主机路由，只设置 `tools.exec.host=gateway`。
-    - 如果你想要主机 exec 但仍想对允许列表缺失进行审查，使用 `security=allowlist` 加 `ask=on-miss`。
+    - 如果你只想稳定主机路由，仅设置 `tools.exec.host=gateway`。
+    - 如果你希望主机 exec 但仍想在允许列表未命中时进行审查，使用 `security=allowlist` 加 `ask=on-miss`。
 
     常见日志特征：
 
-    - `Approval required.` → 命令在等待 `/approve ...`。
-    - `SYSTEM_RUN_DENIED: approval required` → gateway exec 批准待处理。
+    - `Approval required.` → 命令正在等待 `/approve ...`。
+    - `SYSTEM_RUN_DENIED: approval required` → gateway exec 审批待处理。
 
     深入页面：
 
@@ -236,15 +236,14 @@ flowchart TD
   </Accordion>
 
   <Accordion title="浏览器工具失败">
-    使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
 
-    从当前智能体或 Gateway `/tools/invoke` 路径，使用 `browser` 工具运行
-    `{ "action": "status", "profile": "crawclaw" }`。
+    从当前智能体或 Gateway `/tools/invoke` 路径，使用 `{ "action": "status", "profile": "crawclaw" }` 运行 `browser` 工具。
 
-    正常输出的判断标准：
+    良好输出的判断标准：
 
-    - 浏览器工具状态显示 `running: true` 和选定的浏览器/配置文件。
-    - `crawclaw` 启动，或远程 CDP 配置文件可访问。
+    - 浏览器工具状态显示 `running: true` 以及选定的浏览器/配置文件。
+    - `crawclaw` 启动，或远程 CDP 配置文件可达。
 
     常见日志特征：
 
@@ -262,10 +261,10 @@ flowchart TD
   </Accordion>
 </AccordionGroup>
 
-## 相关
+## 相关资源
 
-- [常见问题](/help/faq) — 常见问题
-- [Gateway 故障排除](/gateway/troubleshooting) — gateway 特定问题
+- [常见问题](/help/faq) — 常见问题解答
+- [Gateway 故障排除](/gateway/troubleshooting) — Gateway 网关特定问题
 - [Doctor](/gateway/doctor) — 自动化健康检查和修复
 - [渠道故障排除](/channels/troubleshooting) — 渠道连接问题
-- [自动化故障排除](/automation/cron-jobs#troubleshooting) — cron 和 wake 问题
+- [自动化故障排除](/automation/cron-jobs#troubleshooting) — 定时任务和唤醒问题

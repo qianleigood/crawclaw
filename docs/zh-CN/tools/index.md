@@ -1,126 +1,135 @@
 ---
 read_when:
-  - 添加或修改智能体工具
-  - 停用或更改 legacy `crawclaw-*` Skills
-summary: CrawClaw 工具与插件总览：内置工具、工具分组、allow/deny、profile 与插件扩展
-title: 工具
+  - 你想了解 CrawClaw 提供哪些工具
+  - 你需要配置、允许或拒绝工具
+  - 你在决定使用内置工具、Skills 还是插件
+summary: CrawClaw 工具和插件概览：智能体可以做什么以及如何扩展
+title: 工具和插件
 x-i18n:
-  generated_at: "2026-02-03T10:12:41Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: a1ec62a9c9bea4c1d2cebfb88509739a3b48b451ab3e378193c620832e2aa07b
+  generated_at: "2026-06-05T14:51:34Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 2da6422a803e8f6d3dfb02fd03cb653142790ecd3dbd5db352c504d2bc1de278
   source_path: tools/index.md
   workflow: 15
 ---
 
-# 工具（CrawClaw）
+# 工具和插件
 
-CrawClaw 把文件、运行时、Web、会话、浏览器、消息、多媒体等能力都暴露成
-**一流的智能体工具**。这些工具是类型化的函数调用，模型可以直接看到 schema，
-不需要再退回到 shell 或旧式 `crawclaw-*` Skills。
+智能体在生成文本之外的所有操作都通过**工具**完成。工具是智能体读取文件、运行命令、浏览网页、发送消息以及与设备交互的方式。
+
+## 工具、Skills 和插件
+
+CrawClaw 有三层协同工作的机制：
+
+<Steps>
+  <Step title="工具是智能体调用的内容">
+    工具是智能体可以调用的类型化函数（例如 `bash`、`browser`、`web_search`、`message`）。CrawClaw 提供一组内置工具和原生工具。
+
+    智能体将工具视为发送到模型 API 的结构化函数定义。
+
+  </Step>
+
+  <Step title="Skills 教智能体何时以及如何做">
+    Skill 是一个 markdown 文件（`SKILL.md`），注入到系统提示中。Skills 为智能体提供上下文、约束条件和分步指导，以便有效地使用工具。Skills 存在于你的工作区、共享文件夹中，或打包在插件里。
+
+    [Skills 参考](/tools/skills) | [创建 Skills](/tools/creating-skills)
+
+  </Step>
+
+  <Step title="插件将所有内容打包在一起">
+    插件是声明性元数据、配置、Skills 和原生能力的包。生产执行由 Rust 运行时拥有。
+
+    [安装和配置插件](/tools/plugin) | [构建自己的插件](/plugins/building-plugins)
+
+  </Step>
+</Steps>
 
 ## 内置工具
 
-这些工具随 CrawClaw 一起提供，不需要额外安装插件：
+这些工具随 CrawClaw 一起提供，无需安装任何插件即可使用：
 
-| 工具                                       | 作用                                       | 文档                                    |
-| ------------------------------------------ | ------------------------------------------ | --------------------------------------- |
-| `exec` / `process`                         | 运行 shell 命令、管理后台进程              | [Exec](/tools/exec)                     |
-| `code_execution`                           | 运行远程沙盒 Python 分析                   | [Code Execution](/tools/code-execution) |
-| `browser`                                  | 控制 Chromium 浏览器（导航、点击、截图）   | [Browser](/tools/browser)               |
-| `web_search` / `x_search` / `web_fetch`    | 搜索网络、搜索 X 帖子、抓取网页内容        | [Web](/tools/web)                       |
-| `image`                                    | 用视觉模型分析一张或多张图片               | [图像工具](/tools/image)                |
-| `pdf`                                      | 分析 PDF，支持原生与回退提取路径           | [PDF 工具](/tools/pdf)                  |
-| `tts`                                      | 把文本回复转换成音频                       | [文本转语音](/tools/tts)                |
-| `read` / `write` / `edit`                  | 工作区文件读写                             |                                         |
-| `apply_patch`                              | 跨多个文件应用结构化补丁                   | [Apply Patch](/tools/apply-patch)       |
-| `message`                                  | 跨渠道发送消息                             | [Agent Send](/tools/agent-send)         |
-| `canvas`                                   | 驱动节点 Canvas（present、eval、snapshot） |                                         |
-| `nodes`                                    | 发现并操作配对设备                         |                                         |
-| `cron` / `gateway`                         | 管理定时任务、重启 gateway                 |                                         |
-| `sessions_*` / `subagents` / `agents_list` | 会话管理、turn-yield、子智能体             | [Sub-agents](/tools/subagents)          |
+| 工具                                | 功能                                     | 页面                            |
+| ----------------------------------- | ---------------------------------------- | ------------------------------- |
+| `bash` / `process`                  | 运行 shell 命令，管理后台进程            | [Exec](/tools/exec)             |
+| `grep` / `find` / `ls`              | 通过 Rust 运行时搜索和检查工作区文件     | [Exec](/tools/exec)             |
+| `browser`                           | 控制 Chromium 浏览器（导航、点击、截图） | [Browser](/tools/browser)       |
+| `web_search` / `web_fetch`          | 搜索网页或获取页面内容                   | [Web](/tools/web)               |
+| `image`                             | 使用视觉模型分析一张或多张图片           | [Image 工具](/tools/image)      |
+| `pdf`                               | 使用原生和回退提取分析 PDF 文件          | [PDF 工具](/tools/pdf)          |
+| `tts`                               | 将文本回复转换为音频                     | [文本转语音](/tools/tts)        |
+| `read` / `write` / `edit`           | 工作区中的文件 I/O                       |                                 |
+| `apply_patch`                       | 多 hunk 文件补丁                         | [应用补丁](/tools/apply-patch)  |
+| `message`                           | 跨所有渠道发送消息                       | [智能体发送](/tools/agent-send) |
+| `cron`                              | 管理定时任务                             |                                 |
+| `sessions_spawn` / `sessions_yield` | 生成子智能体并接收结果                   | [子智能体](/tools/subagents)    |
+| `session_status`                    | 检查当前会话状态                         |                                 |
 
-`image` 和 `pdf` 属于条件注册工具：只有当 CrawClaw 能为当前 agent 解析出可用的媒体模型时，它们才会暴露给模型。
+`image` 和 `pdf` 是有条件注册的：只有当 CrawClaw 能够为当前智能体解析可用的媒体支持模型时才会暴露它们。
 
-## 禁用工具
+在授权聊天中使用 `/tools` 检查当前智能体的有效工具集。
+`/tools verbose` 还列出不可用的内置工具和警告，包括有风险的 exec 姿态，例如主机执行而无需审批提示。
 
-你可以通过 `crawclaw.json` 中的 `tools.allow` / `tools.deny` 全局允许/拒绝工具
-（deny 优先）。这会阻止不允许的工具被发送到模型提供商。
+### 原生工具
 
-```json5
-{
-  tools: { deny: ["browser"] },
-}
-```
+- [Lobster](/tools/lobster) — 具有可恢复审批的类型化工作流运行时
+- [LLM Task](/tools/llm-task) — 用于结构化输出的纯 JSON LLM 步骤
+- [OpenProse](/prose) — 优先 markdown 的工作流编排
 
-注意：
+## 工具配置
 
-- 匹配不区分大小写。
-- 支持 `*` 通配符（`"*"` 表示所有工具）。
-- 如果 `tools.allow` 仅引用未知或未加载的插件工具名称，CrawClaw 会记录警告并忽略允许列表，以确保核心工具保持可用。
+### 允许和拒绝列表
 
-## 工具配置文件（基础允许列表）
-
-`tools.profile` 在 `tools.allow`/`tools.deny` 之前设置**基础工具允许列表**。
-按智能体覆盖：`agents.list[].tools.profile`。
-
-配置文件：
-
-- `minimal`：仅 `session_status`
-- `coding`：`group:fs`、`group:runtime`、`group:web`、`group:sessions`、`image`
-- `messaging`：`group:messaging`、`sessions_list`、`sessions_history`、`sessions_send`、`session_status`
-- `full`：无限制（与未设置相同）
-
-示例（默认仅消息，同时允许 DingTalk + QQBot 工具）：
+通过配置中的 `tools.allow` / `tools.deny` 控制智能体可以调用哪些工具。拒绝优先于允许。
 
 ```json5
 {
   tools: {
-    profile: "messaging",
-    allow: ["ddingtalk", "qqbot"],
+    allow: ["group:fs", "browser", "web_search"],
+    deny: ["bash"],
   },
 }
 ```
 
-示例（coding 配置文件，但在所有地方拒绝 exec/process）：
+### 工具配置文件
 
-```json5
-{
-  tools: {
-    profile: "coding",
-    deny: ["group:runtime"],
-  },
-}
-```
+`tools.profile` 在应用 `allow`/`deny` 之前设置基础允许列表。
+每个智能体覆盖：`agents.list[].tools.profile`。
 
-示例（全局 coding 配置文件，仅消息的支持智能体）：
+生命周期门控在策略允许/拒绝之前运行。`full` 移除配置文件限制，但本身不会暴露运行时条件工具或特殊智能体专用工具。
 
-```json5
-{
-  tools: { profile: "coding" },
-  agents: {
-    list: [
-      {
-        id: "support",
-        tools: { profile: "messaging", allow: ["ddingtalk"] },
-      },
-    ],
-  },
-}
-```
+| 配置文件    | 包含内容                                                                                                                |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `coding`    | 文件 I/O、bash/process、grep/find/ls、web、sessions_spawn/sessions_yield/session_status、browser、Skills 发现和经验写入 |
+| `messaging` | 消息和 session_status                                                                                                   |
+| `minimal`   | 仅 session_status                                                                                                       |
 
-## 特定提供商的工具策略
+### 工具组
 
-使用 `tools.byProvider` 为特定提供商（或单个 `provider/model`）**进一步限制**工具，
-而不更改你的全局默认值。
-按智能体覆盖：`agents.list[].tools.byProvider`。
+在 allow/deny 列表中使用 `group:*` 简写：
 
-这在基础工具配置文件**之后**和允许/拒绝列表**之前**应用，
-因此它只能缩小工具集。
-提供商键接受 `provider`（例如 `google-antigravity`）或
-`provider/model`（例如 `openai/gpt-5.2`）。
+| 组                      | 工具                                                                                                      |
+| ----------------------- | --------------------------------------------------------------------------------------------------------- |
+| `group:runtime`         | bash、process、grep、find、ls                                                                             |
+| `group:fs`              | read、write、edit、apply_patch                                                                            |
+| `group:web`             | web_search、web_fetch                                                                                     |
+| `group:sessions`        | sessions_list、sessions_history、sessions_send、sessions_spawn、sessions_yield、subagents、session_status |
+| `group:ui`              | browser、canvas                                                                                           |
+| `group:automation`      | cron、gateway                                                                                             |
+| `group:messaging`       | message                                                                                                   |
+| `group:skills`          | discover_skills                                                                                           |
+| `group:workflow`        | workflow、workflowize                                                                                     |
+| `group:review`          | review_task                                                                                               |
+| `group:memory`          | knowledge_recall、knowledge_reflect、knowledge_ingest、knowledge_model_list、knowledge_model_create       |
+| `group:session_summary` | session_summary_file_read、session_summary_file_edit                                                      |
+| `group:media`           | image、pdf、tts                                                                                           |
+| `group:crawclaw`        | 所有内置 CrawClaw 工具（排除插件工具）                                                                    |
 
-示例（保持全局 coding 配置文件，但 Google Antigravity 使用最小工具）：
+组扩展不会绕过生命周期门控。例如，`group:session_summary` 列出的工具仍然仅对其所属特殊智能体可用。
+
+### 提供商特定限制
+
+使用 `tools.byProvider` 限制特定提供商的工具，而不更改全局默认值：
 
 ```json5
 {
@@ -132,444 +141,3 @@ CrawClaw 把文件、运行时、Web、会话、浏览器、消息、多媒体�
   },
 }
 ```
-
-示例（针对不稳定端点的 provider/model 特定允许列表）：
-
-```json5
-{
-  tools: {
-    allow: ["group:fs", "group:runtime", "sessions_list"],
-    byProvider: {
-      "openai/gpt-5.2": { allow: ["group:fs", "sessions_list"] },
-    },
-  },
-}
-```
-
-示例（针对单个提供商的智能体特定覆盖）：
-
-```json5
-{
-  agents: {
-    list: [
-      {
-        id: "support",
-        tools: {
-          byProvider: {
-            "google-antigravity": { allow: ["message", "sessions_list"] },
-          },
-        },
-      },
-    ],
-  },
-}
-```
-
-## 工具组（简写）
-
-工具策略（全局、智能体、沙箱）支持 `group:*` 条目，它们会展开为多个工具。
-在 `tools.allow` / `tools.deny` 中使用这些。
-
-可用的组：
-
-- `group:runtime`：`exec`、`bash`、`process`、`code_execution`
-- `group:fs`：`read`、`write`、`edit`、`apply_patch`
-- `group:web`：`web_search`、`web_fetch`、`x_search`
-- `group:sessions`：`sessions_list`、`sessions_history`、`sessions_send`、`sessions_spawn`、`sessions_yield`、`subagents`、`session_status`
-- `group:ui`：`browser`、`canvas`
-- `group:automation`：`cron`、`gateway`
-- `group:messaging`：`message`
-- `group:nodes`：`nodes`
-- `group:agents`：`agents_list`
-- `group:media`：`image`、`tts`
-- `group:crawclaw`：所有内置 CrawClaw 工具（不包括提供商插件）
-
-示例（仅允许文件工具 + browser）：
-
-```json5
-{
-  tools: {
-    allow: ["group:fs", "browser"],
-  },
-}
-```
-
-## 插件 + 工具
-
-插件可以在核心集之外注册**额外的工具**（和 CLI 命令）。
-参见[插件](/tools/plugin)了解安装 + 配置，以及 [Skills](/tools/skills) 了解
-工具使用指导如何被注入到提示中。一些插件随工具一起提供自己的 Skills
-（例如，demo-plugin 插件）。
-
-可选的插件工具：
-
-- [Lobster](/tools/lobster)：带有可恢复审批的类型化工作流运行时（需要 Gateway 网关主机上的 Lobster CLI）。
-- [LLM Task](/tools/llm-task)：用于结构化工作流输出的 JSON-only LLM 步骤（可选 schema 验证）。
-
-## 工具清单
-
-### `apply_patch`
-
-跨一个或多个文件应用结构化补丁。用于多块编辑。
-实验性：通过 `tools.exec.applyPatch.enabled` 启用（仅 OpenAI 模型）。
-
-### `exec`
-
-在工作区中运行 shell 命令。
-
-核心参数：
-
-- `command`（必需）
-- `yieldMs`（超时后自动后台运行，默认 10000）
-- `background`（立即后台运行）
-- `timeout`（秒；超过则终止进程，默认 1800）
-- `elevated`（布尔值；如果启用/允许提升模式，则在主机上运行；仅在智能体被沙箱隔离时改变行为）
-- `host`（`sandbox | gateway | node`）
-- `security`（`deny | allowlist | full`）
-- `ask`（`off | on-miss | always`）
-- `node`（`host=node` 时的节点 id/名称）
-- 需要真正的 TTY？设置 `pty: true`。
-
-注意：
-
-- 后台运行时返回带有 `sessionId` 的 `status: "running"`。
-- 使用 `process` 来轮询/日志/写入/终止/清除后台会话。
-- 如果不允许 `process`，`exec` 会同步运行并忽略 `yieldMs`/`background`。
-- `elevated` 受 `tools.elevated` 加上任何 `agents.list[].tools.elevated` 覆盖的门控（两者都必须允许），是 `host=gateway` + `security=full` 的别名。
-- `elevated` 仅在智能体被沙箱隔离时改变行为（否则是空操作）。
-- `host=node` 可以针对无头节点主机（`crawclaw node run`）。
-- Gateway 网关/节点审批和允许列表：[执行审批](/tools/exec-approvals)。
-
-### `process`
-
-管理后台 exec 会话。
-
-核心操作：
-
-- `list`、`poll`、`log`、`write`、`kill`、`clear`、`remove`
-
-注意：
-
-- `poll` 返回新输出，完成时返回退出状态。
-- `log` 支持基于行的 `offset`/`limit`（省略 `offset` 以获取最后 N 行）。
-- `process` 按智能体作用域；来自其他智能体的会话不可见。
-
-### `web_search`
-
-通过捆绑的 Open-WebSearch provider 搜索网络。
-
-核心参数：
-
-- `query`（必需）
-- `count`（1-10；默认来自 `tools.web.search.maxResults`）
-
-注意：
-
-- 正常安装下不需要额外 API 密钥。
-- 通过 `tools.web.search.enabled` 启用。
-- 响应被缓存（默认 15 分钟）。
-- 当前托管 `web_search` 默认走 bundled `open-websearch` provider。
-- 参见 [Web 工具](/tools/web) 了解设置。
-
-### `web_fetch`
-
-从 URL 获取页面快照并提取可读内容，默认按上下文预算返回 `brief` 结果。
-
-核心参数：
-
-- `url`（必需）
-- `detail`（`brief` 默认、`standard`、`full`）
-- `output`（`markdown` 默认、`text`、`html`、`structured`）
-- `maxChars`（内容预算上限）
-
-注意：
-
-- 通过 `tools.web.fetch.enabled` 启用。
-- 响应被缓存（默认 15 分钟）。
-- 返回里会带 `summary`、`contentPreview`、`estimatedTokens` 等轻量字段。
-- 对于 JS 密集型网站，优先使用 browser 工具。
-- 参见 [Web 工具](/tools/web) 了解设置。
-- 当前默认 provider 是 bundled `scrapling-fetch`。
-
-### `browser`
-
-控制专用的 CrawClaw 管理的浏览器。
-
-核心操作：
-
-- `status`、`start`、`stop`、`tabs`、`open`、`focus`、`close`
-- `snapshot`（aria/ai）
-- `screenshot`（返回图像块 + `MEDIA:<path>`）
-- `act`（UI 操作：click/type/press/hover/drag/select/fill/resize/wait/evaluate）
-- `navigate`、`console`、`pdf`、`upload`、`dialog`
-
-配置文件管理：
-
-- `profiles` — 列出所有浏览器配置文件及其状态
-- `create-profile` — 使用自动分配的端口（或 `cdpUrl`）创建新配置文件
-- `delete-profile` — 停止浏览器，删除用户数据，从配置中移除（仅本地）
-- `reset-profile` — 终止配置文件端口上的孤儿进程（仅本地）
-
-常用参数：
-
-- `profile`（可选；默认为 `browser.defaultProfile`）
-- `target`（`sandbox` | `host` | `node`）
-- `node`（可选；选择特定的节点 id/名称）
-  注意：
-- 需要 `browser.enabled=true`（默认为 `true`；设置为 `false` 以禁用）。
-- 所有操作接受可选的 `profile` 参数以支持多实例。
-- 当省略 `profile` 时，使用 `browser.defaultProfile`（默认为"chrome"）。
-- 配置文件名称：仅小写字母数字 + 连字符（最多 64 字符）。
-- 端口范围：18800-18899（最多约 100 个配置文件）。
-- 远程配置文件仅支持附加（无 start/stop/reset）。
-- 如果连接了支持浏览器的节点，工具可能会自动路由到它（除非你固定了 `target`）。
-- 安装 Playwright 时 `snapshot` 默认为 `ai`；使用 `aria` 获取无障碍树。
-- `snapshot` 还支持角色快照选项（`interactive`、`compact`、`depth`、`selector`），返回像 `e12` 这样的引用。
-- `act` 需要来自 `snapshot` 的 `ref`（AI 快照中的数字 `12`，或角色快照中的 `e12`）；对于罕见的 CSS 选择器需求使用 `evaluate`。
-- 默认避免 `act` → `wait`；仅在特殊情况下使用（没有可靠的 UI 状态可等待）。
-- `upload` 可以选择性地传递 `ref` 以在准备后自动点击。
-- `upload` 还支持 `inputRef`（aria 引用）或 `element`（CSS 选择器）以直接设置 `<input type="file">`。
-
-### `canvas`
-
-驱动节点 Canvas（present、eval、snapshot）。
-
-核心操作：
-
-- `present`、`hide`、`navigate`、`eval`
-- `snapshot`（返回图像块 + `MEDIA:<path>`）
-  注意：
-
-- 底层使用 Gateway 网关 `node.invoke`。
-- 如果未提供 `node`，工具会选择默认值（单个连接的节点或本地 mac 节点）。
-
-### `nodes`
-
-发现和定位配对的节点；发送通知；捕获摄像头/屏幕。
-
-核心操作：
-
-- `status`、`describe`
-- `pending`、`approve`、`reject`（配对）
-- `notify`（macOS `system.notify`）
-- `camera_snap`、`camera_clip`、`screen_record`
-- `location_get`
-
-注意：
-
-- 摄像头/屏幕命令需要节点应用在前台。
-- 图像返回图像块 + `MEDIA:<path>`。
-- 视频返回 `FILE:<path>`（mp4）。
-- 位置返回 JSON 负载（lat/lon/accuracy/timestamp）。
-- 节点 shell 执行现在统一通过带 `host=node` 的 `exec` 工具；`nodes` 保持为显式节点命令的 RPC 表面。
-
-示例（节点能力）：
-
-```json
-{
-  "action": "run",
-  "node": "office-mac",
-  "command": ["echo", "Hello"],
-  "env": ["FOO=bar"],
-  "commandTimeoutMs": 12000,
-  "invokeTimeoutMs": 45000,
-  "needsScreenRecording": false
-}
-```
-
-### `image`
-
-使用配置的图像模型分析图像。
-
-核心参数：
-
-- `image`（必需的路径或 URL）
-- `prompt`（可选；默认为"Describe the image."）
-- `model`（可选覆盖）
-- `maxBytesMb`（可选大小上限）
-
-注意：
-
-- 仅在配置了 `agents.defaults.imageModel`（主要或回退）时可用，或者当可以从你的默认模型 + 配置的认证推断出隐式图像模型时（尽力配对）。
-- 直接使用图像模型（独立于主聊天模型）。
-- 详见 [图像工具](/tools/image)。
-
-### `pdf`
-
-分析一个或多个 PDF 文档。
-
-核心参数：
-
-- `pdf` / `pdfs`
-- `prompt`
-- `pages`
-- `model`
-- `maxBytesMb`
-
-注意：
-
-- Anthropic 和 Google provider 支持原生 PDF 分析。
-- 其他 provider 先提取文本；文本不足时再渲染页面图片。
-- 仅在可以解析出可用 PDF 模型时才会暴露。
-- 详见 [PDF 工具](/tools/pdf)。
-
-### `message`
-
-跨 QQBot/Feishu/DingTalk/Feishu/Weixin/Feishu/Weixin/MS Teams 发送消息和渠道操作。
-
-核心操作：
-
-- `send`（文本 + 可选媒体；MS Teams 还支持用于 Adaptive Cards 的 `card`）
-- `poll`（Weixin/QQBot/MS Teams 投票）
-- `react` / `reactions` / `read` / `edit` / `delete`
-- `pin` / `unpin` / `list-pins`
-- `permissions`
-- `thread-create` / `thread-list` / `thread-reply`
-- `search`
-- `sticker`
-- `member-info` / `role-info`
-- `emoji-list` / `emoji-upload` / `sticker-upload`
-- `role-add` / `role-remove`
-- `channel-info` / `channel-list`
-- `voice-status`
-- `event-list` / `event-create`
-- `timeout` / `kick` / `ban`
-
-注意：
-
-- `send` 通过 Gateway 网关路由 Weixin；其他渠道直接发送。
-- `poll` 对 Weixin 和 MS Teams 使用 Gateway 网关；QQBot 投票直接发送。
-- 当消息工具调用绑定到活动聊天会话时，发送被限制到该会话的目标以避免跨上下文泄露。
-
-### `cron`
-
-管理 Gateway 网关定时任务和唤醒。
-
-核心操作：
-
-- `status`、`list`
-- `add`、`update`、`remove`、`run`、`runs`
-- `wake`（入队系统事件 + 可选的立即心跳）
-
-注意：
-
-- `add` 期望完整的定时任务对象（与 `cron.add` RPC 相同的 schema）。
-- `update` 使用 `{ id, patch }`。
-
-### `gateway`
-
-重启或对运行中的 Gateway 网关进程应用更新（就地）。
-
-核心操作：
-
-- `restart`（授权 + 发送 `SIGUSR1` 进行进程内重启；Gateway 网关进程就地重启）
-- `config.get` / `config.schema`
-- `config.apply`（验证 + 写入配置 + 重启 + 唤醒）
-- `config.patch`（合并部分更新 + 重启 + 唤醒）
-- `update.run`（运行更新 + 重启 + 唤醒）
-
-注意：
-
-- 使用 `delayMs`（默认 2000）以避免中断进行中的回复。
-- `restart` 默认启用；设置 `commands.restart: false` 可禁用手动重启。
-
-### `sessions_list` / `sessions_history` / `sessions_send` / `sessions_spawn` / `sessions_yield` / `subagents` / `session_status`
-
-列出会话，检查转录历史，或发送到另一个会话。
-
-核心参数：
-
-- `sessions_list`：`kinds?`、`limit?`、`activeMinutes?`、`messageLimit?`（0 = 无）
-- `sessions_history`：`sessionKey`（或 `sessionId`）、`limit?`、`includeTools?`
-- `sessions_send`：`sessionKey`（或 `sessionId`）、`message`、`timeoutSeconds?`（0 = fire-and-forget）
-- `sessions_spawn`：`task`、`label?`、`agentId?`、`model?`、`runTimeoutSeconds?`、`cleanup?`
-- `sessions_yield`：`message?`
-- `session_status`：`sessionKey?`（默认当前；接受 `sessionId`）、`model?`（`default` 清除覆盖）
-- `subagents`：`action`（`list`、`info`、`steer`、`kill`）、其他参数依 action 而定
-
-注意：
-
-- `main` 是规范的私聊键；global/unknown 是隐藏的。
-- `messageLimit > 0` 获取每个会话的最后 N 条消息（工具消息被过滤）。
-- 当 `timeoutSeconds > 0` 时，`sessions_send` 等待最终完成。
-- 递送/宣告发生在完成后，是尽力而为的；`status: "ok"` 确认智能体运行完成，而不是宣告已递送。
-- `sessions_spawn` 启动子智能体运行并将宣告回复发送回请求者聊天。
-- `sessions_spawn` 是非阻塞的，立即返回 `status: "accepted"`。
-- `sessions_yield` 用来主动结束当前 turn，等待子智能体结果在下一条消息里回来。
-- `subagents` 用来列出、干预或终止当前 requester 的子智能体运行。
-- `sessions_send` 运行回复往返乒乓（回复 `REPLY_SKIP` 以停止；最大轮次通过 `session.agentToAgent.maxPingPongTurns`，0-5）。
-- 乒乓之后，目标智能体运行一个**宣告步骤**；回复 `ANNOUNCE_SKIP` 以抑制宣告。
-
-### `agents_list`
-
-列出当前会话可以用 `sessions_spawn` 定位的智能体 id。
-
-注意：
-
-- 结果受每智能体允许列表限制（`agents.list[].subagents.allowAgents`）。
-- 当配置为 `["*"]` 时，工具包含所有已配置的智能体并标记 `allowAny: true`。
-
-### `tts`
-
-把文本转成音频并自动交付。
-
-核心参数：
-
-- `text`
-- `channel?`
-
-注意：
-
-- 成功时工具结果会直接附带音频媒体信息。
-- provider 选择和自动 TTS 行为由 `messages.tts.*` 控制。
-- 详见 [文本转语音](/tools/tts)。
-
-## 参数（通用）
-
-Gateway 网关支持的工具（`canvas`、`nodes`、`cron`）：
-
-- `gatewayUrl`（默认 `ws://127.0.0.1:18789`）
-- `gatewayToken`（如果启用了认证）
-- `timeoutMs`
-
-Browser 工具：
-
-- `profile`（可选；默认为 `browser.defaultProfile`）
-- `target`（`sandbox` | `host` | `node`）
-- `node`（可选；固定特定的节点 id/名称）
-
-## 推荐的智能体流程
-
-浏览器自动化：
-
-1. `browser` → `status` / `start`
-2. `snapshot`（ai 或 aria）
-3. `act`（click/type/press）
-4. `screenshot` 如果你需要视觉确认
-
-Canvas 渲染：
-
-1. `canvas` → `present`
-2. `snapshot`
-
-节点定位：
-
-1. `nodes` → `status`
-2. 在选定的节点上 `describe`
-3. `notify` / `invoke` / `camera_snap` / `screen_record`
-
-## 安全性
-
-- 避免直接 `system.run`；仅在用户明确同意时使用带 `host=node` 的 `exec` 工具。
-- 尊重用户对摄像头/屏幕捕获的同意。
-- 在调用媒体命令前使用 `status/describe` 确保权限。
-
-## 工具如何呈现给智能体
-
-工具通过两个并行渠道暴露：
-
-1. **系统提示文本**：人类可读的列表 + 指导。
-2. **工具 schema**：发送到模型 API 的结构化函数定义。
-
-这意味着智能体同时看到"存在哪些工具"和"如何调用它们"。如果工具
-没有出现在系统提示或 schema 中，模型就无法调用它。

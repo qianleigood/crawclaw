@@ -1,60 +1,46 @@
 ---
-title: 在 Northflank 上部署
+read_when:
+  - 在 Northflank 上部署 CrawClaw
+  - 你想要一键云部署并通过面向浏览器的 gateway 访问
+summary: 使用一键模板在 Northflank 上部署 CrawClaw
+title: Northflank
 x-i18n:
-  generated_at: "2026-02-01T21:19:03Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: ad0be8dda41c51d0b6424259316db1b22be5216434f5879f21a5e8c60e0a2ee0
-  source_path: northflank.mdx
+  generated_at: "2026-06-05T14:39:51Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 9de4c91f793815913d6fc9bda557316c5ca3f01356454c3c0e80ed601c1b4353
+  source_path: install/northflank.mdx
   workflow: 15
 ---
 
-通过一键模板在 Northflank 上部署 CrawClaw，然后在浏览器中完成设置。
-这是最简单的"无需在服务器上使用终端"的方式：Northflank 为你运行 Gateway网关，
-你通过 `/setup` 网页向导配置一切。
+使用一键模板在 Northflank 上部署 CrawClaw，并使用支持的 gateway 客户端连接。这是"服务器端无终端"最简单的路径：Northflank 为你运行 Gateway 网关。
 
 ## 如何开始
 
 1. 点击 [Deploy CrawClaw](https://northflank.com/stacks/deploy-crawclaw) 打开模板。
-2. 如果你还没有账户，请创建一个 [Northflank 账户](https://app.northflank.com/signup)。
+2. 如果你还没有账户，请在 [Northflank](https://app.northflank.com/signup) 上创建一个账户。
 3. 点击 **Deploy CrawClaw now**。
-4. 设置必需的环境变量：`SETUP_PASSWORD`。
+4. 设置所需的环境变量：`CRAWCLAW_GATEWAY_TOKEN`（使用强随机值）。
 5. 点击 **Deploy stack** 构建并运行 CrawClaw 模板。
 6. 等待部署完成，然后点击 **View resources**。
 7. 打开 CrawClaw 服务。
-8. 打开公开的 CrawClaw URL，在 `/setup` 完成设置。
-9. 在 `/crawclaw` 打开控制面板 UI。
+8. 使用支持的 gateway 客户端连接到公共 CrawClaw URL，并使用你的 `CRAWCLAW_GATEWAY_TOKEN` 进行认证。
 
 ## 你将获得
 
-- 托管的 CrawClaw Gateway网关 + 控制面板 UI
-- `/setup` 处的网页设置向导（无需终端命令）
-- 通过 Northflank Volume（`/data`）实现持久化存储，配置/凭据/工作区在重新部署后不会丢失
+- 托管 CrawClaw Gateway 网关
+- 通过 Northflank Volume（`/data`）实现持久化存储，使配置/凭证/工作区在重新部署后得以保留
 
-## 设置流程
+## 连接渠道
 
-1. 访问 `https://<your-northflank-domain>/setup` 并输入你的 `SETUP_PASSWORD`。
-2. 选择模型/认证提供商并粘贴你的密钥。
-3. （可选）添加 Feishu/QQBot/DingTalk 令牌。
-4. 点击 **Run setup**。
-5. 在 `https://<your-northflank-domain>/crawclaw` 打开控制面板 UI。
+通过 SSH 运行 CrawClaw Desktop 或本地 Gateway API 获取渠道设置说明：
 
-如果 Feishu 私信设置为配对模式，设置向导可以审批配对码。
+- [飞书](/channels/index)（最快——只需 Bot Token）
+- [QQBot](/channels/index)
+- [所有渠道](/channels)
 
-## 获取聊天令牌
+## 下一步
 
-### Feishu 机器人令牌
-
-1. 在 Feishu 中给 `@BotFather` 发消息
-2. 运行 `/newbot`
-3. 复制令牌（格式如 `123456789:AA...`）
-4. 将其粘贴到 `/setup` 中
-
-### QQBot 机器人令牌
-
-1. 前往 https://qqbot.com/developers/applications
-2. **New Application** → 选择一个名称
-3. **Bot** → **Add Bot**
-4. 在 Bot → Privileged Gateway Intents 下**启用 MESSAGE CONTENT INTENT**（必需，否则机器人启动时会崩溃）
-5. 复制 **Bot Token** 并粘贴到 `/setup` 中
-6. 邀请机器人加入你的服务器（OAuth2 URL Generator；权限范围：`bot`、`applications.commands`）
+- 设置消息渠道：[渠道管理](/channels)
+- 配置 Gateway 网关：[Gateway 配置](/gateway/configuration)
+- 保持 CrawClaw 最新：[更新](/install/updating)

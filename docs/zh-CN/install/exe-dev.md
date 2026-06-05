@@ -1,51 +1,50 @@
 ---
 read_when:
-  - 你想为 Gateway 网关使用一台便宜且始终在线的 Linux 主机
-  - 你想在不自行运行 VPS 的情况下远程访问 Gateway 网关
-summary: 在 exe.dev 上运行 CrawClaw Gateway 网关（VM + HTTPS 代理）以实现远程访问
+  - 你需要一台便宜的常开 Linux 主机来运行 Gateway
+  - 你希望在不使用自己 VPS 的情况下实现远程 gateway 客户端访问
+summary: 在 exe.dev（VM + HTTPS 代理）上运行 CrawClaw Gateway 以实现远程访问
 title: exe.dev
 x-i18n:
-  generated_at: "2026-03-16T06:23:23Z"
-  model: gpt-5.4
-  provider: openai
-  source_hash: 3c90f57e37145333429328477a3e12306586aa53283127daec75e065dbb85e39
+  generated_at: "2026-06-05T14:39:12Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: f9ff05af433fe6903a944dd798ed8fa7b57d449f8f9eb69dbc015db1b6c5facd
   source_path: install/exe-dev.md
   workflow: 15
 ---
 
 # exe.dev
 
-目标：让 CrawClaw Gateway 网关运行在 exe.dev VM 上，并且可通过你的笔记本电脑访问：`https://<vm-name>.exe.xyz`
+目标：在 exe.dev VM 上运行 CrawClaw Gateway，可通过 `https://<vm-name>.exe.xyz` 从你的笔记本访问。
 
-本页假设你使用的是 exe.dev 默认的 **exeuntu** 镜像。如果你选择了不同的发行版，请相应调整软件包。
+本页面假设使用 exe.dev 默认的 **exeuntu** 镜像。如果你选择了不同的发行版，请相应地映射软件包。
 
-## 面向初学者的快速路径
+## 初学者快速路径
 
 1. [https://exe.new/crawclaw](https://exe.new/crawclaw)
-2. 根据需要填写你的身份验证密钥/令牌
-3. 点击你的 VM 旁边的 “Agent”，然后等待……
-4. ???
-5. 成功
+2. 根据需要填写你的认证密钥/token
+3. 点击你的 VM 旁边的 "Agent" 并等待 Shelley 完成配置
+4. 使用支持的 gateway 客户端连接到 `https://<vm-name>.exe.xyz/` 并使用你的 gateway token 进行认证
+5. 通过 CrawClaw Desktop 或本地 Gateway API 批准所有待处理的设备配对请求
 
-## 你需要准备的内容
+## 你需要什么
 
 - exe.dev 账户
-- 对 [exe.dev](https://exe.dev) 虚拟机的 `ssh exe.dev` 访问权限（可选）
+- 通过 [exe.dev](https://exe.dev) 访问虚拟机的 `ssh exe.dev` 权限（可选）
 
 ## 使用 Shelley 自动安装
 
-Shelley 是 [exe.dev](https://exe.dev) 的智能体，可以使用我们的提示词立即安装 CrawClaw。
-使用的提示词如下：
+Shelley，[exe.dev](https://exe.dev) 的智能体，可以使用我们的提示词即时安装 CrawClaw。使用的提示词如下：
 
 ```
-Set up CrawClaw Desktop or a Gateway API deployment on this VM. Add the supplied auth or token as needed. Configure nginx to forward from the default port 18789 to the root location on the default enabled site config, making sure to enable WebSocket support. Approve device pairing through the desktop UI or Gateway API. exe.dev handles forwarding from port 8000 to port 80/443 and HTTPS for us, so the final reachable host should be `<vm-name>.exe.xyz`, without a port.
+在此 VM 上设置 CrawClaw Desktop 或 Gateway API 部署。根据需要添加提供的认证或 token。配置 nginx 将默认端口 18789 转发到默认启用站点配置的根路径，并确保启用 WebSocket 支持。通过桌面 UI 或 Gateway API 批准设备配对。exe.dev 会帮我们处理从端口 8000 到端口 80/443 的转发和 HTTPS，因此最终可访问的主机应该是 `<vm-name>.exe.xyz`，不带端口。
 ```
 
 ## 手动安装
 
-## 1）创建 VM
+## 1) 创建 VM
 
-在你的设备上运行：
+从你的设备：
 
 ```bash
 ssh exe.dev new
@@ -57,22 +56,22 @@ ssh exe.dev new
 ssh <vm-name>.exe.xyz
 ```
 
-提示：请让这个 VM 保持**有状态**。CrawClaw 会将状态存储在 `~/.crawclaw/` 和 `~/.crawclaw/workspace/` 下。
+提示：保持此 VM **有状态**。CrawClaw 在 `~/.crawclaw/` 和 `~/.crawclaw/workspace/` 下存储状态。
 
-## 2）安装前置依赖（在 VM 上）
+## 2) 安装前置依赖（在 VM 上）
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y git curl jq ca-certificates openssl
 ```
 
-## 3）安装 CrawClaw
+## 3) 安装 CrawClaw
 
-使用该部署支持的安装流程为此 host 安装当前 CrawClaw runtime，然后在 loopback 端口 `18789` 启动 Gateway。
+使用适合你部署方式的支持安装流程为当前主机安装 CrawClaw 运行时，然后在本地回环端口 `18789` 上启动 Gateway。
 
-## 4）设置 nginx，将 CrawClaw 代理到端口 8000
+## 4) 配置 nginx 将 CrawClaw 代理到端口 8000
 
-编辑 `/etc/nginx/sites-enabled/default`，内容如下：
+使用以下配置编辑 `/etc/nginx/sites-enabled/default`：
 
 ```
 server {
@@ -87,35 +86,33 @@ server {
         proxy_pass http://127.0.0.1:18789;
         proxy_http_version 1.1;
 
-        # WebSocket support
+        # WebSocket 支持
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
 
-        # Standard proxy headers
+        # 标准代理头
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # Timeout settings for long-lived connections
+        # 长连接超时设置
         proxy_read_timeout 86400s;
         proxy_send_timeout 86400s;
     }
 }
 ```
 
-## 5）访问 CrawClaw 并授予权限
+## 5) 访问 CrawClaw 并授予权限
 
-从支持的 Gateway client 访问 `https://<vm-name>.exe.xyz/`。如果提示进行身份验证，请使用 VM 上 `gateway.auth.token` 中的令牌。通过 CrawClaw Desktop 或本地 Gateway API 读取或轮换该 token，并通过 CrawClaw Desktop 或本地 Gateway API 批准设备。如果拿不准，请在浏览器中使用 Shelley！
+从支持的 gateway 客户端访问 `https://<vm-name>.exe.xyz/`。如果提示输入认证信息，请使用 VM 上 `gateway.auth.token` 中存储的 token。通过 CrawClaw Desktop 或本地 Gateway API 检索或轮换该 token。通过 CrawClaw Desktop 或本地 Gateway API 批准设备。如有疑问，请从浏览器使用 Shelley。
 
 ## 远程访问
 
-远程访问由 [exe.dev](https://exe.dev) 的身份验证处理。默认情况下，
-来自端口 8000 的 HTTP 流量会被转发到 `https://<vm-name>.exe.xyz`，
-并使用电子邮件身份验证。
+远程访问由 [exe.dev](https://exe.dev) 的认证处理。默认情况下，来自端口 8000 的 HTTP 流量会通过邮箱认证转发到 `https://<vm-name>.exe.xyz`。
 
 ## 更新
 
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
 
-指南：[Updating](/install/updating)
+指南：[更新](/install/updating)

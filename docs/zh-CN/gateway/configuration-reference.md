@@ -1,57 +1,56 @@
 ---
-description: Complete field-by-field reference for ~/.crawclaw/crawclaw.json
 read_when:
-  - 你需要精确到字段级别的配置语义或默认值
-  - 你正在验证渠道、模型、Gateway 网关或工具配置块
-summary: 每个 CrawClaw 配置键、默认值和渠道设置的完整参考
+  - 你需要精确的字段级配置语义或默认值
+  - 你正在验证 channel、model、gateway 或 tool config blocks
+summary: 每个 CrawClaw config key、默认值和 channel settings 的完整参考
 title: 配置参考
 x-i18n:
-  generated_at: "2026-03-16T06:27:43Z"
-  model: gpt-5.4
-  provider: openai
-  source_hash: c2926153fa94bbb3141ac7cd9ebfa381394c9c9ad7a1cf1d21fb91c879905d51
+  generated_at: "2026-06-05T15:37:26Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: e21f7a1d96e2d042f02631ec8a5b1d18c0552ddd6a69106b187375eab0b65267
   source_path: gateway/configuration-reference.md
   workflow: 15
 ---
 
 # 配置参考
 
-`~/.crawclaw/crawclaw.json` 中所有可用字段。若需面向任务的概览，请参见 [Configuration](/gateway/configuration)。
+`~/.crawclaw/crawclaw.json` 中的所有字段。任务导向的概览请参阅[配置](/gateway/configuration)。
 
-配置格式为 **JSON5**（允许注释和尾随逗号）。所有字段都是可选的——省略时，CrawClaw 会使用安全默认值。
+配置格式为 **JSON5**（支持注释和尾随逗号）。所有字段均为可选——省略时 CrawClaw 使用安全的默认值。
 
 ---
 
 ## 渠道
 
-只要某个渠道的配置节存在，它就会自动启动（除非设置了 `enabled: false`）。
+每个渠道在其配置节存在时自动启动（除非设置了 `enabled: false`）。
 
 ### 私信和群组访问
 
-所有渠道都支持私信策略和群组策略：
+所有渠道均支持私信策略和群组策略：
 
-| DM policy         | Behavior                                            |
-| ----------------- | --------------------------------------------------- |
-| `pairing`（默认） | 未知发送者会收到一次性配对码；所有者必须批准        |
-| `allowlist`       | 仅 `allowFrom` 中的发送者（或已配对的允许列表存储） |
-| `open`            | 允许所有入站私信（要求 `allowFrom: ["*"]`）         |
-| `disabled`        | 忽略所有入站私信                                    |
+| 私信策略          | 行为                                                 |
+| ----------------- | ---------------------------------------------------- |
+| `pairing`（默认） | 未知发送者会收到一次性配对码；所有者需审批           |
+| `allowlist`       | 仅允许 `allowFrom`（或已配对的白名单存储）中的发送者 |
+| `open`            | 允许所有入站私信（需设置 `allowFrom: ["*"]`）        |
+| `disabled`        | 忽略所有入站私信                                     |
 
-| Group policy        | Behavior                               |
-| ------------------- | -------------------------------------- |
-| `allowlist`（默认） | 仅允许匹配已配置 allowlist 的群组      |
-| `open`              | 绕过群组 allowlist（仍会应用提及门控） |
-| `disabled`          | 阻止所有群组/房间消息                  |
+| 群组策略            | 行为                             |
+| ------------------- | -------------------------------- |
+| `allowlist`（默认） | 仅允许匹配配置白名单的群组       |
+| `open`              | 绕过群组白名单（仍适用提及限制） |
+| `disabled`          | 阻止所有群组/房间消息            |
 
 <Note>
-`channels.defaults.groupPolicy` 会在某个提供商的 `groupPolicy` 未设置时作为默认值。
-配对码会在 1 小时后过期。待处理的私信配对请求每个渠道最多 **3 个**。
-如果某个提供商配置块完全缺失（`channels.<provider>` 不存在），运行时群组策略会回退到 `allowlist`（默认拒绝），并在启动时发出警告。
+`channels.defaults.groupPolicy` 设置提供商 `groupPolicy` 未设置时的默认策略。
+配对码有效期为 1 小时。每个渠道的待处理私信配对请求上限为 **3 个**。
+如果提供商配置块完全缺失（`channels.<provider>` 不存在），运行时群组策略将回退到 `allowlist`（默认拒绝）并发出启动警告。
 </Note>
 
 ### 渠道模型覆盖
 
-使用 `channels.modelByChannel` 可将特定渠道 ID 固定到某个模型。值接受 `provider/model` 或已配置的模型别名。当会话尚未存在模型覆盖时（例如通过 `/model` 设置），才会应用渠道映射。
+使用 `channels.modelByChannel` 可将特定渠道 ID 固定到某个模型。值可接受 `provider/model` 或已配置的模型别名。当会话尚未有模型覆盖时（例如通过 `/model` 设置），渠道映射才会生效。
 
 ```json5
 {
@@ -72,9 +71,9 @@ x-i18n:
 }
 ```
 
-### 渠道默认值和心跳
+### 渠道默认值和旧版心跳可见性
 
-使用 `channels.defaults` 为多个提供商共享群组策略和心跳行为：
+使用 `channels.defaults` 可跨提供商设置共享的群组策略和旧版心跳可见性行为：
 
 ```json5
 {
@@ -91,14 +90,14 @@ x-i18n:
 }
 ```
 
-- `channels.defaults.groupPolicy`：当提供商级 `groupPolicy` 未设置时使用的回退群组策略。
-- `channels.defaults.heartbeat.showOk`：在心跳输出中包含健康的渠道状态。
-- `channels.defaults.heartbeat.showAlerts`：在心跳输出中包含降级/错误状态。
-- `channels.defaults.heartbeat.useIndicator`：以紧凑的指示器样式渲染心跳输出。
+- `channels.defaults.groupPolicy`：提供商级别 `groupPolicy` 未设置时的回退群组策略。
+- `channels.defaults.heartbeat.showOk`：在旧版心跳输出中包含健康的渠道状态。
+- `channels.defaults.heartbeat.showAlerts`：在旧版心跳输出中包含降级/错误状态。
+- `channels.defaults.heartbeat.useIndicator`：渲染紧凑的指示器风格旧版心跳输出。
 
 ### Weixin
 
-Weixin 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在已关联的会话时，它会自动启动。
+Weixin 通过网关的 Web 渠道（Baileys Web）运行。当存在关联会话时自动启动。
 
 ```json5
 {
@@ -109,7 +108,7 @@ Weixin 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在已
       textChunkLimit: 4000,
       chunkMode: "length", // length | newline
       mediaMaxMb: 50,
-      sendReadReceipts: true, // 蓝色双勾（自聊模式下为 false）
+      sendReadReceipts: true, // blue ticks (false in self-chat mode)
       groups: {
         "*": { requireMention: true },
       },
@@ -131,7 +130,7 @@ Weixin 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在已
 }
 ```
 
-<Accordion title="多账户 Weixin">
+<Accordion title="多账号 Weixin">
 
 ```json5
 {
@@ -149,14 +148,14 @@ Weixin 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在已
 }
 ```
 
-- 出站命令默认使用账户 `default`（若存在）；否则使用第一个已配置的账户 ID（排序后）。
-- 可选的 `channels.weixin.defaultAccount` 会在其与某个已配置账户 ID 匹配时，覆盖该回退默认账户选择。
-- 旧版单账户 Baileys 认证目录会由 `crawclaw doctor` 迁移到 `weixin/default`。
-- 按账户覆盖：`channels.weixin.accounts.<id>.sendReadReceipts`、`channels.weixin.accounts.<id>.dmPolicy`、`channels.weixin.accounts.<id>.allowFrom`。
+- 出站命令默认使用 `default` 账号（如果存在）；否则使用排序后的第一个配置的账号 ID。
+- 可选的 `channels.weixin.defaultAccount` 覆盖该回退默认账号选择逻辑，仅当其匹配已配置的账号 ID 时生效。
+- 旧版单账号 Baileys 认证目录由 CrawClaw Desktop 或本地 Gateway API 迁移到 `weixin/default`。
+- 账号级覆盖：`channels.weixin.accounts.<id>.sendReadReceipts`、`channels.weixin.accounts.<id>.dmPolicy`、`channels.weixin.accounts.<id>.allowFrom`。
 
 </Accordion>
 
-### Feishu
+### Feishu 服务账号示例
 
 ```json5
 {
@@ -187,7 +186,7 @@ Weixin 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在已
       historyLimit: 50,
       replyToMode: "first", // off | first | all
       linkPreview: true,
-      streaming: "partial", // off | partial | block | progress（默认：off）
+      streaming: "partial", // off | partial | block | progress (default: off; opt in explicitly to avoid preview-edit rate limits)
       actions: { reactions: true, sendMessage: true },
       reactionNotifications: "own", // off | own | all
       mediaMaxMb: 100,
@@ -210,13 +209,13 @@ Weixin 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在已
 }
 ```
 
-- 机器人令牌：`channels.feishu.botToken` 或 `channels.feishu.tokenFile`（仅常规文件；拒绝符号链接），默认账户还可回退到 `TELEGRAM_BOT_TOKEN`。
-- 可选的 `channels.feishu.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
-- 在多账户设置（2 个及以上账户 ID）中，请设置显式默认值（`channels.feishu.defaultAccount` 或 `channels.feishu.accounts.default`），以避免回退路由；如果缺失或无效，`crawclaw doctor` 会发出警告。
-- `configWrites: false` 会阻止 Feishu 发起的配置写入（超级群组 ID 迁移、`/config set|unset`）。
-- 顶层 `bindings[]` 中 `type: "acp"` 的条目会为论坛话题配置持久化 ACP 绑定（在 `match.peer.id` 中使用规范形式 `chatId:topic:topicId`）。字段语义与 [ACP Agents](/tools/acp-agents#channel-specific-settings) 共享。
-- Feishu 流式预览使用 `sendMessage` + `editMessageText`（适用于私聊和群聊）。
-- 重试策略：参见 [Retry policy](/concepts/retry)。
+- Bot token：`channels.feishu.botToken` 或 `channels.feishu.tokenFile`（仅限常规文件；拒绝符号链接），默认账号回退到 `TELEGRAM_BOT_TOKEN`。
+- 可选的 `channels.feishu.defaultAccount` 覆盖默认账号选择逻辑，仅当其匹配已配置的账号 ID 时生效。
+- 在多账号配置中（2 个及以上账号 ID），需设置显式默认值（`channels.feishu.defaultAccount` 或 `channels.feishu.accounts.default`）以避免回退路由；当缺失或无效时，CrawClaw Desktop 或本地 Gateway API 会发出警告。
+- `configWrites: false` 阻止 Feishu 发起的配置写入（超级群组 ID 迁移、`/config set|unset`）。
+- 顶层 `bindings[]` 条目中 `type: "acp"` 的配置用于论坛话题的持久 ACP 绑定（在 `match.peer.id` 中使用规范的 `chatId:topic:topicId`）。字段语义共享于 [ACP 智能体](/tools/acp-agents#channel-specific-settings)。
+- Feishu 流式预览使用 `sendMessage` + `editMessageText`（适用于私信和群聊）。
+- 重试策略：参见[重试策略](/concepts/retry)。
 
 ### QQBot
 
@@ -271,7 +270,7 @@ Weixin 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在已
       historyLimit: 20,
       textChunkLimit: 2000,
       chunkMode: "length", // length | newline
-      streaming: "off", // off | partial | block | progress（在 QQBot 上 progress 映射为 partial）
+      streaming: "off", // off | partial | block | progress (progress maps to partial on QQBot)
       maxLinesPerMessage: 17,
       ui: {
         components: {
@@ -282,7 +281,7 @@ Weixin 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在已
         enabled: true,
         idleHours: 24,
         maxAgeHours: 0,
-        spawnSubagentSessions: false, // 为 `sessions_spawn({ thread: true })` 选择性启用
+        spawnSubagentSessions: false, // opt-in for sessions_spawn({ thread: true })
       },
       voice: {
         enabled: true,
@@ -310,31 +309,31 @@ Weixin 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在已
 }
 ```
 
-- 令牌：`channels.qqbot.token`，默认账户还可回退到 `DISCORD_BOT_TOKEN`。
-- 显式提供 QQBot `token` 的直接出站调用会使用该令牌；账户重试/策略设置仍来自当前活动运行时快照中的所选账户。
-- 可选的 `channels.qqbot.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
-- 对投递目标请使用 `user:<id>`（私信）或 `channel:<id>`（服务器频道）；裸数字 ID 会被拒绝。
-- 服务器 slug 为小写且空格替换为 `-`；频道键使用 slug 化名称（不含 `#`）。优先使用 guild ID。
-- 默认会忽略机器人自己发出的消息。`allowBots: true` 可启用；使用 `allowBots: "mentions"` 可仅接受提及该机器人的机器人消息（仍会过滤自己的消息）。
-- `channels.qqbot.guilds.<id>.ignoreOtherMentions`（及频道级覆盖）会丢弃那些提及了其他用户或角色但未提及机器人的消息（不含 @everyone/@here）。
-- `maxLinesPerMessage`（默认 17）会在消息过高时拆分，即便未超过 2000 个字符。
+- Token：`channels.qqbot.token`，默认账户回退使用 `DISCORD_BOT_TOKEN`。
+- 提供显式 QQBot `token` 的直接出站调用使用该 token 进行调用；账户重试/策略设置仍来自活动运行时快照中选定的账户。
+- 可选 `channels.qqbot.defaultAccount` 在匹配配置的账户 ID 时覆盖默认账户选择。
+- 使用 `user:<id>`（私信）或 `channel:<id>`（频道）作为投递目标；纯数字 ID 将被拒绝。
+- Guild slug 为小写，空格替换为 `-`；频道键使用 slug 化的名称（无 `#`）。建议使用 guild ID。
+- 默认忽略机器人发送的消息。`allowBots: true` 启用它们；使用 `allowBots: "mentions"` 仅接受提及机器人的机器人消息（仍会过滤自己的消息）。
+- `channels.qqbot.guilds.<id>.ignoreOtherMentions`（及频道覆盖）会丢弃提及了其他用户或角色但未提及机器人的消息（排除 @everyone/@here）。
+- `maxLinesPerMessage`（默认 17）在消息低于 2000 字符时仍会拆分长消息。
 - `channels.qqbot.threadBindings` 控制 QQBot 线程绑定路由：
-  - `enabled`：线程绑定会话功能的 QQBot 覆盖（`/focus`、`/unfocus`、`/agents`、`/session idle`、`/session max-age` 以及绑定后的投递/路由）
-  - `idleHours`：不活动自动取消聚焦的 QQBot 覆盖值（小时，`0` 表示禁用）
-  - `maxAgeHours`：硬性最大年龄的 QQBot 覆盖值（小时，`0` 表示禁用）
-  - `spawnSubagentSessions`：为 `sessions_spawn({ thread: true })` 自动创建/绑定线程的选择性开关
-- 顶层 `bindings[]` 中 `type: "acp"` 的条目会为频道和线程配置持久化 ACP 绑定（在 `match.peer.id` 中使用频道/线程 ID）。字段语义与 [ACP Agents](/tools/acp-agents#channel-specific-settings) 共享。
-- `channels.qqbot.ui.components.accentColor` 设置 QQBot components v2 容器的强调色。
-- `channels.qqbot.voice` 启用 QQBot 语音频道对话，以及可选的自动加入 + TTS 覆盖。
-- `channels.qqbot.voice.daveEncryption` 和 `channels.qqbot.voice.decryptionFailureTolerance` 会透传给 `@qqbotjs/voice` 的 DAVE 选项（默认分别为 `true` 和 `24`）。
-- 在重复解密失败后，CrawClaw 还会尝试通过离开/重新加入语音会话来恢复语音接收。
-- `channels.qqbot.streaming` 是规范的预览流式模式键。
-- `channels.qqbot.autoPresence` 将运行时可用性映射为机器人状态（健康 => online，降级 => idle，耗尽 => dnd），并允许可选的状态文本覆盖。
-- `channels.qqbot.dangerouslyAllowNameMatching` 会重新启用可变名称/tag 匹配（紧急兼容模式）。
+  - `enabled`：线程绑定会话功能的 QQBot 覆盖（`/focus`、`/unfocus`、`/agents`、`/session idle`、`/session max-age` 以及绑定投递/路由）
+  - `idleHours`：不活动自动取消聚焦的小时数 QQBot 覆盖（`0` 禁用）
+  - `maxAgeHours`：硬最大年龄的小时数 QQBot 覆盖（`0` 禁用）
+  - `spawnSubagentSessions`：`sessions_spawn({ thread: true })` 自动线程创建/绑定的选择性开关
+- 顶级 `bindings[]` 条目中 `type: "acp"` 为频道和线程配置持久 ACP 绑定（使用 `match.peer.id` 中的频道/线程 ID）。字段语义在 [ACP 智能体](/tools/acp-agents#channel-specific-settings) 中共享。
+- `channels.qqbot.ui.components.accentColor` 设置 QQBot 组件 v2 容器的强调色。
+- `channels.qqbot.voice` 启用 QQBot 语音频道对话及可选的自动加入 + TTS 覆盖。
+- `channels.qqbot.voice.daveEncryption` 和 `channels.qqbot.voice.decryptionFailureTolerance` 透传到 `@qqbotjs/voice` DAVE 选项（默认为 `true` 和 `24`）。
+- CrawClaw 还会尝试在重复解密失败后通过离开/重新加入语音会话来恢复语音接收。
+- `channels.qqbot.streaming` 是规范的预览流模式键。
+- `channels.qqbot.autoPresence` 将运行时可用性映射到机器人在线状态（healthy => online，degraded => idle，exhausted => dnd），并允许可选的状态文本覆盖。
+- `channels.qqbot.dangerouslyAllowNameMatching` 重新启用可变名称/标签匹配（紧急兼容性模式）。
 
-**反应通知模式：**`off`（无）、`own`（机器人的消息，默认）、`all`（所有消息）、`allowlist`（`guilds.<id>.users` 中所有消息）。
+**反应通知模式：** `off`（无）、`own`（机器人的消息，默认）、`all`（所有消息）、`allowlist`（来自所有消息的 `guilds.<id>.users`）。
 
-### Feishu
+### Feishu 原生渠道
 
 ```json5
 {
@@ -363,11 +362,11 @@ Weixin 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在已
 }
 ```
 
-- 服务账户 JSON：支持内联（`serviceAccount`）或基于文件（`serviceAccountFile`）。
+- 服务账户 JSON：内联（`serviceAccount`）或文件路径（`serviceAccountFile`）。
 - 也支持服务账户 SecretRef（`serviceAccountRef`）。
 - 环境变量回退：`GOOGLE_CHAT_SERVICE_ACCOUNT` 或 `GOOGLE_CHAT_SERVICE_ACCOUNT_FILE`。
-- 对投递目标使用 `spaces/<spaceId>` 或 `users/<userId>`。
-- `channels.feishu.dangerouslyAllowNameMatching` 会重新启用可变电子邮件主体匹配（紧急兼容模式）。
+- 使用 `spaces/<spaceId>` 或 `users/<userId>` 作为投递目标。
+- `channels.feishu.dangerouslyAllowNameMatching` 重新启用可变邮箱主体匹配（紧急兼容性模式）。
 
 ### DingTalk
 
@@ -417,38 +416,38 @@ Weixin 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在已
       typingReaction: "hourglass_flowing_sand",
       textChunkLimit: 4000,
       chunkMode: "length",
-      streaming: "partial", // off | partial | block | progress（预览模式）
-      nativeStreaming: true, // 当 streaming=partial 时使用 DingTalk 原生流式 API
+      streaming: "partial", // off | partial | block | progress (preview mode)
+      nativeStreaming: true, // use DingTalk native streaming API when streaming=partial
       mediaMaxMb: 20,
     },
   },
 }
 ```
 
-- **Socket mode** 需要同时提供 `botToken` 和 `appToken`（默认账户环境变量回退为 `SLACK_BOT_TOKEN` + `SLACK_APP_TOKEN`）。
-- **HTTP mode** 需要 `botToken`，外加 `signingSecret`（根级或按账户）。
-- `configWrites: false` 会阻止 DingTalk 发起的配置写入。
-- 可选的 `channels.ddingtalk.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
-- `channels.ddingtalk.streaming` 是规范的预览流式模式键；`channels.ddingtalk.nativeStreaming` 另外控制是否走 DingTalk 原生流式 API。
-- 对投递目标使用 `user:<id>`（私信）或 `channel:<id>`（频道）。
+- **Socket 模式**需要 `botToken` 和 `appToken`（默认账户环境回退为 `SLACK_BOT_TOKEN` + `SLACK_APP_TOKEN`）。
+- **HTTP 模式**需要 `botToken` 加 `signingSecret`（在根级或按账户）。
+- `configWrites: false` 阻止 DingTalk 发起的配置写入。
+- 可选 `channels.ddingtalk.defaultAccount` 在匹配配置的账户 ID 时覆盖默认账户选择。
+- `channels.ddingtalk.streaming` 是规范的预览流模式键。`channels.ddingtalk.nativeStreaming` 单独控制 DingTalk 原生流式 API 路径。
+- 使用 `user:<id>`（私信）或 `channel:<id>` 作为投递目标。
 
-**反应通知模式：**`off`、`own`（默认）、`all`、`allowlist`（来自 `reactionAllowlist`）。
+**反应通知模式：** `off`、`own`（默认）、`all`、`allowlist`（来自 `reactionAllowlist`）。
 
-**线程会话隔离：**`thread.historyScope` 可设为按线程（默认）或在频道内共享。`thread.inheritParent` 会将父频道记录复制到新线程。
+**线程会话隔离：** `thread.historyScope` 是按线程（默认）或跨频道共享。`thread.inheritParent` 将父频道记录复制到新线程。
 
-- `typingReaction` 会在回复运行期间，为入站 DingTalk 消息添加一个临时反应，并在完成后移除。请使用 DingTalk emoji 短代码，例如 `"hourglass_flowing_sand"`。
+- `typingReaction` 在回复运行时向入站 DingTalk 消息添加临时反应，完成后移除。使用 DingTalk 表情符号短码，如 `"hourglass_flowing_sand"`。
 
-| Action group | Default | Notes               |
-| ------------ | ------- | ------------------- |
-| reactions    | 已启用  | 添加反应 + 列出反应 |
-| messages     | 已启用  | 读取/发送/编辑/删除 |
-| pins         | 已启用  | 置顶/取消置顶/列出  |
-| memberInfo   | 已启用  | 成员信息            |
-| emojiList    | 已启用  | 自定义 emoji 列表   |
+| 操作组     | 默认 | 说明                |
+| ---------- | ---- | ------------------- |
+| reactions  | 启用 | 反应 + 列出反应     |
+| messages   | 启用 | 读取/发送/编辑/删除 |
+| pins       | 启用 | 置顶/取消置顶/列出  |
+| memberInfo | 启用 | 成员信息            |
+| emojiList  | 启用 | 自定义表情列表      |
 
 ### Feishu
 
-Feishu 以插件形式提供：`crawclaw plugins install @crawclaw/feishu`。
+Feishu 通过 Rust-native 渠道目录进行配置。
 
 ```json5
 {
@@ -461,10 +460,10 @@ Feishu 以插件形式提供：`crawclaw plugins install @crawclaw/feishu`。
       chatmode: "oncall", // oncall | onmessage | onchar
       oncharPrefixes: [">", "!"],
       commands: {
-        native: true, // 选择性启用
+        native: true, // opt-in
         nativeSkills: true,
         callbackPath: "/api/channels/index/command",
-        // 为反向代理/公共部署提供可选的显式 URL
+        // Optional explicit URL for reverse-proxy/public deployments
         callbackUrl: "https://gateway.example.com/api/channels/index/command",
       },
       textChunkLimit: 4000,
@@ -474,47 +473,21 @@ Feishu 以插件形式提供：`crawclaw plugins install @crawclaw/feishu`。
 }
 ```
 
-聊天模式：`oncall`（在 @ 提及时回复，默认）、`onmessage`（每条消息都回复）、`onchar`（以触发前缀开头的消息）。
+聊天模式：`oncall`（@-提及时响应，默认）、`onmessage`（每条消息）、`onchar`（以触发前缀开头的消息）。
 
 启用 Feishu 原生命令时：
 
-- `commands.callbackPath` 必须是路径（例如 `/api/channels/index/command`），不能是完整 URL。
-- `commands.callbackUrl` 必须解析到 CrawClaw Gateway 网关端点，并且 Feishu 服务器可以访问它。
-- 对于私有/tailnet/内网回调主机，Feishu 可能要求
-  `ServiceSettings.AllowedUntrustedInternalConnections` 包含该回调主机/域名。
-  请使用主机/域名值，而不是完整 URL。
-- `channels.feishu.configWrites`：允许或拒绝 Feishu 发起的配置写入。
-- `channels.feishu.requireMention`：在频道中回复前要求 `@mention`。
-- 可选的 `channels.feishu.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
+- `commands.callbackPath` 必须是路径（例如 `/api/channels/index/command`），而不是完整 URL。
+- `commands.callbackUrl` 必须解析到 CrawClaw Gateway 网关端点，并且 Feishu 服务器能够访问。
+- 对于私有/tailnet/内部回调主机，Feishu 可能需要 `ServiceSettings.AllowedUntrustedInternalConnections` 包含回调主机/域名。
+  使用主机/域名值，而非完整 URL。
+- `channels.feishu.configWrites`：允许或拒绝 Feishu 发起的数据写入。
+- `channels.feishu.requireMention`：在渠道中回复前需要 `@提及`。
+- 可选的 `channels.feishu.defaultAccount` 在匹配已配置的账户 ID 时覆盖默认账户选择。
 
-### Feishu
+### Weixin 原生渠道
 
-```json5
-{
-  channels: {
-    feishu: {
-      enabled: true,
-      account: "+15555550123", // 可选账户绑定
-      dmPolicy: "pairing",
-      allowFrom: ["+15551234567", "uuid:123e4567-e89b-12d3-a456-426614174000"],
-      configWrites: true,
-      reactionNotifications: "own", // off | own | all | allowlist
-      reactionAllowlist: ["+15551234567", "uuid:123e4567-e89b-12d3-a456-426614174000"],
-      historyLimit: 50,
-    },
-  },
-}
-```
-
-**反应通知模式：**`off`、`own`（默认）、`all`、`allowlist`（来自 `reactionAllowlist`）。
-
-- `channels.feishu.account`：将渠道启动固定到特定 Feishu 账户身份。
-- `channels.feishu.configWrites`：允许或拒绝 Feishu 发起的配置写入。
-- 可选的 `channels.feishu.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
-
-### Weixin
-
-Weixin 是推荐的 Weixin 路径（由插件支持，配置在 `channels.weixin` 下）。
+Weixin 是推荐的 Weixin 路径（插件支持，在 `channels.weixin` 下配置）。
 
 ```json5
 {
@@ -522,64 +495,31 @@ Weixin 是推荐的 Weixin 路径（由插件支持，配置在 `channels.weixin
     weixin: {
       enabled: true,
       dmPolicy: "pairing",
-      // serverUrl、password、webhookPath、群组控制和高级操作：
-      // 见 /channels/index
+      // serverUrl, password, webhookPath, group controls, and advanced actions:
+      // see /channels/index
     },
   },
 }
 ```
 
 - 此处涵盖的核心键路径：`channels.weixin`、`channels.weixin.dmPolicy`。
-- 可选的 `channels.weixin.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
-- 完整的 Weixin 渠道配置文档见 [Weixin](/channels/index)。
+- 可选的 `channels.weixin.defaultAccount` 在匹配已配置的账户 ID 时覆盖默认账户选择。
+- 顶级 `bindings[]` 条目中 `type: "acp"` 可将 Weixin 对话绑定到持久 ACP 会话。在 `match.peer.id` 中使用 Weixin 句柄或目标字符串（`chat_id:*`、`chat_guid:*`、`chat_identifier:*`）。共享字段语义：[ACP Agents](/tools/acp-agents#channel-specific-settings)。
+- 完整的 Weixin 渠道配置记录在 [Weixin](/channels/index) 中。
 
-### Weixin
+### 原生渠道目录
 
-CrawClaw 会启动 `imsg rpc`（通过 stdio 的 JSON-RPC）。不需要守护进程或端口。
+Repo-owned TypeScript 渠道插件已被移除。渠道控制平面配置现由 Rust Gateway/原生渠道目录管理。Repo-owned 渠道键为：
 
-```json5
-{
-  channels: {
-    weixin: {
-      enabled: true,
-      cliPath: "imsg",
-      dbPath: "~/Library/Messages/chat.db",
-      remoteHost: "user@gateway-host",
-      dmPolicy: "pairing",
-      allowFrom: ["+15555550123", "user@example.com", "chat_id:123"],
-      historyLimit: 50,
-      includeAttachments: false,
-      attachmentRoots: ["/Users/*/Library/Messages/Attachments"],
-      remoteAttachmentRoots: ["/Users/*/Library/Messages/Attachments"],
-      mediaMaxMb: 16,
-      service: "auto",
-      region: "US",
-    },
-  },
-}
-```
+- `channels.ddingtalk`
+- `channels.esp32`
+- `channels.feishu`
+- `channels.qqbot`
+- `channels.weixin`
 
-- 可选的 `channels.weixin.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
+### QQBot 原生渠道
 
-- 需要对 Messages DB 具有 Full Disk Access。
-- 优先使用 `chat_id:<id>` 目标。使用 `imsg chats --limit 20` 列出聊天。
-- `cliPath` 可以指向 SSH 包装器；设置 `remoteHost`（`host` 或 `user@host`）以通过 SCP 获取附件。
-- `attachmentRoots` 和 `remoteAttachmentRoots` 会限制入站附件路径（默认：`/Users/*/Library/Messages/Attachments`）。
-- SCP 使用严格主机密钥检查，因此请确保中继主机密钥已存在于 `~/.ssh/known_hosts`。
-- `channels.weixin.configWrites`：允许或拒绝 Weixin 发起的配置写入。
-
-<Accordion title="Weixin SSH 包装器示例">
-
-```bash
-#!/usr/bin/env bash
-exec ssh -T gateway-host imsg "$@"
-```
-
-</Accordion>
-
-### QQBot
-
-QQBot 由扩展支持，并配置在 `channels.qqbot` 下。
+QQBot 是 Rust-native，在 `channels.qqbot` 下配置。
 
 ```json5
 {
@@ -587,46 +527,19 @@ QQBot 由扩展支持，并配置在 `channels.qqbot` 下。
     qqbot: {
       enabled: true,
       configWrites: true,
-      // appId、appPassword、tenantId、webhook、团队/频道策略：
-      // 见 /channels/index
+      // appId, appPassword, tenantId, webhook, team/channel policies:
+      // see /channels/index
     },
   },
 }
 ```
 
 - 此处涵盖的核心键路径：`channels.qqbot`、`channels.qqbot.configWrites`。
-- 完整的 Teams 配置（凭证、webhook、私信/群组策略、按团队/按频道覆盖）见 [QQBot](/channels/index)。
-
-### FEISHU
-
-FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
-
-```json5
-{
-  channels: {
-    feishu: {
-      enabled: true,
-      dmPolicy: "pairing",
-      configWrites: true,
-      nickserv: {
-        enabled: true,
-        service: "NickServ",
-        password: "${IRC_NICKSERV_PASSWORD}",
-        register: false,
-        registerEmail: "bot@example.com",
-      },
-    },
-  },
-}
-```
-
-- 此处涵盖的核心键路径：`channels.feishu`、`channels.feishu.dmPolicy`、`channels.feishu.configWrites`、`channels.feishu.nickserv.*`。
-- 可选的 `channels.feishu.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
-- 完整的 FEISHU 渠道配置（主机/端口/TLS/频道/allowlist/提及门控）见 [FEISHU](/channels/feishu)。
+- 完整 QQBot 配置（凭证、webhook、DM/群组策略、按团队/按渠道覆盖）记录在 [Channels](/channels/index) 中。
 
 ### 多账户（所有渠道）
 
-按渠道运行多个账户（每个账户有自己的 `accountId`）：
+每个渠道运行多个账户（每个账户有自己的 `accountId`）：
 
 ```json5
 {
@@ -647,18 +560,13 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
 }
 ```
 
-- 省略 `accountId` 时使用 `default`（CLI + 路由）。
-- 环境变量令牌仅适用于 **default** 账户。
-- 基础渠道设置适用于所有账户，除非按账户覆盖。
-- 使用 `bindings[].match.accountId` 将每个账户路由到不同智能体。
-- 如果你通过 `crawclaw channels add`（或渠道新手引导）添加了一个非默认账户，而当前仍是单账户顶层渠道配置，CrawClaw 会先将带账户作用域的顶层单账户值移动到 `channels.<channel>.accounts.default`，以便原始账户继续工作。
-- 现有仅渠道绑定（无 `accountId`）仍会匹配默认账户；账户作用域绑定仍是可选的。
-- 当存在命名账户但缺少 `default` 时，`crawclaw doctor --fix` 也会通过将带账户作用域的顶层单账户值移动到 `accounts.default` 来修复混合形状。
-
-### 其他扩展渠道
-
-许多扩展渠道都配置为 `channels.<id>`，并在其专属渠道页面中记录（例如 Feishu、Matrix、LINE、Feishu、Feishu、Feishu、Feishu 和 QQBot）。
-查看完整渠道索引：[Channels](/channels)。
+- `default` 在省略 `accountId` 时使用（CLI + 路由）。
+- 环境变量令牌仅适用于**默认**账户。
+- 基础渠道设置适用于所有账户，除非被账户级别覆盖。
+- 使用 `bindings[].match.accountId` 将每个账户路由到不同的智能体。
+- 如果你通过 CrawClaw Desktop 或本地 Gateway API（或渠道新手引导）添加非默认账户，同时仍使用单账户顶级渠道配置，CrawClaw 会先将账户范围的顶级单账户值移入 `channels.<channel>.accounts.default`，以确保原始账户继续工作。
+- 现有的纯渠道绑定（无 `accountId`）继续匹配默认账户；账户范围的绑定保持可选。
+- CrawClaw Desktop 或本地 Gateway API 也会修复混合结构——当存在命名账户但缺少 `default` 时，将账户范围的顶级单账户值移入 `accounts.default`。
 
 ### 群聊提及门控
 
@@ -666,9 +574,9 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
 
 **提及类型：**
 
-- **元数据提及**：平台原生 @ 提及。在 Weixin 自聊模式中会被忽略。
-- **文本模式**：位于 `agents.list[].groupChat.mentionPatterns` 中的安全正则模式。无效模式和不安全的嵌套重复会被忽略。
-- 只有在可以检测提及的情况下（原生提及或至少一个模式），才会强制执行提及门控。
+- **元数据提及**：原生平台 @-提及。在 Weixin 私信模式下忽略。
+- **文本模式**：`agents.list[].groupChat.mentionPatterns` 中的安全正则模式。无效模式和的不安全嵌套重复将被忽略。
+- 仅在可检测时（原生提及或至少一个模式）强制执行提及门控。
 
 ```json5
 {
@@ -681,7 +589,7 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
 }
 ```
 
-`messages.groupChat.historyLimit` 设置全局默认值。渠道可通过 `channels.<channel>.historyLimit`（或按账户）覆盖。设为 `0` 可禁用。
+`messages.groupChat.historyLimit` 设置全局默认值。渠道可用 `channels.<channel>.historyLimit`（或按账户）覆盖。设为 `0` 可禁用。
 
 #### 私信历史限制
 
@@ -698,13 +606,13 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
 }
 ```
 
-解析顺序：按私信覆盖 → 提供商默认值 → 无限制（全部保留）。
+解析顺序：按私信覆盖 → 提供商默认 → 无限制（全部保留）。
 
-支持：`feishu`、`weixin`、`qqbot`、`ddingtalk`、`feishu`、`weixin`、`qqbot`。
+支持：`feishu`、`weixin`、`qqbot`、`ddingtalk`、`signal`、`weixin`、`qqbot`。
 
-#### 自聊模式
+#### 私信模式
 
-将你自己的号码包含在 `allowFrom` 中可启用自聊模式（忽略原生 @ 提及，仅响应文本模式）：
+将你的号码包含在 `allowFrom` 中以启用私信模式（忽略原生 @-提及，仅响应文本模式）：
 
 ```json5
 {
@@ -730,13 +638,13 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
 ```json5
 {
   commands: {
-    native: "auto", // 在支持时注册原生命令
-    text: true, // 解析聊天消息中的 /commands
-    bash: false, // 允许 !（别名：/bash）
+    native: "auto", // register native commands when supported
+    text: true, // parse /commands in chat messages
+    bash: false, // allow ! (alias: /bash)
     bashForegroundMs: 2000,
-    config: false, // 允许 /config
-    debug: false, // 允许 /debug
-    restart: true, // 允许 /restart + gateway restart 工具（默认值；设为 false 可禁用手动重启）
+    config: false, // allow /config
+    debug: false, // allow /debug
+    restart: true, // allow /restart + gateway restart tool (default; set false to disable manual restart)
     allowFrom: {
       "*": ["user1"],
       qqbot: ["user:123"],
@@ -748,16 +656,16 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
 
 <Accordion title="命令详情">
 
-- 文本命令必须是以 `/` 开头的**独立**消息。
-- `native: "auto"` 会为 QQBot/Feishu 打开原生命令，而让 DingTalk 保持关闭。
-- 可按渠道覆盖：`channels.qqbot.commands.native`（布尔值或 `"auto"`）。`false` 会清除先前已注册的命令。
-- `channels.feishu.customCommands` 可添加额外的 Feishu 机器人菜单项。
-- `bash: true` 会为主机 shell 启用 `! <cmd>`。要求 `tools.elevated.enabled` 已启用，且发送者在 `tools.elevated.allowFrom.<channel>` 中。
-- `config: true` 启用 `/config`（读取/写入 `crawclaw.json`）。对于 gateway `chat.send` 客户端，持久化的 `/config set|unset` 写入还要求 `operator.admin`；只读的 `/config show` 对普通写作用域 operator 客户端仍然可用。
+- 文本命令必须是带有前导 `/` 的**独立**消息。
+- `native: "auto"` 为 QQBot/Feishu 开启原生命令，DingTalk 保持关闭。
+- 按渠道覆盖：`channels.qqbot.commands.native`（布尔值或 `"auto"`）。`false` 清除之前注册的命令。
+- `channels.feishu.customCommands` 添加额外的 Feishu 机器人菜单项。
+- `bash: true` 启用 `! <cmd>` 执行宿主机 shell。需启用 `tools.elevated.enabled` 且发送者在 `tools.elevated.allowFrom.<channel>` 中。
+- `config: true` 启用 `/config`（读写 `crawclaw.json`）。对于 gateway `chat.send` 客户端，持续的 `/config set|unset` 写入还需 `operator.admin`；只读的 `/config show` 对普通写作用域的 operator 客户端保持可用。
 - `channels.<provider>.configWrites` 按渠道控制配置变更（默认：true）。
-- 对多账户渠道，`channels.<provider>.accounts.<id>.configWrites` 也会控制针对该账户的写入（例如 `/allowlist --config --account <id>` 或 `/config set channels.<provider>.accounts.<id>...`）。
-- `allowFrom` 是按提供商配置的。设置后，它将成为**唯一**的授权来源（渠道 allowlist/配对和 `useAccessGroups` 都会被忽略）。
-- 当 `allowFrom` 未设置时，`useAccessGroups: false` 允许命令绕过访问组策略。
+- 对于多账号渠道，`channels.<provider>.accounts.<id>.configWrites` 也控制针对该账号的写入（例如 `/allowlist --config --account <id>` 或 `/config set channels.<provider>.accounts.<id>...`）。
+- `allowFrom` 按提供商设置。设置后，它是**唯一**的授权来源（渠道白名单/配对和 `useAccessGroups` 都会被忽略）。
+- `useAccessGroups: false` 允许命令在未设置 `allowFrom` 时绕过访问组策略。
 
 </Accordion>
 
@@ -777,7 +685,7 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
 
 ### `agents.defaults.repoRoot`
 
-可选的仓库根目录，会显示在系统提示的 Runtime 行中。如果未设置，CrawClaw 会从工作区向上遍历自动检测。
+可选的仓库根目录，显示在系统提示词 Runtime 行中。如果未设置，CrawClaw 会从工作区向上自动检测。
 
 ```json5
 {
@@ -797,7 +705,7 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
 
 ### `agents.defaults.bootstrapMaxChars`
 
-单个工作区引导文件在截断前的最大字符数。默认：`20000`。
+每个工作区引导文件的最大字符数，超过则截断。默认值：`20000`。
 
 ```json5
 {
@@ -807,7 +715,7 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
 
 ### `agents.defaults.bootstrapTotalMaxChars`
 
-所有工作区引导文件注入时的最大总字符数。默认：`150000`。
+所有工作区引导文件注入的最大总字符数。默认值：`150000`。
 
 ```json5
 {
@@ -817,12 +725,12 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
 
 ### `agents.defaults.bootstrapPromptTruncationWarning`
 
-控制引导上下文被截断时，对智能体可见的警告文本。
-默认：`"once"`。
+当引导上下文被截断时，控制智能体可见的警告文本。
+默认值：`"once"`。
 
-- `"off"`：绝不向系统提示注入警告文本。
-- `"once"`：对每个唯一的截断签名仅注入一次警告（推荐）。
-- `"always"`：只要存在截断，就在每次运行时注入警告。
+- `"off"`：从不向系统提示词注入警告文本。
+- `"once"`：按唯一截断签名注入一次警告（推荐）。
+- `"always"`：存在截断时每次运行都注入警告。
 
 ```json5
 {
@@ -832,11 +740,11 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
 
 ### `agents.defaults.imageMaxDimensionPx`
 
-在调用提供商之前，记录/工具图像块中最长边的最大像素尺寸。
-默认：`1200`。
+在提供商调用前，transcript/工具图像块中最长边的最大像素尺寸。
+默认值：`1200`。
 
-较低的值通常会降低视觉 token 用量以及截图密集型运行的请求负载大小。
-较高的值可保留更多视觉细节。
+较低的值通常会减少视觉 token 使用量和截图密集型运行的请求负载大小。
+较高的值保留更多视觉细节。
 
 ```json5
 {
@@ -846,7 +754,7 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
 
 ### `agents.defaults.userTimezone`
 
-系统提示上下文使用的时区（不是消息时间戳）。回退到主机时区。
+系统提示词上下文的时区（非消息时间戳）。回退到主机时区。
 
 ```json5
 {
@@ -856,7 +764,7 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
 
 ### `agents.defaults.timeFormat`
 
-系统提示中的时间格式。默认：`auto`（操作系统偏好）。
+系统提示词中的时间格式。默认值：`auto`（操作系统偏好）。
 
 ```json5
 {
@@ -872,11 +780,11 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
     defaults: {
       models: {
         "anthropic/claude-opus-4-6": { alias: "opus" },
-        "minimax/MiniMax-M2.5": { alias: "minimax" },
+        "minimax/MiniMax-M2.7": { alias: "minimax" },
       },
       model: {
         primary: "anthropic/claude-opus-4-6",
-        fallbacks: ["minimax/MiniMax-M2.5"],
+        fallbacks: ["minimax/MiniMax-M2.7"],
       },
       imageModel: {
         primary: "openrouter/qwen/qwen-2.5-vl-72b-instruct:free",
@@ -886,6 +794,7 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
         primary: "anthropic/claude-opus-4-6",
         fallbacks: ["openai/gpt-5-mini"],
       },
+      params: { cacheRetention: "long" }, // global default provider params
       pdfMaxBytesMb: 10,
       pdfMaxPages: 20,
       thinkingDefault: "low",
@@ -901,25 +810,30 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
 ```
 
 - `model`：接受字符串（`"provider/model"`）或对象（`{ primary, fallbacks }`）。
-  - 字符串形式只设置主模型。
-  - 对象形式设置主模型以及按顺序排列的故障切换模型。
+  - 字符串形式仅设置主模型。
+  - 对象形式设置主模型及有序的故障转移模型。
 - `imageModel`：接受字符串（`"provider/model"`）或对象（`{ primary, fallbacks }`）。
-  - 由 `image` 工具路径作为其视觉模型配置使用。
-  - 当所选/默认模型无法接受图像输入时，也用作回退路由。
+  - 由 `image` 工具路径用作其视觉模型配置。
+  - 也用作选定/默认模型无法接受图像输入时的回退路由。
 - `pdfModel`：接受字符串（`"provider/model"`）或对象（`{ primary, fallbacks }`）。
   - 由 `pdf` 工具用于模型路由。
-  - 如果省略，PDF 工具会回退到 `imageModel`，再回退到提供商的尽力默认值。
-- `pdfMaxBytesMb`：`pdf` 工具在调用时未传入 `maxBytesMb` 时使用的默认 PDF 大小限制。
-- `pdfMaxPages`：`pdf` 工具在提取回退模式下考虑的默认最大页数。
-- `model.primary`：格式为 `provider/model`（例如 `anthropic/claude-opus-4-6`）。如果省略 provider，CrawClaw 会假定为 `anthropic`（已弃用）。
-- `models`：为 `/model` 配置的模型目录和 allowlist。每项可包含 `alias`（快捷方式）和 `params`（提供商特定参数，例如 `temperature`、`maxTokens`、`cacheRetention`、`context1m`）。
-- `params` 合并优先级（配置）：`agents.defaults.models["provider/model"].params` 为基础，然后由 `agents.list[].params`（匹配的智能体 ID）按键覆盖。
-- 会修改这些字段的配置写入器（例如 `/models set`、`/models set-image` 以及故障切换增删命令）会保存为规范的对象形式，并尽可能保留现有故障切换列表。
-- `maxConcurrent`：会话之间并行的智能体运行最大数（每个会话本身仍是串行）。默认：1。
+  - 如果省略，PDF 工具回退到 `imageModel`，然后使用尽力而为的提供商默认值。
+- `pdfMaxBytesMb`：调用时未传递 `maxBytesMb` 时，`pdf` 工具的默认 PDF 大小限制。
+- `pdfMaxPages`：`pdf` 工具提取回退模式考虑的默认最大页数。
+- `verboseDefault`：智能体的默认详细级别。值：`"off"`、`"on"`、`"full"`。默认值：`"off"`。
+  新手引导预设可能会向 `crawclaw.json` 写入不同的显式值；例如，
+  默认的 `balanced` 输出预设将 `verboseDefault` 设置为 `"on"`。
+- `elevatedDefault`：智能体的默认提升输出级别。值：`"off"`、`"on"`、`"ask"`、`"full"`。默认值：`"on"`。
+- `model.primary`：格式为 `provider/model`（例如 `anthropic/claude-opus-4-6`）。如果省略提供商，CrawClaw 假定为 `anthropic`（已弃用）。
+- `models`：`/model` 的已配置模型目录和允许列表。每个条目可包含 `alias`（快捷方式）和 `params`（提供商特定参数，例如 `temperature`、`maxTokens`、`cacheRetention`、`context1m`）。
+- `params`：应用于所有模型的全局默认提供商参数。在 `agents.defaults.params` 设置（例如 `{ cacheRetention: "long" }`）。
+- `params` 合并优先级（配置）：`agents.defaults.params`（全局基础）被 `agents.defaults.models["provider/model"].params`（按模型）覆盖，然后 `agents.list[].params`（匹配智能体 ID）按键覆盖。详见 [Prompt Caching](/reference/prompt-caching)。
+- 修改这些字段的配置写入器（例如 `/models set`、`/models set-image` 和回退添加/删除命令）会保存规范的对象形式，并尽可能保留现有的回退列表。
+- `maxConcurrent`：跨会话的最大并行智能体运行数（每个会话仍然序列化）。默认值：4。
 
-**内置别名简写**（仅当模型位于 `agents.defaults.models` 中时适用）：
+**内置别名速记**（仅在模型位于 `agents.defaults.models` 中时适用）：
 
-| Alias               | Model                                  |
+| 别名                | 模型                                   |
 | ------------------- | -------------------------------------- |
 | `opus`              | `anthropic/claude-opus-4-6`            |
 | `sonnet`            | `anthropic/claude-sonnet-4-6`          |
@@ -931,65 +845,34 @@ FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
 
 你配置的别名始终优先于默认值。
 
-Z.AI 的 GLM-4.x 模型会自动启用 thinking 模式，除非你设置 `--thinking off`，或自行定义 `agents.defaults.models["zai/<model>"].params.thinking`。
-Z.AI 模型默认启用 `tool_stream` 以支持工具调用流式传输。将 `agents.defaults.models["zai/<model>"].params.tool_stream` 设为 `false` 可禁用。
-Anthropic Claude 4.6 模型在未显式设置 thinking 级别时，默认使用 `adaptive` thinking。
-
-### `agents.defaults.cliBackends`
-
-文本专用回退运行（无工具调用）的可选 CLI 后端。当 API 提供商失败时，可作为备份。
-
-```json5
-{
-  agents: {
-    defaults: {
-      cliBackends: {
-        "claude-cli": {
-          command: "/opt/homebrew/bin/claude",
-        },
-        "my-cli": {
-          command: "my-cli",
-          args: ["--json"],
-          output: "json",
-          modelArg: "--model",
-          sessionArg: "--session",
-          sessionMode: "existing",
-          systemPromptArg: "--system",
-          systemPromptWhen: "first",
-          imageArg: "--image",
-          imageMode: "repeat",
-        },
-      },
-    },
-  },
-}
-```
-
-- CLI 后端以文本为主；工具始终禁用。
-- 设置了 `sessionArg` 时支持会话。
-- 当 `imageArg` 接受文件路径时，支持图像透传。
+Z.AI GLM-4.x 模型自动启用思考模式，除非你设置 `--thinking off` 或自行定义 `agents.defaults.models["zai/<model>"].params.thinking`。
+Z.AI 模型默认启用 `tool_stream` 以进行工具调用流式传输。设置 `agents.defaults.models["zai/<model>"].params.tool_stream` 为 `false` 可禁用。
+Anthropic Claude 4.6 模型在未设置显式思考级别时默认为 `adaptive` 思考。
 
 ### `agents.defaults.heartbeat`
 
-事件驱动的主会话唤醒设置。Gateway 不再调度周期性 agent heartbeat
-运行，也不再接受旧的 cadence 配置键。计划性自动化请使用
-[Scheduled Tasks](/automation/cron-jobs)。
+事件驱动的主会话唤醒设置。Gateway 不再调度
+周期性智能体心跳运行，也不接受旧版 cadence 键。使用
+[定时任务](/automation/cron-jobs) 进行调度自动化。
 
 ```json5
 {
   agents: {
     defaults: {
       heartbeat: {
-        directPolicy: "allow", // allow（默认）| block
-        target: "none", // 默认：none | 可选：last | weixin | feishu | qqbot | ...
+        directPolicy: "allow", // allow (default) | block
+        target: "none",
       },
     },
   },
 }
 ```
 
-- `every` 和 `activeHours` 在这里不是有效配置。周期性工作请配置 cron jobs，而不是 heartbeat cadence。
-- `prompt`、`model`、`lightContext`、`isolatedSession`、`includeReasoning`、`ackMaxChars`、`target`、`to`、`accountId` 和 `directPolicy` 只作用于事件驱动的主会话唤醒运行。
+- 此处 `every` 和 `activeHours` 无效。对于周期性工作，请配置
+  cron 作业而非 heartbeat cadence。
+- `prompt`、`model`、`lightContext`、`isolatedSession`、`includeReasoning`、
+  `ackMaxChars`、`target`、`to`、`accountId` 和 `directPolicy` 仅适用于
+  事件驱动的主会话唤醒运行。
 
 ### `agents.defaults.compaction`
 
@@ -1002,9 +885,10 @@ Anthropic Claude 4.6 模型在未显式设置 thinking 级别时，默认使用 
         timeoutSeconds: 900,
         reserveTokensFloor: 24000,
         identifierPolicy: "strict", // strict | off | custom
-        identifierInstructions: "Preserve deployment IDs, ticket IDs, and host:port pairs exactly.", // 当 identifierPolicy=custom 时使用
-        postCompactionSections: ["Session Startup", "Red Lines"], // [] 表示禁用重新注入
-        model: "openrouter/anthropic/claude-sonnet-4-5", // 可选，仅用于压缩的模型覆盖
+        identifierInstructions: "Preserve deployment IDs, ticket IDs, and host:port pairs exactly.", // used when identifierPolicy=custom
+        postCompactionSections: ["Session Startup", "Red Lines"], // [] disables reinjection
+        model: "openrouter/anthropic/claude-sonnet-4-6", // optional compaction-only model override
+        notifyUser: true, // send a brief notice when compaction starts (default: false)
         memoryFlush: {
           enabled: true,
           softThresholdTokens: 6000,
@@ -1017,17 +901,18 @@ Anthropic Claude 4.6 模型在未显式设置 thinking 级别时，默认使用 
 }
 ```
 
-- `mode`：`default` 或 `safeguard`（用于长历史的分块摘要）。见 [Compaction](/concepts/compaction)。
-- `timeoutSeconds`：CrawClaw 中止前，单次压缩操作允许的最大秒数。默认：`900`。
-- `identifierPolicy`：`strict`（默认）、`off` 或 `custom`。`strict` 会在压缩摘要时预置内置的不透明标识符保留指导。
+- `mode`：`default` 或 `safeguard`（长历史的分块摘要）。请参阅[压缩](/concepts/compaction)。
+- `timeoutSeconds`：单次压缩操作允许的最大秒数，超出后 CrawClaw 将中止。默认值：`900`。
+- `identifierPolicy`：`strict`（默认）、`off` 或 `custom`。`strict` 在压缩摘要期间添加内置的不透明标识符保留指导。
 - `identifierInstructions`：当 `identifierPolicy=custom` 时使用的可选自定义标识符保留文本。
-- `postCompactionSections`：压缩后重新注入的可选 AGENTS.md H2/H3 节名称。默认是 `["Session Startup", "Red Lines"]`；设为 `[]` 可禁用重新注入。当未设置或显式设置为该默认组合时，旧版 `Every Session`/`Safety` 标题也会作为兼容回退被接受。
-- `model`：仅用于压缩摘要的可选 `provider/model-id` 覆盖。当主会话应保留一个模型，但压缩摘要应在另一个模型上运行时使用；未设置时，压缩会使用会话的主模型。
-- `memoryFlush`：自动压缩前的静默智能体轮次，用于存储持久记忆。工作区为只读时会跳过。
+- `postCompactionSections`：压缩后重新注入的可选 AGENTS.md H2/H3 标题名称。默认为 `["Session Startup", "Red Lines"]`；设为 `[]` 可禁用重新注入。若未设置或显式设为该默认对，旧版 `Every Session`/`Safety` 标题也会作为兼容回退被接受。
+- `model`：仅用于压缩摘要的可选 `provider/model-id` 覆盖。当主会话应使用一个模型但压缩摘要应在另一个模型上运行时使用；未设置时，压缩使用会话的主模型。
+- `notifyUser`：设为 `true` 时，压缩开始时向用户发送简短通知（例如"正在压缩上下文..."）。默认禁用以保持压缩静默。
+- `memoryFlush`：自动压缩前的静默智能体轮次，用于存储持久记忆。工作区为只读时跳过。
 
 ### `agents.defaults.contextPruning`
 
-在发送到 LLM 之前，从内存上下文中裁剪**旧的工具结果**。**不会**修改磁盘上的会话历史。
+在发送至 LLM 前，从内存中上下文修剪**旧工具结果**。**不会**修改磁盘上的会话历史。
 
 ```json5
 {
@@ -1035,7 +920,7 @@ Anthropic Claude 4.6 模型在未显式设置 thinking 级别时，默认使用 
     defaults: {
       contextPruning: {
         mode: "cache-ttl", // off | cache-ttl
-        ttl: "1h", // 时长（ms/s/m/h），默认单位：分钟
+        ttl: "1h", // duration (ms/s/m/h), default unit: minutes
         keepLastAssistants: 3,
         softTrimRatio: 0.3,
         hardClearRatio: 0.5,
@@ -1051,23 +936,23 @@ Anthropic Claude 4.6 模型在未显式设置 thinking 级别时，默认使用 
 
 <Accordion title="cache-ttl 模式行为">
 
-- `mode: "cache-ttl"` 启用裁剪过程。
-- `ttl` 控制在上次缓存触碰后，多久才能再次运行裁剪。
-- 裁剪会先对过大的工具结果进行软裁剪，如仍有需要，再对更旧的工具结果执行硬清除。
+- `mode: "cache-ttl"` 启用修剪通道。
+- `ttl` 控制修剪可再次运行的时间间隔（自上次缓存接触后）。
+- 修剪首先软修剪过大的工具结果，然后在需要时硬清除较旧的结果。
 
-**软裁剪**保留开头和结尾，并在中间插入 `...`。
+**软修剪**保留开头和结尾，中间插入 `...`。
 
 **硬清除**用占位符替换整个工具结果。
 
-说明：
+注意事项：
 
-- 图像块永远不会被裁剪/清除。
-- 比例是基于字符的（近似），不是精确 token 数。
-- 如果 assistant 消息少于 `keepLastAssistants`，则跳过裁剪。
+- 图片块不会被修剪或清除。
+- 比率基于字符（近似），非精确 token 数。
+- 若少于 `keepLastAssistants` 条助手消息，跳过修剪。
 
 </Accordion>
 
-行为细节见 [Session Pruning](/concepts/session-pruning)。
+请参阅[会话修剪](/concepts/session-pruning)了解更多行为详情。
 
 ### 分块流式传输
 
@@ -1079,17 +964,17 @@ Anthropic Claude 4.6 模型在未显式设置 thinking 级别时，默认使用 
       blockStreamingBreak: "text_end", // text_end | message_end
       blockStreamingChunk: { minChars: 800, maxChars: 1200 },
       blockStreamingCoalesce: { idleMs: 1000 },
-      humanDelay: { mode: "natural" }, // off | natural | custom（使用 minMs/maxMs）
+      humanDelay: { mode: "natural" }, // off | natural | custom (use minMs/maxMs)
     },
   },
 }
 ```
 
-- 非 Feishu 渠道需要显式设置 `*.blockStreaming: true` 才会启用分块回复。
-- 渠道覆盖：`channels.<channel>.blockStreamingCoalesce`（以及按账户变体）。Feishu/DingTalk/QQBot/Feishu 默认 `minChars: 1500`。
-- `humanDelay`：分块回复之间的随机暂停。`natural` = 800–2500 ms。按智能体覆盖：`agents.list[].humanDelay`。
+- 非 Feishu 渠道需要显式设置 `*.blockStreaming: true` 来启用分块回复。
+- 渠道覆盖：`channels.<channel>.blockStreamingCoalesce`（及按账户变体）。Signal/DingTalk/QQBot/Feishu 默认 `minChars: 1500`。
+- `humanDelay`：分块回复间的随机暂停。`natural` = 800–2500ms。按智能体覆盖：`agents.list[].humanDelay`。
 
-行为和分块细节见 [Streaming](/concepts/streaming)。
+请参阅[流式传输](/concepts/streaming)了解更多行为和分块详情。
 
 ### 输入指示器
 
@@ -1104,246 +989,10 @@ Anthropic Claude 4.6 模型在未显式设置 thinking 级别时，默认使用 
 }
 ```
 
-- 默认值：私聊/被提及时为 `instant`，未提及的群聊中为 `message`。
+- 默认值：私信/提及为 `instant`，未提及的群聊为 `message`。
 - 按会话覆盖：`session.typingMode`、`session.typingIntervalSeconds`。
 
-见 [Typing Indicators](/concepts/typing-indicators)。
-
-### `agents.defaults.sandbox`
-
-嵌入式智能体的可选沙箱隔离。完整指南见 [沙箱隔离](/gateway/sandboxing)。
-
-```json5
-{
-  agents: {
-    defaults: {
-      sandbox: {
-        mode: "non-main", // off | non-main | all
-        backend: "docker", // docker | ssh | openshell
-        scope: "agent", // session | agent | shared
-        workspaceAccess: "none", // none | ro | rw
-        workspaceRoot: "~/.crawclaw/sandboxes",
-        docker: {
-          image: "crawclaw-sandbox:bookworm-slim",
-          containerPrefix: "crawclaw-sbx-",
-          workdir: "/workspace",
-          readOnlyRoot: true,
-          tmpfs: ["/tmp", "/var/tmp", "/run"],
-          network: "none",
-          user: "1000:1000",
-          capDrop: ["ALL"],
-          env: { LANG: "C.UTF-8" },
-          setupCommand: "apt-get update && apt-get install -y git curl jq",
-          pidsLimit: 256,
-          memory: "1g",
-          memorySwap: "2g",
-          cpus: 1,
-          ulimits: {
-            nofile: { soft: 1024, hard: 2048 },
-            nproc: 256,
-          },
-          seccompProfile: "/path/to/seccomp.json",
-          apparmorProfile: "crawclaw-sandbox",
-          dns: ["1.1.1.1", "8.8.8.8"],
-          extraHosts: ["internal.service:10.0.0.5"],
-          binds: ["/home/user/source:/source:rw"],
-        },
-        ssh: {
-          target: "user@gateway-host:22",
-          command: "ssh",
-          workspaceRoot: "/tmp/crawclaw-sandboxes",
-          strictHostKeyChecking: true,
-          updateHostKeys: true,
-          identityFile: "~/.ssh/id_ed25519",
-          certificateFile: "~/.ssh/id_ed25519-cert.pub",
-          knownHostsFile: "~/.ssh/known_hosts",
-          // 也支持 SecretRef / 内联内容：
-          // identityData: { source: "env", provider: "default", id: "SSH_IDENTITY" },
-          // certificateData: { source: "env", provider: "default", id: "SSH_CERTIFICATE" },
-          // knownHostsData: { source: "env", provider: "default", id: "SSH_KNOWN_HOSTS" },
-        },
-        browser: {
-          enabled: false,
-          image: "crawclaw-sandbox-browser:bookworm-slim",
-          network: "crawclaw-sandbox-browser",
-          cdpPort: 9222,
-          cdpSourceRange: "172.21.0.1/32",
-          vncPort: 5900,
-          noVncPort: 6080,
-          headless: false,
-          enableNoVnc: true,
-          allowHostControl: false,
-          autoStart: true,
-          autoStartTimeoutMs: 12000,
-        },
-        prune: {
-          idleHours: 24,
-          maxAgeDays: 7,
-        },
-      },
-    },
-  },
-  tools: {
-    sandbox: {
-      tools: {
-        allow: [
-          "exec",
-          "process",
-          "read",
-          "write",
-          "edit",
-          "apply_patch",
-          "sessions_list",
-          "sessions_history",
-          "sessions_send",
-          "sessions_spawn",
-          "session_status",
-        ],
-        deny: ["browser", "canvas", "nodes", "cron", "qqbot", "gateway"],
-      },
-    },
-  },
-}
-```
-
-<Accordion title="沙箱详情">
-
-**后端：**
-
-- `docker`：本地 Docker 运行时（默认）
-- `ssh`：通用的 SSH 远程运行时
-- `openshell`：OpenShell 运行时
-
-选择 `backend: "openshell"` 时，运行时特定设置会移动到
-`plugins.entries.openshell.config`。
-
-**SSH 后端配置：**
-
-- `target`：`user@host[:port]` 形式的 SSH 目标
-- `command`：SSH 客户端命令（默认：`ssh`）
-- `workspaceRoot`：按作用域工作区使用的远程绝对根目录
-- `identityFile` / `certificateFile` / `knownHostsFile`：传递给 OpenSSH 的现有本地文件
-- `identityData` / `certificateData` / `knownHostsData`：内联内容或 SecretRef，CrawClaw 会在运行时将其物化为临时文件
-- `strictHostKeyChecking` / `updateHostKeys`：OpenSSH 主机密钥策略开关
-
-**SSH 认证优先级：**
-
-- `identityData` 优先于 `identityFile`
-- `certificateData` 优先于 `certificateFile`
-- `knownHostsData` 优先于 `knownHostsFile`
-- 由 SecretRef 支持的 `*Data` 值会在沙箱会话启动前，从活动 secrets 运行时快照中解析
-
-**SSH 后端行为：**
-
-- 在创建或重建后，对远程工作区进行一次种子初始化
-- 之后保持远程 SSH 工作区为规范副本
-- 通过 SSH 路由 `exec`、文件工具和媒体路径
-- 不会自动将远程更改同步回主机
-- 不支持沙箱浏览器容器
-
-**工作区访问：**
-
-- `none`：位于 `~/.crawclaw/sandboxes` 下的按作用域划分的沙箱工作区
-- `ro`：沙箱工作区位于 `/workspace`，智能体工作区以只读方式挂载到 `/agent`
-- `rw`：智能体工作区以读写方式挂载到 `/workspace`
-
-**作用域：**
-
-- `session`：每个会话一个容器 + 工作区
-- `agent`：每个智能体一个容器 + 工作区（默认）
-- `shared`：共享容器和工作区（无跨会话隔离）
-
-**OpenShell 插件配置：**
-
-```json5
-{
-  plugins: {
-    entries: {
-      openshell: {
-        enabled: true,
-        config: {
-          mode: "mirror", // mirror | remote
-          from: "crawclaw",
-          remoteWorkspaceDir: "/sandbox",
-          remoteAgentWorkspaceDir: "/agent",
-          gateway: "lab", // 可选
-          gatewayEndpoint: "https://lab.example", // 可选
-          policy: "strict", // 可选的 OpenShell policy id
-          providers: ["openai"], // 可选
-          autoProviders: true,
-          timeoutSeconds: 120,
-        },
-      },
-    },
-  },
-}
-```
-
-**OpenShell 模式：**
-
-- `mirror`：执行前从本地为远程植入种子，执行后同步回本地；本地工作区保持为规范副本
-- `remote`：在创建沙箱时只为远程植入一次种子，之后保持远程工作区为规范副本
-
-在 `remote` 模式下，在 CrawClaw 外部对主机本地所做的编辑，不会在种子步骤后自动同步进沙箱。
-传输层是通过 SSH 进入 OpenShell 沙箱，但插件拥有沙箱生命周期以及可选的镜像同步。
-
-**`setupCommand`** 会在容器创建后运行一次（通过 `sh -lc`）。需要网络出口、可写根文件系统以及 root 用户。
-
-**容器默认使用 `network: "none"`** ——如果智能体需要出站访问，请设为 `"bridge"`（或自定义 bridge 网络）。
-默认会阻止 `"host"`。除非你显式设置
-`sandbox.docker.dangerouslyAllowContainerNamespaceJoin: true`（紧急模式），否则默认也会阻止 `"container:<id>"`。
-
-**入站附件** 会暂存到活动工作区中的 `media/inbound/*`。
-
-**`docker.binds`** 会挂载额外的主机目录；全局和按智能体的 binds 会合并。
-
-**沙箱浏览器**（`sandbox.browser.enabled`）：容器中的 Chromium + CDP。noVNC URL 会注入系统提示中。不要求在 `crawclaw.json` 中启用 `browser.enabled`。
-noVNC 观察者访问默认使用 VNC 身份验证，CrawClaw 会发出一个短期有效的 token URL（而不是在共享 URL 中暴露密码）。
-
-- `allowHostControl: false`（默认）会阻止沙箱会话指向主机浏览器。
-- `network` 默认为 `crawclaw-sandbox-browser`（专用 bridge 网络）。仅当你明确需要全局 bridge 连接时，才设为 `bridge`。
-- `cdpSourceRange` 可选地将容器边缘的 CDP 入站限制为某个 CIDR 范围（例如 `172.21.0.1/32`）。
-- `sandbox.browser.binds` 仅将额外主机目录挂载到沙箱浏览器容器中。设置后（包括 `[]`），它会替换浏览器容器的 `docker.binds`。
-- 启动默认值定义于 `scripts/sandbox-browser-entrypoint.sh` 中，并针对容器主机进行了调优：
-  - `--remote-debugging-address=127.0.0.1`
-  - `--remote-debugging-port=<derived from CRAWCLAW_BROWSER_CDP_PORT>`
-  - `--user-data-dir=${HOME}/.chrome`
-  - `--no-first-run`
-  - `--no-default-browser-check`
-  - `--disable-3d-apis`
-  - `--disable-gpu`
-  - `--disable-software-rasterizer`
-  - `--disable-dev-shm-usage`
-  - `--disable-background-networking`
-  - `--disable-features=TranslateUI`
-  - `--disable-breakpad`
-  - `--disable-crash-reporter`
-  - `--renderer-process-limit=2`
-  - `--no-zygote`
-  - `--metrics-recording-only`
-  - `--disable-extensions`（默认启用）
-  - `--disable-3d-apis`、`--disable-software-rasterizer` 和 `--disable-gpu`
-    默认启用，如果 WebGL/3D 使用场景需要，可通过
-    `CRAWCLAW_BROWSER_DISABLE_GRAPHICS_FLAGS=0` 禁用这些标志。
-  - `CRAWCLAW_BROWSER_DISABLE_EXTENSIONS=0` 会重新启用扩展，如果你的工作流
-    依赖它们。
-  - `--renderer-process-limit=2` 可通过
-    `CRAWCLAW_BROWSER_RENDERER_PROCESS_LIMIT=<N>` 更改；设为 `0` 将使用 Chromium 的
-    默认进程上限。
-  - 若启用了 `noSandbox`，还会额外加上 `--no-sandbox` 和 `--disable-setuid-sandbox`。
-  - 默认值是容器镜像的基线；若要更改容器默认值，请使用自定义浏览器镜像及自定义
-    entrypoint。
-
-</Accordion>
-
-浏览器沙箱隔离和 `sandbox.docker.binds` 当前仅支持 Docker。
-
-构建镜像：
-
-```bash
-scripts/sandbox-setup.sh           # 主沙箱镜像
-scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
-```
+请参阅[输入指示器](/concepts/typing-indicators)。
 
 ### `agents.list`（按智能体覆盖）
 
@@ -1357,8 +1006,11 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
         name: "Main Agent",
         workspace: "~/.crawclaw/workspace",
         agentDir: "~/.crawclaw/agents/main/agent",
-        model: "anthropic/claude-opus-4-6", // 或 { primary, fallbacks }
-        params: { cacheRetention: "none" }, // 按键覆盖匹配的 defaults.models params
+        model: "anthropic/claude-opus-4-6", // or { primary, fallbacks }
+        thinkingDefault: "high", // per-agent thinking level override
+        reasoningDefault: "on", // per-agent reasoning visibility override
+        fastModeDefault: false, // per-agent fast mode override
+        params: { cacheRetention: "none" }, // overrides matching defaults.models params by key
         identity: {
           name: "Samantha",
           theme: "helpful sloth",
@@ -1366,7 +1018,6 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
           avatar: "avatars/samantha.png",
         },
         groupChat: { mentionPatterns: ["@crawclaw"] },
-        sandbox: { mode: "off" },
         runtime: {
           type: "acp",
           acp: {
@@ -1389,21 +1040,24 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
 }
 ```
 
-- `id`：稳定的智能体 ID（必填）。
-- `default`：若设置了多个，则第一个生效（会记录警告）。若一个都未设，则列表第一项为默认。
-- `model`：字符串形式只覆盖 `primary`；对象形式 `{ primary, fallbacks }` 同时覆盖两者（`[]` 会禁用全局故障切换）。仅覆盖 `primary` 的 Cron 作业仍会继承默认故障切换，除非你设置 `fallbacks: []`。
-- `params`：按智能体的流参数，会合并到 `agents.defaults.models` 中所选模型条目之上。用于为智能体添加特定覆盖，例如 `cacheRetention`、`temperature` 或 `maxTokens`，而无需复制整个模型目录。
-- `runtime`：可选的按智能体运行时描述符。当智能体应默认使用 ACP harness 会话时，可使用 `type: "acp"`，并在 `runtime.acp` 中设置默认值（`agent`、`backend`、`mode`、`cwd`）。
+- `id`：稳定的智能体 ID（必需）。
+- `default`：多个设置时，第一个生效（记录警告）。若未设置，第一个列表条目为默认。
+- `model`：字符串形式仅覆盖 `primary`；对象形式 `{ primary, fallbacks }` 同时覆盖两者（`[]` 禁用全局回退）。仅覆盖 `primary` 的 Cron 任务仍继承默认回退，除非你设置 `fallbacks: []`。
+- `params`：按智能体的流参数，合并到 `agents.defaults.models` 中选定的模型条目。使用此参数进行智能体特定覆盖，如 `cacheRetention`、`temperature` 或 `maxTokens`，而无需复制整个模型目录。
+- `thinkingDefault`：可选的按智能体默认思考级别（`off | minimal | low | medium | high | xhigh | adaptive`）。当未设置按消息或按会话覆盖时，覆盖该智能体的 `agents.defaults.thinkingDefault`。
+- `reasoningDefault`：可选的按智能体默认推理可见性（`on | off | stream`）。当未设置按消息或按会话推理覆盖时应用。
+- `fastModeDefault`：可选的按智能体快速模式默认值（`true | false`）。当未设置按消息或按会话快速模式覆盖时应用。
+- `runtime`：可选的按智能体运行时描述符。当智能体应默认使用 ACP 工具会话时，使用 `type: "acp"` 及 `runtime.acp` 默认值（`agent`、`backend`、`mode`、`cwd`）。
 - `identity.avatar`：工作区相对路径、`http(s)` URL 或 `data:` URI。
-- `identity` 会派生默认值：从 `emoji` 派生 `ackReaction`，从 `name`/`emoji` 派生 `mentionPatterns`。
-- `subagents.allowAgents`：`sessions_spawn` 的智能体 ID allowlist（`["*"]` = 任意；默认：仅同一智能体）。
-- 沙箱继承保护：若请求方会话处于沙箱中，`sessions_spawn` 会拒绝那些将以非沙箱方式运行的目标。
+- `identity` 派生默认值：`ackReaction` 来自 `emoji`，`mentionPatterns` 来自 `name`/`emoji`。
+- `subagents.allowAgents`：`sessions_spawn` 的允许列表（`["*"]` = 任意；默认：仅相同智能体）。
+- `subagents.requireAgentId`：为 true 时，阻止省略 `agentId` 的 `sessions_spawn` 调用（强制显式配置文件选择；默认：false）。
 
 ---
 
 ## 多智能体路由
 
-在一个 Gateway 网关中运行多个隔离的智能体。见 [Multi-Agent](/concepts/multi-agent)。
+在单个 Gateway 网关中运行多个隔离的智能体。参见[多智能体](/concepts/multi-agent)。
 
 ```json5
 {
@@ -1422,27 +1076,27 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
 
 ### 绑定匹配字段
 
-- `type`（可选）：普通路由使用 `route`（缺失时默认为 route），持久化 ACP 对话绑定使用 `acp`。
-- `match.channel`（必填）
-- `match.accountId`（可选；`*` = 任意账户；省略 = 默认账户）
+- `type`（可选）：`route` 用于常规路由（类型缺失默认为 route），`acp` 用于持久 ACP 对话绑定。
+- `match.channel`（必需）
+- `match.accountId`（可选；`*` = 任意账号；省略 = 默认账号）
 - `match.peer`（可选；`{ kind: direct|group|channel, id }`）
 - `match.guildId` / `match.teamId`（可选；渠道特定）
-- `acp`（可选；仅用于 `type: "acp"`）：`{ mode, label, cwd, backend }`
+- `acp`（可选；仅适用于 `type: "acp"`）：`{ mode, label, cwd, backend }`
 
-**确定性匹配顺序：**
+**确定性的匹配顺序：**
 
 1. `match.peer`
 2. `match.guildId`
 3. `match.teamId`
-4. `match.accountId`（精确匹配，无 peer/guild/team）
-5. `match.accountId: "*"`（全渠道）
+4. `match.accountId`（精确匹配，无 peer/guild/team 时）
+5. `match.accountId: "*"`（渠道范围）
 6. 默认智能体
 
-在每一层内，第一个匹配的 `bindings` 条目胜出。
+在每个层级中，第一个匹配的 `bindings` 条目优先。
 
-对于 `type: "acp"` 条目，CrawClaw 会按精确对话身份（`match.channel` + account + `match.peer.id`）解析，不使用上述 route 绑定层级顺序。
+对于 `type: "acp"` 条目，CrawClaw 通过精确的对话标识（`match.channel` + 账号 + `match.peer.id`）进行解析，不使用上述路由绑定层级顺序。
 
-### 按智能体的访问配置
+### 按智能体访问配置文件
 
 <Accordion title="完全访问（无沙箱）">
 
@@ -1471,7 +1125,6 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
       {
         id: "family",
         workspace: "~/.crawclaw/workspace-family",
-        sandbox: { mode: "all", scope: "agent", workspaceAccess: "ro" },
         tools: {
           allow: [
             "read",
@@ -1500,7 +1153,6 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
       {
         id: "public",
         workspace: "~/.crawclaw/workspace-public",
-        sandbox: { mode: "all", scope: "agent", workspaceAccess: "none" },
         tools: {
           allow: [
             "sessions_list",
@@ -1523,7 +1175,6 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
             "process",
             "browser",
             "canvas",
-            "nodes",
             "cron",
             "gateway",
             "image",
@@ -1537,7 +1188,7 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
 
 </Accordion>
 
-优先级细节见 [Subagents](/tools/subagents)。
+优先级详情请参阅[子智能体](/tools/subagents)。
 
 ---
 
@@ -1563,22 +1214,22 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
     },
     resetTriggers: ["/new"],
     store: "~/.crawclaw/agents/{agentId}/sessions/sessions.json",
-    parentForkMaxTokens: 100000, // 超过此 token 数则跳过父线程 fork（0 表示禁用）
+    parentForkMaxTokens: 100000, // skip parent-thread fork above this token count (0 disables)
     maintenance: {
       mode: "warn", // warn | enforce
       pruneAfter: "30d",
       maxEntries: 500,
       rotateBytes: "10mb",
-      resetArchiveRetention: "30d", // 时长或 false
-      maxDiskBytes: "500mb", // 可选硬预算
-      highWaterBytes: "400mb", // 可选清理目标
+      resetArchiveRetention: "30d", // duration or false
+      maxDiskBytes: "500mb", // optional hard budget
+      highWaterBytes: "400mb", // optional cleanup target
     },
     threadBindings: {
       enabled: true,
-      idleHours: 24, // 默认不活动自动取消聚焦时长（小时，`0` 表示禁用）
-      maxAgeHours: 0, // 默认硬性最大年龄（小时，`0` 表示禁用）
+      idleHours: 24, // default inactivity auto-unfocus in hours (`0` disables)
+      maxAgeHours: 0, // default hard max age in hours (`0` disables)
     },
-    mainKey: "main", // 旧字段（运行时始终使用 "main"）
+    mainKey: "main", // legacy (runtime always uses "main")
     agentToAgent: { maxPingPongTurns: 5 },
     sendPolicy: {
       rules: [{ action: "deny", match: { channel: "qqbot", chatType: "group" } }],
@@ -1590,31 +1241,35 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
 
 <Accordion title="会话字段详情">
 
-- **`dmScope`**：私信如何分组。
+- **`scope`**：群聊上下文的基础会话分组策略。
+  - `per-sender`（默认）：每个发送者在渠道上下文内获得一个隔离的会话。
+  - `global`：渠道上下文中的所有参与者共享一个会话（仅在需要共享上下文时使用）。
+- **`dmScope`**：私信的分组方式。
   - `main`：所有私信共享主会话。
-  - `per-peer`：按发送者 ID 跨渠道隔离。
+  - `per-peer`：按发送者 ID 在各渠道间隔离。
   - `per-channel-peer`：按渠道 + 发送者隔离（推荐用于多用户收件箱）。
-  - `per-account-channel-peer`：按账户 + 渠道 + 发送者隔离（推荐用于多账户）。
-- **`identityLinks`**：将规范 ID 映射到带提供商前缀的 peer，用于跨渠道共享会话。
-- **`reset`**：主重置策略。`daily` 会在本地时间 `atHour` 重置；`idle` 会在 `idleMinutes` 后重置。如果两者都配置，谁先到期谁生效。
-- **`resetByType`**：按类型覆盖（`direct`、`group`、`thread`）。旧版 `dm` 仍接受为 `direct` 的别名。
-- **`parentForkMaxTokens`**：创建分叉线程会话时，父会话允许的最大 `totalTokens`（默认 `100000`）。
-  - 如果父会话 `totalTokens` 高于该值，CrawClaw 会启动一个新的线程会话，而不是继承父会话的记录历史。
-  - 设为 `0` 可禁用此保护，并始终允许父会话分叉。
-- **`mainKey`**：旧字段。运行时现在始终为主直聊桶使用 `"main"`。
-- **`sendPolicy`**：可按 `channel`、`chatType`（`direct|group|channel`，旧版 `dm` 仍为别名）、`keyPrefix` 或 `rawKeyPrefix` 匹配。第一个 deny 生效。
-- **`maintenance`**：会话存储清理 + 保留控制。
-  - `mode`：`warn` 仅发出警告；`enforce` 应用清理。
-  - `pruneAfter`：过期条目的年龄阈值（默认 `30d`）。
+  - `per-account-channel-peer`：按账号 + 渠道 + 发送者隔离（推荐用于多账号）。
+- **`identityLinks`**：将规范 ID 映射到提供商前缀的对等方，以实现跨渠道会话共享。
+- **`reset`**：主要重置策略。`daily` 在本地 `atHour` 时重置；`idle` 在 `idleMinutes` 分钟后重置。两者同时配置时，以先到期的为准。
+- **`resetByType`**：按类型覆盖（`direct`、`group`、`thread`）。旧版 `dm` 作为 `direct` 的别名接受。
+- **`parentForkMaxTokens`**：创建分支线程会话时允许的最大父会话 `totalTokens`（默认 `100000`）。
+  - 如果父会话 `totalTokens` 超过此值，CrawClaw 将启动新的线程会话，而非继承父会话的转录历史。
+  - 设置 `0` 可禁用此防护，始终允许父会话分支。
+- **`mainKey`**：旧版字段。运行时现始终使用 `"main"` 作为主私信聊捅桶。
+- **`agentToAgent.maxPingPongTurns`**：智能体间交互期间智能体之间的最大来回轮次（整数，范围：`0`–`5`）。`0` 禁用乒乓链式调用。
+- **`sendPolicy`**：按 `channel`、`chatType`（`direct|group|channel`，含旧版 `dm` 别名）、`keyPrefix` 或 `rawKeyPrefix` 匹配。首个拒绝规则生效。
+- **`maintenance`**：会话存储清理和保留控制。
+  - `mode`：`warn` 仅发出警告；`enforce` 执行清理。
+  - `pruneAfter`：过期条目年龄阈值（默认 `30d`）。
   - `maxEntries`：`sessions.json` 中的最大条目数（默认 `500`）。
-  - `rotateBytes`：当 `sessions.json` 超过此大小时轮转（默认 `10mb`）。
-  - `resetArchiveRetention`：`*.reset.<timestamp>` 会话记录归档的保留期限。默认跟随 `pruneAfter`；设为 `false` 可禁用。
-  - `maxDiskBytes`：可选的会话目录磁盘预算。在 `warn` 模式下会记录警告；在 `enforce` 模式下会优先删除最旧的工件/会话。
-  - `highWaterBytes`：预算清理后的可选目标值。默认是 `maxDiskBytes` 的 `80%`。
+  - `rotateBytes`：`sessions.json` 超过此大小时进行轮转（默认 `10mb`）。
+  - `resetArchiveRetention`：`*.reset.<timestamp>` 转录存档的保留期。默认为 `pruneAfter`；设置为 `false` 可禁用。
+  - `maxDiskBytes`：可选的会话目录磁盘预算。在 `warn` 模式下记录警告；在 `enforce` 模式下优先移除最旧的产物/会话。
+  - `highWaterBytes`：预算清理后的可选目标大小。默认为 `maxDiskBytes` 的 `80%`。
 - **`threadBindings`**：线程绑定会话功能的全局默认值。
   - `enabled`：主默认开关（提供商可覆盖；QQBot 使用 `channels.qqbot.threadBindings.enabled`）
-  - `idleHours`：默认不活动自动取消聚焦时长（小时，`0` 表示禁用；提供商可覆盖）
-  - `maxAgeHours`：默认硬性最大年龄（小时，`0` 表示禁用；提供商可覆盖）
+  - `idleHours`：默认的空闲自动取消聚焦小时数（`0` 禁用；提供商可覆盖）
+  - `maxAgeHours`：默认的硬性最大年龄小时数（`0` 禁用；提供商可覆盖）
 
 </Accordion>
 
@@ -1625,7 +1280,7 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
 ```json5
 {
   messages: {
-    responsePrefix: "🦀", // 或 "auto"
+    responsePrefix: "🦀", // or "auto"
     ackReaction: "👀",
     ackReactionScope: "group-mentions", // group-mentions | group-all | direct | all
     removeAckAfterReply: false,
@@ -1640,7 +1295,7 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
       },
     },
     inbound: {
-      debounceMs: 2000, // 0 表示禁用
+      debounceMs: 2000, // 0 disables
       byChannel: {
         weixin: 5000,
         ddingtalk: 1500,
@@ -1650,35 +1305,35 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
 }
 ```
 
-### 回复前缀
+### 响应前缀
 
-按渠道/按账户覆盖：`channels.<channel>.responsePrefix`、`channels.<channel>.accounts.<id>.responsePrefix`。
+按渠道/账户覆盖：`channels.<channel>.responsePrefix`、`channels.<channel>.accounts.<id>.responsePrefix`。
 
-解析顺序（最具体者优先）：账户 → 渠道 → 全局。`""` 会禁用并停止级联。`"auto"` 会派生为 `[{identity.name}]`。
+解析顺序（最具体的优先）：账户 → 渠道 → 全局。`""` 禁用并停止级联。`"auto"` 推导 `[{identity.name}]`。
 
 **模板变量：**
 
-| Variable          | Description        | Example                     |
-| ----------------- | ------------------ | --------------------------- |
-| `{model}`         | 短模型名           | `claude-opus-4-6`           |
-| `{modelFull}`     | 完整模型标识符     | `anthropic/claude-opus-4-6` |
-| `{provider}`      | 提供商名称         | `anthropic`                 |
-| `{thinkingLevel}` | 当前 thinking 级别 | `high`、`low`、`off`        |
-| `{identity.name}` | 智能体身份名称     | （与 `"auto"` 相同）        |
+| 变量              | 描述           | 示例                        |
+| ----------------- | -------------- | --------------------------- |
+| `{model}`         | 短模型名称     | `claude-opus-4-6`           |
+| `{modelFull}`     | 完整模型标识符 | `anthropic/claude-opus-4-6` |
+| `{provider}`      | 提供商名称     | `anthropic`                 |
+| `{thinkingLevel}` | 当前思考级别   | `high`, `low`, `off`        |
+| `{identity.name}` | 智能体身份名称 | （与 `"auto"` 相同）        |
 
 变量不区分大小写。`{think}` 是 `{thinkingLevel}` 的别名。
 
 ### 确认反应
 
-- 默认取活动智能体的 `identity.emoji`，否则为 `"👀"`。设为 `""` 可禁用。
+- 默认为活跃智能体的 `identity.emoji`，否则为 `"👀"`。设为 `""` 可禁用。
 - 按渠道覆盖：`channels.<channel>.ackReaction`、`channels.<channel>.accounts.<id>.ackReaction`。
-- 解析顺序：账户 → 渠道 → `messages.ackReaction` → identity 回退。
-- 作用域：`group-mentions`（默认）、`group-all`、`direct`、`all`。
-- `removeAckAfterReply`：回复后移除确认反应（仅 DingTalk/QQBot/Feishu/Feishu）。
+- 解析顺序：账户 → 渠道 → `messages.ackReaction` → 身份回退。
+- 范围：`group-mentions`（默认）、`group-all`、`direct`、`all`。
+- `removeAckAfterReply`：回复后移除确认（DingTalk/QQBot/Feishu/Feishu 独有）。
 
 ### 入站防抖
 
-将同一发送者快速连续发送的纯文本消息合并为一次智能体轮次。媒体/附件会立即冲刷。控制命令会绕过防抖。
+将同一发送者的快速纯文本消息批处理为单个智能体回合。媒体/附件立即刷新。控制命令绕过防抖。
 
 ### TTS（文本转语音）
 
@@ -1688,74 +1343,65 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
     tts: {
       auto: "always", // off | always | inbound | tagged
       mode: "final", // final | all
-      provider: "elevenlabs",
+      provider: "qwen3-tts",
       summaryModel: "openai/gpt-4.1-mini",
       modelOverrides: { enabled: true },
       maxTextLength: 4000,
       timeoutMs: 30000,
       prefsPath: "~/.crawclaw/settings/tts.json",
-      elevenlabs: {
-        apiKey: "elevenlabs_api_key",
-        baseUrl: "https://api.elevenlabs.io",
-        voiceId: "voice_id",
-        modelId: "eleven_multilingual_v2",
-        seed: 42,
-        applyTextNormalization: "auto",
-        languageCode: "en",
-        voiceSettings: {
-          stability: 0.5,
-          similarityBoost: 0.75,
-          style: 0.0,
-          useSpeakerBoost: true,
-          speed: 1.0,
+      providers: {
+        "qwen3-tts": {
+          enabled: true,
+          runtime: "qwen-tts",
+          baseUrl: "http://127.0.0.1:8013",
+          profiles: {
+            assistant: {
+              voice: "Cherry",
+              speed: 1.0,
+            },
+          },
         },
-      },
-      openai: {
-        apiKey: "openai_api_key",
-        baseUrl: "https://api.openai.com/v1",
-        model: "gpt-4o-mini-tts",
-        voice: "alloy",
       },
     },
   },
 }
 ```
 
-- `auto` 控制自动 TTS。`/tts off|always|inbound|tagged` 可按会话覆盖。
-- `summaryModel` 会覆盖 `agents.defaults.model.primary` 用于自动摘要。
-- `modelOverrides` 默认启用；`modelOverrides.allowProvider` 默认是 `false`（需显式选择启用）。
-- API 密钥回退到 `ELEVENLABS_API_KEY`/`XI_API_KEY` 和 `OPENAI_API_KEY`。
-- `openai.baseUrl` 会覆盖 OpenAI TTS 端点。解析顺序是配置、然后 `OPENAI_TTS_BASE_URL`、再然后 `https://api.openai.com/v1`。
-- 当 `openai.baseUrl` 指向非 OpenAI 端点时，CrawClaw 会将其视为兼容 OpenAI 的 TTS 服务器，并放宽模型/语音校验。
+- `auto` 控制自动 TTS。`/tts off|always|inbound|tagged` 按会话覆盖。
+- `summaryModel` 覆盖 `agents.defaults.model.primary` 用于自动摘要。
+- `modelOverrides` 默认启用；`modelOverrides.allowProvider` 默认为 `false`（选择启用）。
+- Desktop 语音使用本地 `qwen3-tts` 原生提供商。默认产品运行时不会调用 ElevenLabs、Microsoft 或 OpenAI TTS API。
+- 提供商特定设置位于 `messages.tts.providers.<provider>` 下。
 
 ---
 
 ## Talk
 
-Talk 模式的默认值（macOS；旧版移动端运行时曾有单独的兼容默认值）。
+Talk 模式的默认值（macOS；已归档的移动运行时有单独兼容性默认值）。
 
 ```json5
 {
   talk: {
-    voiceId: "elevenlabs_voice_id",
-    voiceAliases: {
-      Clawd: "EXAVITQu4vr4xnSDxMaL",
-      Roger: "CwhRBWXzGAHq8TQ4Fs17",
+    provider: "qwen3-tts",
+    providers: {
+      "qwen3-tts": {
+        voiceId: "Cherry",
+        outputFormat: "wav",
+        voiceAliases: {
+          assistant: "Cherry",
+        },
+      },
     },
-    modelId: "eleven_v3",
-    outputFormat: "mp3_44100_128",
-    apiKey: "elevenlabs_api_key",
     silenceTimeoutMs: 1500,
     interruptOnSpeech: true,
   },
 }
 ```
 
-- 语音 ID 会回退到 `ELEVENLABS_VOICE_ID` 或 `SAG_VOICE_ID`。
-- `apiKey` 和 `providers.*.apiKey` 接受明文字符串或 SecretRef 对象。
-- 仅在未配置 Talk API key 时，才会回退到 `ELEVENLABS_API_KEY`。
-- `voiceAliases` 让 Talk 指令可以使用友好的名称。
-- `silenceTimeoutMs` 控制 Talk 模式在用户停止说话后等待多久才发送转录。未设置时使用平台默认暂停窗口（`macOS 和 Android 上为 700 ms，iOS 上为 900 ms`）。
+- `talk.provider` 在配置了多个提供商时选择活跃的 Talk 提供商。
+- `talk.providers.*.apiKey` 接受明文字符串或 SecretRef 对象，用于需要凭证的提供商。
+- `talk.providers.*.voiceAliases` 允许 Talk 指令使用友好名称。
+- `silenceTimeoutMs` 控制 Talk 模式在用户静默后等待多长时间才发送 transcript。未设置则保持平台默认暂停窗口（macOS 和 Android 为 `700 ms`，iOS 为 `900 ms`）。
 
 ---
 
@@ -1763,34 +1409,45 @@ Talk 模式的默认值（macOS；旧版移动端运行时曾有单独的兼容�
 
 ### 工具配置文件
 
-`tools.profile` 会在 `tools.allow`/`tools.deny` 之前设置基础 allowlist：
+`tools.profile` 在 `tools.allow`/`tools.deny` 之前设置基础白名单：
 
-本地新手引导会在未设置时，把新的本地配置默认设为 `tools.profile: "coding"`（现有显式配置文件会保留）。
+本地新手引导在未设置时将新本地配置默认设置为 `tools.profile: "coding"`
+（保留现有显式配置文件）。记忆维护工具仅限特殊智能体；
+新手引导不会为其添加 `main` 智能体的 `tools.alsoAllow` 覆盖。
 
-| Profile     | Includes                                                                                  |
-| ----------- | ----------------------------------------------------------------------------------------- |
-| `minimal`   | 仅 `session_status`                                                                       |
-| `coding`    | `group:fs`、`group:runtime`、`group:web`、`group:sessions`、`image`                       |
-| `messaging` | `group:messaging`、`sessions_list`、`sessions_history`、`sessions_send`、`session_status` |
-| `full`      | 不限制（等同于未设置）                                                                    |
+部分工具在配置文件允许/拒绝策略之前有生命周期限制。运行时条件工具
+仍需要其运行时/插件/渠道能力，`session_summary_file_read`、
+`session_summary_file_edit` 等特殊智能体专用工具不是主智能体的默认项。
+
+| 配置文件    | 包含内容                                                                                                                     |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `minimal`   | 仅 `session_status`                                                                                                          |
+| `coding`    | `group:fs`, `group:runtime`, `group:web`, `sessions_spawn`, `sessions_yield`, `session_status`, `browser`, `discover_skills` |
+| `messaging` | `group:messaging`, `session_status`                                                                                          |
 
 ### 工具组
 
-| Group              | Tools                                                                                    |
-| ------------------ | ---------------------------------------------------------------------------------------- |
-| `group:runtime`    | `exec`、`process`（`bash` 可作为 `exec` 的别名）                                         |
-| `group:fs`         | `read`、`write`、`edit`、`apply_patch`                                                   |
-| `group:sessions`   | `sessions_list`、`sessions_history`、`sessions_send`、`sessions_spawn`、`session_status` |
-| `group:web`        | `web_search`、`web_fetch`                                                                |
-| `group:ui`         | `browser`、`canvas`                                                                      |
-| `group:automation` | `cron`、`gateway`                                                                        |
-| `group:messaging`  | `message`                                                                                |
-| `group:nodes`      | `nodes`                                                                                  |
-| `group:crawclaw`   | 所有内置工具（不含提供商插件）                                                           |
+| 组                      | 工具                                                                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `group:runtime`         | `bash`, `process`, `grep`, `find`, `ls`                                                                                 |
+| `group:fs`              | `read`, `write`, `edit`, `apply_patch`                                                                                  |
+| `group:web`             | `web_search`, `web_fetch`                                                                                               |
+| `group:sessions`        | `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`, `sessions_yield`, `subagents`, `session_status` |
+| `group:ui`              | `browser`, `canvas`                                                                                                     |
+| `group:messaging`       | `message`                                                                                                               |
+| `group:automation`      | `cron`, `gateway`                                                                                                       |
+| `group:skills`          | `discover_skills`                                                                                                       |
+| `group:workflow`        | `workflow`, `workflowize`                                                                                               |
+| `group:review`          | `review_task`                                                                                                           |
+| `group:memory`          | `knowledge_recall`, `knowledge_reflect`, `knowledge_ingest`, `knowledge_model_list`, `knowledge_model_create`           |
+| `group:session_summary` | `session_summary_file_read`, `session_summary_file_edit`                                                                |
+| `group:media`           | `image`, `pdf`, `tts`                                                                                                   |
+| `group:crawclaw`        | 所有内置工具（不包含提供商插件）                                                                                        |
+
+组展开不会绕过生命周期限制。例如，将 `group:memory` 添加到白名单不会向 `main` 暴露知识工具，
+除非主机为当前轮次打开了这些工具，或者运行是匹配的特殊智能体。
 
 ### `tools.allow` / `tools.deny`
-
-全局工具 allow/deny 策略（deny 优先）。不区分大小写，支持 `*` 通配符。即使 Docker 沙箱关闭，也会应用。
 
 ```json5
 {
@@ -1816,7 +1473,7 @@ Talk 模式的默认值（macOS；旧版移动端运行时曾有单独的兼容�
 
 ### `tools.elevated`
 
-控制提升权限（主机）`exec` 访问：
+控制提升权限（宿主机）执行访问：
 
 ```json5
 {
@@ -1832,9 +1489,8 @@ Talk 模式的默认值（macOS；旧版移动端运行时曾有单独的兼容�
 }
 ```
 
-- 按智能体覆盖（`agents.list[].tools.elevated`）只能进一步收紧限制。
-- `/elevated on|off|ask|full` 会按会话保存状态；内联指令仅作用于单条消息。
-- 提升权限的 `exec` 会在主机上运行，并绕过沙箱隔离。
+- 按智能体覆盖（`agents.list[].tools.elevated`）只能进一步限制。
+- `/elevated on|off|ask|full` 按会话存储状态；内联指令仅适用于单条消息。
 
 ### `tools.exec`
 
@@ -1858,8 +1514,8 @@ Talk 模式的默认值（macOS；旧版移动端运行时曾有单独的兼容�
 
 ### `tools.loopDetection`
 
-工具循环安全检查**默认禁用**。设置 `enabled: true` 可启用检测。
-可在全局 `tools.loopDetection` 中定义设置，并在 `agents.list[].tools.loopDetection` 中按智能体覆盖。
+工具循环安全检查**默认禁用**。设置 `enabled: true` 以激活检测。
+设置可在全局 `tools.loopDetection` 中定义，并在 `agents.list[].tools.loopDetection` 按智能体覆盖。
 
 ```json5
 {
@@ -1880,14 +1536,14 @@ Talk 模式的默认值（macOS；旧版移动端运行时曾有单独的兼容�
 }
 ```
 
-- `historySize`：为循环分析保留的最大工具调用历史。
-- `warningThreshold`：用于发出警告的重复无进展模式阈值。
-- `criticalThreshold`：用于阻止严重循环的更高重复阈值。
-- `globalCircuitBreakerThreshold`：对任何无进展运行的硬性停止阈值。
-- `detectors.genericRepeat`：对重复的相同工具/相同参数调用发出警告。
-- `detectors.knownPollNoProgress`：对已知轮询工具（`process.poll`、`command_status` 等）的无进展情况发出警告/阻止。
-- `detectors.pingPong`：对交替出现的无进展成对模式发出警告/阻止。
-- 如果 `warningThreshold >= criticalThreshold` 或 `criticalThreshold >= globalCircuitBreakerThreshold`，校验会失败。
+- `historySize`：用于循环分析的最大工具调用历史保留数。
+- `warningThreshold`：警告的无进展重复模式阈值。
+- `criticalThreshold`：阻止关键循环的更高重复阈值。
+- `globalCircuitBreakerThreshold`：任何无进展运行的硬停止阈值。
+- `detectors.genericRepeat`：对相同工具/相同参数重复调用发出警告。
+- `detectors.knownPollNoProgress`：对已知轮询工具（`process.poll`、`command_status` 等）无进展发出警告/阻止。
+- `detectors.pingPong`：对交替无进展配对模式发出警告/阻止。
+- 如果 `warningThreshold >= criticalThreshold` 或 `criticalThreshold >= globalCircuitBreakerThreshold`，验证将失败。
 
 ### `tools.web`
 
@@ -1897,7 +1553,7 @@ Talk 模式的默认值（macOS；旧版移动端运行时曾有单独的兼容�
     web: {
       search: {
         enabled: true,
-        apiKey: "brave_api_key", // 或 BRAVE_API_KEY 环境变量
+        provider: "searxng",
         maxResults: 5,
         timeoutSeconds: 30,
         cacheTtlMinutes: 15,
@@ -1956,14 +1612,14 @@ Talk 模式的默认值（macOS；旧版移动端运行时曾有单独的兼容�
 
 **CLI 条目**（`type: "cli"`）：
 
-- `command`：要运行的可执行文件
+- `command`：要执行的可执行文件
 - `args`：模板化参数（支持 `{{MediaPath}}`、`{{Prompt}}`、`{{MaxChars}}` 等）
 
-**通用字段：**
+**公共字段：**
 
-- `capabilities`：可选列表（`image`、`audio`、`video`）。默认值：`openai`/`anthropic`/`minimax` → 图像，`google` → 图像+音频+视频，`groq` → 音频。
+- `capabilities`：可选列表（`image`、`audio`、`video`）。默认值：`openai`/`anthropic`/`minimax` → image，`google` → image+audio+video，`groq` → audio。
 - `prompt`、`maxChars`、`maxBytes`、`timeoutSeconds`、`language`：按条目覆盖。
-- 失败时会回退到下一个条目。
+- 失败时回退到下一个条目。
 
 提供商认证遵循标准顺序：`auth-profiles.json` → 环境变量 → `models.providers.*.apiKey`。
 
@@ -1984,9 +1640,9 @@ Talk 模式的默认值（macOS；旧版移动端运行时曾有单独的兼容�
 
 ### `tools.sessions`
 
-控制会话工具（`sessions_list`、`sessions_history`、`sessions_send`）可以定位哪些会话。
+控制哪些会话可被会话工具（`sessions_list`、`sessions_history`、`sessions_send`）作为目标。
 
-默认值：`tree`（当前会话 + 由其派生的会话，例如子智能体）。
+默认值：`tree`（当前会话及其衍生的会话，例如子智能体）。
 
 ```json5
 {
@@ -2001,11 +1657,10 @@ Talk 模式的默认值（macOS；旧版移动端运行时曾有单独的兼容�
 
 说明：
 
-- `self`：仅当前会话键。
-- `tree`：当前会话 + 由当前会话派生的会话（子智能体）。
-- `agent`：属于当前智能体 ID 的任意会话（如果你在相同智能体 ID 下运行按发送者划分的会话，可能包含其他用户）。
-- `all`：任意会话。跨智能体定位仍需要 `tools.agentToAgent`。
-- 沙箱钳制：当当前会话处于沙箱中且 `agents.defaults.sandbox.sessionToolsVisibility="spawned"` 时，即使 `tools.sessions.visibility="all"`，可见性也会被强制为 `tree`。
+- `self`：仅当前会话密钥。
+- `tree`：当前会话及其派生的会话（子智能体）。
+- `agent`：属于当前智能体 ID 的任何会话（如果你在同一智能体 ID 下运行按发送者划分的会话，也可能包含其他用户）。
+- `all`：任何会话。跨智能体定位仍需要 `tools.agentToAgent`。
 
 ### `tools.sessions_spawn`
 
@@ -2016,11 +1671,11 @@ Talk 模式的默认值（macOS；旧版移动端运行时曾有单独的兼容�
   tools: {
     sessions_spawn: {
       attachments: {
-        enabled: false, // 选择性启用：设为 true 以允许内联文件附件
-        maxTotalBytes: 5242880, // 所有文件合计 5 MB
+        enabled: false, // opt-in: set true to allow inline file attachments
+        maxTotalBytes: 5242880, // 5 MB total across all files
         maxFiles: 50,
-        maxFileBytes: 1048576, // 每个文件 1 MB
-        retainOnSessionKeep: false, // 当 cleanup="keep" 时保留附件
+        maxFileBytes: 1048576, // 1 MB per file
+        retainOnSessionKeep: false, // keep attachments when cleanup="keep"
       },
     },
   },
@@ -2029,22 +1684,22 @@ Talk 模式的默认值（macOS；旧版移动端运行时曾有单独的兼容�
 
 说明：
 
-- 仅 `runtime: "subagent"` 支持附件。ACP 运行时会拒绝它们。
-- 文件会被物化到子工作区中的 `.crawclaw/attachments/<uuid>/`，并附带一个 `.manifest.json`。
-- 附件内容会自动从会话记录持久化中脱敏。
-- Base64 输入会通过严格的字母表/填充检查和解码前大小保护进行校验。
-- 文件权限为目录 `0700`、文件 `0600`。
-- 清理遵循 `cleanup` 策略：`delete` 总会删除附件；`keep` 仅在 `retainOnSessionKeep: true` 时保留。
+- 附件仅支持 `runtime: "subagent"`。ACP 运行时拒绝它们。
+- 文件被物化到子工作区的 `.crawclaw/attachments/<uuid>/` 中，并附带 `.manifest.json`。
+- 附件内容自动从 transcript 持久化中删除。
+- Base64 输入通过严格的字母表/填充检查和预解码大小守卫进行验证。
+- 目录权限为 `0700`，文件权限为 `0600`。
+- 清理遵循 `cleanup` 策略：`delete` 始终删除附件；`keep` 仅在 `retainOnSessionKeep: true` 时保留。
 
-### `tools.subagents`
+### `agents.defaults.subagents`
 
 ```json5
 {
   agents: {
     defaults: {
       subagents: {
-        model: "minimax/MiniMax-M2.5",
-        maxConcurrent: 1,
+        model: "minimax/MiniMax-M2.7",
+        maxConcurrent: 8,
         runTimeoutSeconds: 900,
         archiveAfterMinutes: 60,
       },
@@ -2053,20 +1708,20 @@ Talk 模式的默认值（macOS；旧版移动端运行时曾有单独的兼容�
 }
 ```
 
-- `model`：派生子智能体的默认模型。如果省略，子智能体会继承调用方的模型。
-- `runTimeoutSeconds`：当工具调用省略 `runTimeoutSeconds` 时，`sessions_spawn` 使用的默认超时（秒）。`0` 表示无超时。
-- 每个子智能体的工具策略：`tools.subagents.tools.allow` / `tools.subagents.tools.deny`。
+- `model`：派生子智能体的默认模型。如果省略，子智能体继承调用者的模型。
+- `runTimeoutSeconds`：`sessions_spawn` 的默认超时时间（秒），当工具调用省略 `runTimeoutSeconds` 时使用。`0` 表示无超时。
+- 按子智能体的工具策略：`tools.subagents.tools.allow` / `tools.subagents.tools.deny`。
 
 ---
 
 ## 自定义提供商和 base URL
 
-CrawClaw 使用内置模型目录。可通过配置中的 `models.providers` 或 `~/.crawclaw/agents/<agentId>/agent/models.json` 添加自定义提供商。
+CrawClaw 使用内置模型目录。通过配置中的 `models.providers` 或 `~/.crawclaw/agents/<agentId>/agent/models.json` 添加自定义提供商。
 
 ```json5
 {
   models: {
-    mode: "merge", // merge（默认）| replace
+    mode: "merge", // merge (default) | replace
     providers: {
       "custom-proxy": {
         baseUrl: "http://localhost:4000/v1",
@@ -2089,41 +1744,41 @@ CrawClaw 使用内置模型目录。可通过配置中的 `models.providers` 或
 }
 ```
 
-- 对自定义认证需求可使用 `authHeader: true` + `headers`。
-- 对匹配的 provider ID，合并优先级如下：
-  - 非空的智能体 `models.json` `baseUrl` 优先。
-  - 非空的智能体 `apiKey` 仅在该提供商未由当前配置/auth-profile 上下文中的 SecretRef 管理时优先。
-  - 由 SecretRef 管理的提供商 `apiKey` 会从源标记（环境变量引用为 `ENV_VAR_NAME`，file/exec 引用为 `secretref-managed`）刷新，而不是持久化已解析的密钥。
-  - 由 SecretRef 管理的提供商 header 值会从源标记刷新（环境变量引用为 `secretref-env:ENV_VAR_NAME`，file/exec 引用为 `secretref-managed`）。
-  - 为空或缺失的智能体 `apiKey`/`baseUrl` 会回退到配置中的 `models.providers`。
-  - 匹配模型的 `contextWindow`/`maxTokens` 会在显式配置值与隐式目录值之间取较大者。
-  - 当你希望配置完全重写 `models.json` 时，请使用 `models.mode: "replace"`。
-  - 标记持久化以源为准：写入的标记来自活动源配置快照（解析前），而不是解析后的运行时密钥值。
+- 使用 `authHeader: true` + `headers` 满足自定义认证需求。
+- 匹配提供商 ID 的合并优先级：
+  - 非空智能体 `models.json` `baseUrl` 值优先。
+  - 非空智能体 `apiKey` 值仅在该提供商在当前配置/认证配置文件上下文中未被 SecretRef 管理时才优先。
+  - SecretRef 管理的提供商 `apiKey` 值从源标记刷新（环境引用的 `ENV_VAR_NAME`，文件/执行引用的 `secretref-managed`），而不是持久化解析后的密钥。
+  - SecretRef 管理的提供商 header 值从源标记刷新（环境引用的 `secretref-env:ENV_VAR_NAME`，文件/执行引用的 `secretref-managed`）。
+  - 空或缺失的智能体 `apiKey`/`baseUrl` 回退到配置中的 `models.providers`。
+  - 仅显式配置的提供商模型条目写入智能体 `models.json`；运行时提供商元数据仍由 Rust 拥有。
+  - 当你希望配置完全重写 `models.json` 时使用 `models.mode: "replace"`。
+  - 标记持久化是源授权的：标记从活动源配置快照（预解析）写入，而非从解析后的运行时密钥值写入。
 
 ### 提供商字段详情
 
 - `models.mode`：提供商目录行为（`merge` 或 `replace`）。
-- `models.providers`：以提供商 ID 为键的自定义提供商映射。
+- `models.providers`：按提供商 ID 键控的自定义提供商映射。
 - `models.providers.*.api`：请求适配器（`openai-completions`、`openai-responses`、`anthropic-messages`、`google-generative-ai` 等）。
 - `models.providers.*.apiKey`：提供商凭证（优先使用 SecretRef/环境变量替换）。
 - `models.providers.*.auth`：认证策略（`api-key`、`token`、`oauth`、`aws-sdk`）。
-- `models.providers.*.injectNumCtxForOpenAICompat`：对 Ollama + `openai-completions`，将 `options.num_ctx` 注入请求（默认：`true`）。
-- `models.providers.*.authHeader`：在需要时强制通过 `Authorization` 头传输凭证。
+- `models.providers.*.injectNumCtxForOpenAICompat`：对于 Ollama + `openai-completions`，向请求中注入 `options.num_ctx`（默认：`true`）。
+- `models.providers.*.authHeader`：需要时强制将凭证放在 `Authorization` header 中。
 - `models.providers.*.baseUrl`：上游 API base URL。
-- `models.providers.*.headers`：用于代理/租户路由的额外静态 header。
-- `models.providers.*.models`：显式的提供商模型目录条目。
-- `models.providers.*.models.*.compat.supportsDeveloperRole`：可选的兼容性提示。对 `api: "openai-completions"` 且非空、非原生 `baseUrl`（主机不是 `api.openai.com`）的情况，CrawClaw 会在运行时将其强制设为 `false`。空或省略的 `baseUrl` 会保留默认 OpenAI 行为。
+- `models.providers.*.headers`：用于代理/租户路由的额外静态 headers。
+- `models.providers.*.models`：显式提供商模型目录条目。
+- `models.providers.*.models.*.compat.supportsDeveloperRole`：可选的兼容性提示。对于 `api: "openai-completions"` 且非空非原生 `baseUrl`（主机不是 `api.openai.com`）的情况，CrawClaw 在运行时强制将其设为 `false`。空/省略的 `baseUrl` 保持默认 OpenAI 行为。
 - `models.bedrockDiscovery`：Bedrock 自动发现设置根。
 - `models.bedrockDiscovery.enabled`：开启/关闭发现轮询。
-- `models.bedrockDiscovery.region`：发现使用的 AWS 区域。
-- `models.bedrockDiscovery.providerFilter`：用于定向发现的可选 provider-id 过滤器。
+- `models.bedrockDiscovery.region`：发现的 AWS 区域。
+- `models.bedrockDiscovery.providerFilter`：目标发现的可选提供商 ID 过滤器。
 - `models.bedrockDiscovery.refreshInterval`：发现刷新的轮询间隔。
-- `models.bedrockDiscovery.defaultContextWindow`：发现模型的回退上下文窗口。
-- `models.bedrockDiscovery.defaultMaxTokens`：发现模型的回退最大输出 token 数。
+- `models.bedrockDiscovery.defaultContextWindow`：发现模型的备用上下文窗口。
+- `models.bedrockDiscovery.defaultMaxTokens`：发现模型的备用最大输出 token 数。
 
 ### 提供商示例
 
-<Accordion title="Cerebras（GLM 4.6 / 4.7）">
+<Accordion title="Cerebras (GLM 4.6 / 4.7)">
 
 ```json5
 {
@@ -2157,7 +1812,7 @@ CrawClaw 使用内置模型目录。可通过配置中的 `models.providers` 或
 }
 ```
 
-对 Cerebras 使用 `cerebras/zai-glm-4.7`；对 Z.AI 直连使用 `zai/glm-4.7`。
+使用 `cerebras/zai-glm-4.7` 连接 Cerebras；使用 `zai/glm-4.7` 连接 Z.AI 直连。
 
 </Accordion>
 
@@ -2174,11 +1829,11 @@ CrawClaw 使用内置模型目录。可通过配置中的 `models.providers` 或
 }
 ```
 
-设置 `OPENCODE_API_KEY`（或 `OPENCODE_ZEN_API_KEY`）。Zen 目录使用 `opencode/...` 引用，Go 目录使用 `opencode-go/...` 引用。设置：使用 CrawClaw Desktop 或本地 Gateway API。
+设置 `OPENCODE_API_KEY`（或 `OPENCODE_ZEN_API_KEY`）。使用 `opencode/...` 引用 Zen 目录，或 `opencode-go/...` 引用 Go 目录。通过 CrawClaw Desktop 或本地 Gateway API 配置。
 
 </Accordion>
 
-<Accordion title="Z.AI（GLM-4.7）">
+<Accordion title="Z.AI (GLM-4.7)">
 
 ```json5
 {
@@ -2191,15 +1846,15 @@ CrawClaw 使用内置模型目录。可通过配置中的 `models.providers` 或
 }
 ```
 
-设置 `ZAI_API_KEY`。`z.ai/*` 和 `z-ai/*` 都是可接受的别名。设置：使用 CrawClaw Desktop 或本地 Gateway API。
+设置 `ZAI_API_KEY`。接受 `z.ai/*` 和 `z-ai/*` 作为别名。通过 CrawClaw Desktop 或本地 Gateway API 配置。
 
 - 通用端点：`https://api.z.ai/api/paas/v4`
-- 编码端点（默认）：`https://api.z.ai/api/coding/paas/v4`
-- 对于通用端点，请定义一个带有 base URL 覆盖的自定义提供商。
+- 编程端点（默认）：`https://api.z.ai/api/coding/paas/v4`
+- 对于通用端点，使用 base URL 覆盖定义自定义提供商。
 
 </Accordion>
 
-<Accordion title="Moonshot AI（Kimi）">
+<Accordion title="Moonshot AI (Kimi)">
 
 ```json5
 {
@@ -2234,7 +1889,7 @@ CrawClaw 使用内置模型目录。可通过配置中的 `models.providers` 或
 }
 ```
 
-中国端点可使用：`baseUrl: "https://api.moonshot.cn/v1"`，或通过 CrawClaw Desktop / 本地 Gateway API 配置 Moonshot API key。
+中国端点：`baseUrl: "https://api.moonshot.cn/v1"` 或通过 CrawClaw Desktop 或本地 Gateway API 配置。
 
 </Accordion>
 
@@ -2252,11 +1907,11 @@ CrawClaw 使用内置模型目录。可通过配置中的 `models.providers` 或
 }
 ```
 
-兼容 Anthropic 的内置提供商。设置：使用 CrawClaw Desktop 或本地 Gateway API。
+Anthropic 兼容的内置提供商。通过 CrawClaw Desktop 或本地 Gateway API 配置。
 
 </Accordion>
 
-<Accordion title="Synthetic（兼容 Anthropic）">
+<Accordion title="Synthetic (Anthropic 兼容)">
 
 ```json5
 {
@@ -2291,19 +1946,19 @@ CrawClaw 使用内置模型目录。可通过配置中的 `models.providers` 或
 }
 ```
 
-Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使用 CrawClaw Desktop 或本地 Gateway API。
+Base URL 应省略 `/v1`（Anthropic 客户端会追加）。通过 CrawClaw Desktop 或本地 Gateway API 配置。
 
 </Accordion>
 
-<Accordion title="MiniMax M2.5（直连）">
+<Accordion title="MiniMax M2.7（直连）">
 
 ```json5
 {
   agents: {
     defaults: {
-      model: { primary: "minimax/MiniMax-M2.5" },
+      model: { primary: "minimax/MiniMax-M2.7" },
       models: {
-        "minimax/MiniMax-M2.5": { alias: "Minimax" },
+        "minimax/MiniMax-M2.7": { alias: "Minimax" },
       },
     },
   },
@@ -2316,11 +1971,11 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使�
         api: "anthropic-messages",
         models: [
           {
-            id: "MiniMax-M2.5",
-            name: "MiniMax M2.5",
+            id: "MiniMax-M2.7",
+            name: "MiniMax M2.7",
             reasoning: true,
             input: ["text"],
-            cost: { input: 15, output: 60, cacheRead: 2, cacheWrite: 10 },
+            cost: { input: 0.3, output: 1.2, cacheRead: 0.03, cacheWrite: 0.12 },
             contextWindow: 200000,
             maxTokens: 8192,
           },
@@ -2331,13 +1986,14 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使�
 }
 ```
 
-设置 `MINIMAX_API_KEY`。设置：使用 CrawClaw Desktop 或本地 Gateway API。
+设置 `MINIMAX_API_KEY`。通过 CrawClaw Desktop 或本地 Gateway API 配置。
+模型目录现在默认仅 M2.7。
 
 </Accordion>
 
 <Accordion title="本地模型（LM Studio）">
 
-参见 [Local Models](/gateway/local-models)。简而言之：在强劲硬件上通过 LM Studio Responses API 运行 MiniMax M2.5；并保留托管模型合并，以便故障切换。
+请参阅[本地模型](/gateway/local-models)。简而言之：通过 LM Studio Responses API 在高性能硬件上运行大型本地模型；保持托管模型合并作为回退。
 
 </Accordion>
 
@@ -2357,7 +2013,7 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使�
       nodeManager: "npm", // npm | pnpm | yarn
     },
     entries: {
-      "nano-banana-pro": {
+      "image-lab": {
         apiKey: { source: "env", provider: "default", id: "GEMINI_API_KEY" }, // 或明文字符串
         env: { GEMINI_API_KEY: "GEMINI_KEY_HERE" },
       },
@@ -2368,9 +2024,9 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使�
 }
 ```
 
-- `allowBundled`：仅针对捆绑 Skills 的可选 allowlist（托管/工作区 Skills 不受影响）。
-- `entries.<skillKey>.enabled: false`：即使某个技能已捆绑/已安装，也会禁用它。
-- `entries.<skillKey>.apiKey`：针对声明主环境变量的技能提供的便捷字段（明文字符串或 SecretRef 对象）。
+- `allowBundled`：仅针对捆绑 Skills 的可选允许列表（managed/workspace Skills 不受影响）。
+- `entries.<skillKey>.enabled: false` 即使 Skills 已捆绑/安装也会禁用该 Skill。
+- `entries.<skillKey>.apiKey`：为声明主要环境变量的 Skills 提供的便捷方式（明文字符串或 SecretRef 对象）。
 
 ---
 
@@ -2396,19 +2052,19 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使�
 ```
 
 - 从 `~/.crawclaw/extensions`、`<workspace>/.crawclaw/extensions` 以及 `plugins.load.paths` 加载。
-- 设备发现同时接受原生 CrawClaw 插件、兼容的 Codex bundle 和 Claude bundle，包括无 manifest 的 Claude 默认布局 bundle。
-- **配置更改需要重启 Gateway 网关。**
-- `allow`：可选 allowlist（仅加载列出的插件）。`deny` 优先。
-- `plugins.entries.<id>.apiKey`：插件级 API key 便捷字段（插件支持时）。
-- `plugins.entries.<id>.env`：插件作用域环境变量映射。
-- `plugins.entries.<id>.hooks.allowPromptInjection`：为 `false` 时，核心会阻止该插件通过 `before_prompt_build` 修改 prompt。适用于原生插件 hook 以及受支持 bundle 提供的 hook 目录。
-- `plugins.entries.<id>.config`：插件定义的配置对象（如有可用原生 CrawClaw 插件 schema，则会校验）。
-- 已启用的 Claude bundle 插件也可以从 `settings.json` 提供智能体默认值；CrawClaw 会将其作为净化后的智能体设置应用，而不是作为原始 CrawClaw 配置补丁。
-- `plugins.installs`：由 CLI 管理的安装元数据，供 `crawclaw plugins update` 使用。
-  - 包括 `source`、`spec`、`sourcePath`、`installPath`、`version`、`resolvedName`、`resolvedVersion`、`resolvedSpec`、`integrity`、`shasum`、`resolvedAt`、`installedAt`。
-  - 请将 `plugins.installs.*` 视为托管状态；优先使用 CLI 命令，而不是手动编辑。
+- 发现机制通过 Rust 运行时注册表接受原生 CrawClaw 插件。
+- 配置变更通过 Gateway 网关实时重配置应用。
+- `allow`：可选白名单（仅加载列出的插件）。`deny` 优先。
+- `plugins.entries.<id>.apiKey`：插件级 API 密钥便利字段（当插件支持时）。
+- `plugins.entries.<id>.env`：插件作用域的环境变量映射。
+- `plugins.entries.<id>.subagent.allowModelOverride`：显式信任此插件请求后台子智能体运行时的 `provider` 和 `model` 覆盖。
+- `plugins.entries.<id>.subagent.allowedModels`：可信子智能体覆盖的规范 `provider/model` 目标可选白名单。仅在你有意允许任何模型时使用 `"*"`。
+- `plugins.entries.<id>.config`：插件定义的配置对象（当有原生 CrawClaw 插件 schema 时进行验证）。
+- `plugins.installs`：CrawClaw Desktop 或本地 Gateway API 使用的 CLI 管理安装元数据。
+  - 包含 `source`、`spec`、`sourcePath`、`installPath`、`version`、`resolvedName`、`resolvedVersion`、`resolvedSpec`、`integrity`、`shasum`、`resolvedAt`、`installedAt`。
+  - 将 `plugins.installs.*` 视为托管状态；优先使用 Desktop 和 Gateway API 操作而非手动编辑。
 
-见 [Plugins](/tools/plugin)。
+参见[插件](/tools/plugin)。
 
 ---
 
@@ -2419,40 +2075,31 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使�
   browser: {
     enabled: true,
     evaluateEnabled: true,
-    defaultProfile: "user",
+    defaultProfile: "crawclaw",
     ssrfPolicy: {
-      dangerouslyAllowPrivateNetwork: true, // 默认可信网络模式
-      // allowPrivateNetwork: true, // 旧别名
+      dangerouslyAllowPrivateNetwork: true, // 默认信任网络模式
+      // allowPrivateNetwork: true, // 旧版别名
       // hostnameAllowlist: ["*.example.com", "example.com"],
       // allowedHostnames: ["localhost"],
     },
     profiles: {
-      crawclaw: { cdpPort: 18800, color: "#FF4500" },
-      work: { cdpPort: 18801, color: "#0066CC" },
-      remote: { cdpUrl: "http://10.0.0.42:9222", color: "#00AA00" },
+      crawclaw: { color: "#FF4500" },
+      work: { color: "#0066CC" },
     },
     color: "#FF4500",
     // headless: false,
-    // noSandbox: false,
     // extraArgs: [],
-    // relayBindHost: "0.0.0.0", // 仅在扩展 relay 需要跨命名空间可达时
-    // executablePath: "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
   },
 }
 ```
 
-- `evaluateEnabled: false` 会禁用 `act:evaluate` 和 `wait --fn`。
-- `ssrfPolicy.dangerouslyAllowPrivateNetwork` 在未设置时默认为 `true`（可信网络模型）。
-- 若要启用严格的仅公共网络浏览导航，请设置 `ssrfPolicy.dangerouslyAllowPrivateNetwork: false`。
-- 在严格模式下，远程 CDP 配置文件端点（`profiles.*.cdpUrl`）在可达性/发现检查期间也受相同的私有网络阻止规则限制。
-- `ssrfPolicy.allowPrivateNetwork` 仍支持作为旧别名。
-- 在严格模式下，可使用 `ssrfPolicy.hostnameAllowlist` 和 `ssrfPolicy.allowedHostnames` 显式放行例外。
-- 远程配置文件为仅附加模式（禁止启动/停止/重置）。
-- 自动检测顺序：默认浏览器如果是基于 Chromium → Chrome → Brave → Edge → Chromium → Chrome Canary。
-- 控制服务：仅 loopback（端口由 `gateway.port` 派生，默认 `18791`）。
-- `extraArgs` 会向本地 Chromium 启动追加额外标志（例如
-  `--disable-gpu`、窗口大小设置或调试标志）。
-- `relayBindHost` 更改 Chrome 扩展 relay 的监听地址。若只需 loopback 访问请保持未设置；仅当 relay 必须跨命名空间边界可达且主机网络已受信任时，才显式设置为非 loopback 地址，例如 `0.0.0.0`。
+- `evaluateEnabled: false` 禁用 `act:evaluate` 和 `wait --fn`。
+- `ssrfPolicy.dangerouslyAllowPrivateNetwork` 未设置时默认为 `true`（信任网络模式）。
+- 设置 `ssrfPolicy.dangerouslyAllowPrivateNetwork: false` 可启用严格的仅公有网络浏览器导航。
+- `ssrfPolicy.allowPrivateNetwork` 仍作为旧版别名受支持。
+- 在严格模式下，使用 `ssrfPolicy.hostnameAllowlist` 和 `ssrfPolicy.allowedHostnames` 进行明确例外配置。
+- 控制服务：仅限 local loopback（端口从 `gateway.port` 派生，默认 `18791`）。
+- 捆绑的浏览器工具由 Rust 原生插件注册表注册，并使用托管的 `agent-browser` 运行时。
 
 ---
 
@@ -2467,8 +2114,8 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使�
     auth: {
       mode: "token", // none | token | password | trusted-proxy
       token: "your-token",
-      // password: "your-password", // 或 CRAWCLAW_GATEWAY_PASSWORD
-      // trustedProxy: { userHeader: "x-forwarded-user" }, // 用于 mode=trusted-proxy；见 /gateway/trusted-proxy-auth
+      // password: "your-password", // or CRAWCLAW_GATEWAY_PASSWORD
+      // trustedProxy: { userHeader: "x-forwarded-user" }, // for mode=trusted-proxy; see /gateway/trusted-proxy-auth
       allowTailscale: true,
       rateLimit: {
         maxAttempts: 10,
@@ -2484,11 +2131,9 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使�
     browserClients: {
       enabled: true,
       basePath: "/crawclaw",
-      // root: "dist/browser-client",
-      // allowedOrigins: ["https://control.example.com"], // 非 loopback Browser client 必需
-      // dangerouslyAllowHostHeaderOriginFallback: false, // 危险的 Host-header origin 回退模式
+      // allowedOrigins: ["https://control.example.com"], // required for non-loopback browser-client access
+      // dangerouslyAllowHostHeaderOriginFallback: false, // dangerous Host-header origin fallback mode
       // allowInsecureAuth: false,
-      // dangerouslyDisableDeviceAuth: false,
     },
     remote: {
       url: "ws://gateway.tailnet:18789",
@@ -2497,80 +2142,102 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使�
       // password: "your-password",
     },
     trustedProxies: ["10.0.0.1"],
-    // 可选。默认 false。
+    // Optional. Default false.
     allowRealIpFallback: false,
     tools: {
-      // 额外的 /tools/invoke HTTP deny
+      // Additional /tools/invoke HTTP denies
       deny: ["browser"],
-      // 从默认 HTTP deny 列表中移除工具
+      // Remove tools from the default HTTP deny list
       allow: ["gateway"],
-    },
-    push: {
-      apns: {
-        relay: {
-          baseUrl: "https://relay.example.com",
-          timeoutMs: 10000,
-        },
-      },
     },
   },
 }
 ```
 
-<Accordion title="Gateway 网关字段详情">
+<Accordion title="Gateway 字段详情">
 
-- `mode`：`local`（运行网关）或 `remote`（连接远程网关）。除非为 `local`，否则 Gateway 网关拒绝启动。
-- `port`：用于 WS + HTTP 的单一复用端口。优先级：`--port` > `CRAWCLAW_GATEWAY_PORT` > `gateway.port` > `18789`。
+- `mode`：`local`（运行网关）或 `remote`（连接远程网关）。除非是 `local`，否则 Gateway 网关拒绝启动。
+- `port`：WS + HTTP 复用的单一端口。优先级：`--port` > `CRAWCLAW_GATEWAY_PORT` > `gateway.port` > `18789`。
 - `bind`：`auto`、`loopback`（默认）、`lan`（`0.0.0.0`）、`tailnet`（仅 Tailscale IP）或 `custom`。
-- **旧版 bind 别名**：请在 `gateway.bind` 中使用 bind 模式值（`auto`、`loopback`、`lan`、`tailnet`、`custom`），不要使用主机别名（`0.0.0.0`、`127.0.0.1`、`localhost`、`::`、`::1`）。
-- **Docker 说明**：默认的 `loopback` bind 在容器内监听 `127.0.0.1`。在 Docker bridge 网络（`-p 18789:18789`）下，流量从 `eth0` 进入，因此网关不可达。请使用 `--network host`，或设置 `bind: "lan"`（或 `bind: "custom"` 并配合 `customBindHost: "0.0.0.0"`）以监听所有接口。
-- **认证**：默认要求认证。非 loopback bind 需要共享 token/password。新手引导默认会生成一个 token。
-- 如果同时配置了 `gateway.auth.token` 和 `gateway.auth.password`（包括 SecretRef），请显式设置 `gateway.auth.mode` 为 `token` 或 `password`。如果两者都已配置但 mode 未设置，启动和服务安装/修复流程都会失败。
-- `gateway.auth.mode: "none"`：显式无认证模式。仅用于受信任的本地 local loopback 设置；新手引导提示中故意不提供此选项。
-- `gateway.auth.mode: "trusted-proxy"`：将认证委托给具备身份感知能力的反向代理，并信任来自 `gateway.trustedProxies` 的身份头（见 [Trusted Proxy Auth](/gateway/trusted-proxy-auth)）。
-- `gateway.auth.allowTailscale`：为 `true` 时，Tailscale Serve 身份头可满足 Browser client/WebSocket 认证（通过 `tailscale whois` 验证）；HTTP API 端点仍要求 token/password 认证。这种无 token 流程假定网关主机是受信任的。当 `tailscale.mode = "serve"` 时默认值为 `true`。
-- `gateway.auth.rateLimit`：可选的认证失败限流器。按客户端 IP 和认证范围生效（共享密钥和设备 token 分别跟踪）。被阻止的尝试返回 `429` + `Retry-After`。
-  - `gateway.auth.rateLimit.exemptLoopback` 默认值为 `true`；当你有意希望 localhost 流量也受限流时（用于测试设置或严格代理部署），请设为 `false`。
-- 来自浏览器 origin 的 WS 认证尝试始终会在禁用 loopback 豁免的情况下限流（作为对基于浏览器的 localhost 暴力破解的纵深防御）。
-- `tailscale.mode`：`serve`（仅 tailnet，loopback bind）或 `funnel`（公开，需要认证）。
-- `browserClients.allowedOrigins`：用于 Gateway 网关 WebSocket 连接的显式浏览器 origin allowlist。当浏览器客户端预期来自非 loopback origin 时必须设置。
-- `browserClients.dangerouslyAllowHostHeaderOriginFallback`：危险模式，为那些刻意依赖 Host-header origin 策略的部署启用 Host-header origin 回退。
-- `remote.transport`：`ssh`（默认）或 `direct`（ws/wss）。对于 `direct`，`remote.url` 必须是 `ws://` 或 `wss://`。
-- `CRAWCLAW_ALLOW_INSECURE_PRIVATE_WS=1`：客户端侧的紧急覆盖，允许对受信任的私有网络 IP 使用明文 `ws://`；默认仍只允许 loopback 使用明文。
-- `gateway.remote.token` / `.password` 是远程客户端凭证字段。它们本身不会配置网关认证。
-- `gateway.push.apns.relay.baseUrl`：官方/TestFlight iOS 版本在将基于 relay 的注册发布到网关后，供网关使用的外部 APNs relay 基础 HTTPS URL。该 URL 必须与编译进 iOS 构建中的 relay URL 一致。
-- `gateway.push.apns.relay.timeoutMs`：网关到 relay 的发送超时（毫秒）。默认值为 `10000`。
-- 基于 relay 的注册会被委派给一个特定网关身份。配对的 iOS 应用会获取 `gateway.identity.get`，将该身份包含到 relay 注册中，并将带注册作用域的发送授权转发给网关。其他网关不能复用该已存储注册。
-- `CRAWCLAW_APNS_RELAY_BASE_URL` / `CRAWCLAW_APNS_RELAY_TIMEOUT_MS`：用于覆盖上述 relay 配置的临时环境变量。
-- `CRAWCLAW_APNS_RELAY_ALLOW_HTTP=true`：仅开发用的逃生口，用于 loopback HTTP relay URL。生产 relay URL 应保持为 HTTPS。
-- `gateway.channelHealthCheckMinutes`：渠道健康检查监视间隔（分钟）。设为 `0` 可全局禁用健康检查重启。默认：`5`。
-- `gateway.channelStaleEventThresholdMinutes`：陈旧 socket 阈值（分钟）。请保持其大于或等于 `gateway.channelHealthCheckMinutes`。默认：`30`。
-- `gateway.channelMaxRestartsPerHour`：滚动一小时内，每个渠道/账户允许的最大健康检查重启次数。默认：`10`。
-- `channels.<provider>.healthMonitor.enabled`：按渠道选择退出健康检查重启，同时保留全局监视器开启。
-- `channels.<provider>.accounts.<accountId>.healthMonitor.enabled`：多账户渠道的按账户覆盖。设置后，它优先于渠道级覆盖。
-- 仅当 `gateway.auth.*` 未设置时，本地 Gateway 网关调用路径才可回退到 `gateway.remote.*`。
-- 如果 `gateway.auth.token` / `gateway.auth.password` 通过 SecretRef 显式配置但无法解析，解析会以默认拒绝方式失败（不会用 remote 回退掩盖）。
-- `trustedProxies`：终止 TLS 的反向代理 IP。仅列出你控制的代理。
-- `allowRealIpFallback`：为 `true` 时，当缺失 `X-Forwarded-For` 时，Gateway 网关接受 `X-Real-IP`。默认为 `false`，以实现默认拒绝行为。
-- `gateway.tools.deny`：对 HTTP `POST /tools/invoke` 额外阻止的工具名（扩展默认 deny 列表）。
-- `gateway.tools.allow`：从默认 HTTP deny 列表中移除工具名。
+- **旧版绑定别名**：在 `gateway.bind` 中使用绑定模式值（`auto`、`loopback`、`lan`、`tailnet`、`custom`），而非主机别名（`0.0.0.0`、`127.0.0.1`、`localhost`、`::`、`::1`）。
+- **认证**：默认必须认证。非 loopback 绑定需要共享的 token/password。CrawClaw Desktop 可在设置期间生成 token。
+- 如果同时配置了 `gateway.auth.token` 和 `gateway.auth.password`（包括 SecretRefs），需显式设置 `gateway.auth.mode` 为 `token` 或 `password`。当两者均已配置且 mode 未设置时，启动和服务安装/修复流程将失败。
+- `gateway.auth.mode: "none"`：显式无认证模式。仅用于可信的 local loopback 设置；新手引导不会提供此选项。
+- `gateway.auth.mode: "trusted-proxy"`：将认证委托给身份感知反向代理，并信任来自 `gateway.trustedProxies` 的身份头（参见[可信代理认证](/gateway/trusted-proxy-auth)）。
+- `gateway.auth.allowTailscale`：当为 `true` 时，Tailscale Serve 身份头可满足浏览器客户端/WebSocket 认证（通过 `tailscale whois` 验证）；HTTP API 端点仍需 token/password 认证。此无 token 流程假设网关主机是可信的。当 `tailscale.mode = "serve"` 时默认为 `true`。
+- `gateway.auth.rateLimit`：可选的失败认证限制器。按客户端 IP 和认证范围应用。被阻止的尝试返回 `429` + `Retry-After`。
+  - `gateway.auth.rateLimit.exemptLoopback` 默认为 `true`；当你有意要让 localhost 流量也被限速时（用于测试设置或严格代理部署）可设置为 `false`。
+- 浏览器来源的 WS 认证尝试始终被限速，loopback 豁免被禁用（纵深防御，抵御基于浏览器的 localhost 暴力破解）。
+- `tailscale.mode`：`serve`（仅 tailnet，loopback 绑定）或 `funnel`（公开，需要认证）。
+- `browserClients.allowedOrigins`：Gateway WebSocket 连接的显式浏览器来源白名单。当浏览器客户端预期来自非 loopback 来源时需要。
+- `browserClients.dangerouslyAllowHostHeaderOriginFallback`：危险模式，启用 Host 头来源回退，用于有意依赖 Host 头来源策略的部署。
+- `remote.transport`：`ssh`（默认）或 `direct`（ws/wss）。对于 `direct`，`remote.url` 必须为 `ws://` 或 `wss://`。
+- `CRAWCLAW_ALLOW_INSECURE_PRIVATE_WS=1`：客户端断路器覆盖，允许明文 `ws://` 到可信私有网络 IP；默认仍仅对 loopback 的明文保持限制。
+- `gateway.remote.token` / `.password` 是远程客户端凭证字段。它们本身不配置网关认证。
+- `gateway.channelHealthCheckMinutes`：渠道健康监控间隔（分钟）。设置为 `0` 可全局禁用健康监控重启。默认值：`5`。
+- `gateway.channelStaleEventThresholdMinutes`：僵尸套接字阈值（分钟）。保持此值大于或等于 `gateway.channelHealthCheckMinutes`。默认值：`30`。
+- `gateway.channelMaxRestartsPerHour`：滚动一小时内每个渠道/账号的最大健康监控重启次数。默认值：`10`。
+- `channels.<provider>.healthMonitor.enabled`：在保持全局监控启用的同时，按渠道选择退出健康监控重启。
+- `channels.<provider>.accounts.<accountId>.healthMonitor.enabled`：多账号渠道的按账号覆盖。设置后优先于渠道级覆盖。
+- 本地网关调用路径仅在 `gateway.auth.*` 未设置时才能使用 `gateway.remote.*` 作为回退。
+- 如果 `gateway.auth.token` / `gateway.auth.password` 通过 SecretRef 显式配置且未解析，则解析失败关闭（无远程回退掩盖）。
+- `trustedProxies`：终止 TLS 的反向代理 IP。只列出你控制的代理。
+- `allowRealIpFallback`：当为 `true` 时，如果 `X-Forwarded-For` 缺失则接受 `X-Real-IP`。默认为 `false`（默认失败关闭行为）。
+- `gateway.tools.deny`：HTTP `POST /tools/invoke` 额外阻止的工具名（扩展默认拒绝列表）。
+- `gateway.tools.allow`：从默认 HTTP 拒绝列表中移除的工具名。
 
 </Accordion>
 
-### 兼容 OpenAI 的端点
+### OpenAI 兼容端点
 
 - Chat Completions：默认禁用。通过 `gateway.http.endpoints.chatCompletions.enabled: true` 启用。
 - Responses API：`gateway.http.endpoints.responses.enabled`。
-- Responses URL 输入加固：
+- Rust 原生 Responses 端点当前仅支持文本。这些 URL 输入加固密钥预留用于启用文件或图像输入的部署：
   - `gateway.http.endpoints.responses.maxUrlParts`
   - `gateway.http.endpoints.responses.files.urlAllowlist`
   - `gateway.http.endpoints.responses.images.urlAllowlist`
-- 可选的响应加固 header：
-  - `gateway.http.securityHeaders.strictTransportSecurity`（仅对你控制的 HTTPS origin 设置；见 [Trusted Proxy Auth](/gateway/trusted-proxy-auth#tls-termination-and-hsts)）
+    空白名单视为未设置；使用 `gateway.http.endpoints.responses.files.allowUrl=false`
+    和/或 `gateway.http.endpoints.responses.images.allowUrl=false` 来禁用 URL 获取。
+- 可选响应加固头：
+  - `gateway.http.securityHeaders.strictTransportSecurity`（仅为控制的 HTTPS 来源设置；参见[可信代理认证](/gateway/trusted-proxy-auth#tls-termination-and-hsts)）
 
----
+### 多实例隔离
 
-## Hooks
+在同一主机上运行多个网关，使用唯一端口和状态目录：
+
+```bash
+CRAWCLAW_CONFIG_PATH=~/.crawclaw/a.json \
+CRAWCLAW_STATE_DIR=~/.crawclaw-a \
+cargo run -q -p crawclaw-gateway -- --bind loopback --port 18789
+```
+
+对于本地开发，为每个实例显式设置 `CRAWCLAW_STATE_DIR` 和 `--port`。
+
+参见[多网关](/gateway/multiple-gateways)。
+
+### `gateway.tls`
+
+```json5
+{
+  gateway: {
+    tls: {
+      enabled: false,
+      autoGenerate: false,
+      certPath: "/etc/crawclaw/tls/server.crt",
+      keyPath: "/etc/crawclaw/tls/server.key",
+      caPath: "/etc/crawclaw/tls/ca-bundle.crt",
+    },
+  },
+}
+```
+
+- `enabled`：在网关监听器启用 TLS 终止（HTTPS/WSS）（默认：`false`）。
+- `autoGenerate`：当未配置显式文件时自动生成本地自签名证书/密钥对；仅用于本地/开发。
+- `certPath`：TLS 证书文件的文件系统路径。
+- `keyPath`：TLS 私钥文件的文件系统路径；保持权限受限。
+- `caPath`：用于客户端验证或自定义信任链的可选 CA 证书包路径。
+
+## 钩子
 
 ```json5
 {
@@ -2609,23 +2276,23 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使�
 
 - `POST /hooks/wake` → `{ text, mode?: "now" }`
 - `POST /hooks/agent` → `{ message, name?, agentId?, sessionKey?, wakeMode?, deliver?, channel?, to?, model?, thinking?, timeoutSeconds? }`
-  - 仅当 `hooks.allowRequestSessionKey=true`（默认：`false`）时，才接受请求负载中的 `sessionKey`。
+  - 仅在 `hooks.allowRequestSessionKey=true` 时接受请求 payload 中的 `sessionKey`（默认：`false`）。
 - `POST /hooks/<name>` → 通过 `hooks.mappings` 解析
 
 <Accordion title="映射详情">
 
-- `match.path` 匹配 `/hooks` 之后的子路径（例如 `/hooks/gmail` → `gmail`）。
-- `match.source` 匹配通用路径中的某个负载字段。
-- 像 `{{messages[0].subject}}` 这样的模板会从负载中读取。
-- `transform` 可指向返回 hook 操作的 JS/TS 模块。
-  - `transform.module` 必须是相对路径，并且始终位于 `hooks.transformsDir` 内（绝对路径和路径穿越会被拒绝）。
-- `agentId` 会路由到指定智能体；未知 ID 会回退到默认值。
-- `allowedAgentIds`：限制显式路由（`*` 或省略 = 允许全部，`[]` = 全部拒绝）。
-- `defaultSessionKey`：可选的固定会话键，用于未显式提供 `sessionKey` 的 hook 智能体运行。
+- `match.path` 匹配 `/hooks` 后的子路径（例如 `/hooks/gmail` → `gmail`）。
+- `match.source` 匹配通用路径的 payload 字段。
+- `{{messages[0].subject}}` 等模板从 payload 中读取。
+- `transform` 可指向返回钩子动作的 JS/TS 模块。
+  - `transform.module` 必须是相对路径，且位于 `hooks.transformsDir` 内（绝对路径和路径遍历将被拒绝）。
+- `agentId` 路由到特定智能体；未知 ID 回退到默认智能体。
+- `allowedAgentIds`：限制显式路由（`*` 或省略 = 允许所有，`[]` = 拒绝所有）。
+- `defaultSessionKey`：钩子智能体运行（无显式 `sessionKey` 时）使用的可选固定会话密钥。
 - `allowRequestSessionKey`：允许 `/hooks/agent` 调用方设置 `sessionKey`（默认：`false`）。
-- `allowedSessionKeyPrefixes`：针对显式 `sessionKey` 值（请求 + 映射）的可选前缀 allowlist，例如 `["hook:"]`。
-- `deliver: true` 会将最终回复发送到某个渠道；`channel` 默认为 `last`。
-- `model` 会覆盖此次 hook 运行的 LLM（如果已设置模型目录，则必须是允许的模型）。
+- `allowedSessionKeyPrefixes`：显式 `sessionKey` 值（请求 + 映射）的可选前缀允许列表，例如 `["hook:"]`。
+- `deliver: true` 将最终回复发送到渠道；`channel` 默认为 `last`。
+- `model` 覆盖此钩子运行的 LLM（如果设置了模型目录则必须在允许列表中）。
 
 </Accordion>
 
@@ -2652,14 +2319,13 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使�
 }
 ```
 
-- 配置后，Gateway 网关会在启动时自动启动 `gog gmail watch serve`。设置 `CRAWCLAW_SKIP_GMAIL_WATCHER=1` 可禁用。
-- 不要与 Gateway 网关同时单独运行 `gog gmail watch serve`。
+- CrawClaw 通过常规 `/hooks/gmail` 映射路径接收 Gmail PubSub 回调。从你自己的服务管理器运行和续订 `gog gmail watch serve`，然后将其推送 URL 指向配置的 CrawClaw 钩子 URL。
 
 ---
 
 ## 设备发现
 
-### mDNS（Bonjour）
+### mDNS (Bonjour)
 
 ```json5
 {
@@ -2671,11 +2337,11 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使�
 }
 ```
 
-- `minimal`（默认）：从 TXT 记录中省略 `cliPath` + `sshPort`。
-- `full`：包含 `cliPath` + `sshPort`。
-- 主机名默认为 `crawclaw`。可使用 `CRAWCLAW_MDNS_HOSTNAME` 覆盖。
+- `minimal`（默认）：从 TXT 记录中省略 `sshPort`。
+- `full`：包含 `sshPort`。
+- 主机名默认为 `crawclaw`。使用 `CRAWCLAW_MDNS_HOSTNAME` 覆盖。
 
-### 广域（DNS-SD）
+### 广域网（DNS-SD）
 
 ```json5
 {
@@ -2685,9 +2351,9 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使�
 }
 ```
 
-在 `~/.crawclaw/dns/` 下写入一个单播 DNS-SD 区域。对于跨网络设备发现，可与 DNS 服务器（推荐 CoreDNS）+ Tailscale split DNS 搭配使用。
+在 `~/.crawclaw/dns/` 下写入单播 DNS-SD 区域。对于跨网络发现，请配合 DNS 服务器（推荐 CoreDNS）+ Tailscale 分割 DNS 使用。
 
-设置：`crawclaw dns setup --apply`。
+设置：通过 CrawClaw Desktop 或本地 Gateway API 配置。
 
 ---
 
@@ -2710,14 +2376,14 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使�
 }
 ```
 
-- 仅当进程环境中缺少该键时，才会应用内联环境变量。
-- `.env` 文件：当前工作目录 `.env` + `~/.crawclaw/.env`（两者都不会覆盖现有变量）。
-- `shellEnv`：从你的登录 shell 配置文件导入缺失的预期键名。
-- 完整优先级见 [Environment](/help/environment)。
+- 仅当进程环境变量中缺少该键时，才会应用内联环境变量。
+- `.env` 文件：CWD `.env` + `~/.crawclaw/.env`（两者都不会覆盖已存在的变量）。
+- `shellEnv`：从你的登录 shell 配置中导入缺失的预期键。
+- 完整优先级参见[环境变量](/help/environment)。
 
 ### 环境变量替换
 
-可在任意配置字符串中使用 `${VAR_NAME}` 引用环境变量：
+在任意配置字符串中通过 `${VAR_NAME}` 引用环境变量：
 
 ```json5
 {
@@ -2728,45 +2394,45 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。设置：使�
 ```
 
 - 仅匹配大写名称：`[A-Z_][A-Z0-9_]*`。
-- 缺失/为空的变量会在配置加载时抛出错误。
-- 使用 `$${VAR}` 可转义为字面量 `${VAR}`。
-- 适用于 `$include`。
+- 缺失/空变量在配置加载时抛出错误。
+- 使用 `$${VAR}` 转义得到字面量 `${VAR}`。
+- 可与 `$include` 配合使用。
 
 ---
 
-## 密钥
+## 密钥管理
 
-Secret refs 是增量能力：明文值仍然可用。
+SecretRef 是增量式的：明文值仍然有效。
 
 ### `SecretRef`
 
-使用以下对象形式之一：
+使用以下对象格式：
 
 ```json5
 { source: "env" | "file" | "exec", provider: "default", id: "..." }
 ```
 
-校验：
+验证规则：
 
-- `provider` 模式：`^[a-z][a-z0-9_-]{0,63}$`
-- `source: "env"` 的 id 模式：`^[A-Z][A-Z0-9_]{0,127}$`
-- `source: "file"` 的 id：绝对 JSON pointer（例如 `"/providers/openai/apiKey"`）
-- `source: "exec"` 的 id 模式：`^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$`
-- `source: "exec"` 的 id 不能包含以斜杠分隔的 `.` 或 `..` 路径段（例如 `a/../b` 会被拒绝）
+- `provider` 格式：`^[a-z][a-z0-9_-]{0,63}$`
+- `source: "env"` id 格式：`^[A-Z][A-Z0-9_]{0,127}$`
+- `source: "file"` id：绝对 JSON 指针（例如 `"/providers/openai/apiKey"`）
+- `source: "exec"` id 格式：`^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$`
+- `source: "exec"` id 不得包含 `.` 或 `..` 斜杠分隔的路径段（例如 `a/../b` 被拒绝）
 
-### 支持的凭证表面
+### 支持的凭证范围
 
-- 规范矩阵：[SecretRef Credential Surface](/reference/secretref-credential-surface)
-- `secrets apply` 会定位受支持的 `crawclaw.json` 凭证路径。
-- `auth-profiles.json` 中的 ref 也包含在运行时解析和审计覆盖范围内。
+- 规范矩阵：[SecretRef 凭证范围](/reference/secretref-credential-surface)
+- `secrets apply` 目标支持 `crawclaw.json` 凭证路径。
+- `auth-profiles.json` ref 包含在运行时解析和审计覆盖中。
 
-### Secret providers 配置
+### 密钥提供商配置
 
 ```json5
 {
   secrets: {
     providers: {
-      default: { source: "env" }, // 可选的显式环境变量提供商
+      default: { source: "env" }, // optional explicit env provider
       filemain: {
         source: "file",
         path: "~/.crawclaw/secrets.json",
@@ -2788,19 +2454,19 @@ Secret refs 是增量能力：明文值仍然可用。
 }
 ```
 
-说明：
+注意事项：
 
-- `file` 提供商支持 `mode: "json"` 和 `mode: "singleValue"`（在 singleValue 模式下，`id` 必须是 `"value"`）。
-- `exec` 提供商要求绝对 `command` 路径，并通过 stdin/stdout 使用协议负载。
-- 默认会拒绝符号链接命令路径。设置 `allowSymlinkCommand: true` 可允许符号链接路径，同时校验解析后的目标路径。
-- 如果配置了 `trustedDirs`，则受信任目录检查会应用到解析后的目标路径。
-- `exec` 子进程环境默认最小化；请通过 `passEnv` 显式传递所需变量。
-- Secret refs 会在激活时解析为内存快照，之后请求路径只读取该快照。
-- 激活期间会应用活动表面过滤：已启用表面上的未解析 ref 会导致启动/重载失败，而非活动表面会被跳过并记录诊断信息。
+- `file` 提供商支持 `mode: "json"` 和 `mode: "singleValue"`（singleValue 模式下 `id` 必须为 `"value"`）。
+- `exec` 提供商需要绝对 `command` 路径，并使用协议负载在 stdin/stdout 上通信。
+- 默认情况下，符号链接命令路径被拒绝。设置 `allowSymlinkCommand: true` 以允许符号链接路径，同时验证解析后的目标路径。
+- 若配置了 `trustedDirs`，则对解析后的目标路径应用受信任目录检查。
+- `exec` 子环境默认最小化；使用 `passEnv` 显式传递所需变量。
+- SecretRef 在激活时解析到内存快照，之后请求路径仅读取该快照。
+- 激活时应用活动范围过滤：启用范围上未解析的 ref 会导致启动/重载失败，而非活动范围则跳过并记录诊断。
 
 ---
 
-## 认证存储
+## 凭证存储
 
 ```json5
 {
@@ -2817,11 +2483,38 @@ Secret refs 是增量能力：明文值仍然可用。
 ```
 
 - 每个智能体的配置文件存储在 `<agentDir>/auth-profiles.json`。
-- `auth-profiles.json` 支持值级 ref（`api_key` 使用 `keyRef`，`token` 使用 `tokenRef`）。
-- 静态运行时凭证来自内存中的已解析快照；发现旧版静态 `auth.json` 条目时会进行清理。
-- 旧版 OAuth 会从 `~/.crawclaw/credentials/oauth.json` 导入。
-- 见 [OAuth](/concepts/oauth)。
-- Secrets 运行时行为以及 `audit/configure/apply` 工具：见 [Secrets Management](/gateway/secrets)。
+- `auth-profiles.json` 支持值级引用（`api_key` 用 `keyRef`，`token` 用 `tokenRef`）用于静态凭证模式。
+- OAuth 模式配置文件（`auth.profiles.<id>.mode = "oauth"`）不支持 SecretRef 支持的凭证配置文件。
+- 静态运行时凭证来自内存中已解析的快照；发现时会清除旧版静态 `auth.json` 条目。
+- 从 `~/.crawclaw/credentials/oauth.json` 导入旧版 OAuth。
+- 参见 [OAuth](/concepts/oauth)。
+- 密钥运行时行为和 `audit/configure/apply` 工具：[密钥管理](/gateway/secrets)。
+
+### `auth.cooldowns`
+
+```json5
+{
+  auth: {
+    cooldowns: {
+      billingBackoffHours: 5,
+      billingBackoffHoursByProvider: { anthropic: 3, openai: 8 },
+      billingMaxHours: 24,
+      failureWindowHours: 24,
+      overloadedProfileRotations: 1,
+      overloadedBackoffMs: 0,
+      rateLimitedProfileRotations: 1,
+    },
+  },
+}
+```
+
+- `billingBackoffHours`：配置文件因计费/额度不足失败时的基础退避时间（小时）（默认：`5`）。
+- `billingBackoffHoursByProvider`：计费退避小时数的可选按提供商覆盖。
+- `billingMaxHours`：计费退避指数增长的时间上限（小时）（默认：`24`）。
+- `failureWindowHours`：用于退避计数器的滚动时间窗口（小时）（默认：`24`）。
+- `overloadedProfileRotations`：过载错误在切换到模型回退之前同一提供商凭证配置文件的最大轮换次数（默认：`1`）。
+- `overloadedBackoffMs`：重试过载提供商/配置文件轮换之前的固定延迟（默认：`0`）。
+- `rateLimitedProfileRotations`：限流错误在切换到模型回退之前同一提供商凭证配置文件的最大轮换次数（默认：`1`）。
 
 ---
 
@@ -2842,11 +2535,133 @@ Secret refs 是增量能力：明文值仍然可用。
 
 - 默认日志文件：`/tmp/crawclaw/crawclaw-YYYY-MM-DD.log`。
 - 设置 `logging.file` 以获得稳定路径。
-- 使用 `--verbose` 时，`consoleLevel` 会提升为 `debug`。
+- 使用 `--verbose` 时 `consoleLevel` 提升到 `debug`。
+- `maxFileBytes`：写入被禁止前的最大日志文件大小（正整数；默认值：`524288000` = 500 MB）。生产部署使用外部日志轮转。
 
 ---
 
-## CLI
+## 诊断
+
+```json5
+{
+  diagnostics: {
+    enabled: true,
+    flags: ["feishu.*"],
+    stuckSessionWarnMs: 30000,
+
+    otel: {
+      enabled: false,
+      endpoint: "https://otel-collector.example.com:4318",
+      protocol: "http/protobuf", // http/protobuf | grpc
+      headers: { "x-tenant-id": "my-org" },
+      serviceName: "crawclaw-gateway",
+      traces: true,
+      metrics: true,
+      logs: false,
+      sampleRate: 1.0,
+      flushIntervalMs: 5000,
+    },
+
+    cacheTrace: {
+      enabled: false,
+      includeMessages: true,
+      includePrompt: true,
+      includeSystem: true,
+    },
+  },
+}
+```
+
+- `enabled`：检测输出的主开关（默认：`true`）。
+- `flags`：启用目标日志输出的标志字符串数组（支持通配符如 `"feishu.*"` 或 `"*"`）。
+- `stuckSessionWarnMs`：会话保持处理状态时发出卡住会话警告的年龄阈值（毫秒）。
+- `otel.enabled`：启用 OpenTelemetry 导出管道（默认：`false`）。
+- `otel.endpoint`：OTel 导出的收集器 URL。
+- `otel.protocol`：`"http/protobuf"`（默认）或 `"grpc"`。
+- `otel.headers`：随 OTel 导出请求发送的额外 HTTP/gRPC 元数据头。
+- `otel.serviceName`：资源属性的服务名称。
+- `otel.traces` / `otel.metrics` / `otel.logs`：启用跟踪、指标或日志导出。
+- `otel.sampleRate`：跟踪采样率 `0`–`1`。
+- `otel.flushIntervalMs`：定期遥测刷新间隔（毫秒）。
+- `cacheTrace.enabled`：为嵌入式运行记录缓存跟踪快照（默认：`false`）。
+- `cacheTrace.includeMessages` / `includePrompt` / `includeSystem`：控制缓存跟踪输出中包含的内容（均默认：`true`）。
+
+---
+
+## 更新
+
+```json5
+{
+  update: {
+    channel: "stable", // stable | beta | dev
+    checkOnStart: true,
+
+    auto: {
+      enabled: false,
+      stableDelayHours: 6,
+      stableJitterHours: 12,
+      betaCheckIntervalHours: 1,
+    },
+  },
+}
+```
+
+- `channel`：npm/git 安装的发布通道——`"stable"`、`"beta"` 或 `"dev"`。
+- `checkOnStart`：Gateway 启动时检查 npm 更新（默认：`true`）。
+- `auto.enabled`：启用包安装的后台自动更新（默认：`false`）。
+- `auto.stableDelayHours`：stable 通道自动应用前的最小延迟小时数（默认：`6`；最大：`168`）。
+- `auto.stableJitterHours`：额外的 stable 通道发布扩散窗口小时数（默认：`12`；最大：`168`）。
+- `auto.betaCheckIntervalHours`：beta 通道检查的运行频率小时数（默认：`1`；最大：`24`）。
+
+---
+
+## ACP
+
+```json5
+{
+  acp: {
+    enabled: false,
+    dispatch: { enabled: true },
+    backend: "acpx",
+    defaultAgent: "main",
+    allowedAgents: ["main", "ops"],
+    maxConcurrentSessions: 10,
+
+    stream: {
+      coalesceIdleMs: 50,
+      maxChunkChars: 1000,
+      repeatSuppression: true,
+      deliveryMode: "live", // live | final_only
+      hiddenBoundarySeparator: "paragraph", // none | space | newline | paragraph
+      maxOutputChars: 50000,
+      maxSessionUpdateChars: 500,
+    },
+
+    runtime: {
+      ttlMinutes: 30,
+    },
+  },
+}
+```
+
+- `enabled`：全局 ACP 功能门控（默认：`false`）。
+- `dispatch.enabled`：ACP 会话轮次调度的独立门控（默认：`true`）。设为 `false` 可保持 ACP 命令可用，同时阻止执行。
+- `backend`：默认 ACP 运行时后端 ID（必须与已注册的 ACP 运行时插件匹配）。
+- `defaultAgent`：当衍生项未指定明确目标时的回退 ACP 目标智能体 ID。
+- `allowedAgents`：ACP 运行时会话允许的智能体 ID 允许列表；空表示无额外限制。
+- `maxConcurrentSessions`：最大并发活跃 ACP 会话数。
+- `stream.coalesceIdleMs`：流式文本的空闲刷新窗口（毫秒）。
+- `stream.maxChunkChars`：分割流式块投射前的最大块大小。
+- `stream.repeatSuppression`：抑制每轮重复的状态/工具行（默认：`true`）。
+- `stream.deliveryMode`：`"live"` 增量流式传输；`"final_only"` 缓冲至轮次终止事件。
+- `stream.hiddenBoundarySeparator`：隐藏工具事件后可见文本前的分隔符（默认：`"paragraph"`）。
+- `stream.maxOutputChars`：每个 ACP 轮次投射的最大助手输出字符数。
+- `stream.maxSessionUpdateChars`：投射的 ACP 状态/更新行的最大字符数。
+- `runtime.ttlMinutes`：ACP 会话工作线程在符合清理条件前的空闲 TTL（分钟）。
+
+---
+
+## 终端
 
 ```json5
 {
@@ -2858,65 +2673,25 @@ Secret refs 是增量能力：明文值仍然可用。
 }
 ```
 
-- `cli.banner.taglineMode` 控制横幅标语样式：
-  - `"random"`（默认）：轮换的有趣/季节性标语。
-  - `"default"`：固定的中性标语（`All your chats, one CrawClaw.`）。
+- `cli.banner.taglineMode` 控制终端横幅标语的保留样式：
+  - `"random"`（默认）：轮换有趣/季节性标语。
+  - `"default"`：固定中性标语（`All your chats, one CrawClaw.`）。
   - `"off"`：不显示标语文本（仍显示横幅标题/版本）。
-- 若要隐藏整个横幅（而不仅是标语），请设置环境变量 `CRAWCLAW_HIDE_BANNER=1`。
-
----
-
-## 向导
-
-由 CLI 向导（`onboard`、`configure`、`doctor`）写入的元数据：
-
-```json5
-{
-  wizard: {
-    lastRunAt: "2026-01-01T00:00:00.000Z",
-    lastRunVersion: "2026.1.4",
-    lastRunCommit: "abc1234",
-    lastRunCommand: "configure",
-    lastRunMode: "local",
-  },
-}
-```
+- 若要隐藏整个横幅（不仅仅是标语），请设置环境变量 `CRAWCLAW_HIDE_BANNER=1`。
 
 ---
 
 ## 身份
 
-```json5
-{
-  agents: {
-    list: [
-      {
-        id: "main",
-        identity: {
-          name: "Samantha",
-          theme: "helpful sloth",
-          emoji: "🦥",
-          avatar: "avatars/samantha.png",
-        },
-      },
-    ],
-  },
-}
-```
-
-由 macOS 新手引导助手写入。会派生默认值：
-
-- 从 `identity.emoji` 派生 `messages.ackReaction`（回退为 👀）
-- 从 `identity.name`/`identity.emoji` 派生 `mentionPatterns`
-- `avatar` 接受：工作区相对路径、`http(s)` URL 或 `data:` URI
+参见 `agents.list` 身份字段，位于[智能体默认值](#agent-defaults)。
 
 ---
 
-## Bridge（旧版，已移除）
+## Bridge（传统，已移除）
 
-当前版本不再包含 TCP bridge。节点通过 Gateway 网关 WebSocket 连接。`bridge.*` 键已不再属于配置 schema 的一部分（在移除前校验会失败；`crawclaw doctor --fix` 可清除未知键）。
+当前版本不再包含 TCP bridge。`bridge.*` 键不再是配置 schema 的一部分（验证失败直到移除；CrawClaw Desktop 或本地 Gateway API 可以剥离未知键）。
 
-<Accordion title="旧版 bridge 配置（历史参考）">
+<Accordion title="传统 bridge 配置（历史参考）">
 
 ```json
 {
@@ -2943,57 +2718,99 @@ Secret refs 是增量能力：明文值仍然可用。
   cron: {
     enabled: true,
     maxConcurrentRuns: 2,
-    webhook: "https://example.invalid/legacy", // 旧版回退，仅用于已存储的 notify:true 作业
-    webhookToken: "replace-with-dedicated-token", // 可选，用于出站 webhook 认证的 bearer token
-    sessionRetention: "24h", // 时长字符串或 false
+    webhook: "https://example.invalid/legacy", // deprecated fallback for stored notify:true jobs
+    webhookToken: "replace-with-dedicated-token", // optional bearer token for outbound webhook auth
+    sessionRetention: "24h", // duration string or false
     runLog: {
-      maxBytes: "2mb", // 默认 2_000_000 字节
-      keepLines: 2000, // 默认 2000
+      maxBytes: "2mb", // default 2_000_000 bytes
+      keepLines: 2000, // default 2000
     },
   },
 }
 ```
 
-- `sessionRetention`：已完成的隔离 Cron 运行会话在从 `sessions.json` 清理前保留多久。也控制已归档、已删除的 Cron 记录清理。默认：`24h`；设为 `false` 可禁用。
-- `runLog.maxBytes`：每个运行日志文件（`cron/runs/<jobId>.jsonl`）在清理前的最大大小。默认：`2_000_000` 字节。
-- `runLog.keepLines`：触发运行日志清理时保留的最新行数。默认：`2000`。
-- `webhookToken`：用于 Cron webhook POST 投递（`delivery.mode = "webhook"`）的 bearer token；若省略则不发送认证头。
-- `webhook`：已弃用的旧版回退 webhook URL（http/https），仅用于仍然具有 `notify: true` 的已存储作业。
+- `sessionRetention`：在从 `sessions.json` 修剪之前，保留已完成的隔离 cron 运行会话的时长。同时控制已归档已删除 cron 记录的清理。默认值：`24h`；设为 `false` 可禁用。
+- `runLog.maxBytes`：运行日志文件（`cron/runs/<jobId>.jsonl`）在修剪前的最大大小。默认值：`2_000_000` 字节。
+- `runLog.keepLines`：触发运行日志修剪时保留的最新行数。默认值：`2000`。
+- `webhookToken`：用于 cron webhook POST 投递的 bearer 令牌（`delivery.mode = "webhook"`），若省略则不发送认证 header。
+- `webhook`：已废弃的传统回退 webhook URL（http/https），仅用于仍具有 `notify: true` 的已存储任务。
 
-见 [Cron Jobs](/automation/cron-jobs)。
+### `cron.retry`
+
+```json5
+{
+  cron: {
+    retry: {
+      maxAttempts: 3,
+      backoffMs: [30000, 60000, 300000],
+      retryOn: ["rate_limit", "overloaded", "network", "timeout", "server_error"],
+    },
+  },
+}
+```
+
+- `maxAttempts`：一次性任务在瞬态错误上的最大重试次数（默认：`3`；范围：`0`–`10`）。
+- `backoffMs`：每次重试尝试的退避延迟数组，以毫秒为单位（默认：`[30000, 60000, 300000]`；1–10 个条目）。
+- `retryOn`：触发重试的错误类型 — `"rate_limit"`、`"overloaded"`、`"network"`、`"timeout"`、`"server_error"`。省略则重试所有瞬态类型。
+
+仅适用于一次性 cron 任务。周期性任务使用单独的错误处理。
+
+### `cron.failureAlert`
+
+```json5
+{
+  cron: {
+    failureAlert: {
+      enabled: false,
+      after: 3,
+      cooldownMs: 3600000,
+      mode: "announce",
+      accountId: "main",
+    },
+  },
+}
+```
+
+- `enabled`：为 cron 任务启用失败告警（默认：`false`）。
+- `after`：触发告警前的连续失败次数（正整数，最小：`1`）。
+- `cooldownMs`：同一任务重复告警之间的最小毫秒数（非负整数）。
+- `mode`：投递模式 — `"announce"` 通过频道消息发送；`"webhook"` 发布到配置的 webhook。
+- `accountId`：用于限定告警投递范围的可选账户或频道 ID。
+
+请参阅 [Cron 任务](/automation/cron-jobs)。隔离的 cron 执行作为[后台任务](/automation/tasks)进行跟踪。
 
 ---
 
 ## 媒体模型模板变量
 
-会在 `tools.media.models[].args` 中展开的模板占位符：
+在 `tools.media.models[].args` 中展开的模板占位符：
 
-| Variable           | Description                            |
+| 变量               | 描述                                   |
 | ------------------ | -------------------------------------- |
-| `{{Body}}`         | 完整入站消息正文                       |
-| `{{RawBody}}`      | 原始正文（无历史/发送者包装）          |
-| `{{BodyStripped}}` | 去除群组提及后的正文                   |
-| `{{From}}`         | 发送者标识符                           |
-| `{{To}}`           | 目标标识符                             |
+| `{{Body}}`         | 完整入站消息体                         |
+| `{{RawBody}}`      | 原始消息体（无历史/发送者包装）        |
+| `{{BodyStripped}}` | 去除群提及后的消息体                   |
+| `{{From}}`         | 发送者标识                             |
+| `{{To}}`           | 目标标识                               |
 | `{{MessageSid}}`   | 渠道消息 ID                            |
 | `{{SessionId}}`    | 当前会话 UUID                          |
-| `{{IsNewSession}}` | 新建会话时为 `"true"`                  |
+| `{{IsNewSession}}` | 创建新会话时为 `"true"`                |
 | `{{MediaUrl}}`     | 入站媒体伪 URL                         |
 | `{{MediaPath}}`    | 本地媒体路径                           |
 | `{{MediaType}}`    | 媒体类型（image/audio/document/…）     |
 | `{{Transcript}}`   | 音频转录                               |
-| `{{Prompt}}`       | 为 CLI 条目解析后的媒体提示            |
-| `{{MaxChars}}`     | 为 CLI 条目解析后的最大输出字符数      |
+| `{{Prompt}}`       | CLI 条目的解析媒体提示词               |
+| `{{MaxChars}}`     | CLI 条目的解析最大输出字符数           |
 | `{{ChatType}}`     | `"direct"` 或 `"group"`                |
 | `{{GroupSubject}}` | 群组主题（尽力而为）                   |
-| `{{GroupMembers}}` | 群组成员预览（尽力而为）               |
-| `{{SenderName}}`   | 发送者显示名（尽力而为）               |
+| `{{GroupMembers}}` | 群成员预览（尽力而为）                 |
+| `{{SenderName}}`   | 发送者显示名称（尽力而为）             |
 | `{{SenderE164}}`   | 发送者电话号码（尽力而为）             |
 | `{{Provider}}`     | 提供商提示（weixin、feishu、qqbot 等） |
 
 ---
 
-## 配置 includes（`$include`）
+## 配置包含（`$include`）
 
 将配置拆分为多个文件：
 
@@ -3010,13 +2827,13 @@ Secret refs 是增量能力：明文值仍然可用。
 
 **合并行为：**
 
-- 单个文件：替换包含它的对象。
+- 单个文件：替换包含的对象。
 - 文件数组：按顺序深度合并（后者覆盖前者）。
-- 同级键：在 include 之后再合并（覆盖被包含的值）。
-- 嵌套 include：最多 10 层。
-- 路径：相对于包含它的文件解析，但必须保持在顶层配置目录（`crawclaw.json` 的 `dirname`）内。只有在最终解析结果仍位于该边界内时，才允许使用绝对路径/`../` 形式。
-- 错误：缺失文件、解析错误和循环 include 都会给出清晰错误信息。
+- 同级键：在包含之后合并（覆盖包含的值）。
+- 嵌套包含：最深 10 层。
+- 路径：相对于包含文件解析，但必须保持在顶级配置目录（`crawclaw.json` 的 `dirname`）内。仅在仍能解析到该边界内时，才允许使用绝对路径/`../` 形式。
+- 错误：针对缺失文件、解析错误和循环包含的清晰错误消息。
 
 ---
 
-_相关内容：[Configuration](/gateway/configuration) · [Configuration Examples](/gateway/configuration-examples) · [Doctor](/gateway/doctor)_
+_相关：[配置](/gateway/configuration) · [配置示例](/gateway/configuration-examples) · [Doctor](/gateway/doctor)_

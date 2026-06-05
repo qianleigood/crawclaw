@@ -1,44 +1,40 @@
 ---
 read_when:
-  - 更改输入指示器的行为或默认设置
-summary: CrawClaw 何时显示输入指示器以及如何调整它们
-title: 输入指示器
+  - 更改 typing indicators 行为或默认值
+summary: CrawClaw 显示 typing indicators 的时机及如何调整
+title: Typing Indicators
 x-i18n:
-  generated_at: "2026-02-01T20:24:47Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: 8ee82d02829c4ff58462be8bf5bb52f23f519aeda816c2fd8a583e7a317a2e98
+  generated_at: "2026-06-05T14:15:20Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: d0eceea83e916b1c2e26b8c6bfa0adf98b72ee32f116f1befa1c8b531b3de0e7
   source_path: concepts/typing-indicators.md
-  workflow: 14
+  workflow: 15
 ---
 
-# 输入指示器
+# Typing Indicators
 
-在运行活跃期间，输入指示器会发送到聊天渠道。使用
-`agents.defaults.typingMode` 控制输入指示器**何时**开始显示，使用 `typingIntervalSeconds`
-控制**刷新频率**。
+Typing indicators 在运行期间发送到聊天渠道。使用 `agents.defaults.typingMode` 控制 typing **何时**开始，使用 `typingIntervalSeconds` 控制**刷新频率**。
 
-## 默认行为
+## 默认值
 
-当 `agents.defaults.typingMode` **未设置**时，CrawClaw 保持旧版行为：
+当 `agents.defaults.typingMode` **未设置**时，CrawClaw 保持传统行为：
 
-- **私聊**：模型循环开始后立即显示输入指示器。
-- **群聊中被提及**：立即显示输入指示器。
-- **群聊中未被提及**：仅在消息文本开始流式传输时显示输入指示器。
-- **心跳运行**：输入指示器禁用。
+- **私信**：一旦模型循环开始，立即开始 typing。
+- **带提及的群聊**：立即开始 typing。
+- **不带提及的群聊**：仅当消息文本开始流式传输时才开始 typing。
+- **传统 Heartbeat 兼容性运行**：typing 禁用。
 
 ## 模式
 
-将 `agents.defaults.typingMode` 设置为以下值之一：
+将 `agents.defaults.typingMode` 设置为以下之一：
 
-- `never` — 永远不显示输入指示器。
-- `instant` — **模型循环开始后立即**显示输入指示器，即使运行最终只返回静默回复令牌。
-- `thinking` — 在**第一个推理增量**时开始显示输入指示器（需要运行时设置
-  `reasoningLevel: "stream"`）。
-- `message` — 在**第一个非静默文本增量**时开始显示输入指示器（忽略
-  `NO_REPLY` 静默令牌）。
+- `never` — 从不显示 typing indicator。
+- `instant` — **一旦模型循环开始**就开始 typing，即使运行后来只返回静默回复 token。
+- `thinking` — 在**第一个推理 delta** 时开始 typing（需要运行时的 `reasoningLevel: "stream"`）。
+- `message` — 在**第一个非静默文本 delta** 时开始 typing（忽略 `NO_REPLY` 静默 token）。
 
-触发时机从晚到早的顺序：
+"触发时间早晚"的顺序：
 `never` → `message` → `thinking` → `instant`
 
 ## 配置
@@ -52,7 +48,7 @@ x-i18n:
 }
 ```
 
-可以按会话覆盖模式或刷新频率：
+你可以按会话覆盖模式或节奏：
 
 ```json5
 {
@@ -65,10 +61,7 @@ x-i18n:
 
 ## 注意事项
 
-- `message` 模式不会为纯静默回复显示输入指示器（例如用于抑制输出的 `NO_REPLY`
-  令牌）。
-- `thinking` 仅在运行流式传输推理时触发（`reasoningLevel: "stream"`）。
-  如果模型未产生推理增量，则不会显示输入指示器。
-- 无论使用何种模式，心跳运行都不会显示输入指示器。
-- `typingIntervalSeconds` 控制的是**刷新频率**，而非开始时间。
-  默认值为 6 秒。
+- `message` 模式不会为纯静默回复显示 typing（例如用于抑制输出的 `NO_REPLY` token）。
+- `thinking` 仅在运行流式传输推理（`reasoningLevel: "stream"`）时触发。如果模型不发出推理 delta，typing 不会开始。
+- 传统 Heartbeat 兼容性运行无论模式如何都不显示 typing。
+- `typingIntervalSeconds` 控制**刷新节奏**，而不是开始时间。默认值为 6 秒。

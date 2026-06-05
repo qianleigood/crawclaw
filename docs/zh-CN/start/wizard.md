@@ -1,62 +1,63 @@
 ---
 read_when:
-  - 运行或配置 desktop onboarding
-  - 设置一台新机器
-sidebarTitle: "Desktop Onboarding"
-summary: Desktop onboarding：用于 Gateway、workspace、channels、models 和 skills 的设置
-title: Desktop Onboarding
+  - 运行或配置桌面新手引导
+  - 设置新机器
+sidebarTitle: Desktop Onboarding
+summary: Desktop 新手引导：Gateway、工作区、渠道、模型和 Skills 设置
+title: Desktop 新手引导
 x-i18n:
-  generated_at: "2026-03-16T06:28:38Z"
-  model: gpt-5.4
-  provider: openai
-  source_hash: 99fd87dddd78798eb0087ad9433e5a32de2af110b6e65ee351b1a194a11c7df3
+  generated_at: "2026-06-05T14:49:23Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 8ac7c28017a9c49e6d524facf746bfb34528e8dc44f08cd3b3291036c307657b
   source_path: start/wizard.md
   workflow: 15
 ---
 
-# Desktop Onboarding
+# Desktop 新手引导
 
-CrawClaw Desktop 是当前支持的 Apple-platform 设置界面。使用 app 配置 auth、本地 Gateway state、workspace defaults、channels、plugins、skills、logs 和 diagnostics。
+CrawClaw Desktop 是支持的 Apple 平台设置界面。使用该应用配置认证、本地 Gateway 状态、工作区默认值、渠道、插件、
+Skills、日志和诊断。
 
-公共 `crawclaw` 命令已退役。自动化应直接调用本地 Gateway API。
+公共 `crawclaw` 命令已停用。自动化应直接调用本地 Gateway API。
 
-## QuickStart 与 Advanced
+## 快速开始 vs 高级
 
-Onboarding 从 **QuickStart** 开始以提供安全的本地默认值；需要明确控制时使用 **Advanced**。
+新手引导以**快速开始**开始以获得安全的本地默认值，**高级**用于显式控制。
 
 <Tabs>
-  <Tab title="QuickStart">
-    - Local Gateway on loopback
-    - Desktop-managed random port
-    - Desktop-managed token auth
-    - Workspace under `~/.crawclaw`
-    - Bundled Rust runtime and native plugins
+  <Tab title="快速开始">
+    - 本地 Gateway 在 local loopback 上
+    - Desktop 管理的随机端口
+    - Desktop 管理的令牌认证
+    - 工作区在 `~/.crawclaw` 下
+    - 捆绑的 Rust 运行时和原生插件
   </Tab>
-  <Tab title="Advanced">
-    - Explicit workspace, model, channel, plugin, and memory settings
-    - Gateway API automation for repeatable setup
-    - Direct config review before applying sensitive changes
+  <Tab title="高级">
+    - 显式工作区、模型、渠道、插件和记忆设置
+    - Gateway API 自动化以实现可重复设置
+    - 应用敏感更改前直接审查配置
   </Tab>
 </Tabs>
 
-## Onboarding 会配置什么
+## 新手引导配置什么
 
-1. **Model/Auth** — 选择受支持的 provider/auth flow 和默认模型。
-2. **Workspace** — 选择 agent files 和 bootstrap state 的位置。
-3. **Gateway** — 启动并监控 embedded Rust Gateway。
-4. **Channels** — 连接支持的 messaging surfaces。
-5. **Output and presentation** — 设置 reply visibility 和 streaming defaults。
-6. **Memory / Experience** — 启用本地 capture、recall 和 maintenance flows。
-7. **Skills and plugins** — 启用 bundled skills 和 desktop-supported plugins。
-8. **Health check** — 验证本地 Gateway 和 runtime 已就绪。
+1. **模型/认证** — 选择支持的提供商/认证流程和默认模型。
+2. **工作区** — 选择智能体文件和引导状态所在的位置。
+3. **Gateway 网关** — 启动和监控嵌入式 Rust Gateway。
+4. **渠道** — 连接支持的消息表面。
+5. **输出和呈现** — 设置回复可见性和流式传输默认值。
+6. **记忆/体验** — 启用本地捕获、召回和维护流程。
+7. **Skills 和插件** — 启用捆绑的 Skills 和桌面支持的插件。
+8. **健康检查** — 验证本地 Gateway 和运行时已就绪。
 
 ## 稍后重新配置
 
-常规更改使用 CrawClaw Desktop settings。自动化、config patching、status、health、sessions 和 plugin operations 使用 Gateway API。
+使用 CrawClaw Desktop 设置进行正常更改。使用 Gateway API 进行自动化、配置修补、状态、健康检查、会话和插件操作。
 
 ## 相关文档
 
-- [Onboarding overview](/start/onboarding-overview)
-- [Desktop install](/install/desktop)
-- [Gateway protocol](/gateway/protocol)
-- [Gateway troubleshooting](/gateway/troubleshooting)
+- [新手引导概览](/start/onboarding-overview)
+- [Desktop 安装](/install/desktop)
+- [Gateway 协议](/gateway/protocol)
+- [Gateway 故障排除](/gateway/troubleshooting)

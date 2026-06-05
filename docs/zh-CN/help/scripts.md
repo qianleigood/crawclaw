@@ -1,35 +1,33 @@
 ---
 read_when:
-  - 从仓库运行脚本时
-  - 在 ./scripts 下添加或修改脚本时
-summary: 仓库脚本：用途、范围和安全注意事项
+  - 运行仓库中的脚本
+  - 在 ./scripts 下添加或修改脚本
+summary: 仓库脚本：用途、范围及安全注意事项
 title: 脚本
 x-i18n:
-  generated_at: "2026-02-01T21:38:11Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: bfedc3c123c4a43b351f793e2137568786f90732723da5fd223c2a088bc59e43
+  generated_at: "2026-06-05T14:31:41Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: b0b60a9bc809726961e3b59d30f346d8dfbec164e8fbd70ba111eee7ef0d233b
   source_path: help/scripts.md
   workflow: 15
 ---
 
 # 脚本
 
-`scripts/` 目录包含用于本地工作流和运维任务的辅助脚本。
-当任务明确与某个脚本相关时使用这些脚本；否则优先使用 CLI。
+`scripts/` 目录包含用于本地工作流和运维任务的辅助脚本。当任务明确与脚本相关时使用这些脚本；否则优先使用 CLI。
 
 ## 约定
 
-- 除非在文档或发布检查清单中引用，否则脚本为**可选**。
-- 当 CLI 接口存在时优先使用（例如：认证监控使用 `crawclaw models status --check`）。
-- 假定脚本与特定主机相关；在新机器上运行前请先阅读脚本内容。
+- 脚本是**可选的**，除非文档或发布检查清单中有所引用。
+- 优先使用已存在的 CLI 界面（例如：凭证监控使用 CrawClaw Desktop 或本地 Gateway API）。
+- 假设脚本是针对特定主机的；在新机器上运行前请先阅读脚本。
 
-## 认证监控脚本
+## 凭证监控脚本
 
-认证监控脚本的文档请参阅：
-[/automation/auth-monitoring](/automation/auth-monitoring)
+凭证监控在 [Authentication](/gateway/authentication) 中有详细说明。`scripts/` 下的脚本是可选扩展，适用于 systemd/Termux 手机工作流。
 
-## 添加脚本时
+## 添加脚本
 
-- 保持脚本专注且有文档说明。
-- 在相关文档中添加简短条目（如果缺少则创建一个）。
+- 保持脚本功能集中且有文档说明。
+- 在相关文档中添加简要说明（如果文档缺失则创建新文档）。

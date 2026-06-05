@@ -1,24 +1,23 @@
 ---
 read_when:
-  - 你想在 CrawClaw 中使用 Amazon Bedrock 模型
-  - 你需要为模型调用配置 AWS 凭证/区域
-summary: 在 CrawClaw 中使用 Amazon Bedrock（Converse API）模型
+  - 你想使用 Amazon Bedrock 模型与 CrawClaw
+  - 你需要为模型调用设置 AWS 凭证/区域
+summary: 通过 Amazon Bedrock（Converse API）模型使用 CrawClaw
 title: Amazon Bedrock
 x-i18n:
-  generated_at: "2026-02-03T10:04:01Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: 318f1048451a1910b70522e2f7f9dfc87084de26d9e3938a29d372eed32244a8
+  generated_at: "2026-06-05T14:42:58Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 2bcf9e91b83e83bfac58b43b7491180f14e8af5bb694243274357a3c70dbbce6
   source_path: providers/bedrock.md
   workflow: 15
 ---
 
 # Amazon Bedrock
 
-CrawClaw 可以通过 Rust NativeProvider 的 **Bedrock Converse** transport 使用
-**Amazon Bedrock** 模型。Bedrock 认证使用 **AWS SDK 默认凭证链**，而非 API 密钥。
+CrawClaw 可以通过 Rust NativeProvider Bedrock Converse 传输使用 **Amazon Bedrock** 模型。Bedrock 认证使用 **AWS SDK 默认凭证链**，而不是 API 密钥。
 
-## NativeProvider 支持的功能
+## CrawClaw 支持的内容
 
 - 提供商：`amazon-bedrock`
 - API：`bedrock-converse-stream`
@@ -48,15 +47,15 @@ CrawClaw 可以通过 Rust NativeProvider 的 **Bedrock Converse** transport 使
 
 注意事项：
 
-- `enabled` 在存在 AWS 凭证时默认为 `true`。
+- 当存在 AWS 凭证时，`enabled` 默认为 `true`。
 - `region` 默认为 `AWS_REGION` 或 `AWS_DEFAULT_REGION`，然后是 `us-east-1`。
 - `providerFilter` 匹配 Bedrock 提供商名称（例如 `anthropic`）。
 - `refreshInterval` 单位为秒；设置为 `0` 可禁用缓存。
-- `defaultContextWindow`（默认：`32000`）和 `defaultMaxTokens`（默认：`4096`）用于已发现的模型（如果你知道模型限制，可以覆盖这些值）。
+- `defaultContextWindow`（默认：`32000`）和 `defaultMaxTokens`（默认：`4096`）用于发现的模型（如果你知道模型限制可以覆盖）。
 
-## 设置（手动）
+## 新手引导
 
-1. 确保 AWS 凭证在 **Gateway 网关主机**上可用：
+1. 确保 **gateway 主机**上可用的 AWS 凭证：
 
 ```bash
 export AWS_ACCESS_KEY_ID="AKIA..."
@@ -65,11 +64,11 @@ export AWS_REGION="us-east-1"
 # 可选：
 export AWS_SESSION_TOKEN="..."
 export AWS_PROFILE="your-profile"
-# 可选（Bedrock API 密钥/Bearer 令牌）：
+# 可选（Bedrock API key/bearer token）：
 export AWS_BEARER_TOKEN_BEDROCK="..."
 ```
 
-2. 在配置中添加 Bedrock 提供商和模型（无需 `apiKey`）：
+2. 在你的配置中添加 Bedrock 提供商和模型（不需要 `apiKey`）：
 
 ```json5
 {
@@ -81,8 +80,8 @@ export AWS_BEARER_TOKEN_BEDROCK="..."
         auth: "aws-sdk",
         models: [
           {
-            id: "anthropic.claude-opus-4-5-20251101-v1:0",
-            name: "Claude Opus 4.5 (Bedrock)",
+            id: "us.anthropic.claude-opus-4-6-v1:0",
+            name: "Claude Opus 4.6 (Bedrock)",
             reasoning: true,
             input: ["text", "image"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
@@ -95,7 +94,7 @@ export AWS_BEARER_TOKEN_BEDROCK="..."
   },
   agents: {
     defaults: {
-      model: { primary: "amazon-bedrock/anthropic.claude-opus-4-5-20251101-v1:0" },
+      model: { primary: "amazon-bedrock/us.anthropic.claude-opus-4-6-v1:0" },
     },
   },
 }
@@ -103,25 +102,25 @@ export AWS_BEARER_TOKEN_BEDROCK="..."
 
 ## EC2 实例角色
 
-当在附加了 IAM 角色的 EC2 实例上运行 CrawClaw 时，AWS SDK 会自动使用实例元数据服务（IMDS）进行认证。但是，CrawClaw 的凭证检测目前只检查环境变量，不检查 IMDS 凭证。
+当在附加了 IAM 角色的 EC2 实例上运行 CrawClaw 时，AWS SDK 会自动使用实例元数据服务（IMDS）进行认证。但是，CrawClaw 的凭证检测目前只检查环境变量，而不是 IMDS 凭证。
 
-**解决方法：** 设置 `AWS_PROFILE=default` 以表明 AWS 凭证可用。实际认证仍然通过 IMDS 使用实例角色。
+**变通方法：** 设置 `AWS_PROFILE=default` 以表明 AWS 凭证可用。实际认证仍通过 IMDS 使用实例角色。
 
 ```bash
-# 添加到 ~/.bashrc 或你的 shell 配置文件
+# 添加到 ~/.bashrc 或你的 shell 配置文件中
 export AWS_PROFILE=default
 export AWS_REGION=us-east-1
 ```
 
-EC2 实例角色**所需的 IAM 权限**：
+**EC2 实例角色所需的 IAM 权限**：
 
 - `bedrock:InvokeModel`
 - `bedrock:InvokeModelWithResponseStream`
 - `bedrock:ListFoundationModels`（用于自动发现）
 
-或者附加托管策略 `AmazonBedrockFullAccess`。
+或附加托管策略 `AmazonBedrockFullAccess`。
 
-**快速设置：**
+## 快速设置（AWS 路径）
 
 ```bash
 # 1. 创建 IAM 角色和实例配置文件
@@ -148,19 +147,49 @@ aws ec2 associate-iam-instance-profile \
   --instance-id i-xxxxx \
   --iam-instance-profile Name=EC2-Bedrock-Access
 
-# 3. 设置 AWS profile 环境变量
+# 3. 在 EC2 实例上设置 AWS profile 环境变量
 echo 'export AWS_PROFILE=default' >> ~/.bashrc
 echo 'export AWS_REGION=us-east-1' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-然后通过 CrawClaw Desktop 或本地 Gateway API 启用 Bedrock discovery 并验证模型列表。
+然后使用 CrawClaw Desktop 或本地 Gateway API 启用 Bedrock 发现并验证模型列表。
 
 ## 注意事项
 
 - Bedrock 需要在你的 AWS 账户/区域中启用**模型访问**。
 - 自动发现需要 `bedrock:ListFoundationModels` 权限。
-- 如果你使用配置文件，请在 Gateway 网关主机上设置 `AWS_PROFILE`。
-- CrawClaw 按以下顺序获取凭证来源：`AWS_BEARER_TOKEN_BEDROCK`，然后是 `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`，然后是 `AWS_PROFILE`，最后是默认的 AWS SDK 链。
-- 推理支持取决于模型；请查看 Bedrock 模型卡了解当前功能。
-- 如果你更喜欢托管密钥流程，也可以在 Bedrock 前面放置一个 OpenAI 兼容的代理，并将其配置为 OpenAI 提供商。
+- 如果你使用 profiles，请在 gateway 主机上设置 `AWS_PROFILE`。
+- CrawClaw 按以下顺序显示凭证来源：`AWS_BEARER_TOKEN_BEDROCK`，然后是 `AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`，然后是 `AWS_PROFILE`，最后是默认 AWS SDK 链。
+- 推理支持取决于模型；请查看 Bedrock 模型卡以了解当前能力。
+- 如果你更喜欢托管密钥流程，你还可以在 Bedrock 前放置一个 OpenAI 兼容代理，并将其配置为 OpenAI 提供商。
+
+## Guardrails
+
+你可以通过在 `amazon-bedrock` 插件配置中添加 `guardrail` 对象，对所有 Bedrock 模型调用应用 [Amazon Bedrock Guardrails](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html)。Guardrails 允许你强制执行内容过滤、主题拒绝、词语过滤器、敏感信息过滤器和上下文基础检查。
+
+```json5
+{
+  plugins: {
+    entries: {
+      "amazon-bedrock": {
+        config: {
+          guardrail: {
+            guardrailIdentifier: "abc123", // guardrail ID 或完整 ARN
+            guardrailVersion: "1", // 版本号或 "DRAFT"
+            streamProcessingMode: "sync", // 可选："sync" 或 "async"
+            trace: "enabled", // 可选："enabled"、"disabled" 或 "enabled_full"
+          },
+        },
+      },
+    },
+  },
+}
+```
+
+- `guardrailIdentifier`（必需）接受 guardrail ID（例如 `abc123`）或完整 ARN（例如 `arn:aws:bedrock:us-east-1:123456789012:guardrail/abc123`）。
+- `guardrailVersion`（必需）指定使用哪个已发布的版本，或使用 `"DRAFT"` 表示工作草稿。
+- `streamProcessingMode`（可选）控制 guardrail 评估在流式传输期间是同步（`"sync"`）还是异步（`"async"`）运行。如果省略，Bedrock 使用其默认行为。
+- `trace`（可选）在 API 响应中启用 guardrail 追踪输出。设置为 `"enabled"` 或 `"enabled_full"` 用于调试；生产环境应省略或设置为 `"disabled"`。
+
+gateway 使用的 IAM 主体除了标准调用权限外，还必须具有 `bedrock:ApplyGuardrail` 权限。

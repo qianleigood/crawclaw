@@ -1,144 +1,154 @@
 ---
 read_when:
-  - 解释流式传输或分块在渠道上如何工作
+  - 解释渠道上的流式传输或分块如何工作
   - 更改分块流式传输或渠道分块行为
-  - 调试重复/提前的块回复或草稿流式传输
-summary: 流式传输 + 分块行为（块回复、草稿流式传输、限制）
+  - 调试重复/提前的分块回复或渠道预览流式传输
+summary: 流式传输和分块行为（分块回复、渠道预览流式传输、模式映射）
 title: 流式传输和分块
 x-i18n:
-  generated_at: "2026-02-03T10:05:41Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: f014eb1898c4351b1d6b812223226d91324701e3e809cd0f3faf6679841bc353
+  generated_at: "2026-06-05T14:15:05Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 89efa20f235dce48e5df8716d91435bdbdb095ef4d78510d4c36af62f9d4c7e1
   source_path: concepts/streaming.md
   workflow: 15
 ---
 
 # 流式传输 + 分块
 
-<Note>
-这篇只讲消息输出面的流式传输、分块和渠道投递行为。  
-如果你想看更高层的执行过程展示语义，请继续读 [执行过程可见性系统](/concepts/execution-visibility-system)；如果你想看项目级整体结构，请先读 [项目整体架构总览](/concepts/project-architecture-overview)。
-</Note>
+CrawClaw 有两个独立的流式传输层：
 
-CrawClaw 有两个独立的"流式传输"层：
+- **分块流式传输（渠道）：** 当助手书写时发出完成的**分块**。这些是正常渠道消息（不是 token 增量）。
+- **预览流式传输（飞书/QQBot/DingTalk）：** 在生成时更新临时**预览消息**。
 
-- **分块流式传输（渠道）：** 在助手写入时发出已完成的**块**。这些是普通的渠道消息（不是令牌增量）。
-- **类令牌流式传输（仅限 Feishu）：** 在生成时用部分文本更新**草稿气泡**；最终消息在结束时发送。
-
-目前**没有真正的令牌流式传输**到外部渠道消息。Feishu 草稿流式传输是唯一的部分流式传输界面。
+目前**没有真正的 token 增量流式传输**到渠道消息。预览流式传输是基于消息的（发送 + 编辑/追加）。
 
 ## 分块流式传输（渠道消息）
 
-分块流式传输在助手输出可用时以粗粒度块发送。
+分块流式传输在可用时以粗粒度分块发送助手输出。
 
 ```
 模型输出
   └─ text_delta/events
        ├─ (blockStreamingBreak=text_end)
-       │    └─ 分块器在缓冲区增长时发出块
+       │    └─ 分块器在缓冲区增长时发出分块
        └─ (blockStreamingBreak=message_end)
             └─ 分块器在 message_end 时刷新
-                   └─ 渠道发送（块回复）
+                   └─ 渠道发送（分块回复）
 ```
 
 图例：
 
-- `text_delta/events`：模型流事件（对于非流式模型可能稀疏）。
-- `chunker`：应用最小/最大边界 + 断点偏好的 `BlockReplyChunker`。
-- `channel send`：实际的出站消息（块回复）。
+- `text_delta/events`：模型流事件（非流式传输模型可能稀疏）。
+- `chunker`：应用最小/最大边界 + 断开优先级的 `BlockReplyChunker`。
+- `channel send`：实际出站消息（分块回复）。
 
 **控制项：**
 
 - `agents.defaults.blockStreamingDefault`：`"on"`/`"off"`（默认关闭）。
-- 渠道覆盖：`*.blockStreaming`（以及每账户变体）可为每个渠道强制设置 `"on"`/`"off"`。
+- 渠道覆盖：`*.blockStreaming`（及按账户变体）强制每个渠道 `"on"`/`"off"`。
 - `agents.defaults.blockStreamingBreak`：`"text_end"` 或 `"message_end"`。
 - `agents.defaults.blockStreamingChunk`：`{ minChars, maxChars, breakPreference? }`。
-- `agents.defaults.blockStreamingCoalesce`：`{ minChars?, maxChars?, idleMs? }`（发送前合并流式块）。
+- `agents.defaults.blockStreamingCoalesce`：`{ minChars?, maxChars?, idleMs? }`（发送前合并流式分块）。
 - 渠道硬上限：`*.textChunkLimit`（例如 `channels.weixin.textChunkLimit`）。
-- 渠道分块模式：`*.chunkMode`（默认 `length`，`newline` 在长度分块之前按空行（段落边界）分割）。
-- QQBot 软上限：`channels.qqbot.maxLinesPerMessage`（默认 17）分割高度较大的回复以避免 UI 裁剪。
+- 渠道分块模式：`*.chunkMode`（默认 `length`，`newline` 在长度分块前按空行（段落边界）拆分）。
+- QQBot 软上限：`channels.qqbot.maxLinesPerMessage`（默认 17）拆分高回复以避免 UI 截断。
 
 **边界语义：**
 
-- `text_end`：分块器发出时立即流式传输块；在每个 `text_end` 时刷新。
-- `message_end`：等到助手消息完成，然后刷新缓冲的输出。
+- `text_end`：分块器发出时分块立即流出；每个 `text_end` 时刷新。
+- `message_end`：等待助手消息完成，然后刷新缓冲输出。
 
-如果缓冲文本超过 `maxChars`，`message_end` 仍然使用分块器，因此可能在最后发出多个块。
+`message_end` 如果缓冲文本超过 `maxChars` 仍使用分块器，因此可以在末尾发出多个分块。
 
 ## 分块算法（低/高边界）
 
-块分块由 `BlockReplyChunker` 实现：
+分块由 `BlockReplyChunker` 实现：
 
-- **低边界：** 在缓冲区 >= `minChars` 之前不发出（除非强制）。
-- **高边界：** 优先在 `maxChars` 之前分割；如果强制，则在 `maxChars` 处分割。
-- **断点偏好：** `paragraph` → `newline` → `sentence` → `whitespace` → 硬断点。
-- **代码围栏：** 从不在围栏内分割；当在 `maxChars` 处强制分割时，关闭 + 重新打开围栏以保持 Markdown 有效。
+- **低边界：** 在缓冲区达到 `minChars` 前不发出（除非强制）。
+- **高边界：** 优先在 `maxChars` 之前拆分；如果强制，则在 `maxChars` 处拆分。
+- **断开优先级：** `paragraph` → `newline` → `sentence` → `whitespace` → 硬断开。
+- **代码围栏：** 永远不在围栏内拆分；当在 `maxChars` 强制拆分时，关闭 + 重新打开围栏以保持 Markdown 有效。
 
-`maxChars` 被限制在渠道 `textChunkLimit` 内，因此你无法超过每渠道的上限。
+`maxChars` 被限制在渠道 `textChunkLimit`，因此不能超过每个渠道的上限。
 
-## 合并（合并流式块）
+## 合并（合并流式分块）
 
-启用分块流式传输时，CrawClaw 可以在发送前**合并连续的块分块**。这减少了"单行刷屏"，同时仍提供渐进式输出。
+启用分块流式传输时，CrawClaw 可以在发送前**合并连续的分块**。这减少了"单行刷屏"同时仍提供渐进式输出。
 
-- 合并在**空闲间隙**（`idleMs`）后刷新。
-- 缓冲区受 `maxChars` 限制，超过时将刷新。
-- `minChars` 防止微小片段发送，直到累积足够文本（最终刷新始终发送剩余文本）。
-- 连接符从 `blockStreamingChunk.breakPreference` 派生（`paragraph` → `\n\n`，`newline` → `\n`，`sentence` → 空格）。
-- 渠道覆盖通过 `*.blockStreamingCoalesce` 可用（包括每账户配置）。
-- 除非覆盖，Feishu/DingTalk/QQBot 的默认合并 `minChars` 提高到 1500。
+- 合并等待**空闲间隙**（`idleMs`）后再刷新。
+- 缓冲区有 `maxChars` 上限，超出时会刷新。
+- `minChars` 防止微小片段发送直到足够文本积累（最终刷新始终发送剩余文本）。
+- 连接符来自 `blockStreamingChunk.breakPreference`
+  (`paragraph` → `\n\n`、`newline` → `\n`、`sentence` → 空格)。
+- 渠道覆盖可通过 `*.blockStreamingCoalesce`（包括按账户配置）使用。
+- 除非覆盖，否则 Signal/DingTalk/QQBot 的默认合并 `minChars` 提高到 1500。
 
-## 块之间的类人节奏
+## 分块间的人类化节奏
 
-启用分块流式传输时，你可以在块回复之间添加**随机暂停**（在第一个块之后）。这使多气泡响应感觉更自然。
+启用分块流式传输时，你可以在分块回复之间添加**随机暂停**（第一个分块之后）。这使多气泡响应感觉更自然。
 
 - 配置：`agents.defaults.humanDelay`（通过 `agents.list[].humanDelay` 按智能体覆盖）。
 - 模式：`off`（默认）、`natural`（800–2500ms）、`custom`（`minMs`/`maxMs`）。
-- 仅适用于**块回复**，不适用于最终回复或工具摘要。
+- 仅适用于**分块回复**，不适用于最终回复或工具摘要。
 
-## "流式传输块或全部内容"
+## "流式分块还是全部"
 
 这映射到：
 
-- **流式传输块：** `blockStreamingDefault: "on"` + `blockStreamingBreak: "text_end"`（边生成边发出）。非 Feishu 渠道还需要 `*.blockStreaming: true`。
-- **最后流式传输全部内容：** `blockStreamingBreak: "message_end"`（刷新一次，如果很长可能有多个块）。
-- **无分块流式传输：** `blockStreamingDefault: "off"`（只有最终回复）。
+- **流式分块：** `blockStreamingDefault: "on"` + `blockStreamingBreak: "text_end"`（边走边发出）。非飞书渠道也需要 `*.blockStreaming: true`。
+- **最后一次性流式：** `blockStreamingBreak: "message_end"`（一次性刷新，如果很长可能多个分块）。
+- **无分块流式：** `blockStreamingDefault: "off"`（仅最终回复）。
 
-**渠道说明：** 对于非 Feishu 渠道，分块流式传输**默认关闭**，除非 `*.blockStreaming` 明确设置为 `true`。Feishu 可以在没有块回复的情况下流式传输草稿（`channels.feishu.streaming`）。
+**渠道注意：** 分块流式传输**默认为关闭**，除非 `*.blockStreaming` 明确设置为 `true`。渠道可以在没有分块回复的情况下流式传输实时预览（`channels.<channel>.streaming`）。
 
-配置位置提醒：`blockStreaming*` 默认值位于 `agents.defaults` 下，而不是根配置。
+配置位置提醒：`blockStreaming*` 默认值位于 `agents.defaults` 下，不是根配置。
 
-## Feishu 草稿流式传输（类令牌）
+## 预览流式传输模式
 
-Feishu 是唯一支持草稿流式传输的渠道：
+规范键：`channels.<channel>.streaming`
 
-- 在**带主题的私聊**中使用 Bot API `sendMessageDraft`。
-- `channels.feishu.streaming: "partial" | "block" | "off" | "progress"`。
-  - `partial`：用最新的流式文本更新草稿。
-  - `block`：以分块方式更新草稿（相同的分块器规则）。
-  - `off`：无草稿流式传输。
-- `progress`：为跨渠道语义一致性，在 Feishu 上按 `partial` 处理。
-- 草稿流式传输与分块流式传输分开；块回复默认关闭，仅在非 Feishu 渠道上通过 `*.blockStreaming: true` 启用。
-- 最终回复仍然是普通消息。
-- `/reasoning stream` 将推理写入草稿气泡（仅限 Feishu）。
+模式：
 
-当草稿流式传输活跃时，CrawClaw 会为该回复禁用分块流式传输以避免双重流式传输。
+- `off`：禁用预览流式传输。
+- `partial`：单一预览，被最新文本替换。
+- `block`：以分块/追加步骤更新预览。
+- `progress`：生成期间的状态/进度预览，完成时给出最终答案。
 
-```
-Feishu（私聊 + 主题）
-  └─ sendMessageDraft（草稿气泡）
-       ├─ streaming=partial/progress → 更新最新文本
-       └─ streaming=block            → 分块器更新草稿
-  └─ 最终回复 → 普通消息
-```
+### 渠道映射
 
-图例：
+| 渠道     | `off` | `partial` | `block` | `progress`       |
+| -------- | ----- | --------- | ------- | ---------------- |
+| 飞书     | ✅    | ✅        | ✅      | 映射到 `partial` |
+| QQBot    | ✅    | ✅        | ✅      | 映射到 `partial` |
+| DingTalk | ✅    | ✅        | ✅      | ✅               |
 
-- `sendMessageDraft`：Feishu 草稿气泡（不是真正的消息）。
-- `final reply`：普通 Feishu 消息发送。
+DingTalk 独有：
 
-## 延伸阅读
+- `channels.ddingtalk.nativeStreaming` 在 `streaming=partial` 时切换 DingTalk 原生流式传输 API 调用（默认：`true`）。
 
-- [消息](/concepts/messages)
-- [执行过程可见性系统](/concepts/execution-visibility-system)
-- [项目整体架构总览](/concepts/project-architecture-overview)
+### 运行时行为
+
+飞书：
+
+- 在私信和群聊/话题中使用 `sendMessage` + `editMessageText` 预览更新。
+- 当飞书分块流式传输明确启用时跳过预览流式传输（避免双重流式传输）。
+- `/reasoning stream` 可以将推理写入预览。
+
+QQBot：
+
+- 使用发送 + 编辑预览消息。
+- `block` 模式使用内置预览分块器。
+- 当 QQBot 分块流式传输明确启用时跳过预览流式传输。
+
+DingTalk：
+
+- `partial` 可以在可用时使用 DingTalk 原生流式传输（`chat.startStream`/`append`/`stop`）。
+- `block` 使用追加式草稿预览。
+- `progress` 使用状态预览文本，然后给出最终答案。
+
+## 相关
+
+- [消息](/concepts/messages) — 消息生命周期和传递
+- [重试](/concepts/retry) — 传递失败时的重试行为
+- [渠道](/channels) — 每个渠道的流式传输支持

@@ -1,23 +1,21 @@
 ---
 read_when:
-  - 你想使用 OpenCode Go 目录
-  - 你需要了解 Go 托管模型的运行时模型引用
-summary: 使用共享的 OpenCode 设置来使用 OpenCode Go 目录
+  - 你想要 OpenCode Go 目录
+  - 你需要 Go 托管模型的运行时模型引用
+summary: 将 OpenCode Go 目录与共享 OpenCode 设置一起使用
 title: OpenCode Go
 x-i18n:
-  generated_at: "2026-03-16T06:26:48Z"
-  model: gpt-5.4
-  provider: openai
-  source_hash: 8650af7c64220c14bab8c22472fff8bebd7abde253e972b6a11784ad833d321c
+  generated_at: "2026-06-05T14:44:43Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: f6d25f73d8922573c90860152d0dc17784190dcd6a5863c4c0c3d67ae0f67b93
   source_path: providers/opencode-go.md
   workflow: 15
 ---
 
 # OpenCode Go
 
-OpenCode Go 是 [OpenCode](/providers/opencode) 中的 Go 目录。
-它使用与 Zen 目录相同的 `OPENCODE_API_KEY`，但保留运行时
-提供商 id `opencode-go`，以便上游按模型路由保持正确。
+OpenCode Go 是 [OpenCode](/providers/opencode) 中的 Go 目录。它使用与 Zen 目录相同的 `OPENCODE_API_KEY`，但保留运行时提供商 ID `opencode-go`，以保持上游按模型路由的正确性。
 
 ## 支持的模型
 
@@ -25,9 +23,9 @@ OpenCode Go 是 [OpenCode](/providers/opencode) 中的 Go 目录。
 - `opencode-go/glm-5`
 - `opencode-go/minimax-m2.5`
 
-## CLI 设置
+## Desktop 设置
 
-使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
 
 ## 配置片段
 
@@ -40,9 +38,9 @@ OpenCode Go 是 [OpenCode](/providers/opencode) 中的 Go 目录。
 
 ## 路由行为
 
-当模型引用使用 `opencode-go/...` 时，CrawClaw 会自动处理按模型路由。
+当模型引用使用 `opencode-go/...` 时，CrawClaw 自动处理按模型路由。
 
-## 说明
+## 注意事项
 
-- 共享的新手引导和目录概览请使用 [OpenCode](/providers/opencode)。
+- 使用 [OpenCode](/providers/opencode) 获取共享入门和目录概览。
 - 运行时引用保持显式：Zen 使用 `opencode/...`，Go 使用 `opencode-go/...`。

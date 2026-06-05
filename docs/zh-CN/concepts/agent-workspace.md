@@ -1,30 +1,30 @@
 ---
 read_when:
-  - 你需要解释智能体工作区或其文件布局
-  - 你想备份或迁移智能体工作区
-summary: 智能体工作区：位置、布局和备份策略
-title: 智能体工作区
+  - 你需要解释智能体工作空间或其文件布局
+  - 你想要备份或迁移智能体工作空间
+summary: 智能体工作空间：位置、布局和备份策略
+title: 智能体工作空间
 x-i18n:
-  generated_at: "2026-03-16T06:21:45Z"
-  model: gpt-5.4
-  provider: openai
-  source_hash: 6854ddbebe2d21da08c4e1773da6a44f02c815070677821996dab4c91cfb9cd4
+  generated_at: "2026-06-05T14:11:50Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: e9109d25627e5d48fcb48f1f2e60117555a08294d264cebc99bf8a0b4b864db4
   source_path: concepts/agent-workspace.md
   workflow: 15
 ---
 
-# 智能体工作区
+# 智能体工作空间
 
-工作区是智能体的“家”。它是文件工具和工作区上下文所使用的唯一工作目录。请将其保持为私有，并将其视为记忆。
+工作空间是智能体的家。它是文件工具和工作空间上下文使用的唯一工作目录。保持其私密性，并将其视为记忆。
 
-这与存储配置、凭证和会话的 `~/.crawclaw/` 是分开的。
+这与 `~/.crawclaw/` 不同，后者存储配置、凭证和会话。
 
-**重要：**工作区是**默认 cwd**，而不是硬性沙箱。工具会相对于工作区解析相对路径，但除非启用沙箱隔离，否则绝对路径仍然可以访问主机上的其他位置。如果你需要隔离，请使用 [`agents.defaults.sandbox`](/gateway/sandboxing)（和/或按智能体配置的沙箱）。启用沙箱隔离后，如果 `workspaceAccess` 不是 `"rw"`，工具会在 `~/.crawclaw/sandboxes` 下的沙箱工作区中运行，而不是在你的主机工作区中运行。
+解析相对路径时以工作空间为基准，但绝对路径仍可访问主机上的其他位置。如果需要硬隔离，请在隔离的主机或虚拟机上运行 CrawClaw，并将敏感路径排除在该环境之外。
 
 ## 默认位置
 
 - 默认值：`~/.crawclaw/workspace`
-- 如果设置了 `CRAWCLAW_PROFILE` 且其值不是 `"default"`，默认值将变为
+- 如果设置了 `CRAWCLAW_PROFILE` 且不为 `"default"`，则默认值变为
   `~/.crawclaw/workspace-<profile>`。
 - 在 `~/.crawclaw/crawclaw.json` 中覆盖：
 
@@ -36,104 +36,99 @@ x-i18n:
 }
 ```
 
-CrawClaw Desktop 和本地 Gateway API 会在工作区缺失时创建工作区并植入引导文件。
-沙箱种子复制仅接受工作区内的常规文件；解析到源工作区外部的符号链接/硬链接别名会被忽略。
+CrawClaw Desktop 和本地 Gateway API 会创建工作空间，并在缺少引导文件时填充初始内容。
+解析到源工作空间之外的别名会被忽略。
 
-如果你已经自行管理工作区文件，可以禁用引导文件创建：
+如果你已自行管理工作空间文件，可以禁用引导文件创建：
 
 ```json5
 { agent: { skipBootstrap: true } }
 ```
 
-## 额外的工作区文件夹
+## 额外的工作空间文件夹
 
-较旧的安装可能创建过 `~/crawclaw`。保留多个工作区目录可能会导致令人困惑的凭证或状态漂移，因为同一时间只有一个工作区处于活动状态。
+旧版本安装可能已创建 `~/crawclaw`。保留多个工作空间目录会导致混淆的认证或状态漂移，因为一次只有一个工作空间处于活动状态。
 
-**建议：**只保留一个活动工作区。如果你不再使用额外的文件夹，请将其归档或移到废纸篓（例如 `trash ~/crawclaw`）。
-如果你有意保留多个工作区，请确保
-`agents.defaults.workspace` 指向当前活动的那个。
+**建议：** 保持单一活动工作空间。如果你不再使用额外的文件夹，请归档或将其移至垃圾箱（例如 `trash ~/crawclaw`）。如果你有意保留多个工作空间，请确保 `agents.defaults.workspace` 指向活动的工作空间。
 
-当 `crawclaw doctor` 检测到额外的工作区目录时，会发出警告。
+CrawClaw Desktop 或本地 Gateway API 在检测到额外的工作空间目录时会发出警告。
 
-## 工作区文件映射（每个文件的含义）
+## 工作空间文件映射（每个文件的含义）
 
-以下是 CrawClaw 在工作区内预期的标准文件：
+以下是 CrawClaw 在工作空间内期望的标准文件：
 
 - `AGENTS.md`
-  - 智能体的操作说明，以及它应如何使用记忆。
-  - 每次会话开始时加载。
-  - 很适合放置规则、优先级和“如何表现”之类的细节。
+  - 智能体的操作说明以及它应如何使用记忆。
+  - 在每个会话开始时加载。
+  - 是放置规则、优先级和“如何行事”等细节的好地方。
 
 - `SOUL.md`
   - 人设、语气和边界。
-  - 每次会话都会加载。
+  - 作为工作空间文件保留，但默认不会注入。
 
 - `USER.md`
-  - 用户是谁，以及应如何称呼他们。
-  - 每次会话都会加载。
+  - 用户是谁以及如何称呼他们。
+  - 作为工作空间文件保留，但默认不会注入。
 
 - `IDENTITY.md`
-  - 智能体的名称、风格和 emoji。
+  - 智能体的名称、风格和表情符号。
   - 在引导仪式期间创建/更新。
 
 - `TOOLS.md`
-  - 关于你的本地工具和约定的说明。
-  - 它不控制工具可用性；仅提供指导。
+  - 关于本地工具和约定的笔记。
+  - 不控制工具的可用性；仅提供指导。
+  - 默认不会注入。
 
 - `HEARTBEAT.md`
-  - 事件驱动的主会话唤醒运行可选的微型检查清单。
-  - 不推荐用于新的计划自动化。
-  - 新的主动工作请使用 cron jobs 或 hooks。
-
-- `BOOT.md`
-  - 可选的启动检查清单；当启用内部 hooks 时，会在 Gateway 网关重启时执行。
-  - 保持简短；出站发送请使用消息工具。
+  - 事件驱动的 main-session 唤醒运行的可选检查清单。
+  - 不是新计划自动化推荐的位置。
+  - 使用 cron 任务或钩子进行新的主动工作。
 
 - `BOOTSTRAP.md`
-  - 一次性的首次运行仪式。
-  - 仅为全新的工作区创建。
-  - 仪式完成后请将其删除。
+  - 一次性首次运行仪式。
+  - 仅在全新工作空间时创建。
+  - 仪式完成后删除它。
 
 - `memory/YYYY-MM-DD.md`
   - 每日记忆日志（每天一个文件）。
-  - 建议在会话开始时阅读今天和昨天的内容。
+  - 建议在会话开始时读取今天和昨天的内容。
 
 - `MEMORY.md`（可选）
-  - 精选的长期记忆。
-  - 仅在主私有会话中加载（不在共享/群组上下文中加载）。
+  - 用于显式记忆工具和工作流的精选长期记忆。
+  - 不属于默认工作空间引导注入路径。
 
-有关工作流和自动记忆刷新，请参见[记忆](/concepts/memory)。
+了解 [记忆](/concepts/memory) 中的工作流和自动记忆刷新。
 
 - `skills/`（可选）
-  - 工作区专用技能。
-  - 名称冲突时会覆盖托管/捆绑的 Skills。
+  - 工作空间特定的 skills。
+  - 当名称冲突时覆盖托管/捆绑的 skills。
 
 - `canvas/`（可选）
   - 用于节点显示的 Canvas UI 文件（例如 `canvas/index.html`）。
 
-如果任何引导文件缺失，CrawClaw 会在会话中注入一个“缺失文件”标记并继续执行。注入时，大型引导文件会被截断；可使用 `agents.defaults.bootstrapMaxChars`（默认：20000）和 `agents.defaults.bootstrapTotalMaxChars`（默认：150000）调整限制。
-CrawClaw Desktop 或本地 Gateway API 可以重新创建缺失的默认文件，而不会覆盖现有文件。
+如果运行的活跃引导文件缺失，CrawClaw 会注入一个“缺失文件”标记并继续。大型引导文件在注入时会被截断；使用 `agents.defaults.bootstrapMaxChars`（默认值：20000）和 `agents.defaults.bootstrapTotalMaxChars`（默认值：150000）调整限制。
+CrawClaw Desktop 或本地 Gateway API 可以在不覆盖现有文件的情况下重新创建缺失的默认值。
 
-## 不在工作区中的内容
+## 工作空间中不包含的内容
 
-这些内容位于 `~/.crawclaw/` 下，**不应**提交到工作区仓库：
+这些位于 `~/.crawclaw/` 下，不应提交到工作空间仓库：
 
 - `~/.crawclaw/crawclaw.json`（配置）
 - `~/.crawclaw/credentials/`（OAuth 令牌、API 密钥）
-- `~/.crawclaw/agents/<agentId>/sessions/`（会话记录和元数据）
-- `~/.crawclaw/skills/`（托管 Skills）
+- `~/.crawclaw/agents/<agentId>/sessions/`（会话记录 + 元数据）
+- `~/.crawclaw/skills/`（托管 skills）
 
-如果你需要迁移会话或配置，请单独复制它们，并确保不要将其纳入版本控制。
+如果你需要迁移会话或配置，请单独复制它们，并将其排除在版本控制之外。
 
 ## Git 备份（推荐，私有）
 
-将工作区视为私有记忆。把它放进一个**私有** git 仓库，以便备份并可恢复。
+将工作空间视为私有记忆。将其放入**私有** git 仓库，以便备份和恢复。
 
-请在 Gateway 网关运行的机器上执行这些步骤（工作区就位于那里）。
+在 Gateway 运行的机器上执行以下步骤（即工作空间所在的机器）。
 
-### 1）初始化仓库
+### 1) 初始化仓库
 
-如果已安装 git，全新工作区会自动初始化。如果这个工作区还不是仓库，请运行：
+如果已安装 git，全新工作空间会自动初始化。如果此工作空间还不是仓库，请运行：
 
 ```bash
 cd ~/.crawclaw/workspace
@@ -142,14 +137,14 @@ git add AGENTS.md SOUL.md TOOLS.md IDENTITY.md USER.md HEARTBEAT.md memory/
 git commit -m "Add agent workspace"
 ```
 
-### 2）添加私有远程仓库（适合新手的选项）
+### 2) 添加私有远程仓库（适合初学者的选项）
 
-选项 A：GitHub Web UI
+选项 A：GitHub 网页界面
 
 1. 在 GitHub 上创建一个新的**私有**仓库。
-2. 不要使用 README 初始化（以避免合并冲突）。
+2. 不要使用 README 初始化（避免合并冲突）。
 3. 复制 HTTPS 远程 URL。
-4. 添加远程仓库并推送：
+4. 添加远程并推送：
 
 ```bash
 git branch -M main
@@ -164,12 +159,12 @@ gh auth login
 gh repo create crawclaw-workspace --private --source . --remote origin --push
 ```
 
-选项 C：GitLab Web UI
+选项 C：GitLab 网页界面
 
 1. 在 GitLab 上创建一个新的**私有**仓库。
-2. 不要使用 README 初始化（以避免合并冲突）。
+2. 不要使用 README 初始化（避免合并冲突）。
 3. 复制 HTTPS 远程 URL。
-4. 添加远程仓库并推送：
+4. 添加远程并推送：
 
 ```bash
 git branch -M main
@@ -177,7 +172,7 @@ git remote add origin <https-url>
 git push -u origin main
 ```
 
-### 3）持续更新
+### 3) 持续更新
 
 ```bash
 git status
@@ -188,13 +183,13 @@ git push
 
 ## 不要提交密钥
 
-即使在私有仓库中，也应避免在工作区中存储密钥：
+即使在私有仓库中，也要避免在工作空间中存储密钥：
 
-- API 密钥、OAuth 令牌、密码或私有凭证。
+- API 密钥、OAuth 令牌、密码或私人凭证。
 - `~/.crawclaw/` 下的任何内容。
-- 聊天原始转储或敏感附件。
+- 聊天记录或敏感附件的原始转储。
 
-如果你必须存储敏感引用，请使用占位符，并将真实密钥保存在其他地方（密码管理器、环境变量或 `~/.crawclaw/`）。
+如果必须存储敏感引用，请使用占位符并将真实密钥保留在其他地方（密码管理器、环境变量或 `~/.crawclaw/`）。
 
 建议的 `.gitignore` 起始内容：
 
@@ -206,15 +201,20 @@ git push
 **/secrets*
 ```
 
-## 将工作区迁移到新机器
+## 将工作空间移动到新机器
 
-1. 将仓库克隆到所需路径（默认是 `~/.crawclaw/workspace`）。
+1. 将仓库克隆到所需路径（默认 `~/.crawclaw/workspace`）。
 2. 在 `~/.crawclaw/crawclaw.json` 中将 `agents.defaults.workspace` 设置为该路径。
-3. 使用 CrawClaw Desktop 或本地 Gateway API 植入任何缺失的文件。
-4. 如果你需要会话，请将旧机器上的 `~/.crawclaw/agents/<agentId>/sessions/` 单独复制过来。
+3. 运行 CrawClaw Desktop 或本地 Gateway API 以填充任何缺失的文件。
+4. 如果需要会话，请单独从旧机器复制 `~/.crawclaw/agents/<agentId>/sessions/`。
 
 ## 高级说明
 
-- 多智能体路由可以为不同智能体使用不同的工作区。有关路由配置，请参见
-  [渠道路由](/channels/channel-routing)。
-- 如果启用了 `agents.defaults.sandbox`，非主会话可以在 `agents.defaults.sandbox.workspaceRoot` 下使用按会话划分的沙箱工作区。
+- 多智能体路由可以为每个智能体使用不同的工作空间。了解
+  [渠道路由](/channels/channel-routing) 中的路由配置。
+
+## 相关
+
+- [持久指令](/automation/standing-orders) — 工作空间文件中的持久指令
+- [Heartbeat](/gateway/heartbeat) — 事件驱动的唤醒迁移说明
+- [会话](/concepts/session) — 会话存储路径

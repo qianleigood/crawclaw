@@ -1,37 +1,35 @@
 ---
 read_when:
-  - 你想在 CrawClaw 中使用 Xiaomi MiMo 模型
-  - 你需要设置 `XIAOMI_API_KEY`
-summary: 在 CrawClaw 中使用 Xiaomi MiMo 模型
+  - 你想在 CrawClaw 中使用小米 MiMo 模型
+  - 你需要 XIAOMI_API_KEY 设置
+summary: 在 CrawClaw 中使用小米 MiMo 模型
 title: Xiaomi MiMo
 x-i18n:
-  generated_at: "2026-03-20T01:18:00Z"
-  model: gpt-5.4
-  provider: openai
-  source_hash: e0abfbe49f438807ce1c5cf5d7910e930c0d670f447f6eb53ca4e9af61cc0843
+  generated_at: "2026-06-05T14:45:48Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: fff8a2ef06efb16c5a960da10176a9442bbfdb862916eefad7973abea0a46b8b
   source_path: providers/xiaomi.md
   workflow: 15
 ---
 
 # Xiaomi MiMo
 
-Xiaomi MiMo 是 **MiMo** 模型的 API 平台。CrawClaw 使用 Xiaomi 提供的
-OpenAI 兼容端点，并通过 API key 认证。请在
-[Xiaomi MiMo console](https://platform.xiaomimimo.com/#/console/api-keys) 中创建你的 API key，然后用它配置内置的
-`xiaomi` 提供商。
+Xiaomi MiMo 是 **MiMo** 模型的 API 平台。CrawClaw 使用小米 OpenAI 兼容端点进行 API 密钥认证。在
+[Xiaomi MiMo 控制台](https://platform.xiaomimimo.com/#/console/api-keys) 中创建你的 API 密钥，然后使用该密钥配置捆绑的 `xiaomi` 提供商。
 
 ## 模型概览
 
-- **mimo-v2-flash**：默认文本模型，262144-token 上下文窗口
-- **mimo-v2-pro**：支持推理的文本模型，1048576-token 上下文窗口
-- **mimo-v2-omni**：支持推理的多模态模型，支持文本和图像输入，262144-token 上下文窗口
-- Base URL：`https://api.xiaomimimo.com/v1`
+- **mimo-v2-flash**：默认文本模型，262144 token 上下文窗口
+- **mimo-v2-pro**：推理文本模型，1048576 token 上下文窗口
+- **mimo-v2-omni**：支持文本和图像输入的推理多模态模型，262144 token 上下文窗口
+- 基础 URL：`https://api.xiaomimimo.com/v1`
 - API：`openai-completions`
-- 认证方式：`Bearer $XIAOMI_API_KEY`
+- 授权：`Bearer $XIAOMI_API_KEY`
 
-## CLI 设置
+## Desktop 设置
 
-使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
 
 ## 配置片段
 
@@ -81,9 +79,9 @@ OpenAI 兼容端点，并通过 API key 认证。请在
 }
 ```
 
-## 说明
+## 注意事项
 
 - 默认模型引用：`xiaomi/mimo-v2-flash`。
-- 额外内置模型：`xiaomi/mimo-v2-pro`、`xiaomi/mimo-v2-omni`。
-- 当设置了 `XIAOMI_API_KEY`（或存在凭证配置文件）时，提供商会自动注入。
+- 其他内置模型：`xiaomi/mimo-v2-pro`、`xiaomi/mimo-v2-omni`。
+- 当设置 `XIAOMI_API_KEY`（或存在认证配置）时，提供商会自动注入。
 - 有关提供商规则，请参阅 [/concepts/model-providers](/concepts/model-providers)。

@@ -1,40 +1,43 @@
 ---
 read_when: Connecting a local client to a remote gateway over SSH
-summary: 本地客户端连接远程 Gateway 网关的 SSH 隧道设置
+summary: 本地客户端连接到远程 Gateway 网关的 SSH 隧道设置
 title: 远程 Gateway 网关设置
 x-i18n:
-  generated_at: "2026-02-03T07:48:37Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: b1ae266a7cb4911b82ae3ec6cb98b1b57aca592aeb1dc8b74bbce9b0ea9dd1d1
+  generated_at: "2026-06-05T14:27:53Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 6901bab43982d6c2512686d7eddb85f04e8ea41eeda034a36fae32006fe70e89
   source_path: gateway/remote-gateway-readme.md
   workflow: 15
 ---
 
+> 此内容已合并到 [远程访问](/gateway/remote#macos-persistent-ssh-tunnel-via-launchagent)。请参阅该页面获取当前指南。
+
 # 使用远程 Gateway 网关运行 CrawClaw.app
 
-CrawClaw.app 使用 SSH 隧道连接到远程 Gateway 网关。本指南向你展示如何设置。
+CrawClaw.app 使用 SSH 隧道连接到远程 Gateway 网关。本指南将向你展示如何进行设置。
 
-## 概述
+## 概览
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Client Machine                          │
-│                                                              │
-│  CrawClaw.app ──► ws://127.0.0.1:18789 (local port)           │
-│                     │                                        │
-│                     ▼                                        │
-│  SSH Tunnel ────────────────────────────────────────────────│
-│                     │                                        │
-└─────────────────────┼──────────────────────────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────┐
-│                         Remote Machine                        │
-│                                                              │
-│  Gateway WebSocket ──► ws://127.0.0.1:18789 ──►              │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Client["Client Machine"]
+        direction TB
+        A["CrawClaw.app"]
+        B["ws://127.0.0.1:18789\n(local port)"]
+        T["SSH Tunnel"]
+
+        A --> B
+        B --> T
+    end
+    subgraph Remote["Remote Machine"]
+        direction TB
+        C["Gateway WebSocket"]
+        D["ws://127.0.0.1:18789"]
+
+        C --> D
+    end
+    T --> C
 ```
 
 ## 快速设置
@@ -51,7 +54,7 @@ Host remote-gateway
     IdentityFile ~/.ssh/id_rsa
 ```
 
-将 `<REMOTE_IP>` 和 `<REMOTE_USER>` 替换为你的值。
+替换 `<REMOTE_IP>` 和 `<REMOTE_USER>` 使用你的实际值。
 
 ### 步骤 2：复制 SSH 密钥
 
@@ -61,7 +64,7 @@ Host remote-gateway
 ssh-copy-id -i ~/.ssh/id_rsa <REMOTE_USER>@<REMOTE_IP>
 ```
 
-### 步骤 3：设置 Gateway 网关令牌
+### 步骤 3：设置 Gateway 令牌
 
 ```bash
 launchctl setenv CRAWCLAW_GATEWAY_TOKEN "<your-token>"
@@ -80,17 +83,17 @@ ssh -N remote-gateway &
 open /path/to/CrawClaw.app
 ```
 
-应用现在将通过 SSH 隧道连接到远程 Gateway 网关。
+CrawClaw.app 现在将通过 SSH 隧道连接到远程 Gateway 网关。
 
 ---
 
 ## 登录时自动启动隧道
 
-要在登录时自动启动 SSH 隧道，请创建一个 Launch Agent。
+要让 SSH 隧道在登录时自动启动，请创建一个 Launch Agent。
 
 ### 创建 PLIST 文件
 
-将此保存为 `~/Library/LaunchAgents/bot.molt.ssh-tunnel.plist`：
+保存为 `~/Library/LaunchAgents/ai.crawclaw.ssh-tunnel.plist`：
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -98,7 +101,7 @@ open /path/to/CrawClaw.app
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>bot.molt.ssh-tunnel</string>
+    <string>ai.crawclaw.ssh-tunnel</string>
     <key>ProgramArguments</key>
     <array>
         <string>/usr/bin/ssh</string>
@@ -116,16 +119,16 @@ open /path/to/CrawClaw.app
 ### 加载 Launch Agent
 
 ```bash
-launchctl bootstrap gui/$UID ~/Library/LaunchAgents/bot.molt.ssh-tunnel.plist
+launchctl bootstrap gui/$UID ~/Library/LaunchAgents/ai.crawclaw.ssh-tunnel.plist
 ```
 
 隧道现在将：
 
-- 登录时自动启动
-- 崩溃时重新启动
-- 在后台持续运行
+- 在登录时自动启动
+- 崩溃时自动重启
+- 保持后台运行
 
-旧版注意事项：如果存在任何遗留的 `com.crawclaw.ssh-tunnel` LaunchAgent，请将其删除。
+遗留说明：移除任何残留 `com.crawclaw.ssh-tunnel` LaunchAgent（如果存在）。
 
 ---
 
@@ -141,24 +144,24 @@ lsof -i :18789
 **重启隧道：**
 
 ```bash
-launchctl kickstart -k gui/$UID/bot.molt.ssh-tunnel
+launchctl kickstart -k gui/$UID/ai.crawclaw.ssh-tunnel
 ```
 
 **停止隧道：**
 
 ```bash
-launchctl bootout gui/$UID/bot.molt.ssh-tunnel
+launchctl bootout gui/$UID/ai.crawclaw.ssh-tunnel
 ```
 
 ---
 
 ## 工作原理
 
-| 组件                                 | 功能                                  |
-| ------------------------------------ | ------------------------------------- |
-| `LocalForward 18789 127.0.0.1:18789` | 将本地端口 18789 转发到远程端口 18789 |
-| `ssh -N`                             | SSH 不执行远程命令（仅端口转发）      |
-| `KeepAlive`                          | 隧道崩溃时自动重启                    |
-| `RunAtLoad`                          | 代理加载时启动隧道                    |
+| Component                            | What It Does                                                 |
+| ------------------------------------ | ------------------------------------------------------------ |
+| `LocalForward 18789 127.0.0.1:18789` | Forwards local port 18789 to remote port 18789               |
+| `ssh -N`                             | SSH without executing remote commands (just port forwarding) |
+| `KeepAlive`                          | Automatically restarts tunnel if it crashes                  |
+| `RunAtLoad`                          | Starts tunnel when the agent loads                           |
 
-CrawClaw.app 连接到你的客户端机器上的 `ws://127.0.0.1:18789`。SSH 隧道将该连接转发到运行 Gateway 网关的远程机器的端口 18789。
+CrawClaw.app 连接到 `ws://127.0.0.1:18789` CrawClaw.app 在你的客户端机器上连接到 <local loopback>。SSH 隧道将该连接转发到运行 Gateway 网关的远程机器的 18789 端口。

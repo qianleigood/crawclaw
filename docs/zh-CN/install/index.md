@@ -1,15 +1,15 @@
 ---
 read_when:
-  - 你需要支持的本地桌面入口
-  - 你需要了解桌面应用包含哪些 runtime
-  - 你正在设置 contributor checkout
-summary: 安装 CrawClaw Desktop 并了解本地 Gateway runtime
+  - 你想要使用 CrawClaw 支持的本地桌面入口点
+  - 你需要了解桌面应用捆绑了什么
+  - 你正在设置贡献者代码检出
+summary: 安装 CrawClaw Desktop 并了解本地 Gateway 运行时
 title: 安装
 x-i18n:
-  generated_at: "2026-03-16T06:23:36Z"
-  model: gpt-5.4
-  provider: openai
-  source_hash: 14b80b6176b2a4ff5c60aad2db88460d8d980bd416faaa3103b38d90521496af
+  generated_at: "2026-06-05T14:39:15Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: a29ce2d34fc6f0fbb46af673846e22838f3c78eafc7b58100bad9acb371cb6c9
   source_path: install/index.md
   workflow: 15
 ---
@@ -18,15 +18,15 @@ x-i18n:
 
 ## 推荐：CrawClaw Desktop
 
-从 [GitHub Releases](https://github.com/qianleigood/crawclaw/releases) 安装 CrawClaw Desktop。在 Apple 平台上，CrawClaw 是 desktop-first 产品：应用负责用户设置、状态、日志、runtime 管理、Agent 聊天、plugin 配置、模型设置和诊断。
+从 [GitHub Releases](https://github.com/qianleigood/crawclaw/releases) 安装 CrawClaw Desktop。在 Apple 平台上，CrawClaw 是桌面优先产品：应用负责用户设置、状态、日志、运行时管理、智能体对话、插件配置、模型设置和诊断。
 
-有关 bundle 布局、runtime 模型和平台支持，请参阅 [Desktop](/install/desktop)。
+参见 [Desktop](/install/desktop) 了解捆绑布局、运行时模型和平台支持。
 
 ## 自动化边界
 
-Desktop 会启动并监管本地 Rust Gateway。自动化和高级集成应调用本地 Gateway API，而不是 shell 到已退役的本地命令 wrapper。公共终端安装器和旧教程已退役。
+Desktop 启动并监控本地 Rust Gateway。自动化和高级集成应调用本地 Gateway API，而不是调用已废弃的本地命令包装器。公共终端安装程序和教程已废弃。
 
-## Contributor 设置
+## 贡献者设置
 
 从源码进行本地开发：
 
@@ -37,15 +37,15 @@ pnpm install
 pnpm build
 ```
 
-从仓库 checkout 运行 desktop app 时，使用 desktop Tauri scripts：
+要在开发模式下运行桌面应用，使用仓库检出的 desktop Tauri 脚本：
 
 ```bash
 pnpm desktop:tauri:stage-runtime
 pnpm desktop:tauri:dev
 ```
 
-## Runtime 前置条件
+## 运行时前置条件
 
-- **Desktop 用户：** 使用打包应用；desktop bundle 包含 CrawClaw Gateway/runtime/native-plugin binaries。
-- **Contributors：** 使用 Node 24+ 运行仓库工具，并使用 Rust 构建 Gateway/runtime crates。
-- **Automation clients：** 连接 desktop-managed Gateway 暴露的本地 Gateway API。
+- **Desktop 用户：**使用打包的应用；桌面捆绑包含 CrawClaw Gateway/运行时/native-plugin 二进制文件。
+- **贡献者：**使用 Node 24+ 进行仓库工具操作，使用 Rust 进行 Gateway/运行时 crates 开发。
+- **自动化客户端：**以桌面管理的 Gateway 暴露的本地 Gateway API 为目标。

@@ -1,41 +1,41 @@
 ---
 read_when:
-  - 你正在对接提供商使用量/配额界面
-  - 你需要解释使用量跟踪行为或认证要求
-summary: 使用量跟踪界面及凭据要求
-title: 使用量跟踪
+  - 你正在接入提供商用量/配额界面
+  - 你需要解释用量追踪行为或认证要求
+summary: 用量追踪界面和凭证要求
+title: 用量追踪
 x-i18n:
-  generated_at: "2026-02-01T20:24:46Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: 6f6ed2a70329b2a6206c327aa749a84fbfe979762caca5f0e7fb556f91631cbb
+  generated_at: "2026-06-05T14:15:16Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 095e7a28af185af0943754d0ecd4d1c871dadc3a6beda76c96e98c67ed76bceb
   source_path: concepts/usage-tracking.md
-  workflow: 14
+  workflow: 15
 ---
 
-# 使用量跟踪
+# 用量追踪
 
-## 功能简介
+## 是什么
 
-- 直接从提供商的使用量端点拉取使用量/配额数据。
-- 不提供估算费用；仅展示提供商报告的时间窗口数据。
+- 直接从提供商的用量端点拉取提供商用量/配额。
+- 无预估成本；仅使用提供商报告的窗口。
 
-## 展示位置
+## 显示位置
 
-- 聊天中的 `/status`：包含会话 token 数和估算费用的表情符号丰富的状态卡片（仅限 API 密钥）。当可用时，会显示**当前模型提供商**的使用量。
-- 聊天中的 `/usage off|tokens|full`：每次响应的使用量页脚（OAuth 仅显示 token 数）。
-- 聊天中的 `/usage cost`：从 CrawClaw 会话日志汇总的本地费用摘要。
-- Desktop 和 Gateway API：在可用时显示提供商配额窗口和运行时用量快照。
-- macOS 菜单栏：上下文菜单下的"使用量"部分（仅在可用时显示）。
+- 聊天中的 `/status`：带有丰富 emoji 的状态卡片，显示会话令牌 + 预估成本（仅限 API 密钥）。提供商用量在可用时显示**当前模型提供商**的用量。
+- 聊天中的 `/usage off|tokens|full`：每个响应的用量页脚（OAuth 仅显示令牌）。
+- 聊天中的 `/usage cost`：从 CrawClaw 会话日志聚合的本地成本摘要。
+- CrawClaw Desktop 和本地 Gateway API 提供完整的每个提供商用量明细。
+- 模型/提供商状态界面在可用时包含与提供商配置相同的用量快照。
+- macOS 菜单栏：Context 下的"用量"部分（仅在可用时显示）。
 
-## 提供商及凭据
+## 提供商 + 凭证
 
-- **Anthropic (Claude)**：认证配置中的 OAuth 令牌。
-- **GitHub Copilot**：认证配置中的 OAuth 令牌。
-- **Gemini CLI**：认证配置中的 OAuth 令牌。
-- **Antigravity**：认证配置中的 OAuth 令牌。
-- **OpenAI Codex**：认证配置中的 OAuth 令牌（存在时使用 accountId）。
-- **MiniMax**：API 密钥（编程计划密钥；`MINIMAX_CODE_PLAN_KEY` 或 `MINIMAX_API_KEY`）；使用 5 小时编程计划时间窗口。
-- **z.ai**：通过环境变量/配置/认证存储提供的 API 密钥。
+- **Anthropic (Claude)**：auth 配置中的 OAuth 令牌。
+- **GitHub Copilot**：auth 配置中的 OAuth 令牌。
+- **Antigravity**：auth 配置中的 OAuth 令牌。
+- **OpenAI Codex**：auth 配置中的 OAuth 令牌（存在时使用 accountId）。
+- **MiniMax**：API 密钥（编程计划密钥；`MINIMAX_CODE_PLAN_KEY` 或 `MINIMAX_API_KEY`）；使用 5 小时编程计划窗口。
+- **z.ai**：通过 env/config/auth store 的 API 密钥。
 
-如果没有匹配的 OAuth/API 凭据，使用量信息将被隐藏。
+如果没有匹配的 OAuth/API 凭证，用量将隐藏。

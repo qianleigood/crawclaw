@@ -1,14 +1,14 @@
 ---
 read_when:
   - 你想使用 GitHub Copilot 作为模型提供商
-  - 你需要了解 GitHub Copilot device flow
-summary: 使用设备流从 CrawClaw 登录 GitHub Copilot
+  - 你已在环境中有可用的 GitHub token
+summary: 使用现有 GitHub token 在 CrawClaw 中使用 GitHub Copilot
 title: GitHub Copilot
 x-i18n:
-  generated_at: "2026-02-01T21:34:57Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: 503e0496d92c921e2f7111b1b4ba16374f5b781643bfbc6cb69cea97d9395c25
+  generated_at: "2026-06-05T14:43:25Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 4d59b224ca93795970f6d1adc666efcbc867a6ed9a5c92980bd969c6d6d76492
   source_path: providers/github-copilot.md
   workflow: 15
 ---
@@ -17,33 +17,23 @@ x-i18n:
 
 ## 什么是 GitHub Copilot？
 
-GitHub Copilot 是 GitHub 的 AI 编程助手。它为你的 GitHub 账户和订阅计划提供 Copilot 模型的访问权限。CrawClaw 可以通过两种不同的方式将 Copilot 用作模型提供商。
+GitHub Copilot 是 GitHub 的 AI 编程助手。它为你的 GitHub 账户和计划提供 Copilot 模型的访问。CrawClaw 可以通过两种不同方式将 Copilot 用作模型提供商。
 
 ## 在 CrawClaw 中使用 Copilot 的两种方式
 
-### 1）内置 GitHub Copilot 提供商（`github-copilot`）
+### 1) 内置 GitHub Copilot 提供商（`github-copilot`）
 
-使用原生设备登录流程获取 GitHub 令牌，然后在 CrawClaw 运行时将其兑换为 Copilot API 令牌。这是**默认**且最简单的方式，因为它不需要 VS Code。
+通过 `COPILOT_GITHUB_TOKEN`、`GH_TOKEN` 或 `GITHUB_TOKEN` 提供 GitHub token。CrawClaw 运行时将该 token 交换为 Copilot API token。CrawClaw 不再附带捆绑的 JavaScript 设备登录辅助函数。
 
-### 2）Copilot Proxy 插件（`copilot-proxy`）
+### 2) Copilot Proxy 插件（`copilot-proxy`）
 
-使用 **Copilot Proxy** VS Code 扩展作为本地桥接。CrawClaw 与代理的 `/v1` 端点通信，并使用你在其中配置的模型列表。当你已经在 VS Code 中运行 Copilot Proxy 或需要通过它进行路由时，选择此方式。你必须启用该插件并保持 VS Code 扩展运行。
+使用 **Copilot Proxy** VS Code 扩展作为本地桥接。CrawClaw 与代理的 `/v1` 端点通信，并使用你在其中配置的模型列表。当你已经运行 VS Code 中的 Copilot Proxy 或需要通过它路由时选择此方式。你必须启用插件并保持 VS Code 扩展运行。
 
-使用 GitHub Copilot 作为模型提供商（`github-copilot`）。登录命令运行 GitHub 设备流程，保存认证配置文件，并更新你的配置以使用该配置文件。
-
-## CLI 设置
-
-使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
-
-系统会提示你访问一个 URL 并输入一次性代码。请保持终端打开直到流程完成。
-
-### 可选参数
-
-使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
+通过在启动桌面应用或 gateway 之前设置支持的 token 环境变量，使用 GitHub Copilot 作为模型提供商（`github-copilot`）。
 
 ## 设置默认模型
 
-使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
 
 ### 配置片段
 
@@ -55,6 +45,5 @@ GitHub Copilot 是 GitHub 的 AI 编程助手。它为你的 GitHub 账户和订
 
 ## 注意事项
 
-- 需要交互式 TTY；请直接在终端中运行。
-- Copilot 模型的可用性取决于你的订阅计划；如果某个模型被拒绝，请尝试其他 ID（例如 `github-copilot/gpt-4.1`）。
-- 登录会将 GitHub 令牌存储在认证配置文件中，并在 CrawClaw 运行时将其兑换为 Copilot API 令牌。
+- Copilot 模型可用性取决于你的计划；如果模型被拒绝，请尝试其他 ID（例如 `github-copilot/gpt-4.1`）。
+- CrawClaw 运行时将配置的 GitHub token 交换为 Copilot API token。

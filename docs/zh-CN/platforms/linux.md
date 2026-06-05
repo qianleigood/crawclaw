@@ -1,44 +1,45 @@
 ---
 read_when:
   - 规划平台覆盖范围或贡献
-summary: Linux support status
-title: Linux App
+summary: Linux 支持状态
+title: Linux 应用
 x-i18n:
-  generated_at: "2026-03-16T06:24:30Z"
-  model: gpt-5.4
-  provider: openai
-  source_hash: 12f2a28ec8fc17769210bda97af11fda332355956d41bba69ac51cc523be6178
+  generated_at: "2026-06-05T14:41:06Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 2c77d85a34ec6c682d1ebcb6d899842ee139fe18fa84569444cc3f7a64378d6e
   source_path: platforms/linux.md
   workflow: 15
 ---
 
-# Linux App
+# Linux 应用
 
-本地 Rust Gateway 支持 Linux。TypeScript 和 JavaScript 仍然只用于 desktop renderer，不属于默认 product runtime path。
+本地 Rust Gateway 在 Linux 上受支持。TypeScript 和 JavaScript 仅保留用于桌面渲染器，不用于默认产品运行时路径。
 
-Linux support 重点覆盖本地 Gateway、native plugins 和 Gateway API clients。
+Linux 支持专注于本地 Gateway、原生插件和 Gateway API 客户端。
 
-## 面向初学者的快速路径（VPS）
+## 初学者快速路径（VPS）
 
-1. 安装 Node 24.x（stable）或 Node 25.x（experimental）。
-2. 安装 GitHub Releases 中的 CrawClaw Desktop。
-3. 使用 CrawClaw Desktop 或本地 Gateway API。
-4. 在你的笔记本电脑上运行：`ssh -N -L 18789:127.0.0.1:18789 <user>@<host>`。
-5. 在本地运行 CrawClaw Desktop 或本地 Gateway API，或者让受支持的 Gateway client 通过 SSH tunnel 连接。
+1. 安装 Node 24.x（稳定版）或 Node 25.x（实验版）
+2. 从 GitHub Releases 安装 CrawClaw Desktop
+3. CrawClaw Desktop 或本地 Gateway API
+4. 从你的笔记本：`ssh -N -L 18789:127.0.0.1:18789 <user>@<host>`
+5. 在本地运行 CrawClaw Desktop 或本地 Gateway API，或通过 SSH 隧道连接支持的 Gateway 客户端
 
-完整 Linux server 指南：[Linux Server](/vps)。分步 VPS 示例：[exe.dev](/install/exe-dev)
+完整 Linux 服务器指南：[Linux Server](/vps)。分步 VPS 示例：[exe.dev](/install/exe-dev)
 
 ## 安装
 
-- [Getting Started](/start/getting-started)
-- [Install & updates](/install/updating)
-- 可选流程：[Bun (experimental)](/install/bun)、[Nix](/install/nix)
+- [入门指南](/start/getting-started)
+- [安装与更新](/install/updating)
+- 可选流程：[Bun（实验版）](/install/bun)、[Nix](/install/nix)
 
 ## Gateway
 
-- [Gateway runbook](/gateway)
-- [Configuration](/gateway/configuration)
+- [Gateway 运行手册](/gateway)
+- [配置](/gateway/configuration)
 
-## Gateway runtime
+## Gateway 运行时
 
-使用 CrawClaw Desktop 或本地 Gateway API 作为支持的 runtime owner。旧的 CLI-managed Linux supervisor flow 已从默认 desktop product path 中退役。
+使用 CrawClaw Desktop 或本地 Gateway API 作为支持的运行时所有者。
+旧的 CLI 管理的 Linux 监管流程已从默认桌面产品路径中移除。

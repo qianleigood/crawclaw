@@ -1,14 +1,14 @@
 ---
 read_when:
-  - 诊断认证配置文件轮换、冷却时间或模型回退行为
-  - 更新认证配置文件或模型的故障转移规则
-summary: CrawClaw 如何轮换认证配置文件并在模型之间进行回退
+  - 诊断凭证配置轮换、冷却或模型回退行为
+  - 更新凭证配置或模型的故障转移规则
+summary: CrawClaw 如何轮换凭证配置并在模型间回退
 title: 模型故障转移
 x-i18n:
-  generated_at: "2026-02-03T07:46:17Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: eab7c0633824d941cf0d6ce4294f0bc8747fbba2ce93650e9643eca327cd04a9
+  generated_at: "2026-06-05T14:13:28Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: ead948e4f2972bc22a2731c1aed264d31b33271a83c2ebf8944711a0b1fc4f43
   source_path: concepts/model-failover.md
   workflow: 15
 ---
@@ -17,73 +17,75 @@ x-i18n:
 
 CrawClaw 分两个阶段处理故障：
 
-1. 在当前提供商内进行**认证配置文件轮换**。
+1. 在当前提供商内**轮换凭证配置**。
 2. **模型回退**到 `agents.defaults.model.fallbacks` 中的下一个模型。
 
-本文档解释运行时规则及其背后的数据。
+本文档解释了运行时规则及其背后的数据。
 
-## 认证存储（密钥 + OAuth）
+## 凭证存储（密钥 + OAuth）
 
-CrawClaw 对 API 密钥和 OAuth 令牌都使用**认证配置文件**。
+CrawClaw 对 API 密钥和 OAuth 令牌都使用**凭证配置**。
 
 - 密钥存储在 `~/.crawclaw/agents/<agentId>/agent/auth-profiles.json`（旧版：`~/.crawclaw/agent/auth-profiles.json`）。
-- 配置 `auth.profiles` / `auth.order` **仅用于元数据和路由**（不含密钥）。
-- 旧版仅导入 OAuth 文件：`~/.crawclaw/credentials/oauth.json`（首次使用时导入到 `auth-profiles.json`）。
+- 配置 `auth.profiles` / `auth.order` 仅为**元数据 + 路由**（不含密钥）。
+- 旧版仅导入的 OAuth 文件：`~/.crawclaw/credentials/oauth.json`（首次使用时导入到 `auth-profiles.json`）。
 
 更多详情：[/concepts/oauth](/concepts/oauth)
 
 凭证类型：
 
 - `type: "api_key"` → `{ provider, key }`
-- `type: "oauth"` → `{ provider, access, refresh, expires, email? }`（某些提供商还有 `projectId`/`enterpriseUrl`）
+- `type: "oauth"` → `{ provider, access, refresh, expires, email? }`（+ 部分提供商的 `projectId`/`enterpriseUrl`）
 
-## 配置文件 ID
+## 配置 ID
 
-OAuth 登录创建不同的配置文件，以便多个账户可以共存。
+OAuth 登录会创建独立的配置，以便多个账户共存。
 
-- 默认：当没有电子邮件可用时为 `provider:default`。
-- 带电子邮件的 OAuth：`provider:<email>`（例如 `google-antigravity:user@gmail.com`）。
+- 默认值：无邮箱时为 `provider:default`。
+- OAuth 带邮箱：`provider:<email>`（例如 `google-antigravity:user@gmail.com`）。
 
-配置文件存储在 `~/.crawclaw/agents/<agentId>/agent/auth-profiles.json` 的 `profiles` 下。
+配置存储在 `auth-profiles.json` 的 `profiles` 下。
 
 ## 轮换顺序
 
-当一个提供商有多个配置文件时，CrawClaw 按以下顺序选择：
+当提供商有多个配置时，CrawClaw 按以下顺序选择：
 
-1. **显式配置**：`auth.order[provider]`（如果设置）。
-2. **已配置的配置文件**：按提供商过滤的 `auth.profiles`。
-3. **已存储的配置文件**：`auth-profiles.json` 中该提供商的条目。
+1. **显式配置**：`auth.order[provider]`（如果已设置）。
+2. **已配置的配置**：按提供商过滤的 `auth.profiles`。
+3. **已存储的配置**：该提供商在 `auth-profiles.json` 中的条目。
 
 如果没有配置显式顺序，CrawClaw 使用轮询顺序：
 
-- **主键：** 配置文件类型（**OAuth 优先于 API 密钥**）。
-- **次键：** `usageStats.lastUsed`（每种类型中最旧的优先）。
-- **冷却/禁用的配置文件**会移到末尾，按最早过期时间排序。
+- **主键**：配置类型（**OAuth 优先于 API 密钥**）。
+- **次键**：`usageStats.lastUsed`（每种类型内按最早使用排序）。
+- **冷却/禁用的配置**移至末尾，按最早过期排序。
 
 ### 会话粘性（缓存友好）
 
-CrawClaw **为每个会话固定所选的认证配置文件**以保持提供商缓存热度。它**不会**在每个请求时轮换。固定的配置文件会被重用直到：
+CrawClaw **为每个会话固定所选凭证配置**以保持提供商缓存热状态。
+它**不会**在每个请求时轮换。固定配置会重复使用直到：
 
-- 会话被重置（`/new`）
+- 会话重置（`/new`）
 - 压缩完成（压缩计数递增）
-- 配置文件处于冷却/禁用状态
+- 配置处于冷却/禁用状态
 
-通过 `/model …@<profileId>` 手动选择会为该会话设置**用户覆盖**，在新会话开始之前不会自动轮换。
+通过 `/model …@<profileId>` 手动选择会为该会话设置**用户覆盖**，在新会话开始前不会自动轮换。
 
-自动固定的配置文件（由会话路由器选择）被视为**偏好**：它们会优先尝试，但 CrawClaw 可能在速率限制/超时时轮换到另一个配置文件。用户固定的配置文件会锁定到该配置文件；如果失败且配置了模型回退，CrawClaw 会移动到下一个模型而不是切换配置文件。
+自动固定的配置（由会话路由器选择）被视为**偏好**：它们优先尝试，但 CrawClaw 可能会在速率限制/超时时轮换到其他配置。用户固定的配置会锁定到该配置；如果失败且配置了模型回退，CrawClaw 会转到下一个模型而不是切换配置。
 
 ### 为什么 OAuth 可能"看起来丢失"
 
-如果你为同一个提供商同时拥有 OAuth 配置文件和 API 密钥配置文件，除非固定，否则轮询可能在消息之间切换它们。要强制使用单个配置文件：
+如果你有同一提供商的 OAuth 配置和 API 密钥配置，除非已固定，否则轮询可能会在消息间切换。要强制使用单一配置：
 
-- 使用 `auth.order[provider] = ["provider:profileId"]` 固定，或
-- 通过 `/model …` 使用每会话覆盖并指定配置文件覆盖（当你的 UI/聊天界面支持时）。
+- 通过 `auth.order[provider] = ["provider:profileId"]` 固定，或
+- 通过 `/model …` 使用配置覆盖（当你的 UI/聊天界面支持时）。
 
-## 冷却时间
+## 冷却
 
-当配置文件因认证/速率限制错误（或看起来像速率限制的超时）而失败时，CrawClaw 将其标记为冷却状态并移动到下一个配置文件。格式/无效请求错误（例如 Cloud Code Assist 工具调用 ID 验证失败）被视为值得故障转移的情况，使用相同的冷却时间。
+当配置因认证/速率限制错误（或看起来像速率限制的超时）失败时，CrawClaw 会将其标记为冷却并转到下一个配置。格式/无效请求错误（例如 Cloud Code Assist 工具调用 ID 验证失败）被视为值得故障转移，使用相同的冷却机制。
+OpenAI 兼容的停止原因错误，如 `Unhandled stop reason: error`、`stop reason: error` 和 `reason: error`，被归类为超时/故障转移信号。
 
-冷却时间使用指数退避：
+冷却使用指数退避：
 
 - 1 分钟
 - 5 分钟
@@ -104,11 +106,11 @@ CrawClaw **为每个会话固定所选的认证配置文件**以保持提供商�
 }
 ```
 
-## 账单禁用
+## 计费禁用
 
-账单/额度失败（例如"insufficient credits"/"credit balance too low"）被视为值得故障转移的情况，但它们通常不是暂时性的。CrawClaw 不使用短冷却时间，而是将配置文件标记为**禁用**（使用更长的退避时间）并轮换到下一个配置文件/提供商。
+计费/信用失败（例如"积分不足"/"信用余额过低"）被视为值得故障转移，但它们通常不是瞬态的。CrawClaw 不是使用短期冷却，而是将配置标记为**禁用**（使用更长的退避时间）并轮换到下一个配置/提供商。
 
-状态存储在 `auth-profiles.json` 中：
+状态存储在 `auth-profiles.json`：
 
 ```json
 {
@@ -123,23 +125,29 @@ CrawClaw **为每个会话固定所选的认证配置文件**以保持提供商�
 
 默认值：
 
-- 账单退避从 **5 小时**开始，每次账单失败翻倍，上限为 **24 小时**。
-- 如果配置文件 **24 小时**内没有失败，退避计数器会重置（可配置）。
+- 计费退避从 **5 小时**开始，每次计费失败翻倍，上限为 **24 小时**。
+- 如果配置 24 小时未失败，退避计数器会重置（可配置）。
+- 过载重试允许 **1 次同提供商配置轮换**后再进行模型回退。
+- 过载重试默认使用 **0 毫秒退避**。
 
 ## 模型回退
 
-如果某个提供商的所有配置文件都失败，CrawClaw 会移动到 `agents.defaults.model.fallbacks` 中的下一个模型。这适用于认证失败、速率限制和耗尽配置文件轮换的超时（其他错误不会推进回退）。
+如果提供商的所有配置都失败，CrawClaw 会转到 `agents.defaults.model.fallbacks` 中的下一个模型。这适用于认证失败、速率限制和耗尽配置轮换的超时（其他错误不会推进回退）。
 
-当运行以模型覆盖（钩子或 CLI）开始时，在尝试任何配置的回退之后，回退仍会在 `agents.defaults.model.primary` 处结束。
+过载和速率限制错误的处理比计费冷却更积极。默认情况下，CrawClaw 允许一次同提供商凭证配置重试，然后切换到下一个配置的模型回退而不等待。可通过 `auth.cooldowns.overloadedProfileRotations`、`auth.cooldowns.overloadedBackoffMs` 和 `auth.cooldowns.rateLimitedProfileRotations` 调整。
+
+当运行以模型覆盖开始时（hooks 或 CLI），回退在尝试任何配置的回退后仍以 `agents.defaults.model.primary` 结束。
 
 ## 相关配置
 
-参阅 [Gateway 网关配置](/gateway/configuration) 了解：
+参见 [Gateway 配置](/gateway/configuration)：
 
 - `auth.profiles` / `auth.order`
 - `auth.cooldowns.billingBackoffHours` / `auth.cooldowns.billingBackoffHoursByProvider`
 - `auth.cooldowns.billingMaxHours` / `auth.cooldowns.failureWindowHours`
+- `auth.cooldowns.overloadedProfileRotations` / `auth.cooldowns.overloadedBackoffMs`
+- `auth.cooldowns.rateLimitedProfileRotations`
 - `agents.defaults.model.primary` / `agents.defaults.model.fallbacks`
 - `agents.defaults.imageModel` 路由
 
-参阅[模型](/concepts/models)了解更广泛的模型选择和回退概述。
+参见 [模型](/concepts/models) 获取更广泛的模型选择和回退概述。

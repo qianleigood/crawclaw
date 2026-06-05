@@ -1,22 +1,22 @@
 ---
 read_when:
   - 学习如何配置 CrawClaw
-  - 寻找配置示例
+  - 查找配置示例
   - 首次设置 CrawClaw
-summary: 符合模式的常见 CrawClaw 设置配置示例
+summary: 常见 CrawClaw 配置的架构精准配置示例
 title: 配置示例
 x-i18n:
-  generated_at: "2026-02-03T07:48:39Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: 00e9286722653f2748137d5bc641d528b160de16a58015ca7674a3a302f4b2c3
+  generated_at: "2026-06-05T14:16:17Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: ffa2289dbcd48a5e7249104aee342e58fe7320a72c4122671ec03d68255a5cdd
   source_path: gateway/configuration-examples.md
   workflow: 15
 ---
 
 # 配置示例
 
-以下示例与当前配置模式一致。有关详尽的参考和每个字段的说明，请参阅[配置](/gateway/configuration)。
+以下示例与当前配置架构对齐。详细的参考和每个字段的说明，请参阅[配置](/gateway/configuration)。
 
 ## 快速开始
 
@@ -42,7 +42,7 @@ x-i18n:
   },
   agent: {
     workspace: "~/.crawclaw/workspace",
-    model: { primary: "anthropic/claude-sonnet-4-5" },
+    model: { primary: "anthropic/claude-sonnet-4-6" },
   },
   channels: {
     weixin: {
@@ -55,11 +55,11 @@ x-i18n:
 
 ## 扩展示例（主要选项）
 
-> JSON5 允许你使用注释和尾随逗号。普通 JSON 也可以使用。
+> JSON5 允许你使用注释和尾随逗号。标准 JSON 也可以。
 
 ```json5
 {
-  // 环境 + shell
+  // Environment + shell
   env: {
     OPENROUTER_API_KEY: "sk-or-...",
     vars: {
@@ -71,10 +71,14 @@ x-i18n:
     },
   },
 
-  // 认证配置文件元数据（密钥存储在 auth-profiles.json 中）
+  // Auth profile metadata (secrets live in auth-profiles.json)
   auth: {
     profiles: {
-      "anthropic:me@example.com": { provider: "anthropic", mode: "oauth", email: "me@example.com" },
+      "anthropic:me@example.com": {
+        provider: "anthropic",
+        mode: "oauth",
+        email: "me@example.com",
+      },
       "anthropic:work": { provider: "anthropic", mode: "api_key" },
       "openai:default": { provider: "openai", mode: "api_key" },
       "openai-codex:default": { provider: "openai-codex", mode: "oauth" },
@@ -86,14 +90,14 @@ x-i18n:
     },
   },
 
-  // 身份
+  // Identity
   identity: {
     name: "Samantha",
     theme: "helpful sloth",
     emoji: "🦥",
   },
 
-  // 日志
+  // Logging
   logging: {
     level: "info",
     file: "/tmp/crawclaw/crawclaw.log",
@@ -102,14 +106,14 @@ x-i18n:
     redactSensitive: "tools",
   },
 
-  // 消息格式
+  // Message formatting
   messages: {
     responsePrefix: ">",
     ackReaction: "👀",
     ackReactionScope: "group-mentions",
   },
 
-  // 路由 + 队列
+  // Routing + queue
   routing: {
     groupChat: {
       mentionPatterns: ["@crawclaw", "crawclaw"],
@@ -125,13 +129,13 @@ x-i18n:
         feishu: "collect",
         qqbot: "collect",
         ddingtalk: "collect",
-        feishu: "collect",
+        native channel: "collect",
         weixin: "collect",
       },
     },
   },
 
-  // 工具
+  // Tooling
   tools: {
     media: {
       audio: {
@@ -139,7 +143,7 @@ x-i18n:
         maxBytes: 20971520,
         models: [
           { provider: "openai", model: "gpt-4o-mini-transcribe" },
-          // 可选的 CLI 回退（Whisper 二进制）：
+          // Optional CLI fallback (Whisper binary):
           // { type: "cli", command: "whisper", args: ["--model", "base", "{{MediaPath}}"] }
         ],
         timeoutSeconds: 120,
@@ -152,9 +156,10 @@ x-i18n:
     },
   },
 
-  // 会话行为
+  // Session behavior
   session: {
     scope: "per-sender",
+    dmScope: "per-channel-peer", // recommended for multi-user inboxes
     reset: {
       mode: "daily",
       atHour: 4,
@@ -165,6 +170,15 @@ x-i18n:
     },
     resetTriggers: ["/new"],
     store: "~/.crawclaw/agents/default/sessions/sessions.json",
+    maintenance: {
+      mode: "warn",
+      pruneAfter: "30d",
+      maxEntries: 500,
+      rotateBytes: "10mb",
+      resetArchiveRetention: "30d", // duration or false
+      maxDiskBytes: "500mb", // optional
+      highWaterBytes: "400mb", // optional (defaults to 80% of maxDiskBytes)
+    },
     typingIntervalSeconds: 5,
     sendPolicy: {
       default: "allow",
@@ -172,7 +186,7 @@ x-i18n:
     },
   },
 
-  // 渠道
+  // Channels
   channels: {
     weixin: {
       dmPolicy: "pairing",
@@ -194,7 +208,7 @@ x-i18n:
     qqbot: {
       enabled: true,
       token: "YOUR_DISCORD_BOT_TOKEN",
-      dm: { enabled: true, allowFrom: ["steipete"] },
+      dm: { enabled: true, allowFrom: ["123456789012345678"] },
       guilds: {
         "123456789012345678": {
           slug: "friends-of-crawclaw",
@@ -224,21 +238,21 @@ x-i18n:
     },
   },
 
-  // 智能体运行时
+  // Agent runtime
   agents: {
     defaults: {
       workspace: "~/.crawclaw/workspace",
       userTimezone: "America/Chicago",
       model: {
-        primary: "anthropic/claude-sonnet-4-5",
-        fallbacks: ["anthropic/claude-opus-4-5", "openai/gpt-5.2"],
+        primary: "anthropic/claude-sonnet-4-6",
+        fallbacks: ["anthropic/claude-opus-4-6", "openai/gpt-5.2"],
       },
       imageModel: {
-        primary: "openrouter/anthropic/claude-sonnet-4-5",
+        primary: "openrouter/anthropic/claude-sonnet-4-6",
       },
       models: {
-        "anthropic/claude-opus-4-5": { alias: "opus" },
-        "anthropic/claude-sonnet-4-5": { alias: "sonnet" },
+        "anthropic/claude-opus-4-6": { alias: "opus" },
+        "anthropic/claude-sonnet-4-6": { alias: "sonnet" },
         "openai/gpt-5.2": { alias: "gpt" },
       },
       thinkingDefault: "low",
@@ -261,23 +275,29 @@ x-i18n:
       mediaMaxMb: 5,
       typingIntervalSeconds: 5,
       maxConcurrent: 3,
-      sandbox: {
         mode: "non-main",
-        perSession: true,
-        workspaceRoot: "~/.crawclaw/sandboxes",
-        docker: {
-          image: "crawclaw-sandbox:bookworm-slim",
-          workdir: "/workspace",
-          readOnlyRoot: true,
-          tmpfs: ["/tmp", "/var/tmp", "/run"],
-          network: "none",
-          user: "1000:1000",
-        },
-        browser: {
-          enabled: false,
+        scope: "session", // preferred over legacy perSession: true
+        backend: "ssh",
+        workspaceAccess: "rw",
+        ssh: {
+          target: "user@gateway-host:22",
         },
       },
     },
+    list: [
+      {
+        id: "main",
+        default: true,
+        thinkingDefault: "high", // per-agent thinking override
+        reasoningDefault: "on", // per-agent reasoning visibility
+        fastModeDefault: false, // per-agent fast mode
+      },
+      {
+        id: "quick",
+        fastModeDefault: true, // this agent always runs fast
+        thinkingDefault: "off",
+      },
+    ],
   },
 
   tools: {
@@ -293,15 +313,15 @@ x-i18n:
       allowFrom: {
         weixin: ["+15555550123"],
         feishu: ["123456789"],
-        qqbot: ["steipete"],
+        qqbot: ["123456789012345678"],
         ddingtalk: ["U123"],
-        feishu: ["+15555550123"],
+        native channel: ["+15555550123"],
         weixin: ["user@example.com"],
       },
     },
   },
 
-  // 自定义模型提供商
+  // Custom model providers
   models: {
     mode: "merge",
     providers: {
@@ -327,11 +347,16 @@ x-i18n:
     },
   },
 
-  // Cron 作业
+  // Cron jobs
   cron: {
     enabled: true,
     store: "~/.crawclaw/cron/cron.json",
     maxConcurrentRuns: 2,
+    sessionRetention: "24h",
+    runLog: {
+      maxBytes: "2mb",
+      keepLines: 2000,
+    },
   },
 
   // Webhooks
@@ -340,7 +365,7 @@ x-i18n:
     path: "/hooks",
     token: "shared-secret",
     presets: ["gmail"],
-    transformsDir: "~/.crawclaw/hooks",
+    transformsDir: "~/.crawclaw/hooks/transforms",
     mappings: [
       {
         id: "gmail-hook",
@@ -356,7 +381,10 @@ x-i18n:
         to: "+15555550123",
         thinking: "low",
         timeoutSeconds: 300,
-        transform: { module: "./transforms/gmail.js", export: "transformGmail" },
+        transform: {
+          module: "gmail.js",
+          export: "transformGmail",
+        },
       },
     ],
     gmail: {
@@ -374,7 +402,7 @@ x-i18n:
     },
   },
 
-  // Gateway 网关 + 网络
+  // Gateway + networking
   gateway: {
     mode: "local",
     port: 18789,
@@ -386,7 +414,6 @@ x-i18n:
     },
     tailscale: { mode: "serve", resetOnExit: false },
     remote: { url: "ws://gateway.tailnet:18789", token: "remote-token" },
-    reload: { mode: "hybrid", debounceMs: 300 },
   },
 
   skills: {
@@ -399,7 +426,7 @@ x-i18n:
       nodeManager: "npm",
     },
     entries: {
-      "nano-banana-pro": {
+      "image-lab": {
         enabled: true,
         apiKey: "GEMINI_KEY_HERE",
         env: { GEMINI_API_KEY: "GEMINI_KEY_HERE" },
@@ -427,13 +454,42 @@ x-i18n:
     qqbot: {
       enabled: true,
       token: "YOUR_TOKEN",
-      dm: { allowFrom: ["yourname"] },
+      dm: { allowFrom: ["123456789012345678"] },
     },
   },
 }
 ```
 
-### OAuth 带 API 密钥回退
+### 安全私信模式（共享收件箱 / 多用户私信）
+
+如果有多个人可以私信你的机器人（`allowFrom` 中有多个条目、多人的配对批准，或 `dmPolicy: "open"`），启用**安全私信模式**，使来自不同发送者的私信默认不共享上下文：
+
+```json5
+{
+  // Secure DM mode (recommended for multi-user or sensitive DM agents)
+  session: { dmScope: "per-channel-peer" },
+
+  channels: {
+    // Example: Weixin multi-user inbox
+    weixin: {
+      dmPolicy: "allowlist",
+      allowFrom: ["+15555550123", "+15555550124"],
+    },
+
+    // Example: QQBot multi-user inbox
+    qqbot: {
+      enabled: true,
+      token: "YOUR_DISCORD_BOT_TOKEN",
+      dm: { enabled: true, allowFrom: ["123456789012345678", "987654321098765432"] },
+    },
+  },
+}
+```
+
+对于 QQBot/DingTalk/飞书/QQBot/飞书/native chat，发送者授权默认按 ID 优先。
+只有当你明确接受该风险时，才在每个渠道启用危险的名称/邮箱/昵称匹配 `dangerouslyAllowNameMatching: true`。
+
+### OAuth 与 API 密钥故障转移
 
 ```json5
 {
@@ -456,14 +512,18 @@ x-i18n:
   agent: {
     workspace: "~/.crawclaw/workspace",
     model: {
-      primary: "anthropic/claude-sonnet-4-5",
-      fallbacks: ["anthropic/claude-opus-4-5"],
+      primary: "anthropic/claude-sonnet-4-6",
+      fallbacks: ["anthropic/claude-opus-4-6"],
     },
   },
 }
 ```
 
-### Anthropic 订阅 + API 密钥，MiniMax 回退
+### Anthropic setup-token + API 密钥，MiniMax 回退
+
+<Warning>
+过去 Anthropic setup-token 在 Claude Code 之外的使用已对某些用户受限。在依赖订阅认证之前，将其视为用户选择风险并验证当前的 Anthropic 服务条款。
+</Warning>
 
 ```json5
 {
@@ -495,8 +555,8 @@ x-i18n:
   agent: {
     workspace: "~/.crawclaw/workspace",
     model: {
-      primary: "anthropic/claude-opus-4-5",
-      fallbacks: ["minimax/MiniMax-M2.1"],
+      primary: "anthropic/claude-opus-4-6",
+      fallbacks: ["minimax/MiniMax-M2.7"],
     },
   },
 }
@@ -533,7 +593,7 @@ x-i18n:
 {
   agent: {
     workspace: "~/.crawclaw/workspace",
-    model: { primary: "lmstudio/minimax-m2.1-gs32" },
+    model: { primary: "lmstudio/my-local-model" },
   },
   models: {
     mode: "merge",
@@ -544,8 +604,8 @@ x-i18n:
         api: "openai-responses",
         models: [
           {
-            id: "minimax-m2.1-gs32",
-            name: "MiniMax M2.1 GS32",
+            id: "my-local-model",
+            name: "Local Model",
             reasoning: false,
             input: ["text"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
@@ -562,6 +622,6 @@ x-i18n:
 ## 提示
 
 - 如果你设置 `dmPolicy: "open"`，匹配的 `allowFrom` 列表必须包含 `"*"`。
-- 提供商 ID 各不相同（电话号码、用户 ID、频道 ID）。使用提供商文档确认格式。
-- 稍后添加的可选部分：`web`、`browser`、`ui`、`discovery`、`talk`、`feishu`、`weixin`。
-- 参阅[提供商](/channels/index)和[故障排除](/gateway/troubleshooting)了解更深入的设置说明。
+- 提供商 ID 有所不同（电话号码、用户 ID、渠道 ID）。使用提供商文档确认格式。
+- 可稍后添加的可选部分：`web`、`browser`、`ui`、`discovery`、`talk`、`native channel`、`weixin`。
+- 参见[提供商](/providers)和[故障排除](/gateway/troubleshooting)以获取更深入的配置说明。

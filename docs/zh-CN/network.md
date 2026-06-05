@@ -1,45 +1,52 @@
 ---
 read_when:
-  - 你需要了解网络架构和安全概述
-  - 你正在调试本地访问、tailnet 访问或配对问题
-  - 你想要获取网络文档的权威列表
-summary: 网络中心：Gateway 网关接口、配对、设备发现和安全
+  - 你需要网络架构和安全概述
+  - 你在调试本地与 tailnet 访问或配对问题
+  - 你想要网络文档的权威列表
+summary: 网络中心：gateway 网关暴露面、配对、设备发现和安全
 title: 网络
 x-i18n:
-  generated_at: "2026-02-03T10:07:45Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: 0fe4e7dbc8ddea312c8f3093af9b6bc71d9ae4007df76ae24b85889871933bc8
+  generated_at: "2026-06-05T14:40:40Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 71f56a41b5831c622ef8204eec92d220fe902114c2568a70d2b810c14501b1b0
   source_path: network.md
   workflow: 15
 ---
 
 # 网络中心
 
-本中心汇集了 CrawClaw 如何在 localhost、局域网和 tailnet 之间连接、配对和保护设备的核心文档。
+本中心链接 CrawClaw 在 local loopback、LAN 和 tailnet 上连接、配对和保护设备的核心文档。
 
 ## 核心模型
 
-- [Gateway 网关架构](/concepts/architecture)
-- [Gateway 网关协议](/gateway/protocol)
-- [Gateway 网关运维手册](/gateway)
-- [远程访问 + 绑定模式](/gateway/remote)
+大多数操作通过 Gateway 网关（CrawClaw Desktop 或本地 Gateway API）进行，这是一个单一的长运行进程，负责渠道连接和 WebSocket 控制平面。
+
+- **local loopback 优先**：Gateway WS 默认为 `ws://127.0.0.1:18789`。非 local loopback 绑定需要令牌。
+- **建议每台主机一个 Gateway 网关**。如需隔离，请使用隔离的配置文件和端口运行多个 gateway（[多 Gateway 网关](/gateway/multiple-gateways)）。
+- **远程访问**通常使用 SSH 隧道或 Tailscale VPN（[远程访问](/gateway/remote)）。
+
+关键参考：
+
+- [Gateway 架构](/concepts/architecture)
+- [Gateway 协议](/gateway/protocol)
+- [Gateway 运行手册](/gateway)
+- [远程访问](/gateway/remote)
 
 ## 配对 + 身份
 
-- [配对概述（私信 + 节点）](/channels/pairing)
-- [Gateway 网关拥有的节点配对](/gateway/pairing)
-- [Gateway 配对](/gateway/pairing)
-- [渠道配对](/channels/pairing)
+- [配对概述](/channels/pairing)
+- [设备配对（配对 + 令牌轮换）](/network)
+- [配对（私信批准）](/channels/pairing)
 
 本地信任：
 
-- 本地连接（loopback 或 Gateway 网关主机自身的 tailnet 地址）可以自动批准配对，以保持同主机用户体验的流畅性。
-- 非本地的 tailnet/局域网客户端仍需要显式的配对批准。
+- 本地连接（local loopback 或 gateway 主机自身的 tailnet 地址）可以自动批准配对，以保持同主机用户体验流畅。
+- 非本地 tailnet/LAN 客户端仍需明确的配对批准。
 
 ## 设备发现 + 传输协议
 
-- [设备发现与传输协议](/gateway/discovery)
+- [设备发现和传输协议](/gateway/discovery)
 - [Bonjour / mDNS](/gateway/bonjour)
 - [远程访问（SSH）](/gateway/remote)
 - [Tailscale](/gateway/tailscale)
@@ -47,6 +54,6 @@ x-i18n:
 ## 安全
 
 - [安全概述](/gateway/security)
-- [Gateway 网关配置参考](/gateway/configuration)
+- [Gateway 配置参考](/gateway/configuration)
 - [故障排除](/gateway/troubleshooting)
 - [Doctor](/gateway/doctor)

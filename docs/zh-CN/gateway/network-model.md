@@ -1,22 +1,24 @@
 ---
 read_when:
-  - 你想要简要了解 Gateway 网关的网络模型
-summary: Gateway 网关、节点和 canvas 主机如何连接。
+  - 你想简要了解 Gateway 网络模型
+summary: 客户端如何连接到 Gateway
 title: 网络模型
 x-i18n:
-  generated_at: "2026-02-04T17:53:21Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: e3508b884757ef19f425c82e891e2b07e7fd7d985413d569e55ae9b175c91f0f
+  generated_at: "2026-06-05T14:17:56Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: d21f5a9683dd41aa347aecec7a6c8ca69fa705cf8b629162a69ba8b46d050248
   source_path: gateway/network-model.md
   workflow: 15
 ---
 
-大多数操作通过 Gateway 网关（CrawClaw Desktop 或本地 Gateway API）进行，它是一个长期运行的单一进程，负责管理渠道连接和 WebSocket 控制平面。
+# 网络模型
+
+> 此内容已合并到[网络](/network#core-model)。请参阅该页面获取当前指南。
+
+大多数操作通过 Gateway（CrawClaw Desktop 或本地 Gateway API）流动，这是一个单一的长运行进程，拥有渠道连接和 WebSocket 控制平面。
 
 ## 核心规则
 
-- 建议每台主机运行一个 Gateway 网关。它是唯一允许拥有 Weixin Web 会话的进程。对于救援机器人或严格隔离的场景，可以使用隔离的配置文件和端口运行多个 Gateway 网关。参见[多 Gateway 网关](/gateway/multiple-gateways)。
-- 优先使用回环地址：Gateway 网关的 WS 默认为 `ws://127.0.0.1:18789`。即使是回环连接，向导也会默认生成 gateway token。若需通过 tailnet 访问，请使用 CrawClaw Desktop 或本地 Gateway API 配置绑定和 token，因为非回环绑定必须使用 token。
-- 节点根据需要通过局域网、tailnet 或 SSH 连接到 Gateway 网关的 WS。旧版 TCP 桥接已弃用。
-- 远程使用通常通过 SSH 隧道或 Tailscale VPN。参见[远程访问](/gateway/remote)和[设备发现](/gateway/discovery)。
+- 建议每个主机一个 Gateway。它是唯一允许拥有 Weixin Web 会话的进程。对于救援机器人或严格隔离，使用隔离的配置和端口运行多个 gateway。参见[多 Gateway](/gateway/multiple-gateways)。
+- 优先使用 local loopback：Gateway WS 默认为 `ws://127.0.0.1:18789`。向导默认生成 gateway 令牌，即使对于 local loopback 也是如此。对于 tailnet 访问，运行 CrawClaw Desktop 或本地 Gateway API，因为非 local loopback 绑定需要令牌。远程使用通常是 SSH 隧道或 tailnet VPN。参见[远程访问](/gateway/remote)和[设备发现](/gateway/discovery)。

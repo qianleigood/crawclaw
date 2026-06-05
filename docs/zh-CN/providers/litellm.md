@@ -1,34 +1,35 @@
 ---
 read_when:
   - 你想通过 LiteLLM 代理路由 CrawClaw
-  - 你需要通过 LiteLLM 进行成本跟踪、日志记录或模型路由
-summary: 通过 LiteLLM Proxy 运行 CrawClaw，以实现统一模型访问和成本跟踪
+  - 你需要通过 LiteLLM 进行成本跟踪、日志或模型路由
+summary: 通过 LiteLLM Proxy 运行 CrawClaw，实现统一模型访问和成本跟踪
+title: LiteLLM
 x-i18n:
-  generated_at: "2026-03-16T06:25:50Z"
-  model: gpt-5.4
-  provider: openai
-  source_hash: 269529671c60864972441606c730b5ca327546a45d3b264dbd03204c4401936f
+  generated_at: "2026-06-05T14:44:13Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 1afbe2099935034f2b9648e2419f864d93a942524733260236c4f4a8d17235f9
   source_path: providers/litellm.md
   workflow: 15
 ---
 
 # LiteLLM
 
-[LiteLLM](https://litellm.ai) 是一个开源 LLM 网关，可为 100+ 模型提供商提供统一 API。通过 LiteLLM 路由 CrawClaw，你可以获得集中式成本跟踪、日志记录，以及在不更改 CrawClaw 配置的情况下切换后端的灵活性。
+[LiteLLM](https://litellm.ai) 是一个开源 LLM 网关，提供统一的 API 接口访问 100+ 模型提供商。通过 LiteLLM 路由 CrawClaw，获得集中式成本跟踪、日志记录，以及无需更改 CrawClaw 配置即可切换后端的灵活性。
 
-## 为什么要将 LiteLLM 与 CrawClaw 搭配使用？
+## 为什么将 LiteLLM 与 CrawClaw 一起使用？
 
-- **成本跟踪** —— 精确查看 CrawClaw 在所有模型上的花费
-- **模型路由** —— 无需更改配置，即可在 Claude、GPT-4、Gemini、Bedrock 之间切换
-- **虚拟密钥** —— 为 CrawClaw 创建带有支出限制的密钥
-- **日志记录** —— 提供完整的请求/响应日志，便于调试
-- **回退** —— 如果你的主要提供商宕机，可自动故障切换
+- **成本跟踪** — 精确查看 CrawClaw 在所有模型上的支出
+- **模型路由** — 无需更改配置即可在 Claude、GPT-4、Gemini、Bedrock 之间切换
+- **虚拟密钥** — 为 CrawClaw 创建有消费限额的密钥
+- **日志记录** — 完整的请求/响应日志用于调试
+- **回退机制** — 主提供商宕机时自动故障转移
 
 ## 快速开始
 
-### 通过新手引导
+### 通过入门引导
 
-使用 CrawClaw Desktop 进行交互式设置；自动化场景调用本地 Gateway API。
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
 
 ### 手动设置
 
@@ -47,7 +48,7 @@ export LITELLM_API_KEY="your-litellm-key"
 crawclaw
 ```
 
-就是这样。CrawClaw 现在会通过 LiteLLM 进行路由。
+就这样。CrawClaw 现在通过 LiteLLM 路由。
 
 ## 配置
 
@@ -98,7 +99,7 @@ export LITELLM_API_KEY="sk-litellm-key"
 
 ## 虚拟密钥
 
-为 CrawClaw 创建一个带支出限制的专用密钥：
+创建带有消费限额的 CrawClaw 专用密钥：
 
 ```bash
 curl -X POST "http://localhost:4000/key/generate" \
@@ -115,7 +116,7 @@ curl -X POST "http://localhost:4000/key/generate" \
 
 ## 模型路由
 
-LiteLLM 可以将模型请求路由到不同后端。在你的 LiteLLM `config.yaml` 中进行配置：
+LiteLLM 可以将模型请求路由到不同的后端。在你的 LiteLLM `config.yaml` 中配置：
 
 ```yaml
 model_list:
@@ -130,9 +131,9 @@ model_list:
       api_key: os.environ/OPENAI_API_KEY
 ```
 
-CrawClaw 会继续请求 `claude-opus-4-6` —— 路由由 LiteLLM 处理。
+CrawClaw 继续请求 `claude-opus-4-6` —— LiteLLM 处理路由。
 
-## 查看使用情况
+## 查看使用量
 
 检查 LiteLLM 的仪表板或 API：
 
@@ -141,18 +142,18 @@ CrawClaw 会继续请求 `claude-opus-4-6` —— 路由由 LiteLLM 处理。
 curl "http://localhost:4000/key/info" \
   -H "Authorization: Bearer sk-litellm-key"
 
-# 支出日志
+# 消费日志
 curl "http://localhost:4000/spend/logs" \
   -H "Authorization: Bearer $LITELLM_MASTER_KEY"
 ```
 
-## 说明
+## 注意事项
 
 - LiteLLM 默认运行在 `http://localhost:4000`
-- CrawClaw 通过兼容 OpenAI 的 `/v1/chat/completions` 端点连接
-- 所有 CrawClaw 功能都可通过 LiteLLM 使用 —— 没有限制
+- CrawClaw 通过 OpenAI 兼容的 `/v1/chat/completions` 端点连接
+- 所有 CrawClaw 功能都通过 LiteLLM 工作 —— 无限制
 
-## 另请参见
+## 另请参阅
 
 - [LiteLLM 文档](https://docs.litellm.ai)
 - [模型提供商](/concepts/model-providers)

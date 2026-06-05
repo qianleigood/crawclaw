@@ -1,25 +1,25 @@
 ---
 read_when:
-  - 在 localhost 之外暴露 Gateway 网关
-  - 自动化 tailnet 或公共 Gateway 访问
-summary: 为 Gateway 网关集成 Tailscale Serve/Funnel
+  - 在localhost外部公开面向浏览器的Gateway访问
+  - 自动化 tailnet 或公共浏览器客户端访问
+summary: 用于面向浏览器的Gateway访问的集成Tailscale Serve/Funnel
 title: Tailscale
 x-i18n:
-  generated_at: "2026-02-03T07:49:04Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: c900c70a9301f2909a3a29a6fb0e6edfc8c18dba443f2e71b9cfadbc58167911
+  generated_at: "2026-06-05T14:29:45Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: aeb190f72bd347cc5dfcac39e0f65edc1d6980ec72f2a524c03ffff70fefe7ee
   source_path: gateway/tailscale.md
   workflow: 15
 ---
 
-# Tailscale（Gateway 网关）
+# Tailscale（Gateway 浏览器访问）
 
-CrawClaw 可以为 Gateway 网关和 WebSocket 端口自动配置 Tailscale **Serve**（tailnet）或 **Funnel**（公共）。这使 Gateway 网关保持绑定到 loopback，同时 Tailscale 提供 HTTPS、路由和（对于 Serve）身份头。
+CrawClaw 可以自动配置 Tailscale **Serve**（tailnet）或 **Funnel**（公共），用于面向浏览器的 Gateway 访问和 WebSocket 端口。这使 Gateway 保持绑定到 local loopback，而 Tailscale 提供 HTTPS、路由和（对于 Serve）身份 header。
 
 ## 模式
 
-- `serve`：仅限 Tailnet 的 Serve，通过 `tailscale serve`。Gateway 网关保持在 `127.0.0.1` 上。
+- `serve`：通过 `tailscale serve` 仅限 tailnet 的 Serve。Gateway 保持在 `127.0.0.1`。
 - `funnel`：通过 `tailscale funnel` 的公共 HTTPS。CrawClaw 需要共享密码。
 - `off`：默认（无 Tailscale 自动化）。
 
@@ -27,13 +27,12 @@ CrawClaw 可以为 Gateway 网关和 WebSocket 端口自动配置 Tailscale **Se
 
 设置 `gateway.auth.mode` 来控制握手：
 
-- `token`（设置 `CRAWCLAW_GATEWAY_TOKEN` 时的默认值）
-- `password`（通过 `CRAWCLAW_GATEWAY_PASSWORD` 或配置的共享密钥）
+- `token`（当设置了 `CRAWCLAW_GATEWAY_TOKEN` 时的默认值）
+- `password`（通过 `CRAWCLAW_GATEWAY_PASSWORD` 或配置文件的共享密钥）
 
-当 `tailscale.mode = "serve"` 且 `gateway.auth.allowTailscale` 为 `true` 时，
-有效的 Serve 代理请求可以通过 Tailscale 身份头（`tailscale-user-login`）进行认证，无需提供令牌/密码。CrawClaw 通过本地 Tailscale 守护进程（`tailscale whois`）解析 `x-forwarded-for` 地址并将其与头匹配来验证身份，然后才接受它。
-CrawClaw 仅在请求从 loopback 到达并带有 Tailscale 的 `x-forwarded-for`、`x-forwarded-proto` 和 `x-forwarded-host` 头时才将其视为 Serve 请求。
-要要求显式凭证，设置 `gateway.auth.allowTailscale: false` 或强制 `gateway.auth.mode: "password"`。
+当 `tailscale.mode = "serve"` 且 `gateway.auth.allowTailscale` 为 `true` 时，浏览器客户端/WebSocket 认证可以使用 Tailscale 身份 header（`tailscale-user-login`）而无需提供 token/密码。CrawClaw 通过本地 Tailscale 守护进程（`tailscale whois`）解析 `x-forwarded-for` 地址并将其与 header 匹配来验证身份，然后才接受它。CrawClaw 仅在请求通过带有 Tailscale 的 `x-forwarded-for`、`x-forwarded-proto` 和 `x-forwarded-host` header 的 local loopback 到达时，才将其视为 Serve。
+HTTP API 端点（例如 `/v1/*`、`/tools/invoke` 和 `/api/channels/*`）仍需要 token/密码认证。这种无 token 流程假定 gateway 主机是可信的。如果同一主机上可能运行不受信任的本地代码，请禁用 `gateway.auth.allowTailscale` 并改用 token/密码认证。
+要强制使用显式凭证，请设置 `gateway.auth.allowTailscale: false` 或强制使用 `gateway.auth.mode: "password"`。
 
 ## 配置示例
 
@@ -52,7 +51,7 @@ CrawClaw 仅在请求从 loopback 到达并带有 Tailscale 的 `x-forwarded-for
 
 ### 仅限 Tailnet（绑定到 Tailnet IP）
 
-当你希望 Gateway 网关直接监听 Tailnet IP 时使用此方式（无 Serve/Funnel）。
+当你想让 Gateway 直接监听 Tailnet IP 时使用此模式（无 Serve/Funnel）。
 
 ```json5
 {
@@ -65,10 +64,10 @@ CrawClaw 仅在请求从 loopback 到达并带有 Tailscale 的 `x-forwarded-for
 
 从另一个 Tailnet 设备连接：
 
-- Gateway HTTP/API：`http://<tailscale-ip>:18789/`
+- 浏览器客户端：`http://<tailscale-ip>:18789/`
 - WebSocket：`ws://<tailscale-ip>:18789`
 
-注意：在此模式下 loopback（`http://127.0.0.1:18789`）将**不**工作。
+注意：local loopback（`http://127.0.0.1:18789`）在此模式下**不会**工作。
 
 ### 公共互联网（Funnel + 共享密码）
 
@@ -82,40 +81,38 @@ CrawClaw 仅在请求从 loopback 到达并带有 Tailscale 的 `x-forwarded-for
 }
 ```
 
-优先使用 `CRAWCLAW_GATEWAY_PASSWORD` 而不是将密码提交到磁盘。
+优先使用 `CRAWCLAW_GATEWAY_PASSWORD`，而不是将密码提交到磁盘。
 
-## CLI 示例
+## Gateway API 示例
 
-使用 CrawClaw Desktop 或本地 Gateway API 启用 Tailscale Serve/Funnel，并按需配置 token 或 password 认证。
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
 
 ## 注意事项
 
-- Tailscale Serve/Funnel 需要安装并登录 `tailscale` CLI。
-- `tailscale.mode: "funnel"` 除非认证模式为 `password`，否则拒绝启动，以避免公共暴露。
-- 如果你希望 CrawClaw 在关闭时撤销 `tailscale serve` 或 `tailscale funnel` 配置，设置 `gateway.tailscale.resetOnExit`。
+- Tailscale Serve/Funnel 需要安装 `tailscale` CLI 并登录。
+- `tailscale.mode: "funnel"` 除非认证模式为 `password`，否则拒绝启动以避免公开暴露。
+- 如果你希望 CrawClaw 在关闭时撤销 `tailscale serve` 或 `tailscale funnel` 配置，请设置 `gateway.tailscale.resetOnExit`。
 - `gateway.bind: "tailnet"` 是直接 Tailnet 绑定（无 HTTPS，无 Serve/Funnel）。
-- `gateway.bind: "auto"` 优先 loopback；如果你想要仅 Tailnet，使用 `tailnet`。
-- Serve/Funnel 仅暴露 **Gateway 网关 HTTP/API + WS**。节点通过相同的 Gateway 网关 WS 端点连接，因此 Serve 可以用于节点访问。
+- `gateway.bind: "auto"` 优先使用 local loopback；如果你想仅限 Tailnet，请使用 `tailnet`。
+- Serve/Funnel 暴露的是 **Gateway 浏览器客户端 + WS**。
 
-## 浏览器控制（远程 Gateway 网关 + 本地浏览器）
+## 浏览器控制（远程 Gateway + 本地浏览器）
 
-如果你在一台机器上运行 Gateway 网关但想在另一台机器上驱动浏览器，
-在浏览器机器上运行一个**节点主机**并让两者保持在同一个 tailnet 上。
-Gateway 网关会将浏览器操作代理到节点；不需要单独的控制服务器或 Serve URL。
+如果你在一台机器上运行 Gateway，但想在另一台机器上驱动浏览器，请使用远程 CDP 端点并将其保持在同一 tailnet 上。
 
-避免将 Funnel 用于浏览器控制；将节点配对视为操作者访问。
+对于浏览器控制，请避免使用 Funnel；将远程 CDP 视为操作员访问。
 
-## Tailscale 前提条件 + 限制
+## Tailscale 先决条件 + 限制
 
 - Serve 需要为你的 tailnet 启用 HTTPS；如果缺少，CLI 会提示。
-- Serve 注入 Tailscale 身份头；Funnel 不会。
+- Serve 注入 Tailscale 身份 header；Funnel 不会。
 - Funnel 需要 Tailscale v1.38.3+、MagicDNS、启用 HTTPS 和 funnel 节点属性。
 - Funnel 仅支持通过 TLS 的端口 `443`、`8443` 和 `10000`。
-- macOS 上的 Funnel 需要开源 Tailscale 应用变体。
+- 在 macOS 上使用 Funnel 需要开源 Tailscale 应用变体。
 
 ## 了解更多
 
-- Tailscale Serve 概述：https://tailscale.com/kb/1312/serve
-- `tailscale serve` 命令：https://tailscale.com/kb/1242/tailscale-serve
-- Tailscale Funnel 概述：https://tailscale.com/kb/1223/tailscale-funnel
-- `tailscale funnel` 命令：https://tailscale.com/kb/1311/tailscale-funnel
+- Tailscale Serve 概览：[https://tailscale.com/kb/1312/serve](https://tailscale.com/kb/1312/serve)
+- `tailscale serve` 命令：[https://tailscale.com/kb/1242/tailscale-serve](https://tailscale.com/kb/1242/tailscale-serve)
+- Tailscale Funnel 概览：[https://tailscale.com/kb/1223/tailscale-funnel](https://tailscale.com/kb/1223/tailscale-funnel)
+- `tailscale funnel` 命令：[https://tailscale.com/kb/1311/tailscale-funnel](https://tailscale.com/kb/1311/tailscale-funnel)

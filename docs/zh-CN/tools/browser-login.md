@@ -1,61 +1,58 @@
 ---
 read_when:
-  - 你需要为浏览器自动化登录网站
-  - 你想在 X/Twitter 上发布更新
-summary: 用于浏览器自动化 + X/Twitter 发帖的手动登录
+  - 你需要登录网站以进行浏览器自动化
+  - 你想向 X/Twitter 发布更新
+summary: 浏览器自动化的手动登录和 X/Twitter 发布
 title: 浏览器登录
 x-i18n:
-  generated_at: "2026-02-03T07:55:03Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: 8ceea2d5258836e3db10f858ee122b5832a40f83a72ba18de140671091eef5a8
+  generated_at: "2026-06-05T14:49:42Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 99d2a653683ae79e844464059eebd5a49b15b66c104757bb44f78791155a56fd
   source_path: tools/browser-login.md
   workflow: 15
 ---
 
-# 浏览器登录 + X/Twitter 发帖
+# 浏览器登录 + X/Twitter 发布
 
 ## 手动登录（推荐）
 
-当网站需要登录时，请在**主机**浏览器配置文件（crawclaw 浏览器）中**手动登录**。
+当网站需要登录时，**在主机**浏览器配置文件中**手动登录**（CrawClaw Desktop 或本地 Gateway API）。
 
-**不要**将你的凭证提供给模型。自动登录通常会触发反机器人防御并可能锁定账户。
+**不要**把你的凭证给模型。自动化登录经常触发反机器人防御，可能会锁定账户。
 
-返回主浏览器文档：[浏览器](/tools/browser)。
+返回主要浏览器文档：[浏览器](/tools/browser)。
 
-## 使用哪个 Chrome 配置文件？
+## 使用哪个 Chrome 配置？
 
-CrawClaw 控制一个**专用的 Chrome 配置文件**（名为 `crawclaw`，橙色调 UI）。这与你的日常浏览器配置文件是分开的。
+CrawClaw 控制一个**专用 Chrome 配置文件**（名为 `crawclaw`，橙色 UI）。这与你的日常浏览器配置文件分开。
+
+对于智能体浏览器工具调用：
+
+- 默认选择：智能体应使用其隔离的 `crawclaw` 浏览器。
+- 仅在已登录会话很重要且用户在电脑旁点击/批准任何附加提示时使用 `profile="user"`。
+- 如果你有多个用户浏览器配置文件，请明确指定配置文件，而不是猜测。
 
 两种简单的访问方式：
 
 1. **让智能体打开浏览器**，然后你自己登录。
-2. **通过 CLI 打开**：
+2. **直接调用浏览器工具**：
 
-```bash
-crawclaw browser start
-crawclaw browser open https://x.com
+```json
+{ "action": "open", "profile": "crawclaw", "url": "https://x.com" }
 ```
 
-如果你有多个配置文件，传入 `--browser-profile <name>`（默认是 `crawclaw`）。
+如果你有多个配置文件，请明确传递工具的 `profile` 参数（默认是 `crawclaw`）。
 
 ## X/Twitter：推荐流程
 
-- **阅读/搜索/话题：** 使用 **bird** CLI Skills（无浏览器，稳定）。
-  - 仓库：https://github.com/steipete/bird
+- **阅读/搜索/帖子：** 使用**主机**浏览器（手动登录）。
 - **发布更新：** 使用**主机**浏览器（手动登录）。
-
-## 沙箱隔离 + 主机浏览器访问
-
-沙箱隔离的浏览器会话**更容易**触发机器人检测。对于 X/Twitter（和其他严格的网站），优先使用**主机**浏览器。
-
-如果智能体在沙箱中，浏览器工具默认使用沙箱。要允许主机控制：
 
 ```json5
 {
   agents: {
     defaults: {
-      sandbox: {
         mode: "non-main",
         browser: {
           allowHostControl: true,
@@ -66,10 +63,13 @@ crawclaw browser open https://x.com
 }
 ```
 
-然后定位主机浏览器：
+然后以主机浏览器为目标：
 
-```bash
-crawclaw browser open https://x.com --browser-profile crawclaw --target host
+```json
+{
+  "action": "open",
+  "target": "host",
+  "profile": "crawclaw",
+  "url": "https://x.com"
+}
 ```
-
-或者为发布更新的智能体禁用沙箱隔离。

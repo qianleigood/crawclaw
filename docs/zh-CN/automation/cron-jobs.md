@@ -1,339 +1,272 @@
 ---
 read_when:
-  - 调度后台任务或唤醒
-  - 将外部触发器（webhook、Gmail）接入 CrawClaw
-  - 在主会话唤醒和隔离 cron 任务之间做选择
-summary: Gateway 网关调度器的定时任务、webhook 和 Gmail PubSub 触发器
+  - 调度后台任务或唤醒事件
+  - 将外部触发器（Webhook、Gmail）接入 CrawClaw
+  - 在主会话唤醒和独立定时任务之间做出选择
+summary: 定时任务、Webhook 和 Gmail PubSub 触发器，用于 Gateway 调度器
 title: 定时任务
 x-i18n:
-  generated_at: "2026-02-01T19:37:32Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: d43268b0029f1b13d0825ddcc9c06a354987ea17ce02f3b5428a9c68bf936676
+  generated_at: "2026-06-05T14:12:20Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 6d2fa4bf499d1dfebf499954989ea286843aee0bddc07286dbe95289494e5b23
   source_path: automation/cron-jobs.md
-  workflow: 14
+  workflow: 15
 ---
 
-# 定时任务（Gateway网关调度器）
+# 定时任务（Cron）
 
-定时任务是 Gateway 网关内置的调度器。它持久化任务、在合适的时间唤醒智能体，并可选择将输出发送回聊天频道或 webhook 端点。
+Cron 是 Gateway 网关的内置调度器。它会持久化任务、在正确的时间唤醒智能体，并将输出传递回聊天渠道或 Webhook 端点。
 
-## 简要概述
+## 快速开始
 
-- 定时任务运行在 **Gateway网关内部**（而非模型内部）。
-- 任务持久化存储在 `~/.crawclaw/cron/jobs.json`，因此重启不会丢失计划。
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
+
+## Cron 工作原理
+
+- Cron 在 Gateway 网关**进程内部**运行（不在模型内部）。
+- 任务持久化存储在 `~/.crawclaw/cron/jobs.json`，重启不会丢失调度计划。
 - 所有 cron 执行都会创建[后台任务](/automation/tasks)记录。
 - 一次性任务（`--at`）默认在成功后自动删除。
-- 执行方式：
-  - **主会话**：入队一个系统事件，并通过 `--wake now` 唤醒主会话 runner。
-  - **隔离式**：在 `cron:<jobId>` 或自定义会话中运行专用智能体轮次，可投递摘要（默认 announce）或不投递。
-  - **当前会话**：绑定到创建定时任务时的会话 (`sessionTarget: "current"`)。
-  - **自定义会话**：在持久化的命名会话中运行 (`sessionTarget: "session:custom-id"`)。
-- 唤醒是一等功能：主会话任务使用 `now` 触发事件驱动的主会话唤醒。
 
-## 快速开始（可操作）
+## 调度类型
 
-创建一个一次性提醒：
+| 类型    | CLI 标志  | 说明                                        |
+| ------- | --------- | ------------------------------------------- |
+| `at`    | `--at`    | 一次性时间戳（ISO 8601 或相对时间如 `20m`） |
+| `every` | `--every` | 固定间隔                                    |
+| `cron`  | `--cron`  | 5 字段或 6 字段 cron 表达式，可选 `--tz`    |
 
-```bash
-crawclaw cron add \
-  --name "Reminder" \
-  --at "2026-02-01T16:00:00Z" \
-  --session main \
-  --system-event "Reminder: check the cron docs draft" \
-  --wake now \
-  --delete-after-run
+没有时区的时间戳被视为 UTC。添加 `--tz America/New_York` 以按本地挂钟时间调度。
 
-# 检查任务
-crawclaw cron list
+每小时顶部的循环表达式会自动错开最多 5 分钟以减少负载峰值。使用 `--exact` 强制精确计时，或使用 `--stagger 30s` 设置显式窗口。
 
-# 查看运行历史
-crawclaw cron runs --id <job-id>
-```
+## 执行方式
 
-调度一个带投递功能的周期性隔离任务：
+| 方式       | `--session` 值      | 运行位置            | 适用场景             |
+| ---------- | ------------------- | ------------------- | -------------------- |
+| 主会话     | `main`              | 主会话运行器        | 提醒、系统事件       |
+| 独立       | `isolated`          | 专用 `cron:<jobId>` | 报告、后台任务       |
+| 当前会话   | `current`           | 创建时绑定          | 上下文感知的循环工作 |
+| 自定义会话 | `session:custom-id` | 持久化命名会话      | 依赖历史的工作流     |
 
-```bash
-crawclaw cron add \
-  --name "Morning brief" \
-  --cron "0 7 * * *" \
-  --tz "America/Los_Angeles" \
-  --session isolated \
-  --message "Summarize overnight updates." \
-  --announce \
-  --channel ddingtalk \
-  --to "channel:C1234567890"
-```
+**主会话**任务会将系统事件加入队列并唤醒主会话运行器（`--wake now`）。**独立**任务会使用新的会话运行专用智能体回合。**自定义会话**（`session:xxx`）会在各次运行之间保持上下文，使类似每日站会这类依赖之前总结的工作流成为可能。
 
-## 工具调用等价形式（Gateway网关定时任务工具）
+### 独立任务的负载选项
 
-有关规范的 JSON 结构和示例，请参阅[工具调用的 JSON 模式](/automation/cron-jobs#json-schema-for-tool-calls)。
+- `--message`：提示文本（独立任务必需）
+- `--model` / `--thinking`：模型和思考级别覆盖
+- `--light-context`：跳过工作区引导文件注入
+- `--tools exec,read`：限制任务可使用的工具
 
-## 定时任务的存储位置
+## 传递和输出
 
-定时任务默认持久化存储在 Gateway网关主机的 `~/.crawclaw/cron/jobs.json` 中。Gateway网关将文件加载到内存中，并在更改时写回，因此仅在 Gateway网关停止时手动编辑才是安全的。请优先使用 `crawclaw cron add/edit` 或定时任务工具调用 API 进行更改。
+| 模式       | 处理方式                               |
+| ---------- | -------------------------------------- |
+| `announce` | 将摘要传递到目标渠道（独立的默认模式） |
+| `webhook`  | POST 完成的事件负载到 URL              |
+| `none`     | 仅内部使用，不进行传递                 |
 
-## 新手友好概述
+使用 `--announce --channel feishu --to "-1001234567890"` 进行渠道传递。对于飞书论坛话题，使用 `-1001234567890:topic:123`。DingTalk/QQBot/飞书目标应使用显式前缀（`channel:<id>`、`user:<id>`）。
 
-将定时任务理解为：**何时**运行 + **做什么**。
+## Gateway API 示例
 
-1. **选择调度计划**
-   - 一次性提醒 → `schedule.kind = "at"`（CLI：`--at`）
-   - 重复任务 → `schedule.kind = "every"` 或 `schedule.kind = "cron"`
-   - 如果你的 ISO 时间戳省略了时区，将被视为 **UTC**。
+一次性提醒（主会话）：
 
-2. **选择运行位置**
-   - `sessionTarget: "main"` → 入队系统事件，并唤醒主会话 runner。
-   - `sessionTarget: "isolated"` → 在 `cron:<jobId>` 中运行专用智能体轮次。
-   - `sessionTarget: "current"` → 绑定到当前会话（创建时解析为 `session:<sessionKey>`）。
-   - `sessionTarget: "session:custom-id"` → 在持久化的命名会话中运行，跨运行保持上下文。
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
 
-   默认行为（保持不变）：
-   - `systemEvent` 负载默认使用 `main`
-   - `agentTurn` 负载默认使用 `isolated`
+带传递的循环独立任务：
 
-   要使用当前会话绑定，需显式设置 `sessionTarget: "current"`。
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
 
-3. **选择负载**
-   - 主会话 → `payload.kind = "systemEvent"`
-   - 隔离会话 → `payload.kind = "agentTurn"`
+带模型和思考级别覆盖的独立任务：
 
-可选：一次性任务（`schedule.kind = "at"`）默认会在成功运行后删除。设置
-`deleteAfterRun: false` 可保留它（成功后会禁用）。
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
 
-## 概念
+## Webhook
 
-### 任务
+Gateway 网关可以为外部触发器暴露 HTTP Webhook 端点。在配置中启用：
 
-定时任务是一条存储记录，包含：
-
-- 一个**调度计划**（何时运行），
-- 一个**负载**（做什么），
-- 可选的**投递**（输出发送到哪里）。
-- 可选的**智能体绑定**（`agentId`）：在指定智能体下运行任务；如果缺失或未知，Gateway网关会回退到默认智能体。
-
-任务通过稳定的 `jobId` 标识（用于 CLI/Gateway网关 API）。
-在智能体工具调用中，`jobId` 是规范字段；旧版 `id` 仍可兼容使用。
-一次性任务默认会在成功运行后自动删除；设置 `deleteAfterRun: false` 可保留它。
-
-### 调度计划
-
-定时任务支持三种调度类型：
-
-- `at`：一次性时间戳（ISO 8601 字符串）。
-- `every`：固定间隔（毫秒）。
-- `cron`：5 字段 cron 表达式，可选 IANA 时区。
-
-Cron 表达式使用 `croner`。如果省略时区，将使用 Gateway网关主机的本地时区。
-
-### 主会话与隔离式执行
-
-#### 主会话任务（系统事件）
-
-主会话任务入队一个系统事件，并唤醒主会话 runner。它们必须使用 `payload.kind = "systemEvent"`。
-
-- `wakeMode: "now"`（默认）：事件触发事件驱动的主会话唤醒。
-
-当计划任务需要当前主会话上下文时，这是最佳选择。参见[心跳兼容性](/gateway/heartbeat)。
-
-#### 隔离任务（专用定时会话）
-
-隔离任务在会话 `cron:<jobId>` 或自定义会话中运行专用智能体轮次。
-
-关键行为：
-
-- 提示以 `[cron:<jobId> <任务名称>]` 为前缀，便于追踪。
-- 每次运行都会启动一个**全新的会话 ID**（不继承之前的对话），除非使用自定义会话。
-- 自定义会话（`session:xxx`）可跨运行保持上下文，适用于如每日站会等需要基于前次摘要的工作流。
-- 如果未指定 `delivery`，隔离任务会默认以“announce”方式投递摘要。
-- `delivery.mode` 可选 `announce`（投递摘要）或 `none`（内部运行）。
-
-对于嘈杂、频繁或"后台杂务"类任务，使用隔离任务可以避免污染你的主聊天记录。
-
-### 负载结构（运行内容）
-
-支持两种负载类型：
-
-- `systemEvent`：仅限主会话，通过主会话 runner 路由。
-- `agentTurn`：仅限隔离会话，运行专用智能体轮次。
-
-常用 `agentTurn` 字段：
-
-- `message`：必填文本提示。
-- `model` / `thinking`：可选覆盖（见下文）。
-- `timeoutSeconds`：可选超时覆盖。
-
-### 模型和思维覆盖
-
-隔离任务（`agentTurn`）可以覆盖模型和思维级别：
-
-- `model`：提供商/模型字符串（例如 `anthropic/claude-sonnet-4-20250514`）或别名（例如 `opus`）
-- `thinking`：思维级别（`off`、`minimal`、`low`、`medium`、`high`、`xhigh`；仅限 GPT-5.2 + Codex 模型）
-
-注意：你也可以在主会话任务上设置 `model`，但这会更改共享的主会话模型。我们建议仅对隔离任务使用模型覆盖，以避免意外的上下文切换。
-
-优先级解析顺序：
-
-1. 任务负载覆盖（最高优先级）
-2. 钩子特定默认值（例如 `hooks.gmail.model`）
-3. 智能体配置默认值
-
-### 投递（渠道 + 目标）
-
-隔离任务可以通过顶层 `delivery` 配置投递输出：
-
-- `delivery.mode`：`announce`（投递摘要）或 `none`
-- `delivery.channel`：`weixin` / `feishu` / `qqbot` / `ddingtalk` / `feishu`（插件）/ `feishu` / `weixin` / `last`
-- `delivery.to`：渠道特定的接收目标
-- `delivery.bestEffort`：投递失败时避免任务失败
-
-当启用 announce 投递时，该轮次会抑制消息工具发送；请使用 `delivery.channel`/`delivery.to` 来指定目标。
-
-如果省略 `delivery.channel` 或 `delivery.to`，定时任务会回退到主会话的“最后路由”（智能体最后回复的位置）。
-
-目标格式提醒：
-
-- DingTalk/QQBot/Feishu（插件）目标应使用明确前缀（例如 `channel:<id>`、`user:<id>`）以避免歧义。
-- Feishu 主题应使用 `:topic:` 格式（见下文）。
-
-#### Feishu 投递目标（主题/论坛帖子）
-
-Feishu 通过 `message_thread_id` 支持论坛主题。对于定时任务投递，你可以将主题/帖子编码到 `to` 字段中：
-
-- `-1001234567890`（仅聊天 ID）
-- `-1001234567890:topic:123`（推荐：明确的主题标记）
-- `-1001234567890:123`（简写：数字后缀）
-
-带前缀的目标如 `feishu:...` / `feishu:group:...` 也可接受：
-
-- `feishu:group:-1001234567890:topic:123`
-
-## 工具调用的 JSON 模式
-
-直接调用 Gateway网关 `cron.*` 工具（智能体工具调用或 RPC）时使用这些结构。CLI 标志接受人类可读的时间格式如 `20m`，但工具调用应使用 ISO 8601 字符串作为 `schedule.at`，并使用毫秒作为 `schedule.everyMs`。
-
-### cron.add 参数
-
-一次性主会话任务（系统事件）：
-
-```json
+```json5
 {
-  "name": "Reminder",
-  "schedule": { "kind": "at", "at": "2026-02-01T16:00:00Z" },
-  "sessionTarget": "main",
-  "wakeMode": "now",
-  "payload": { "kind": "systemEvent", "text": "Reminder text" },
-  "deleteAfterRun": true
-}
-```
-
-带投递的周期性隔离任务：
-
-```json
-{
-  "name": "Morning brief",
-  "schedule": { "kind": "cron", "expr": "0 7 * * *", "tz": "America/Los_Angeles" },
-  "sessionTarget": "isolated",
-  "wakeMode": "now",
-  "payload": {
-    "kind": "agentTurn",
-    "message": "Summarize overnight updates."
+  hooks: {
+    enabled: true,
+    token: "shared-secret",
+    path: "/hooks",
   },
-  "delivery": {
-    "mode": "announce",
-    "channel": "ddingtalk",
-    "to": "channel:C1234567890",
-    "bestEffort": true
-  }
 }
 ```
 
-说明：
+### 认证
 
-- `schedule.kind`：`at`（`at`）、`every`（`everyMs`）或 `cron`（`expr`，可选 `tz`）。
-- `schedule.at` 接受 ISO 8601（可省略时区；省略时按 UTC 处理）。
-- `everyMs` 为毫秒数。
-- `sessionTarget` 必须为 `"main"` 或 `"isolated"`，且必须与 `payload.kind` 匹配。
-- 可选字段：`agentId`、`description`、`enabled`、`deleteAfterRun`、`delivery`。
-- `wakeMode` 省略时默认为 `"now"`；`now` 是唯一支持的值。
+每个请求必须通过 Header 包含 Hook 令牌：
 
-### cron.update 参数
+- `Authorization: Bearer <token>`（推荐）
+- `x-crawclaw-token: <token>`
 
-```json
+查询字符串令牌将被拒绝。
+
+### POST /hooks/wake
+
+将系统事件加入主会话队列：
+
+```bash
+curl -X POST http://127.0.0.1:18789/hooks/wake \
+  -H 'Authorization: Bearer SECRET' \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"New email received","mode":"now"}'
+```
+
+- `text`（必需）：事件描述
+- `mode`（可选）：`now`（默认）。这将请求事件驱动的
+  主会话唤醒。
+
+### POST /hooks/agent
+
+运行独立的智能体回合：
+
+```bash
+curl -X POST http://127.0.0.1:18789/hooks/agent \
+  -H 'Authorization: Bearer SECRET' \
+  -H 'Content-Type: application/json' \
+  -d '{"message":"Summarize inbox","name":"Email","model":"openai/gpt-5.2-mini"}'
+```
+
+字段：`message`（必需）、`name`、`agentId`、`wakeMode`、`deliver`、`channel`、`to`、`model`、`thinking`、`timeoutSeconds`。
+
+### 映射 Hook（POST /hooks/\<name\>）
+
+自定义 Hook 名称通过配置中的 `hooks.mappings` 解析。映射可以将任意负载转换为带有模板或代码转换的 `wake` 或 `agent` 操作。
+
+### 安全
+
+- 将 Hook 端点置于 local loopback、tailnet 或可信的反向代理之后。
+- 使用专用的 Hook 令牌；不要重复使用 Gateway 认证令牌。
+- 设置 `hooks.allowedAgentIds` 以限制显式的 `agentId` 路由。
+- 除非需要调用者选择的会话，否则保持 `hooks.allowRequestSessionKey=false`。
+- Hook 负载默认会包裹安全边界。
+
+## Gmail PubSub 集成
+
+通过 Google PubSub 将 Gmail 收件箱触发器接入 CrawClaw。
+
+**前置条件**：`gcloud` CLI、`gog`（gogcli）、CrawClaw hooks 已启用、Tailscale 用于公共 HTTPS 端点。
+
+### 向导设置（推荐）
+
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
+
+这将写入 `hooks.gmail` 配置，启用 Gmail 预设，并使用 Tailscale Funnel 作为推送端点。
+
+### 服务推送回调
+
+CrawClaw 通过正常的 `/hooks/gmail` 映射路径接收 Gmail PubSub 回调。从你自己的服务管理器运行和更新 `gog gmail watch serve`，然后将其推送 URL 指向配置的 CrawClaw Hook URL。
+
+### 手动一次性设置
+
+1. 选择拥有 `gog` 所用 OAuth 客户端的 GCP 项目：
+
+```bash
+gcloud auth login
+gcloud config set project <project-id>
+gcloud services enable gmail.googleapis.com pubsub.googleapis.com
+```
+
+2. 创建主题并授予 Gmail 推送权限：
+
+```bash
+gcloud pubsub topics create gog-gmail-watch
+gcloud pubsub topics add-iam-policy-binding gog-gmail-watch \
+  --member=serviceAccount:gmail-api-push@system.gserviceaccount.com \
+  --role=roles/pubsub.publisher
+```
+
+3. 启动监视：
+
+```bash
+gog gmail watch start \
+  --account crawclaw@gmail.com \
+  --label INBOX \
+  --topic projects/<project-id>/topics/gog-gmail-watch
+```
+
+### Gmail 模型覆盖
+
+```json5
 {
-  "jobId": "job-123",
-  "patch": {
-    "enabled": false,
-    "schedule": { "kind": "every", "everyMs": 3600000 }
-  }
+  hooks: {
+    gmail: {
+      model: "openrouter/meta-llama/llama-3.3-70b-instruct:free",
+      thinking: "off",
+    },
+  },
 }
 ```
 
-说明：
+## 管理任务
 
-- `jobId` 是规范字段；`id` 可兼容使用。
-- 在补丁中使用 `agentId: null` 可清除智能体绑定。
-
-### cron.run 和 cron.remove 参数
-
-```json
-{ "jobId": "job-123", "mode": "force" }
-```
-
-```json
-{ "jobId": "job-123" }
-```
-
-## 存储与历史
-
-- 任务存储：`~/.crawclaw/cron/jobs.json`（Gateway网关管理的 JSON）。
-- 运行历史：`~/.crawclaw/cron/runs/<jobId>.jsonl`（JSONL，自动清理）。
-- 覆盖存储路径：配置中的 `cron.store`。
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
 
 ## 配置
 
 ```json5
 {
   cron: {
-    enabled: true, // 默认 true
+    enabled: true,
     store: "~/.crawclaw/cron/jobs.json",
-    maxConcurrentRuns: 1, // 默认 1
+    maxConcurrentRuns: 1,
+    retry: {
+      maxAttempts: 3,
+      backoffMs: [60000, 120000, 300000],
+      retryOn: ["rate_limit", "overloaded", "network", "server_error"],
+    },
+    webhookToken: "replace-with-dedicated-webhook-token",
+    sessionRetention: "24h",
+    runLog: { maxBytes: "2mb", keepLines: 2000 },
   },
 }
 ```
 
-完全禁用定时任务：
+禁用 cron：`cron.enabled: false` 或 `CRAWCLAW_SKIP_CRON=1`。
 
-- `cron.enabled: false`（配置）
-- `CRAWCLAW_SKIP_CRON=1`（环境变量）
+**一次性重试**：临时错误（速率限制、过载、网络、服务器错误）最多重试 3 次，指数退避。永久错误立即禁用。
 
-## 操作方式
+**循环重试**：重试之间指数退避（30 秒到 60 分钟）。下次成功运行后重置退避时间。
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 自动化管理 cron job。
+### 维护
 
-常见操作包括：
-
-- 创建一次性提醒（`schedule.kind = "at"`），成功后可自动删除。
-- 创建周期性隔离任务（cron 表达式 + timezone）。
-- 配置投递目标（channel/to）或保持无外部投递。
-- 绑定目标 agent、模型和 thinking 覆盖。
-- 手动强制运行、查看运行历史、更新或删除任务。
-
-## Gateway网关 API 接口
-
-- `cron.list`、`cron.status`、`cron.add`、`cron.update`、`cron.remove`
-- `cron.run`（强制或到期）、`cron.runs`
-  如需不创建任务直接发送系统事件，请使用 Gateway API 的系统事件接口。
+`cron.sessionRetention`（默认 `24h`）会清理独立的运行会话条目。
+`cron.runLog.maxBytes` / `cron.runLog.keepLines` 会自动清理运行日志文件。
 
 ## 故障排除
 
-### "没有任何任务运行"
+### 命令阶梯
 
-- 检查定时任务是否已启用：`cron.enabled` 和 `CRAWCLAW_SKIP_CRON`。
-- 检查 Gateway网关是否持续运行（定时任务运行在 Gateway网关进程内部）。
-- 对于 `cron` 调度：确认时区（`--tz`）与主机时区的关系。
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
 
-### Feishu 投递到了错误的位置
+### Cron 未触发
 
-- 对于论坛主题，使用 `-100…:topic:<id>` 以确保明确无歧义。
-- 如果你在日志或存储的"最后路由"目标中看到 `feishu:...` 前缀，这是正常的；定时任务投递接受这些前缀并仍能正确解析主题 ID。
+- 检查 `cron.enabled` 和 `CRAWCLAW_SKIP_CRON` 环境变量。
+- 确认 Gateway 网关正在持续运行。
+- 对于 `cron` 调度，验证时区（`--tz`）与主机时区。
+- 运行输出中的 `reason: not-due` 表示手动运行未使用 `--force`。
+
+### Cron 触发但无传递
+
+- 传递模式为 `none` 意味着不期望有外部消息。
+- 传递目标缺失/无效（`channel`/`to`）意味着跳过了出站。
+- 渠道认证错误（`unauthorized`、`Forbidden`）意味着传递被凭证阻止。
+
+### 时区注意事项
+
+- 没有 `--tz` 的 Cron 使用 Gateway 网关主机时区。
+- 没有时区的 `at` 调度被视为 UTC。
+- `activeHours` 不再是有效的 Heartbeat 配置键。Cron 调度使用
+  任务时区或 Gateway 网关主机时区。
+
+## 相关
+
+- [自动化与任务](/automation) — 所有自动化机制一览
+- [后台任务](/automation/tasks) — Cron 执行的任务账本
+- [Heartbeat](/gateway/heartbeat) — Heartbeat 迁移说明
+- [时区](/concepts/timezone) — 时区配置

@@ -1,31 +1,30 @@
 ---
 read_when:
   - 你想在 CrawClaw 中使用 OpenAI 模型
-  - 你想了解 OpenAI API key 设置
-summary: 在 CrawClaw 中通过 API key 使用 OpenAI
+  - 你需要 OpenAI API 密钥设置指导
+summary: 通过 API 密钥在 CrawClaw 中使用 OpenAI
 title: OpenAI
 x-i18n:
-  generated_at: "2026-03-16T06:26:45Z"
-  model: gpt-5.4
-  provider: openai
-  source_hash: a348d8fca7b809f84c6b90bf6a799e0a070a6e7b98a78b2cd2d747bb3d2b2212
+  generated_at: "2026-06-05T14:45:00Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: cbc9821c6a254dce1e4954b5788e4d0dd52d9b72af936567fce3337ecd61e742
   source_path: providers/openai.md
   workflow: 15
 ---
 
 # OpenAI
 
-OpenAI 为 GPT 模型提供开发者 API。CrawClaw 的内置 OpenAI 设置使用 API
-key；旧的内置 Codex OAuth 登录辅助流程已经从产品 runtime 边界移除。
+OpenAI 为 GPT 模型提供开发者 API。CrawClaw 捆绑的 OpenAI 设置使用 API 密钥；旧的捆绑式 Codex OAuth 登录辅助程序已从产品运行时边界中移除。
 
 ## 选项 A：OpenAI API 密钥（OpenAI Platform）
 
-**最适合：** 直接 API 访问和按使用量计费。
-从 OpenAI 控制台获取你的 API 密钥。
+**最适合：** 直接 API 访问和按用量计费。
+从 OpenAI 仪表板获取你的 API 密钥。
 
 ### Desktop 设置
 
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
 
 ### 配置片段
 
@@ -36,18 +35,13 @@ key；旧的内置 Codex OAuth 登录辅助流程已经从产品 runtime 边界�
 }
 ```
 
-OpenAI 当前的 API 模型文档将 `gpt-5.4` 和 `gpt-5.4-pro` 列为直接
-OpenAI API 用法的模型。CrawClaw 会通过 `openai/*` Responses 路径转发这两者。
-CrawClaw 会有意隐藏过时的 `openai/gpt-5.3-codex-spark` 条目，
-因为直接 OpenAI API 调用会在实际流量中拒绝它。
+OpenAI 当前的 API 模型文档列出了 `gpt-5.4` 和 `gpt-5.4-pro` 用于直接 OpenAI API 使用。CrawClaw 通过 `openai/*` Responses 路径转发两者。CrawClaw 有意抑制了过时的 `openai/gpt-5.3-codex-spark` 条目，因为直接 OpenAI API 调用在实时流量中会拒绝它。
 
-CrawClaw **不会**在直接 OpenAI API 路径上暴露
-`openai/gpt-5.3-codex-spark`，因为当前实际 OpenAI API 请求会拒绝它。在
-CrawClaw 中，Spark 被视为仅限 Codex。
+CrawClaw **不**在直接 OpenAI API 路径上暴露 `openai/gpt-5.3-codex-spark`，因为实时 OpenAI API 请求会拒绝它。Spark 在 CrawClaw 中被视为仅限 Codex。
 
-## 选项 B：OpenAI Code（Codex）订阅
+## OpenAI Code（Codex）
 
-`openai-codex/*` 模型族仍保留在模型目录中，供已有兼容 token profile 或外部工具的用户使用，但 CrawClaw 不再启动内置 JavaScript Codex OAuth 流程。
+`openai-codex/*` 模型系列保留在模型目录中，供已有兼容 token 配置或外部工具的用户使用，但 CrawClaw 不再启动捆绑的 JavaScript Codex OAuth 流程。
 
 ### 配置片段（Codex 订阅）
 
@@ -57,25 +51,19 @@ CrawClaw 中，Spark 被视为仅限 Codex。
 }
 ```
 
-OpenAI 当前的 Codex 文档将 `gpt-5.4` 列为当前 Codex 模型。当兼容的 Codex
-auth 已经可用时，CrawClaw 会将其映射为 `openai-codex/gpt-5.4`。
+OpenAI 当前的 Codex 文档将 `gpt-5.4` 列为当前 Codex 模型。当兼容的 Codex 认证已可用时，CrawClaw 将其映射到 `openai-codex/gpt-5.4`。
 
-如果你的 Codex 账户有权使用 Codex Spark，CrawClaw 也支持：
+如果你的 Codex 账户有资格使用 Codex Spark，CrawClaw 也支持：
 
 - `openai-codex/gpt-5.3-codex-spark`
 
-CrawClaw 将 Codex Spark 视为仅限 Codex。它不会暴露直接的
-`openai/gpt-5.3-codex-spark` API 密钥路径。
+CrawClaw 将 Codex Spark 视为仅限 Codex。它不暴露直接的 `openai/gpt-5.3-codex-spark` API 密钥路径。
 
-CrawClaw 在兼容 Codex auth 和目录元数据暴露
-`openai-codex/gpt-5.3-codex-spark` 时会保留它。请将其视为依赖 entitlement
-且处于实验阶段：Codex Spark 与 GPT-5.4 `/fast` 分开，是否可用取决于已登录的 Codex /
-ChatGPT 账户。
+当兼容的 Codex 认证和目录元数据暴露它时，CrawClaw 也会保留 `openai-codex/gpt-5.3-codex-spark`。将其视为取决于授权的且实验性的：Codex Spark 独立于 GPT-5.4 `/fast`，可用性取决于登录的 Codex / ChatGPT 账户。
 
-### 默认传输
+### 传输默认值
 
-CrawClaw 使用 Rust NativeProvider transport 进行模型流式传输。对于
-`openai/*` 和 `openai-codex/*`，默认传输都是 `"auto"`（优先 WebSocket，然后回退到 SSE）。
+CrawClaw 使用其 Rust NativeProvider 传输进行模型流式传输。对于 `openai/*` 和 `openai-codex/*`，默认传输为 `"auto"`（优先 WebSocket，然后 SSE 回退）。
 
 你可以设置 `agents.defaults.models.<provider/model>.params.transport`：
 
@@ -83,14 +71,12 @@ CrawClaw 使用 Rust NativeProvider transport 进行模型流式传输。对于
 - `"websocket"`：强制使用 WebSocket
 - `"auto"`：尝试 WebSocket，然后回退到 SSE
 
-对于 `openai/*`（Responses API），当使用 WebSocket 传输时，
-CrawClaw 还会默认启用 WebSocket 预热
-（`openaiWsWarmup: true`）。
+对于 `openai/*`（Responses API），当使用 WebSocket 传输时，CrawClaw 默认还启用 WebSocket 预热（`openaiWsWarmup: true`）。
 
 相关 OpenAI 文档：
 
-- [Realtime API with WebSocket](https://platform.openai.com/docs/guides/realtime-websocket)
-- [Streaming API responses (SSE)](https://platform.openai.com/docs/guides/streaming-responses)
+- [通过 WebSocket 的 Realtime API](https://platform.openai.com/docs/guides/realtime-websocket)
+- [流式 API 响应（SSE）](https://platform.openai.com/docs/guides/streaming-responses)
 
 ```json5
 {
@@ -111,8 +97,7 @@ CrawClaw 还会默认启用 WebSocket 预热
 
 ### OpenAI WebSocket 预热
 
-OpenAI 文档将预热描述为可选。CrawClaw 对
-`openai/*` 默认启用它，以在使用 WebSocket 传输时减少首次响应延迟。
+OpenAI 文档将预热描述为可选的。CrawClaw 为 `openai/*` 默认启用它，以减少使用 WebSocket 传输时的首次响应延迟。
 
 ### 禁用预热
 
@@ -150,11 +135,9 @@ OpenAI 文档将预热描述为可选。CrawClaw 对
 }
 ```
 
-### OpenAI 优先处理
+### OpenAI 和 Codex 优先级处理
 
-OpenAI 的 API 通过 `service_tier=priority` 暴露优先处理。在
-CrawClaw 中，设置 `agents.defaults.models["openai/<model>"].params.serviceTier`，即可
-在直接 `openai/*` Responses 请求中透传该字段。
+OpenAI 的 API 通过 `service_tier=priority` 公开优先级处理。在 CrawClaw 中，设置 `agents.defaults.models["<provider>/<model>"].params.serviceTier` 以在该字段上传递，以在原生 OpenAI/Codex Responses 端点上传递。
 
 ```json5
 {
@@ -166,27 +149,40 @@ CrawClaw 中，设置 `agents.defaults.models["openai/<model>"].params.serviceTi
             serviceTier: "priority",
           },
         },
+        "openai-codex/gpt-5.4": {
+          params: {
+            serviceTier: "priority",
+          },
+        },
       },
     },
   },
 }
 ```
 
-支持的值为 `auto`、`default`、`flex` 和 `priority`。
+支持的值有 `auto`、`default`、`flex` 和 `priority`。
+
+当这些模型指向原生 OpenAI/Codex 端点时，CrawClaw 将 `params.serviceTier` 转发到直接的 `openai/*` Responses 请求和 `openai-codex/*` Codex Responses 请求。
+
+重要行为：
+
+- 直接 `openai/*` 必须以 `api.openai.com` 为目标
+- `openai-codex/*` 必须以 `chatgpt.com/backend-api` 为目标
+- 如果你通过另一个 base URL 或代理路由任一提供商，CrawClaw 不会触碰 `service_tier`
 
 ### OpenAI 快速模式
 
-CrawClaw 为 `openai/*` 和
-`openai-codex/*` 会话公开了共享快速模式开关：
+CrawClaw 为 `openai/*` 和 `openai-codex/*` 会话公开共享的快速模式切换：
 
 - 聊天/UI：`/fast status|on|off`
 - 配置：`agents.defaults.models["<provider>/<model>"].params.fastMode`
 
-启用快速模式后，CrawClaw 会应用低延迟 OpenAI 配置：
+当快速模式启用时，CrawClaw 将其映射到 OpenAI 优先级处理：
 
-- 当负载未明确指定 reasoning 时，设置 `reasoning.effort = "low"`
-- 当负载未明确指定 verbosity 时，设置 `text.verbosity = "low"`
-- 对直接发往 `api.openai.com` 的 `openai/*` Responses 调用设置 `service_tier = "priority"`
+- 发送到 `api.openai.com` 的直接 `openai/*` Responses 调用会发送 `service_tier = "priority"`
+- 发送到 `chatgpt.com/backend-api` 的 `openai-codex/*` Responses 调用也会发送 `service_tier = "priority"`
+- 保留现有的 payload `service_tier` 值
+- 快速模式不会重写 `reasoning` 或 `text.verbosity`
 
 示例：
 
@@ -211,24 +207,20 @@ CrawClaw 为 `openai/*` 和
 }
 ```
 
-会话覆盖优先于配置。在会话 UI 中清除会话覆盖后，
-该会话会恢复为配置的默认值。
+会话覆盖优先于配置。在会话 UI 中清除会话覆盖会使会话返回到配置的默认值。
 
-### OpenAI Responses 服务端压缩
+### OpenAI Responses 服务器端压缩
 
-对于直接 OpenAI Responses 模型（使用 `api: "openai-responses"` 的 `openai/*`，
-且 `baseUrl` 指向 `api.openai.com`），CrawClaw 现在会自动启用 OpenAI 服务端
-压缩负载提示：
+对于直接 OpenAI Responses 模型（`openai/*` 使用 `api: "openai-responses"` 且 `baseUrl` 在 `api.openai.com` 上），CrawClaw 现在自动启用 OpenAI 服务器端压缩 payload 提示：
 
-- 强制设置 `store: true`（除非模型兼容性设置 `supportsStore: false`）
+- 强制 `store: true`（除非模型 compat 设置 `supportsStore: false`）
 - 注入 `context_management: [{ type: "compaction", compact_threshold: ... }]`
 
-默认情况下，`compact_threshold` 为模型 `contextWindow` 的 `70%`（或在不可用时为 `80000`）。
+默认情况下，`compact_threshold` 是模型 `contextWindow` 的 `70%`（或不可用时的 `80000`）。
 
-### 显式启用服务端压缩
+### 显式启用服务器端压缩
 
-当你想在兼容的
-Responses 模型上强制注入 `context_management` 时使用此设置（例如 Azure OpenAI Responses）：
+当你想在兼容的 Responses 模型上强制 `context_management` 注入时使用此选项（例如 Azure OpenAI Responses）：
 
 ```json5
 {
@@ -265,7 +257,7 @@ Responses 模型上强制注入 `context_management` 时使用此设置（例如
 }
 ```
 
-### 禁用服务端压缩
+### 禁用服务器端压缩
 
 ```json5
 {
@@ -283,11 +275,9 @@ Responses 模型上强制注入 `context_management` 时使用此设置（例如
 }
 ```
 
-`responsesServerCompaction` 仅控制 `context_management` 注入。
-直接 OpenAI Responses 模型仍会强制设置 `store: true`，除非兼容性设置
-了 `supportsStore: false`。
+`responsesServerCompaction` 仅控制 `context_management` 注入。直接 OpenAI Responses 模型仍然强制 `store: true`，除非 compat 设置 `supportsStore: false`。
 
-## 说明
+## 注意事项
 
 - 模型引用始终使用 `provider/model`（参见 [/concepts/models](/concepts/models)）。
-- 身份验证详情和复用规则见 [/concepts/oauth](/concepts/oauth)。
+- 认证详情和重用规则在 [/concepts/oauth](/concepts/oauth) 中。
