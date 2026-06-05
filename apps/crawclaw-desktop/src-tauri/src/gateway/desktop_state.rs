@@ -1,9 +1,9 @@
 use crate::models::{
-    AdvancedDefaults, AgentWorkspaceState, CommandSuggestion, ConfirmationDefaults,
-    ConversationState, DesktopPreferences, DesktopState, MemoryDefaults, MemoryDreamState,
-    MemoryWorkspaceState, NavItem, NotificationDefaults, PermissionRequest, PermissionStatus,
-    PluginsWorkspaceState, PrivacyDefaults, RuntimeCheck, RuntimeStatus, RuntimeStatusValue,
-    SidebarState, TaskDefaults, UiDefaults,
+    AdvancedDefaults, AgentWorkspaceState, AutomationWorkspaceState, CommandSuggestion,
+    ConfirmationDefaults, ConversationState, DesktopPreferences, DesktopState, MemoryDefaults,
+    MemoryDreamState, MemoryWorkspaceState, NavItem, NotificationDefaults, PermissionRequest,
+    PermissionStatus, PluginsWorkspaceState, PrivacyDefaults, RuntimeCheck, RuntimeStatus,
+    RuntimeStatusValue, SidebarState, TaskDefaults, UiDefaults,
 };
 
 pub fn initial_desktop_state(runtime: &RuntimeStatus) -> DesktopState {
@@ -50,6 +50,9 @@ pub fn initial_desktop_state(runtime: &RuntimeStatus) -> DesktopState {
         agent_workspace: AgentWorkspaceState {
             selected_agent_id: String::new(),
             agents: Vec::new(),
+        },
+        automation_workspace: AutomationWorkspaceState {
+            runtimes: Vec::new(),
         },
         memory_workspace: MemoryWorkspaceState {
             selected_agent_id: "main".to_string(),

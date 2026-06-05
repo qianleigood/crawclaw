@@ -1,6 +1,5 @@
 use super::*;
 use futures::{SinkExt, StreamExt};
-use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::io::{BufRead, BufReader};
 use std::sync::mpsc;
@@ -17,19 +16,6 @@ const MCP_HEADERS_HELPER_TIMEOUT: Duration = Duration::from_secs(10);
 const MCP_NOTIFICATION_GRACE: Duration = Duration::from_millis(200);
 const MCP_STREAMABLE_HTTP_ACCEPT: &str = "application/json, text/event-stream";
 const MCP_STDIO_MAX_STDERR_BYTES: usize = 64 * 1024;
-
-#[derive(Clone, Debug)]
-pub(super) struct ConfiguredMcpTool {
-    server_name: String,
-    tool_name: String,
-    exposed_name: String,
-    label: String,
-    description: String,
-    parameters: Value,
-    read_only: bool,
-    transport: McpTransport,
-    auth_required: bool,
-}
 
 #[derive(Clone, Debug)]
 enum McpTransport {
@@ -51,7 +37,6 @@ struct McpStdioCommand {
 struct McpHttpEndpoint {
     url: String,
     headers: BTreeMap<String, String>,
-    oauth: Option<McpOAuthConfig>,
 }
 
 struct McpHttpResponse {
@@ -100,21 +85,6 @@ struct McpServerConfig {
     headers_helper: Option<String>,
     #[serde(default)]
     auth_token: Option<String>,
-    #[serde(default)]
-    oauth: Option<McpOAuthConfig>,
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct McpOAuthConfig {
-    #[serde(default)]
-    client_id: Option<String>,
-    #[serde(default)]
-    callback_port: Option<u16>,
-    #[serde(default)]
-    auth_server_metadata_url: Option<String>,
-    #[serde(default)]
-    xaa: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -153,11 +123,6 @@ struct McpResourceListResult {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct McpToolSchema {
-    name: String,
-    #[serde(default)]
-    description: Option<String>,
-    #[serde(default)]
-    input_schema: Option<Value>,
     #[serde(default)]
     annotations: Option<McpToolAnnotations>,
 }
@@ -167,57 +132,6 @@ struct McpToolSchema {
 struct McpToolAnnotations {
     #[serde(default)]
     read_only_hint: Option<bool>,
-}
-
-#[derive(Clone, Debug)]
-pub(super) struct McpTool {
-    runtime_root: PathBuf,
-    tool: ConfiguredMcpTool,
-}
-
-impl McpTool {
-    pub(super) fn new(runtime_root: &Path, tool: ConfiguredMcpTool) -> Self {
-        Self {
-            runtime_root: runtime_root.to_path_buf(),
-            tool,
-        }
-    }
-}
-
-#[async_trait]
-impl pi::sdk::Tool for McpTool {
-    fn name(&self) -> &str {
-        &self.tool.exposed_name
-    }
-
-    fn label(&self) -> &str {
-        &self.tool.label
-    }
-
-    fn description(&self) -> &str {
-        &self.tool.description
-    }
-
-    fn parameters(&self) -> Value {
-        self.tool.parameters.clone()
-    }
-
-    async fn execute(
-        &self,
-        _tool_call_id: &str,
-        input: Value,
-        _on_update: Option<Box<dyn Fn(pi::sdk::ToolUpdate) + Send + Sync>>,
-    ) -> pi::sdk::Result<pi::sdk::ToolOutput> {
-        let tool = self.tool.clone();
-        let runtime_root = self.runtime_root.clone();
-        execute_mcp_tool(&runtime_root, &tool, input)
-            .await
-            .map_err(|error| tool_error(self.name(), error))
-    }
-
-    fn is_read_only(&self) -> bool {
-        self.tool.read_only
-    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -353,82 +267,6 @@ impl pi::sdk::Tool for McpResourceTool {
     fn is_read_only(&self) -> bool {
         true
     }
-}
-
-pub(super) fn configured_mcp_tools(runtime_root: &Path) -> Vec<ConfiguredMcpTool> {
-    let Some(config) = read_mcp_config(runtime_root) else {
-        return Vec::new();
-    };
-    let Some(servers) = config.mcp_servers else {
-        return Vec::new();
-    };
-    let mut tools = Vec::new();
-    let mut seen = BTreeSet::new();
-    for (server_name, server) in servers {
-        if config.disabled_mcp_servers.contains(&server_name) {
-            continue;
-        }
-        let Some(transport) = mcp_transport_for_runtime(runtime_root, &server_name, server) else {
-            continue;
-        };
-        let listed_tools = match list_mcp_tools(&server_name, &transport) {
-            Ok(listed_tools) => listed_tools,
-            Err(error) if mcp_error_indicates_auth_required(&error) => {
-                let exposed_name = mcp_exposed_tool_name(&server_name, "authenticate");
-                if !exposed_name.is_empty() && seen.insert(exposed_name.clone()) {
-                    tools.push(ConfiguredMcpTool {
-                        server_name: server_name.clone(),
-                        label: format!("{server_name}:authenticate"),
-                        tool_name: "authenticate".to_string(),
-                        exposed_name,
-                        description: format!(
-                            "The {server_name} MCP server requires authentication. Call this tool to get authentication instructions for the user."
-                        ),
-                        parameters: json!({
-                            "type": "object",
-                            "properties": {},
-                            "additionalProperties": false
-                        }),
-                        read_only: false,
-                        transport,
-                        auth_required: true,
-                    });
-                }
-                continue;
-            }
-            Err(_) => continue,
-        };
-        for tool in listed_tools.tools {
-            let tool_name = tool.name;
-            let exposed_name = mcp_exposed_tool_name(&server_name, &tool_name);
-            if exposed_name.is_empty() || !seen.insert(exposed_name.clone()) {
-                continue;
-            }
-            let description = tool.description.unwrap_or_else(|| {
-                format!(
-                    "Call MCP tool {} on configured server {}.",
-                    tool_name, server_name
-                )
-            });
-            tools.push(ConfiguredMcpTool {
-                server_name: server_name.clone(),
-                label: format!("{}:{}", server_name, tool_name),
-                tool_name,
-                exposed_name,
-                description,
-                parameters: tool
-                    .input_schema
-                    .unwrap_or_else(|| json!({ "type": "object" })),
-                read_only: tool
-                    .annotations
-                    .and_then(|annotations| annotations.read_only_hint)
-                    .unwrap_or(false),
-                transport: transport.clone(),
-                auth_required: false,
-            });
-        }
-    }
-    tools
 }
 
 async fn list_mcp_resources(runtime_root: &Path, input: Value) -> Result<Value, String> {
@@ -832,7 +670,6 @@ fn mcp_transport(server_name: &str, server: McpServerConfig) -> Option<McpTransp
                 server.headers_helper.as_deref(),
             ),
             url,
-            oauth: server.oauth,
         };
         if kind == "ws-ide" {
             if let Some(auth_token) = server.auth_token {
@@ -1198,472 +1035,12 @@ fn list_mcp_resource_items(
         .map_err(|error| format!("invalid MCP resources/list response from {server_name}: {error}"))
 }
 
-async fn execute_mcp_tool(
-    runtime_root: &Path,
-    tool: &ConfiguredMcpTool,
-    input: Value,
-) -> Result<pi::sdk::ToolOutput, String> {
-    if tool.auth_required {
-        return Ok(mcp_auth_required_output(
-            runtime_root,
-            &tool.server_name,
-            &tool.transport,
-            input,
-        )
-        .await);
-    }
-    let call = json!({
-        "jsonrpc": "2.0",
-        "id": 2,
-        "method": "tools/call",
-        "params": {
-            "name": tool.tool_name,
-            "arguments": input
-        }
-    });
-    let response = match &tool.transport {
-        McpTransport::Stdio(command) => {
-            let mut command = command.clone();
-            if command.cwd.is_none() {
-                command.cwd = Some(runtime_root.to_path_buf());
-            }
-            tokio::task::spawn_blocking({
-                let server_name = tool.server_name.clone();
-                let messages = mcp_stdio_messages(call);
-                move || call_mcp_stdio(&server_name, &command, messages, MCP_CALL_TIMEOUT, 2)
-            })
-            .await
-            .map_err(|error| format!("MCP tool task failed: {error}"))??
-        }
-        McpTransport::Http(endpoint) => {
-            call_mcp_http(&tool.server_name, endpoint, call, MCP_CALL_TIMEOUT, 2).await?
-        }
-        McpTransport::Sse(endpoint) => {
-            call_mcp_sse(&tool.server_name, endpoint, call, MCP_CALL_TIMEOUT, 2).await?
-        }
-        McpTransport::Ws(endpoint) => {
-            call_mcp_ws(&tool.server_name, endpoint, call, MCP_CALL_TIMEOUT, 2).await?
-        }
-    };
-    if let Some(error) = response.get("error") {
-        if let Some(output) = mcp_url_elicitation_output(&tool.server_name, &tool.tool_name, error)
-        {
-            return Ok(output);
-        }
-        return Err(format!(
-            "MCP tool {} failed: {}",
-            tool.exposed_name,
-            truncate_mcp_error(&error.to_string())
-        ));
-    }
-    let result = response
-        .get("result")
-        .cloned()
-        .ok_or_else(|| format!("MCP tool {} response missing result", tool.exposed_name))?;
-    Ok(mcp_tool_output(&tool.server_name, &tool.tool_name, result))
-}
-
 fn mcp_error_indicates_auth_required(error: &str) -> bool {
     let lower = error.to_ascii_lowercase();
     lower.contains("401")
         || lower.contains("unauthorized")
         || lower.contains("authentication required")
         || lower.contains("needs-auth")
-}
-
-async fn mcp_auth_required_output(
-    runtime_root: &Path,
-    server_name: &str,
-    transport: &McpTransport,
-    input: Value,
-) -> pi::sdk::ToolOutput {
-    let Some(object) = input.as_object() else {
-        return text_output(
-            format!("The {server_name} MCP authenticate tool requires an empty input object."),
-            Some(json!({
-                "server": server_name,
-                "tool": "authenticate",
-                "status": "error",
-                "error": "input must be an object"
-            })),
-            true,
-        );
-    };
-    if !object.is_empty() {
-        return text_output(
-            format!("The {server_name} MCP authenticate tool does not accept parameters."),
-            Some(json!({
-                "server": server_name,
-                "tool": "authenticate",
-                "status": "error",
-                "error": "authenticate input must be empty"
-            })),
-            true,
-        );
-    }
-    match build_mcp_oauth_authorization(runtime_root, server_name, transport).await {
-        Ok(auth) => text_output(
-            format!(
-                "Ask the user to open this URL in their browser to authorize the {server_name} MCP server:\n\n{}\n\nAfter authorization completes in the browser, retry the MCP tool. If the runtime does not receive the callback automatically, ask the user to authenticate it with /mcp.",
-                auth.auth_url
-            ),
-            Some(json!({
-                "server": server_name,
-                "tool": "authenticate",
-                "status": "auth_url",
-                "authUrl": auth.auth_url,
-                "redirectUri": auth.redirect_uri,
-                "clientId": auth.client_id,
-                "scope": auth.scope,
-                "pendingStatePath": auth.pending_state_path
-            })),
-            false,
-        ),
-        Err(error) => text_output(
-            format!(
-                "The MCP server \"{server_name}\" requires authentication, but CrawClaw could not start the OAuth URL flow: {error}. Ask the user to authenticate it with /mcp, then retry the MCP tool."
-            ),
-            Some(json!({
-                "server": server_name,
-                "tool": "authenticate",
-                "status": "needs-auth",
-                "error": error
-            })),
-            false,
-        ),
-    }
-}
-
-struct McpOAuthAuthorization {
-    auth_url: String,
-    redirect_uri: String,
-    client_id: String,
-    scope: Option<String>,
-    pending_state_path: String,
-}
-
-async fn build_mcp_oauth_authorization(
-    runtime_root: &Path,
-    server_name: &str,
-    transport: &McpTransport,
-) -> Result<McpOAuthAuthorization, String> {
-    let endpoint = match transport {
-        McpTransport::Http(endpoint) | McpTransport::Sse(endpoint) => endpoint,
-        McpTransport::Stdio(_) | McpTransport::Ws(_) => {
-            return Err("OAuth URL flow is only supported for HTTP/SSE MCP servers".to_string())
-        }
-    };
-    if endpoint.oauth.as_ref().and_then(|oauth| oauth.xaa) == Some(true) {
-        return Err("XAA MCP OAuth requires the interactive /mcp flow".to_string());
-    }
-    let metadata = fetch_mcp_oauth_metadata(endpoint).await?;
-    let authorization_endpoint = metadata
-        .get("authorization_endpoint")
-        .and_then(Value::as_str)
-        .ok_or_else(|| "OAuth metadata missing authorization_endpoint".to_string())?;
-    let redirect_uri = build_mcp_redirect_uri(endpoint.oauth.as_ref());
-    let scope = mcp_oauth_scope(&metadata);
-    let client_id = match endpoint
-        .oauth
-        .as_ref()
-        .and_then(|oauth| oauth.client_id.clone())
-    {
-        Some(client_id) => client_id,
-        None => {
-            register_mcp_oauth_client(server_name, endpoint, &metadata, &redirect_uri, &scope)
-                .await?
-        }
-    };
-    let state = random_oauth_token(32);
-    let code_verifier = random_oauth_token(64);
-    let code_challenge = base64_url_no_pad(&Sha256::digest(code_verifier.as_bytes()));
-    let auth_url = authorization_url(
-        authorization_endpoint,
-        &client_id,
-        &redirect_uri,
-        &state,
-        &code_challenge,
-        scope.as_deref(),
-    )?;
-    let pending_state_path = save_mcp_oauth_pending_state(
-        runtime_root,
-        server_name,
-        json!({
-            "server": server_name,
-            "serverUrl": endpoint.url,
-            "clientId": client_id,
-            "redirectUri": redirect_uri,
-            "state": state,
-            "codeVerifier": code_verifier,
-            "scope": scope,
-            "authorizationEndpoint": authorization_endpoint,
-            "tokenEndpoint": metadata.get("token_endpoint").cloned(),
-            "createdAt": chrono::Utc::now().to_rfc3339()
-        }),
-    )?;
-    Ok(McpOAuthAuthorization {
-        auth_url,
-        redirect_uri,
-        client_id,
-        scope,
-        pending_state_path,
-    })
-}
-
-async fn fetch_mcp_oauth_metadata(endpoint: &McpHttpEndpoint) -> Result<Value, String> {
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .map_err(|error| format!("failed to build OAuth client: {error}"))?;
-    for url in mcp_oauth_metadata_candidates(endpoint).await {
-        let response = match client
-            .get(&url)
-            .header("Accept", "application/json")
-            .send()
-            .await
-        {
-            Ok(response) => response,
-            Err(_) => continue,
-        };
-        if !response.status().is_success() {
-            continue;
-        }
-        let Ok(value) = response.json::<Value>().await else {
-            continue;
-        };
-        if value
-            .get("authorization_endpoint")
-            .and_then(Value::as_str)
-            .is_some()
-        {
-            return Ok(value);
-        }
-    }
-    Err("OAuth authorization metadata was not discoverable".to_string())
-}
-
-async fn mcp_oauth_metadata_candidates(endpoint: &McpHttpEndpoint) -> Vec<String> {
-    if let Some(url) = endpoint
-        .oauth
-        .as_ref()
-        .and_then(|oauth| oauth.auth_server_metadata_url.clone())
-    {
-        return vec![url];
-    }
-    let mut candidates = Vec::new();
-    if let Some(resource) = mcp_resource_metadata_url(&endpoint.url) {
-        if let Some(auth_server) = discover_mcp_authorization_server(&resource).await {
-            if let Some(metadata) = auth_server_metadata_url(&auth_server) {
-                candidates.push(metadata);
-            }
-        }
-    }
-    candidates.extend(direct_oauth_metadata_urls(&endpoint.url));
-    dedupe_strings(candidates)
-}
-
-async fn discover_mcp_authorization_server(resource_url: &str) -> Option<String> {
-    let response = reqwest::Client::builder()
-        .timeout(Duration::from_secs(10))
-        .build()
-        .ok()?
-        .get(resource_url)
-        .header("Accept", "application/json")
-        .send()
-        .await
-        .ok()?;
-    if !response.status().is_success() {
-        return None;
-    }
-    let value = response.json::<Value>().await.ok()?;
-    value
-        .get("authorization_servers")
-        .and_then(Value::as_array)?
-        .iter()
-        .filter_map(Value::as_str)
-        .find(|value| !value.trim().is_empty())
-        .map(str::to_string)
-}
-
-fn mcp_resource_metadata_url(server_url: &str) -> Option<String> {
-    let parsed = reqwest::Url::parse(server_url).ok()?;
-    Some(format!(
-        "{}/.well-known/oauth-protected-resource",
-        url_origin(&parsed)?
-    ))
-}
-
-fn direct_oauth_metadata_urls(server_url: &str) -> Vec<String> {
-    let Some(parsed) = reqwest::Url::parse(server_url).ok() else {
-        return Vec::new();
-    };
-    let Some(origin) = url_origin(&parsed) else {
-        return Vec::new();
-    };
-    let mut urls = Vec::new();
-    let path = parsed.path().trim_end_matches('/');
-    if !path.is_empty() {
-        urls.push(format!(
-            "{origin}/.well-known/oauth-authorization-server{path}"
-        ));
-    }
-    urls.push(format!("{origin}/.well-known/oauth-authorization-server"));
-    urls
-}
-
-fn auth_server_metadata_url(auth_server: &str) -> Option<String> {
-    let parsed = reqwest::Url::parse(auth_server).ok()?;
-    Some(format!(
-        "{}/.well-known/oauth-authorization-server",
-        url_origin(&parsed)?
-    ))
-}
-
-fn url_origin(url: &reqwest::Url) -> Option<String> {
-    let host = url.host_str()?;
-    let port = url
-        .port()
-        .map(|port| format!(":{port}"))
-        .unwrap_or_default();
-    Some(format!("{}://{host}{port}", url.scheme()))
-}
-
-async fn register_mcp_oauth_client(
-    server_name: &str,
-    endpoint: &McpHttpEndpoint,
-    metadata: &Value,
-    redirect_uri: &str,
-    scope: &Option<String>,
-) -> Result<String, String> {
-    if metadata
-        .get("client_id_metadata_document_supported")
-        .and_then(Value::as_bool)
-        == Some(true)
-    {
-        if let Ok(url) = std::env::var("MCP_OAUTH_CLIENT_METADATA_URL") {
-            if !url.trim().is_empty() {
-                return Ok(url);
-            }
-        }
-    }
-    let registration_endpoint = metadata
-        .get("registration_endpoint")
-        .and_then(Value::as_str)
-        .ok_or_else(|| {
-            "OAuth client_id is not configured and metadata has no registration_endpoint"
-                .to_string()
-        })?;
-    let mut body = json!({
-        "client_name": format!("CrawClaw ({server_name})"),
-        "redirect_uris": [redirect_uri],
-        "grant_types": ["authorization_code", "refresh_token"],
-        "response_types": ["code"],
-        "token_endpoint_auth_method": "none"
-    });
-    if let Some(scope) = scope {
-        body["scope"] = Value::String(scope.clone());
-    }
-    let response = reqwest::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .map_err(|error| format!("failed to build OAuth client: {error}"))?
-        .post(registration_endpoint)
-        .json(&body)
-        .send()
-        .await
-        .map_err(|error| format!("OAuth dynamic client registration failed: {error}"))?;
-    if !response.status().is_success() {
-        return Err(format!(
-            "OAuth dynamic client registration failed with HTTP {} for {}",
-            response.status(),
-            endpoint.url
-        ));
-    }
-    let value = response
-        .json::<Value>()
-        .await
-        .map_err(|error| format!("OAuth registration response was not JSON: {error}"))?;
-    value
-        .get("client_id")
-        .and_then(Value::as_str)
-        .map(str::to_string)
-        .ok_or_else(|| "OAuth registration response missing client_id".to_string())
-}
-
-fn mcp_oauth_scope(metadata: &Value) -> Option<String> {
-    metadata
-        .get("scope")
-        .or_else(|| metadata.get("default_scope"))
-        .and_then(Value::as_str)
-        .map(str::to_string)
-        .or_else(|| {
-            metadata
-                .get("scopes_supported")
-                .and_then(Value::as_array)
-                .map(|items| {
-                    items
-                        .iter()
-                        .filter_map(Value::as_str)
-                        .collect::<Vec<_>>()
-                        .join(" ")
-                })
-                .filter(|value| !value.is_empty())
-        })
-}
-
-fn build_mcp_redirect_uri(oauth: Option<&McpOAuthConfig>) -> String {
-    let port = oauth
-        .and_then(|oauth| oauth.callback_port)
-        .unwrap_or_else(|| {
-            std::env::var("MCP_OAUTH_CALLBACK_PORT")
-                .ok()
-                .and_then(|value| value.parse::<u16>().ok())
-                .unwrap_or(3118)
-        });
-    format!("http://localhost:{port}/callback")
-}
-
-fn authorization_url(
-    authorization_endpoint: &str,
-    client_id: &str,
-    redirect_uri: &str,
-    state: &str,
-    code_challenge: &str,
-    scope: Option<&str>,
-) -> Result<String, String> {
-    let separator = if authorization_endpoint.contains('?') {
-        '&'
-    } else {
-        '?'
-    };
-    let mut params = vec![
-        ("response_type", "code".to_string()),
-        ("client_id", client_id.to_string()),
-        ("redirect_uri", redirect_uri.to_string()),
-        ("state", state.to_string()),
-        ("code_challenge", code_challenge.to_string()),
-        ("code_challenge_method", "S256".to_string()),
-    ];
-    if let Some(scope) = scope {
-        params.push(("scope", scope.to_string()));
-    }
-    Ok(format!(
-        "{authorization_endpoint}{separator}{}",
-        params
-            .into_iter()
-            .map(|(key, value)| format!("{key}={}", url_encode(&value)))
-            .collect::<Vec<_>>()
-            .join("&")
-    ))
-}
-
-fn save_mcp_oauth_pending_state(
-    runtime_root: &Path,
-    server_name: &str,
-    value: Value,
-) -> Result<String, String> {
-    let path = mcp_oauth_pending_state_path(runtime_root, server_name);
-    write_mcp_oauth_json_file(&path, &value)
 }
 
 fn write_mcp_oauth_json_file(path: &Path, value: &Value) -> Result<String, String> {
@@ -1675,70 +1052,11 @@ fn write_mcp_oauth_json_file(path: &Path, value: &Value) -> Result<String, Strin
     Ok(path.to_string_lossy().to_string())
 }
 
-fn mcp_oauth_pending_state_path(runtime_root: &Path, server_name: &str) -> PathBuf {
-    runtime_root
-        .join("mcp")
-        .join("oauth")
-        .join(format!("{}.json", safe_filename(server_name)))
-}
-
 fn mcp_oauth_tokens_path(runtime_root: &Path, server_name: &str) -> PathBuf {
     runtime_root
         .join("mcp")
         .join("oauth")
         .join(format!("{}.tokens.json", safe_filename(server_name)))
-}
-
-fn random_oauth_token(bytes: usize) -> String {
-    let mut buffer = vec![0u8; bytes];
-    if fs::File::open("/dev/urandom")
-        .and_then(|mut file| file.read_exact(&mut buffer))
-        .is_err()
-    {
-        let fallback = format!("{}-{}", now_millis(), std::process::id());
-        buffer = Sha256::digest(fallback.as_bytes()).to_vec();
-    }
-    base64_url_no_pad(&buffer)
-}
-
-fn base64_url_no_pad(bytes: &[u8]) -> String {
-    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-    let mut output = String::new();
-    let mut index = 0;
-    while index + 3 <= bytes.len() {
-        let chunk = ((bytes[index] as u32) << 16)
-            | ((bytes[index + 1] as u32) << 8)
-            | bytes[index + 2] as u32;
-        output.push(TABLE[((chunk >> 18) & 0x3f) as usize] as char);
-        output.push(TABLE[((chunk >> 12) & 0x3f) as usize] as char);
-        output.push(TABLE[((chunk >> 6) & 0x3f) as usize] as char);
-        output.push(TABLE[(chunk & 0x3f) as usize] as char);
-        index += 3;
-    }
-    let remaining = bytes.len() - index;
-    if remaining == 1 {
-        let chunk = (bytes[index] as u32) << 16;
-        output.push(TABLE[((chunk >> 18) & 0x3f) as usize] as char);
-        output.push(TABLE[((chunk >> 12) & 0x3f) as usize] as char);
-    } else if remaining == 2 {
-        let chunk = ((bytes[index] as u32) << 16) | ((bytes[index + 1] as u32) << 8);
-        output.push(TABLE[((chunk >> 18) & 0x3f) as usize] as char);
-        output.push(TABLE[((chunk >> 12) & 0x3f) as usize] as char);
-        output.push(TABLE[((chunk >> 6) & 0x3f) as usize] as char);
-    }
-    output
-}
-
-fn url_encode(value: &str) -> String {
-    value
-        .bytes()
-        .flat_map(|byte| match byte {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => {
-                vec![byte as char]
-            }
-            _ => format!("%{byte:02X}").chars().collect::<Vec<_>>(),
-        })
-        .collect()
 }
 
 fn safe_filename(value: &str) -> String {
@@ -1752,78 +1070,6 @@ fn safe_filename(value: &str) -> String {
             }
         })
         .collect()
-}
-
-fn dedupe_strings(values: Vec<String>) -> Vec<String> {
-    let mut seen = BTreeSet::new();
-    values
-        .into_iter()
-        .filter(|value| seen.insert(value.clone()))
-        .collect()
-}
-
-fn mcp_url_elicitation_output(
-    server_name: &str,
-    tool_name: &str,
-    error: &Value,
-) -> Option<pi::sdk::ToolOutput> {
-    if error.get("code").and_then(Value::as_i64) != Some(-32042) {
-        return None;
-    }
-    let elicitations = error
-        .get("data")
-        .and_then(|data| data.get("elicitations"))
-        .and_then(Value::as_array)?
-        .iter()
-        .filter_map(valid_url_elicitation)
-        .collect::<Vec<_>>();
-    if elicitations.is_empty() {
-        return None;
-    }
-    let mut lines = vec![format!(
-        "MCP tool \"{server_name}:{tool_name}\" requires URL elicitation before it can continue."
-    )];
-    for elicitation in &elicitations {
-        let message = elicitation
-            .get("message")
-            .and_then(Value::as_str)
-            .unwrap_or("Open the URL, then retry.");
-        let url = elicitation.get("url").and_then(Value::as_str).unwrap_or("");
-        lines.push(format!("- {message}: {url}"));
-    }
-    text_output(
-        lines.join("\n"),
-        Some(json!({
-            "server": server_name,
-            "tool": tool_name,
-            "elicitationRequired": true,
-            "elicitations": elicitations
-        })),
-        false,
-    )
-    .into()
-}
-
-fn valid_url_elicitation(value: &Value) -> Option<Value> {
-    let object = value.as_object()?;
-    if object.get("mode").and_then(Value::as_str) != Some("url") {
-        return None;
-    }
-    let url = object.get("url").and_then(Value::as_str)?;
-    let elicitation_id = object
-        .get("elicitationId")
-        .and_then(Value::as_str)
-        .or_else(|| object.get("elicitation_id").and_then(Value::as_str))?;
-    let message = object
-        .get("message")
-        .and_then(Value::as_str)
-        .unwrap_or("Open the URL, then retry.");
-    Some(json!({
-        "mode": "url",
-        "url": url,
-        "elicitationId": elicitation_id,
-        "message": message
-    }))
 }
 
 async fn call_mcp_transport(
@@ -2895,101 +2141,6 @@ fn mcp_missing_response_error(
     )
 }
 
-fn mcp_tool_output(server_name: &str, tool_name: &str, result: Value) -> pi::sdk::ToolOutput {
-    let is_error = result
-        .get("isError")
-        .or_else(|| result.get("is_error"))
-        .and_then(Value::as_bool)
-        .unwrap_or(false);
-    let mut text_blocks = Vec::new();
-    let mut content = Vec::new();
-    if let Some(structured_content) = result
-        .get("structuredContent")
-        .or_else(|| result.get("structured_content"))
-    {
-        let text = serde_json::to_string_pretty(structured_content)
-            .unwrap_or_else(|_| structured_content.to_string());
-        text_blocks.push(text.clone());
-        content.push(pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(text)));
-    }
-    if let Some(blocks) = result.get("content").and_then(Value::as_array) {
-        content.extend(
-            blocks
-                .iter()
-                .filter_map(|block| mcp_content_block(server_name, block, &mut text_blocks)),
-        );
-    }
-    if content.is_empty() {
-        let text = serde_json::to_string_pretty(&result).unwrap_or_else(|_| result.to_string());
-        text_blocks.push(text.clone());
-        content.push(pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(text)));
-    }
-    pi::sdk::ToolOutput {
-        content,
-        details: Some(json!({
-            "server": server_name,
-            "tool": tool_name,
-            "result": result
-        })),
-        is_error,
-    }
-}
-
-fn mcp_content_block(
-    server_name: &str,
-    block: &Value,
-    text_blocks: &mut Vec<String>,
-) -> Option<pi::sdk::ContentBlock> {
-    match block.get("type").and_then(Value::as_str) {
-        Some("text") => mcp_text_block(block.get("text").and_then(Value::as_str), text_blocks),
-        Some("image") => {
-            let data = block.get("data").and_then(Value::as_str)?;
-            let mime_type = mcp_mime_type(block, "image/png");
-            Some(pi::sdk::ContentBlock::Image(pi::sdk::ImageContent {
-                data: data.to_string(),
-                mime_type,
-            }))
-        }
-        Some("resource") => mcp_resource_content_block(server_name, block, text_blocks),
-        Some("resource_link") => mcp_resource_link_block(block, text_blocks),
-        Some("audio") => {
-            let mime_type = mcp_mime_type(block, "audio/mpeg");
-            let text = format!("[Audio content: {mime_type}]");
-            mcp_text_block(Some(&text), text_blocks)
-        }
-        _ => None,
-    }
-}
-
-fn mcp_resource_content_block(
-    server_name: &str,
-    block: &Value,
-    text_blocks: &mut Vec<String>,
-) -> Option<pi::sdk::ContentBlock> {
-    let resource = block.get("resource")?;
-    let uri = resource
-        .get("uri")
-        .and_then(Value::as_str)
-        .unwrap_or("unknown");
-    if let Some(text) = resource.get("text").and_then(Value::as_str) {
-        let text = format!("[Resource from {server_name} at {uri}] {text}");
-        return mcp_text_block(Some(&text), text_blocks);
-    }
-    let mime_type = mcp_mime_type(resource, "application/octet-stream");
-    let blob = resource.get("blob").and_then(Value::as_str)?;
-    if mime_type.starts_with("image/") {
-        return Some(pi::sdk::ContentBlock::Image(pi::sdk::ImageContent {
-            data: blob.to_string(),
-            mime_type,
-        }));
-    }
-    let text = format!(
-        "[Resource from {server_name} at {uri}] Binary resource ({mime_type}, {} base64 chars)",
-        blob.len()
-    );
-    mcp_text_block(Some(&text), text_blocks)
-}
-
 fn mcp_resource_read_output(
     runtime_root: &Path,
     server_name: &str,
@@ -3187,31 +2338,6 @@ fn mcp_blob_file_extension(mime_type: &str) -> &'static str {
         "text/plain" => "txt",
         _ => "bin",
     }
-}
-
-fn mcp_resource_link_block(
-    block: &Value,
-    text_blocks: &mut Vec<String>,
-) -> Option<pi::sdk::ContentBlock> {
-    let name = block
-        .get("name")
-        .and_then(Value::as_str)
-        .unwrap_or("resource");
-    let uri = block.get("uri").and_then(Value::as_str)?;
-    let mut text = format!("[Resource link: {name}] {uri}");
-    if let Some(description) = block.get("description").and_then(Value::as_str) {
-        text.push_str(&format!(" ({description})"));
-    }
-    mcp_text_block(Some(&text), text_blocks)
-}
-
-fn mcp_text_block(
-    text: Option<&str>,
-    text_blocks: &mut Vec<String>,
-) -> Option<pi::sdk::ContentBlock> {
-    let text = text?.to_string();
-    text_blocks.push(text.clone());
-    Some(pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new(text)))
 }
 
 fn mcp_mime_type(value: &Value, default: &str) -> String {

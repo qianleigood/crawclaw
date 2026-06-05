@@ -438,10 +438,6 @@ fn required_tool_param(tool: &str, input: &Value, keys: &[&str]) -> pi::sdk::Res
         .ok_or_else(|| pi::sdk::Error::validation(format!("{tool} requires {}", keys[0])))
 }
 
-fn scope_param(input: &Value) -> String {
-    string_param(input, &["scope", "agentId", "sessionKey"]).unwrap_or_else(|| "main".to_string())
-}
-
 fn string_param(input: &Value, keys: &[&str]) -> Option<String> {
     keys.iter()
         .filter_map(|key| input.get(*key).and_then(Value::as_str))

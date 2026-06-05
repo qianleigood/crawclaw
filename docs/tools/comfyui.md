@@ -19,8 +19,16 @@ workflow semantics.
 
 ## Availability
 
-ComfyUI must already be installed and running. CrawClaw talks to the local
-ComfyUI HTTP API directly and does not install ComfyUI, custom nodes, or models.
+`comfyui_workflow` talks to the local ComfyUI HTTP API directly. It does not
+install custom nodes, download models, or bypass ComfyUI's own runtime
+requirements.
+
+CrawClaw Desktop can install, start, stop, and health-check a managed local
+ComfyUI runtime through Automation Runtime Manager. You can also bind the tool
+to an externally managed ComfyUI endpoint. Managed installs are profile based:
+Apple Metal, NVIDIA CUDA, AMD ROCm, Intel XPU, CPU, or external. CUDA, ROCm, and
+XPU profiles use profile-specific PyTorch wheel indexes and can be overridden
+with `PYTORCH_INDEX_URL` when your GPU or driver needs a different channel.
 
 The bundled `comfyui` plugin registers `comfyui_workflow` as an optional tool.
 Enable it with either the tool name or plugin id:
@@ -145,6 +153,8 @@ See the ComfyUI server route reference at
 
 ## Related
 
+- [Automation Overview](/automation) for Automation Runtime Manager and local
+  runtime lifecycle
 - [Image Tool](/tools/image) for image analysis
 - [Plugins](/tools/plugin) for plugin enablement and installation behavior
 - [Exec approvals](/tools/exec-approvals) for approval flow concepts

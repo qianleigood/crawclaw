@@ -147,6 +147,10 @@ jobs:
           test -x dist/native/crawclaw-runtime
           test -x dist/native/crawclaw-gateway
           test -x dist/native/crawclaw-native-plugins
+          test -f dist/automation/crawclaw-automation-comfyui-install.sh
+          test -f dist/automation/crawclaw-automation-comfyui-manifest.json
+          test -f dist/automation/crawclaw-automation-n8n-install.sh
+          test -f dist/automation/crawclaw-automation-n8n-manifest.json
 
   docs:
     needs: [scope]

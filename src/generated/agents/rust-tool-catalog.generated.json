@@ -464,6 +464,54 @@
       "status": "rust-native"
     },
     {
+      "backingRuntimeId": "Brief",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Send a brief message to the user",
+      "id": "Brief",
+      "includeInCrawClawGroup": true,
+      "label": "Brief",
+      "lifecycle": "profile_default",
+      "readOnly": true,
+      "sectionId": "messaging",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "Config",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Get or set Claude Code configuration settings",
+      "id": "Config",
+      "includeInCrawClawGroup": true,
+      "label": "Config",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "runtime",
+      "status": "rust-native"
+    },
+    {
+      "backingRuntimeId": "NotebookEdit",
+      "defaultEnabled": true,
+      "defaultProfiles": [
+        "coding",
+        "full"
+      ],
+      "description": "Edit Jupyter notebook cells",
+      "id": "NotebookEdit",
+      "includeInCrawClawGroup": true,
+      "label": "NotebookEdit",
+      "lifecycle": "profile_default",
+      "readOnly": false,
+      "sectionId": "fs",
+      "status": "rust-native"
+    },
+    {
       "backingRuntimeId": "review_task",
       "defaultEnabled": true,
       "defaultProfiles": [

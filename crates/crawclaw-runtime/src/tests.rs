@@ -116,6 +116,7 @@ fn is_script_source(relative: &str) -> bool {
 
 fn is_allowed_desktop_script_surface(relative: &str) -> bool {
     relative.starts_with("apps/crawclaw-desktop/src/")
+        || relative.starts_with("apps/crawclaw-desktop/e2e/")
         || relative == "apps/crawclaw-desktop/vite.config.ts"
 }
 
@@ -879,22 +880,65 @@ fn desktop_runtime_manifest_advertises_automation_runtime_manager_services() {
     assert_eq!(managed["n8n"]["runtime"], "node-service");
     assert_eq!(managed["n8n"]["provider"], "n8n");
     assert_eq!(managed["n8n"]["service"], "n8n");
+    assert_eq!(managed["n8n"]["version"], "2.23.3");
     assert_eq!(managed["n8n"]["baseUrl"], "http://127.0.0.1:5679");
+    assert_eq!(managed["n8n"]["health"]["kind"], "http");
+    assert_eq!(
+        managed["n8n"]["health"]["url"],
+        "http://127.0.0.1:5679/healthz"
+    );
     assert_eq!(managed["n8n"]["install"]["channel"], "github-release");
     assert_eq!(
         managed["n8n"]["install"]["scriptPolicy"],
         "release-asset-checksum"
+    );
+    let automation_release_download_base = format!(
+        "https://github.com/qianleigood/crawclaw/releases/download/v{}",
+        env!("CARGO_PKG_VERSION")
+    );
+    assert_eq!(
+        managed["n8n"]["install"]["manifestUrl"],
+        format!("{automation_release_download_base}/crawclaw-automation-n8n-manifest.json")
+    );
+    assert_eq!(
+        managed["n8n"]["install"]["scriptUrl"],
+        format!("{automation_release_download_base}/crawclaw-automation-n8n-install.sh")
+    );
+    assert_eq!(
+        managed["n8n"]["install"]["sha256"],
+        "53513b41f8a3f3669bdc2ed42b30c9d1a592717ad6680e3cd852167ca95f440c"
     );
     assert_eq!(managed["n8n"]["license"], "Sustainable Use License");
 
     assert_eq!(managed["comfyui"]["runtime"], "python-service");
     assert_eq!(managed["comfyui"]["provider"], "comfyui");
     assert_eq!(managed["comfyui"]["service"], "comfyui");
+    assert_eq!(
+        managed["comfyui"]["sourceRef"],
+        "5aa71b9bc28809a16596bb9fa3d0a6300d8e3f0e"
+    );
     assert_eq!(managed["comfyui"]["baseUrl"], "http://127.0.0.1:8188");
+    assert_eq!(managed["comfyui"]["health"]["kind"], "http");
+    assert_eq!(
+        managed["comfyui"]["health"]["url"],
+        "http://127.0.0.1:8188/system_stats"
+    );
     assert_eq!(managed["comfyui"]["install"]["channel"], "github-release");
     assert_eq!(
         managed["comfyui"]["install"]["scriptPolicy"],
         "release-asset-checksum"
+    );
+    assert_eq!(
+        managed["comfyui"]["install"]["manifestUrl"],
+        format!("{automation_release_download_base}/crawclaw-automation-comfyui-manifest.json")
+    );
+    assert_eq!(
+        managed["comfyui"]["install"]["scriptUrl"],
+        format!("{automation_release_download_base}/crawclaw-automation-comfyui-install.sh")
+    );
+    assert_eq!(
+        managed["comfyui"]["install"]["sha256"],
+        "af3b920b3547e8fa79d9085ee8e799479d6ca38a8f96dc78136623b0a616f090"
     );
     assert_eq!(managed["comfyui"]["license"], "GPL-3.0");
 
@@ -914,6 +958,24 @@ fn desktop_runtime_manifest_advertises_automation_runtime_manager_services() {
             "missing ComfyUI compute profile {expected}"
         );
     }
+    let nvidia_profile = profiles
+        .iter()
+        .find(|profile| profile["id"] == "nvidia-cuda")
+        .expect("nvidia profile");
+    assert_eq!(nvidia_profile["requiresPytorchIndexUrl"], true);
+    assert_eq!(
+        nvidia_profile["pytorchIndexUrlDefault"],
+        "https://download.pytorch.org/whl/cu126"
+    );
+    assert!(nvidia_profile["pytorchIndexUrlHint"]
+        .as_str()
+        .expect("nvidia pytorch hint")
+        .contains("download.pytorch.org/whl/cu"));
+    let cpu_profile = profiles
+        .iter()
+        .find(|profile| profile["id"] == "cpu")
+        .expect("cpu profile");
+    assert_ne!(cpu_profile["requiresPytorchIndexUrl"], true);
 
     let _ = fs::remove_dir_all(runtime_root);
 }
@@ -921,6 +983,10 @@ fn desktop_runtime_manifest_advertises_automation_runtime_manager_services() {
 #[test]
 fn automation_runtime_release_manifests_match_install_scripts() {
     let root = repo_root();
+    let automation_release_download_base = format!(
+        "https://github.com/qianleigood/crawclaw/releases/download/v{}",
+        env!("CARGO_PKG_VERSION")
+    );
 
     for runtime_id in ["n8n", "comfyui"] {
         let runtime_dir = root.join("automation").join(runtime_id);
@@ -945,8 +1011,24 @@ fn automation_runtime_release_manifests_match_install_scripts() {
         );
         assert_eq!(manifest["assets"]["installScript"]["path"], "install.sh");
         assert_eq!(
+            manifest["assets"]["manifest"]["publishedAs"],
+            format!("crawclaw-automation-{runtime_id}-manifest.json")
+        );
+        assert_eq!(
+            manifest["assets"]["manifest"]["url"],
+            format!("{automation_release_download_base}/crawclaw-automation-{runtime_id}-manifest.json")
+        );
+        assert_eq!(
             manifest["assets"]["installScript"]["publishedAs"],
             format!("crawclaw-automation-{runtime_id}-install.sh")
+        );
+        assert_eq!(
+            manifest["assets"]["installScript"]["url"],
+            format!("{automation_release_download_base}/crawclaw-automation-{runtime_id}-install.sh")
+        );
+        assert!(
+            !manifest_raw.contains("/releases/latest/download/"),
+            "automation release assets must use versioned release URLs"
         );
         assert_eq!(
             manifest["assets"]["installScript"]["sha256"]
@@ -962,6 +1044,58 @@ fn automation_runtime_release_manifests_match_install_scripts() {
             !script_text.contains("curl | sh"),
             "install script must not pipe remote scripts directly into a shell"
         );
+        assert!(
+            !script_text.contains("N8N_VERSION:-latest"),
+            "n8n installer must not default to a moving latest version"
+        );
+        assert!(
+            !script_text.contains("git pull"),
+            "automation installer must not update from a moving branch"
+        );
+        if runtime_id == "n8n" {
+            assert_eq!(manifest["version"], "2.23.3");
+            assert!(
+                script_text.contains("N8N_VERSION:-2.23.3"),
+                "n8n installer must default to the manifest version"
+            );
+        } else {
+            assert_eq!(
+                manifest["sourceRef"],
+                "5aa71b9bc28809a16596bb9fa3d0a6300d8e3f0e"
+            );
+            let profiles = manifest["computeProfiles"]
+                .as_array()
+                .expect("ComfyUI release manifest compute profiles");
+            let nvidia_profile = profiles
+                .iter()
+                .find(|profile| profile["id"] == "nvidia-cuda")
+                .expect("ComfyUI release manifest nvidia profile");
+            assert_eq!(nvidia_profile["requiresPytorchIndexUrl"], true);
+            assert_eq!(
+                nvidia_profile["pytorchIndexUrlDefault"],
+                "https://download.pytorch.org/whl/cu126"
+            );
+            assert!(nvidia_profile["pytorchIndexUrlHint"]
+                .as_str()
+                .expect("ComfyUI release manifest pytorch hint")
+                .contains("download.pytorch.org/whl/cu"));
+            assert!(
+                script_text.contains("nvidia-cuda | amd-rocm | intel-xpu)"),
+                "ComfyUI GPU profiles must select a PyTorch wheel channel"
+            );
+            assert!(
+                script_text.contains("pytorch_index_url_for_profile"),
+                "ComfyUI installer must provide profile-specific default PyTorch wheel channels"
+            );
+            assert!(
+                script_text.contains("requires PYTORCH_INDEX_URL"),
+                "ComfyUI GPU profile installs must tell the user how to choose the PyTorch wheel channel"
+            );
+            assert!(
+                script_text.contains("COMFYUI_REF:-5aa71b9bc28809a16596bb9fa3d0a6300d8e3f0e"),
+                "ComfyUI installer must default to the manifest source ref"
+            );
+        }
     }
 }
 

@@ -51,16 +51,20 @@ import {
   setPluginToolEnabled,
   setMemoryFilter as setDesktopMemoryFilter,
   setMemoryQuery as setDesktopMemoryQuery,
+  startAutomationRuntime,
   steerMessage,
+  stopAutomationRuntime,
   testAndSaveModelProfile,
   clearDesktopCache,
   deleteDesktopLocalData,
   generateDesktopDiagnostics,
+  installAutomationRuntime,
   installPlugin,
   invokePluginTool,
   listSubagents,
   loadRuntimeStatus,
   openDesktopAsset,
+  refreshAutomationRuntime,
   resetDesktopState,
   revealDesktopAsset,
   toggleAgentSkill,
@@ -901,7 +905,11 @@ export default function App() {
                 automationWorkspace={desktopState.automationWorkspace}
                 confirmHighRisk={desktopState.preferences.confirmationDefaults.confirmHighRisk}
                 onAddWorkflowMessage={(input) => void applyDesktopState(() => addWorkflowMessage(input))}
+                onInstallRuntime={(runtimeId, input) => applyDesktopState(() => installAutomationRuntime(runtimeId, input))}
                 onRequestConfirmation={requestConfirmation}
+                onStartRuntime={(runtimeId) => applyDesktopState(() => startAutomationRuntime(runtimeId))}
+                onStopRuntime={(runtimeId) => applyDesktopState(() => stopAutomationRuntime(runtimeId))}
+                onRefreshRuntime={(runtimeId) => applyDesktopState(() => refreshAutomationRuntime(runtimeId))}
               />
             ) : activeNavId === 'memory' ? (
               <MemoryWorkspace

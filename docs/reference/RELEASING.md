@@ -41,6 +41,15 @@ CrawClaw has three public release lanes:
 - Run `cargo run --quiet -p crawclaw-repo-tools -- release-check` before every tagged release
 - The compatibility aliases `pnpm build` and `pnpm release:check` remain valid,
   but release automation should prefer the repo-tools commands.
+- For releases that include managed automation runtimes, run
+  `pnpm release:automation:assets -- --tag vYYYY.M.D` after the package build.
+  The command verifies `dist/automation/*` checksums and prints the exact
+  `gh release upload` command for the n8n and ComfyUI installer manifests and
+  scripts.
+- The automation asset command requires the requested tag to point at the
+  current `HEAD` by default. Use `--allow-tag-mismatch` only for an intentional
+  backfill where an operator has decided to attach the current automation assets
+  to an older GitHub release.
 - Run `RELEASE_TAG=vYYYY.M.D pnpm release:crawclaw:npm:check` (or the
   matching beta/correction tag) before approval
 - After npm publish, run
@@ -67,6 +76,12 @@ CrawClaw has three public release lanes:
   approval so release notes do not describe a stale CI layout
 - Stable macOS release readiness also includes the updater surfaces:
   - the GitHub release must end up with the packaged `.zip`, `.dmg`, and `.dSYM.zip`
+  - releases that advertise managed automation runtimes must also include the
+    four automation runtime assets:
+    `crawclaw-automation-comfyui-install.sh`,
+    `crawclaw-automation-comfyui-manifest.json`,
+    `crawclaw-automation-n8n-install.sh`, and
+    `crawclaw-automation-n8n-manifest.json`
   - `appcast.xml` on `main` must point at the new stable zip after publish
   - the packaged app must keep a non-debug bundle id, a non-empty Sparkle feed
     URL, and a `CFBundleVersion` at or above the canonical Sparkle build floor

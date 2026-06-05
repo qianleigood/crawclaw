@@ -209,6 +209,10 @@ pub fn stage_desktop_runtime_manifests(output: &Path) -> Result<(), String> {
             )
         })?;
     }
+    let automation_release_download_base = format!(
+        "https://github.com/qianleigood/crawclaw/releases/download/v{}",
+        env!("CARGO_PKG_VERSION")
+    );
     write_json_file(
         &runtimes_dir.join("manifest.json"),
         &json!({
@@ -225,6 +229,91 @@ pub fn stage_desktop_runtime_manifests(output: &Path) -> Result<(), String> {
                     },
                     "sourcePackage": "agent-browser",
                     "version": "0.27.0"
+                },
+                "comfyui": {
+                    "runtime": "python-service",
+                    "provider": "comfyui",
+                    "service": "comfyui",
+                    "sourceRef": "5aa71b9bc28809a16596bb9fa3d0a6300d8e3f0e",
+                    "baseUrl": "http://127.0.0.1:8188",
+                    "defaultPort": 8188,
+                    "health": {
+                        "kind": "http",
+                        "url": "http://127.0.0.1:8188/system_stats"
+                    },
+                    "install": {
+                        "channel": "github-release",
+                        "scriptPolicy": "release-asset-checksum",
+                        "manifestPath": "automation/comfyui/manifest.json",
+                        "manifestUrl": format!("{automation_release_download_base}/crawclaw-automation-comfyui-manifest.json"),
+                        "scriptUrl": format!("{automation_release_download_base}/crawclaw-automation-comfyui-install.sh"),
+                        "publishedAs": "crawclaw-automation-comfyui-install.sh",
+                        "sha256": "af3b920b3547e8fa79d9085ee8e799479d6ca38a8f96dc78136623b0a616f090"
+                    },
+                    "computeProfiles": [
+                        {
+                            "id": "apple-metal",
+                            "backend": "mps",
+                            "experimental": false
+                        },
+                        {
+                            "id": "nvidia-cuda",
+                            "backend": "cuda",
+                            "experimental": false,
+                            "requiresPytorchIndexUrl": true,
+                            "pytorchIndexUrlDefault": "https://download.pytorch.org/whl/cu126",
+                            "pytorchIndexUrlHint": "https://download.pytorch.org/whl/cu126"
+                        },
+                        {
+                            "id": "amd-rocm",
+                            "backend": "rocm",
+                            "experimental": false,
+                            "requiresPytorchIndexUrl": true,
+                            "pytorchIndexUrlDefault": "https://download.pytorch.org/whl/rocm7.1",
+                            "pytorchIndexUrlHint": "https://download.pytorch.org/whl/rocm7.1"
+                        },
+                        {
+                            "id": "intel-xpu",
+                            "backend": "xpu",
+                            "experimental": true,
+                            "requiresPytorchIndexUrl": true,
+                            "pytorchIndexUrlDefault": "https://download.pytorch.org/whl/xpu",
+                            "pytorchIndexUrlHint": "https://download.pytorch.org/whl/xpu"
+                        },
+                        {
+                            "id": "cpu",
+                            "backend": "cpu",
+                            "experimental": false
+                        },
+                        {
+                            "id": "external",
+                            "backend": "external",
+                            "experimental": false
+                        }
+                    ],
+                    "license": "GPL-3.0"
+                },
+                "n8n": {
+                    "runtime": "node-service",
+                    "provider": "n8n",
+                    "service": "n8n",
+                    "version": "2.23.3",
+                    "baseUrl": "http://127.0.0.1:5679",
+                    "defaultPort": 5679,
+                    "health": {
+                        "kind": "http",
+                        "url": "http://127.0.0.1:5679/healthz"
+                    },
+                    "install": {
+                        "channel": "github-release",
+                        "scriptPolicy": "release-asset-checksum",
+                        "manifestPath": "automation/n8n/manifest.json",
+                        "manifestUrl": format!("{automation_release_download_base}/crawclaw-automation-n8n-manifest.json"),
+                        "scriptUrl": format!("{automation_release_download_base}/crawclaw-automation-n8n-install.sh"),
+                        "publishedAs": "crawclaw-automation-n8n-install.sh",
+                        "sha256": "53513b41f8a3f3669bdc2ed42b30c9d1a592717ad6680e3cd852167ca95f440c"
+                    },
+                    "license": "Sustainable Use License"
                 },
                 "searxng": {
                     "runtime": "python-sidecar",

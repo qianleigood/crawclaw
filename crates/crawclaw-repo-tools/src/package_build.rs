@@ -8,6 +8,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 
 const CANONICAL_PLUGIN_MANIFEST_FILENAME: &str = "crawclaw.plugin.json";
 const GENERATED_BUNDLED_SKILLS_DIR: &str = "bundled-skills";
@@ -37,6 +38,24 @@ struct NativeBinaryPackage {
 pub struct StaticPackageAsset {
     pub src: PathBuf,
     pub dest: PathBuf,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AutomationReleaseAsset {
+    pub runtime_id: String,
+    pub source_path: String,
+    pub dist_path: String,
+    pub release_name: String,
+    pub sha256: String,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AutomationReleaseUploadPlan {
+    pub tag: String,
+    pub assets: Vec<AutomationReleaseAsset>,
+    pub gh_release_upload_args: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -144,6 +163,69 @@ pub fn list_static_package_asset_outputs(
     )
 }
 
+pub fn list_automation_release_assets(
+    root_dir: impl AsRef<Path>,
+) -> Result<Vec<AutomationReleaseAsset>, String> {
+    let root_dir = normalize_root_dir(root_dir.as_ref());
+    automation_release_assets(&root_dir)
+}
+
+pub fn build_automation_release_upload_plan(
+    root_dir: impl AsRef<Path>,
+    tag: impl AsRef<str>,
+) -> Result<AutomationReleaseUploadPlan, String> {
+    let root_dir = normalize_root_dir(root_dir.as_ref());
+    let tag = tag.as_ref().trim();
+    if tag.is_empty() {
+        return Err("automation release upload tag must not be empty".to_string());
+    }
+    let assets = automation_release_assets(&root_dir)?;
+    for asset in &assets {
+        let source_sha = sha256_file(&root_dir.join(&asset.source_path))?;
+        if source_sha != asset.sha256 {
+            return Err(format!(
+                "automation release asset {} source checksum drifted: expected {}, got {}",
+                asset.source_path, asset.sha256, source_sha
+            ));
+        }
+        let dist_path = root_dir.join(&asset.dist_path);
+        if !dist_path.is_file() {
+            return Err(format!(
+                "automation release asset missing from dist: {}. Run `crawclaw-repo-tools build --profile package` or `crawclaw-repo-tools package-postbuild --root <repo-root>` first.",
+                asset.dist_path
+            ));
+        }
+        let dist_sha = sha256_file(&dist_path)?;
+        if dist_sha != asset.sha256 {
+            return Err(format!(
+                "automation release asset {} checksum mismatch: expected {}, got {}",
+                asset.dist_path, asset.sha256, dist_sha
+            ));
+        }
+    }
+
+    let mut gh_release_upload_args = vec![
+        "gh".to_string(),
+        "release".to_string(),
+        "upload".to_string(),
+        tag.to_string(),
+    ];
+    gh_release_upload_args.extend(
+        assets
+            .iter()
+            .map(|asset| format!("{}#{}", asset.dist_path, asset.release_name)),
+    );
+    gh_release_upload_args.push("--repo".to_string());
+    gh_release_upload_args.push("qianleigood/crawclaw".to_string());
+    gh_release_upload_args.push("--clobber".to_string());
+
+    Ok(AutomationReleaseUploadPlan {
+        tag: tag.to_string(),
+        assets,
+        gh_release_upload_args,
+    })
+}
+
 pub fn list_bundled_plugin_pack_artifacts(
     root_dir: impl AsRef<Path>,
 ) -> Result<Vec<String>, String> {
@@ -232,8 +314,107 @@ fn list_static_package_assets(root_dir: &Path) -> Result<Vec<StaticPackageAsset>
             }
         }
     }
+    for asset in automation_release_assets(root_dir)? {
+        assets.push(StaticPackageAsset {
+            src: PathBuf::from(asset.source_path),
+            dest: PathBuf::from(asset.dist_path),
+        });
+    }
     assets.sort_by(|left, right| slash_path(&left.dest).cmp(&slash_path(&right.dest)));
     Ok(assets)
+}
+
+fn automation_release_assets(root_dir: &Path) -> Result<Vec<AutomationReleaseAsset>, String> {
+    let mut assets = Vec::new();
+    for runtime_id in ["comfyui", "n8n"] {
+        let runtime_dir = root_dir.join("automation").join(runtime_id);
+        let manifest_path = runtime_dir.join("manifest.json");
+        if !manifest_path.exists() {
+            continue;
+        }
+        let manifest = read_json(&manifest_path)?;
+        let manifest_release_name =
+            manifest_published_as(&manifest, &["assets", "manifest", "publishedAs"])
+                .unwrap_or_else(|| format!("crawclaw-automation-{runtime_id}-manifest.json"));
+        assets.push(AutomationReleaseAsset {
+            runtime_id: runtime_id.to_string(),
+            source_path: slash_path(
+                &PathBuf::from("automation")
+                    .join(runtime_id)
+                    .join("manifest.json"),
+            ),
+            dist_path: slash_path(
+                &PathBuf::from("dist")
+                    .join("automation")
+                    .join(&manifest_release_name),
+            ),
+            release_name: manifest_release_name,
+            sha256: sha256_file(&manifest_path)?,
+        });
+
+        let script_path = manifest
+            .get("assets")
+            .and_then(Value::as_object)
+            .and_then(|assets| assets.get("installScript"))
+            .and_then(Value::as_object)
+            .and_then(|install_script| install_script.get("path"))
+            .and_then(Value::as_str)
+            .unwrap_or("install.sh");
+        let script_path = safe_manifest_relative_path(script_path)?;
+        let script_release_name =
+            manifest_published_as(&manifest, &["assets", "installScript", "publishedAs"])
+                .unwrap_or_else(|| format!("crawclaw-automation-{runtime_id}-install.sh"));
+        let script_source = runtime_dir.join(&script_path);
+        assets.push(AutomationReleaseAsset {
+            runtime_id: runtime_id.to_string(),
+            source_path: slash_path(
+                &PathBuf::from("automation")
+                    .join(runtime_id)
+                    .join(&script_path),
+            ),
+            dist_path: slash_path(
+                &PathBuf::from("dist")
+                    .join("automation")
+                    .join(&script_release_name),
+            ),
+            release_name: script_release_name,
+            sha256: sha256_file(&script_source)?,
+        });
+    }
+    assets.sort_by(|left, right| left.dist_path.cmp(&right.dist_path));
+    Ok(assets)
+}
+
+fn safe_manifest_relative_path(raw: &str) -> Result<PathBuf, String> {
+    let path = Path::new(raw);
+    if path.as_os_str().is_empty() || path.is_absolute() {
+        return Err(format!("invalid automation asset path: {raw}"));
+    }
+    if path
+        .components()
+        .any(|component| matches!(component, Component::ParentDir | Component::Prefix(_)))
+    {
+        return Err(format!("unsafe automation asset path: {raw}"));
+    }
+    Ok(path.to_path_buf())
+}
+
+fn sha256_file(path: &Path) -> Result<String, String> {
+    let bytes =
+        fs::read(path).map_err(|error| format!("failed to read {}: {error}", path.display()))?;
+    let digest = Sha256::digest(&bytes);
+    Ok(format!("{digest:x}"))
+}
+
+fn manifest_published_as(manifest: &Value, path: &[&str]) -> Option<String> {
+    let mut current = manifest;
+    for key in path {
+        current = current.get(*key)?;
+    }
+    current
+        .as_str()
+        .filter(|value| !value.trim().is_empty())
+        .map(ToOwned::to_owned)
 }
 
 fn is_runtime_migration_filename(name: &str) -> bool {
@@ -900,5 +1081,92 @@ mod tests {
         assert_eq!(build_info["version"], "2026.5.3");
         assert!(build_info.get("commit").is_some());
         assert!(build_info.get("builtAt").and_then(Value::as_str).is_some());
+    }
+
+    #[test]
+    fn stages_automation_release_assets_for_github_upload() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        write_automation_fixture(temp.path(), "n8n", "echo n8n\n");
+        write_automation_fixture(temp.path(), "comfyui", "echo comfyui\n");
+
+        stage_package_postbuild(temp.path()).expect("postbuild");
+
+        let release_assets = list_automation_release_assets(temp.path()).expect("release assets");
+        let release_names = release_assets
+            .iter()
+            .map(|asset| asset.release_name.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            release_names,
+            vec![
+                "crawclaw-automation-comfyui-install.sh",
+                "crawclaw-automation-comfyui-manifest.json",
+                "crawclaw-automation-n8n-install.sh",
+                "crawclaw-automation-n8n-manifest.json",
+            ]
+        );
+        for asset in &release_assets {
+            assert!(
+                temp.path().join(&asset.dist_path).exists(),
+                "{}",
+                asset.dist_path
+            );
+            assert_eq!(
+                asset.sha256,
+                sha256_file(&temp.path().join(&asset.source_path)).expect("source sha")
+            );
+        }
+
+        let static_outputs = list_static_package_asset_outputs(temp.path()).expect("outputs");
+        assert!(static_outputs
+            .iter()
+            .any(|path| path == "dist/automation/crawclaw-automation-n8n-install.sh"));
+        assert!(static_outputs
+            .iter()
+            .any(|path| path == "dist/automation/crawclaw-automation-comfyui-manifest.json"));
+
+        let upload_plan =
+            build_automation_release_upload_plan(temp.path(), "v2026.5.3").expect("upload plan");
+        assert_eq!(upload_plan.tag, "v2026.5.3");
+        assert_eq!(upload_plan.assets, release_assets);
+        assert_eq!(
+            upload_plan.gh_release_upload_args,
+            vec![
+                "gh",
+                "release",
+                "upload",
+                "v2026.5.3",
+                "dist/automation/crawclaw-automation-comfyui-install.sh#crawclaw-automation-comfyui-install.sh",
+                "dist/automation/crawclaw-automation-comfyui-manifest.json#crawclaw-automation-comfyui-manifest.json",
+                "dist/automation/crawclaw-automation-n8n-install.sh#crawclaw-automation-n8n-install.sh",
+                "dist/automation/crawclaw-automation-n8n-manifest.json#crawclaw-automation-n8n-manifest.json",
+                "--repo",
+                "qianleigood/crawclaw",
+                "--clobber",
+            ]
+        );
+    }
+
+    fn write_automation_fixture(root: &Path, runtime_id: &str, script: &str) {
+        let runtime_dir = root.join("automation").join(runtime_id);
+        fs::create_dir_all(&runtime_dir).expect("automation runtime dir");
+        fs::write(runtime_dir.join("install.sh"), script).expect("install script");
+        write_json_if_changed(
+            &runtime_dir.join("manifest.json"),
+            &json!({
+                "runtimeId": runtime_id,
+                "assets": {
+                    "manifest": {
+                        "publishedAs": format!("crawclaw-automation-{runtime_id}-manifest.json")
+                    },
+                    "installScript": {
+                        "path": "install.sh",
+                        "publishedAs": format!("crawclaw-automation-{runtime_id}-install.sh"),
+                        "sha256": sha256_file(&runtime_dir.join("install.sh")).expect("script sha")
+                    }
+                }
+            }),
+        )
+        .expect("automation manifest");
     }
 }

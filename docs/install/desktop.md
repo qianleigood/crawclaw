@@ -57,6 +57,10 @@ runtime/crawclaw/bin/crawclaw-native-plugins
 runtime/crawclaw/runtimes/manifest.json
 runtime/crawclaw/providers/manifest.json
 runtime/crawclaw/plugins/manifest.json
+runtime/crawclaw/automation-assets/comfyui/manifest.json
+runtime/crawclaw/automation-assets/comfyui/install.sh
+runtime/crawclaw/automation-assets/n8n/manifest.json
+runtime/crawclaw/automation-assets/n8n/install.sh
 ```
 
 The packaged app uses this embedded Rust runtime for local Gateway status checks,
@@ -70,6 +74,12 @@ path does not stage JS runtime support or a QuickJS compatibility fallback.
 Desktop speech is intentionally local-first. The desktop package exposes the
 native `qwen3-tts` path for text-to-speech; cloud speech plugins are not part of
 the default desktop Gateway surface.
+
+Automation Runtime Manager uses the packaged `automation-assets` directory to
+install or repair managed local n8n and ComfyUI services. The same installer
+manifests and scripts are also published as versioned GitHub release assets so a
+packaged app can download the matching assets when it needs to refresh its local
+cache.
 
 ## Supported platforms
 

@@ -44,6 +44,10 @@
     "target": "Gateway 协议"
   },
   {
+    "source": "Gateway Protocol",
+    "target": "Gateway 协议"
+  },
+  {
     "source": "Gateway troubleshooting",
     "target": "Gateway 故障排除"
   },
@@ -622,6 +626,18 @@
   {
     "source": "Background tasks",
     "target": "后台任务"
+  },
+  {
+    "source": "Automation Overview",
+    "target": "自动化概览"
+  },
+  {
+    "source": "ComfyUI Tool",
+    "target": "ComfyUI 工具"
+  },
+  {
+    "source": "n8n workflow architecture",
+    "target": "n8n 工作流架构"
   },
   {
     "source": "Runtime lifecycle spine",

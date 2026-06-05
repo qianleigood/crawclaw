@@ -1,9 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::OsStr;
 use std::fs;
-use std::net::SocketAddr;
+use std::io::{Read, Write};
+use std::net::{SocketAddr, SocketAddrV4, TcpStream};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use axum::body::Bytes;
@@ -57,6 +59,7 @@ use crate::runtime_engine::RuntimeLayout;
 
 mod desktop_agent_model;
 mod desktop_agent_routes;
+mod desktop_automation_routes;
 mod desktop_core_routes;
 mod desktop_hindsight_lifecycle;
 mod desktop_logging;
@@ -73,6 +76,10 @@ use self::desktop_agent_model::{
 use self::desktop_agent_routes::{
     select_agent, settings_clear_cache, settings_delete_local_data, settings_diagnostics,
     settings_export_data, settings_reset_state, update_preferences,
+};
+use self::desktop_automation_routes::{
+    install_automation_runtime, refresh_automation_runtime, start_automation_runtime,
+    stop_automation_runtime,
 };
 use self::desktop_core_routes::{
     bootstrap, desktop_state, events, permission_decision, runtime_status, search, select_nav,
@@ -555,7 +562,10 @@ fn merge_automation_runtime_manifest(
     desktop_state: &mut DesktopState,
     runtime_layout: &RuntimeLayout,
 ) {
-    match automation_runtime_summaries_from_manifest_path(&runtime_layout.manifest_path) {
+    match automation_runtime_summaries_from_manifest_path(
+        &runtime_layout.manifest_path,
+        &runtime_layout.runtime_root,
+    ) {
         Ok(runtimes) => {
             desktop_state.automation_workspace.runtimes = runtimes;
         }
@@ -572,6 +582,7 @@ fn merge_automation_runtime_manifest(
 
 fn automation_runtime_summaries_from_manifest_path(
     manifest_path: &Path,
+    runtime_root: &Path,
 ) -> Result<Vec<AutomationRuntimeSummary>, String> {
     if !manifest_path.exists() {
         return Ok(Vec::new());
@@ -589,7 +600,7 @@ fn automation_runtime_summaries_from_manifest_path(
         if let Some(summary) = managed
             .get(runtime_id)
             .and_then(Value::as_object)
-            .map(|runtime| automation_runtime_summary(runtime_id, runtime))
+            .map(|runtime| automation_runtime_summary(runtime_id, runtime, runtime_root))
         {
             runtimes.push(summary);
         }
@@ -600,6 +611,7 @@ fn automation_runtime_summaries_from_manifest_path(
 fn automation_runtime_summary(
     runtime_id: &str,
     runtime: &Map<String, Value>,
+    runtime_root: &Path,
 ) -> AutomationRuntimeSummary {
     let install = runtime
         .get("install")
@@ -622,7 +634,7 @@ fn automation_runtime_summary(
         })
         .unwrap_or_default();
 
-    AutomationRuntimeSummary {
+    let mut summary = AutomationRuntimeSummary {
         id: runtime_id.to_string(),
         name: automation_runtime_name(runtime_id).to_string(),
         status: "notInstalled".to_string(),
@@ -640,7 +652,15 @@ fn automation_runtime_summary(
         install,
         license: manifest_string(runtime, "license"),
         compute_profiles,
-    }
+        health_url: automation_runtime_health_url(runtime),
+        health_status: None,
+        health_detail: None,
+        process_id: None,
+        log_path: None,
+        selected_compute_profile: None,
+    };
+    apply_automation_runtime_local_state(&mut summary, runtime_root);
+    summary
 }
 
 fn automation_runtime_install_summary(
@@ -663,6 +683,255 @@ fn automation_runtime_compute_profile(
             .get("experimental")
             .and_then(Value::as_bool)
             .unwrap_or(false),
+        requires_pytorch_index_url: profile
+            .get("requiresPytorchIndexUrl")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+        pytorch_index_url_default: profile
+            .get("pytorchIndexUrlDefault")
+            .and_then(Value::as_str)
+            .filter(|value| !value.trim().is_empty())
+            .map(ToOwned::to_owned),
+        pytorch_index_url_hint: profile
+            .get("pytorchIndexUrlHint")
+            .and_then(Value::as_str)
+            .filter(|value| !value.trim().is_empty())
+            .map(ToOwned::to_owned),
+    }
+}
+
+fn automation_runtime_health_url(runtime: &Map<String, Value>) -> Option<String> {
+    runtime
+        .get("health")
+        .and_then(Value::as_object)
+        .and_then(|health| health.get("url"))
+        .and_then(Value::as_str)
+        .map(ToOwned::to_owned)
+}
+
+fn apply_automation_runtime_local_state(
+    summary: &mut AutomationRuntimeSummary,
+    runtime_root: &Path,
+) {
+    let runtime_dir = automation_runtime_dir(runtime_root, &summary.id);
+    let runtime_json_path = runtime_dir.join("runtime.json");
+    let log_path = runtime_dir.join("service.log");
+    if log_path.exists() {
+        summary.log_path = Some(log_path.to_string_lossy().to_string());
+    } else {
+        let install_log_path = runtime_dir.join("install.log");
+        if install_log_path.exists() {
+            summary.log_path = Some(install_log_path.to_string_lossy().to_string());
+        }
+    }
+
+    let Some(runtime_json) = fs::read_to_string(&runtime_json_path)
+        .ok()
+        .and_then(|raw| serde_json::from_str::<Value>(&raw).ok())
+    else {
+        return;
+    };
+
+    summary.status = "installed".to_string();
+    summary.detail = "已安装，等待启动。".to_string();
+    if let Some(base_url) = runtime_json.get("baseUrl").and_then(Value::as_str) {
+        summary.base_url = base_url.to_string();
+    }
+    summary.selected_compute_profile = runtime_json
+        .get("computeProfile")
+        .and_then(Value::as_str)
+        .map(ToOwned::to_owned);
+
+    let pid_path = automation_runtime_pid_path(runtime_root, &summary.id);
+    let Some(pid) = fs::read_to_string(&pid_path)
+        .ok()
+        .and_then(|raw| raw.trim().parse::<u32>().ok())
+    else {
+        return;
+    };
+    if automation_runtime_process_is_running(pid) {
+        summary.status = "running".to_string();
+        summary.detail = "服务进程正在运行。".to_string();
+        summary.process_id = Some(pid);
+        apply_automation_runtime_health(summary);
+    } else {
+        let _ = fs::remove_file(pid_path);
+    }
+}
+
+fn apply_automation_runtime_health(summary: &mut AutomationRuntimeSummary) {
+    let Some(health_url) = summary.health_url.as_deref() else {
+        return;
+    };
+    match probe_loopback_http_health(health_url) {
+        Ok(detail) => {
+            summary.health_status = Some("healthy".to_string());
+            summary.health_detail = Some(detail);
+            summary.detail = "服务进程正在运行，健康检查通过。".to_string();
+        }
+        Err(detail) => {
+            summary.health_status = Some("unhealthy".to_string());
+            summary.health_detail = Some(detail);
+            summary.detail = "服务进程正在运行，健康检查未通过。".to_string();
+        }
+    }
+}
+
+fn probe_loopback_http_health(url: &str) -> Result<String, String> {
+    let target = parse_loopback_http_url(url)?;
+    let timeout = Duration::from_millis(500);
+    let mut stream = TcpStream::connect_timeout(&target.addr, timeout)
+        .map_err(|error| format!("connect {}: {error}", target.addr))?;
+    stream
+        .set_read_timeout(Some(timeout))
+        .map_err(|error| format!("set read timeout: {error}"))?;
+    stream
+        .set_write_timeout(Some(timeout))
+        .map_err(|error| format!("set write timeout: {error}"))?;
+    let request = format!(
+        "GET {} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n\r\n",
+        target.path, target.host_header
+    );
+    stream
+        .write_all(request.as_bytes())
+        .map_err(|error| format!("write health request: {error}"))?;
+    let mut response = [0_u8; 256];
+    let len = stream
+        .read(&mut response)
+        .map_err(|error| format!("read health response: {error}"))?;
+    let status_line = std::str::from_utf8(&response[..len])
+        .ok()
+        .and_then(|raw| raw.lines().next())
+        .ok_or_else(|| "health response was not valid HTTP".to_string())?;
+    let status_code = status_line
+        .split_whitespace()
+        .nth(1)
+        .and_then(|value| value.parse::<u16>().ok())
+        .ok_or_else(|| format!("health response had no HTTP status: {status_line}"))?;
+    if (200..400).contains(&status_code) {
+        Ok(format!("HTTP {status_code}"))
+    } else {
+        Err(format!("HTTP {status_code}"))
+    }
+}
+
+struct LoopbackHttpHealthTarget {
+    addr: SocketAddr,
+    host_header: String,
+    path: String,
+}
+
+fn parse_loopback_http_url(url: &str) -> Result<LoopbackHttpHealthTarget, String> {
+    let rest = url
+        .strip_prefix("http://")
+        .ok_or_else(|| format!("unsupported health URL scheme: {url}"))?;
+    let (authority, raw_path) = rest.split_once('/').unwrap_or((rest, ""));
+    let (host, port) = authority
+        .rsplit_once(':')
+        .and_then(|(host, port)| Some((host, port.parse::<u16>().ok()?)))
+        .unwrap_or((authority, 80));
+    if !matches!(host, "127.0.0.1" | "localhost") {
+        return Err(format!("health URL must target loopback: {url}"));
+    }
+    let path = if raw_path.is_empty() {
+        "/".to_string()
+    } else {
+        format!("/{raw_path}")
+    };
+    let host_header = if port == 80 {
+        host.to_string()
+    } else {
+        format!("{host}:{port}")
+    };
+    Ok(LoopbackHttpHealthTarget {
+        addr: SocketAddr::V4(SocketAddrV4::new(std::net::Ipv4Addr::LOCALHOST, port)),
+        host_header,
+        path,
+    })
+}
+
+pub(super) fn refresh_automation_runtime_state(
+    desktop_state: &mut DesktopState,
+    runtime_root: &Path,
+    runtime_id: &str,
+) -> Result<(), String> {
+    let summary = automation_runtime_summary_from_runtime_root(runtime_root, runtime_id)?;
+    if let Some(existing) = desktop_state
+        .automation_workspace
+        .runtimes
+        .iter_mut()
+        .find(|runtime| runtime.id == runtime_id)
+    {
+        *existing = summary;
+    } else {
+        desktop_state.automation_workspace.runtimes.push(summary);
+    }
+    Ok(())
+}
+
+pub(super) fn automation_runtime_summary_from_runtime_root(
+    runtime_root: &Path,
+    runtime_id: &str,
+) -> Result<AutomationRuntimeSummary, String> {
+    if !is_managed_automation_runtime_id(runtime_id) {
+        return Err(format!("Unknown automation runtime: {runtime_id}"));
+    }
+    let manifest_path = runtime_root.join("runtimes").join("manifest.json");
+    let raw = fs::read_to_string(&manifest_path)
+        .map_err(|error| format!("Failed to read automation runtime manifest: {error}"))?;
+    let manifest: Value = serde_json::from_str(&raw)
+        .map_err(|error| format!("Failed to parse automation runtime manifest: {error}"))?;
+    let managed = manifest
+        .get("managedRuntimes")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "Automation runtime manifest has no managedRuntimes".to_string())?;
+    let runtime = managed
+        .get(runtime_id)
+        .and_then(Value::as_object)
+        .ok_or_else(|| format!("Automation runtime manifest has no {runtime_id} entry"))?;
+    Ok(automation_runtime_summary(
+        runtime_id,
+        runtime,
+        runtime_root,
+    ))
+}
+
+pub(super) fn is_managed_automation_runtime_id(runtime_id: &str) -> bool {
+    matches!(runtime_id, "n8n" | "comfyui")
+}
+
+pub(super) fn automation_runtime_dir(runtime_root: &Path, runtime_id: &str) -> PathBuf {
+    runtime_root.join("automation").join(runtime_id)
+}
+
+pub(super) fn automation_runtime_pid_path(runtime_root: &Path, runtime_id: &str) -> PathBuf {
+    automation_runtime_dir(runtime_root, runtime_id).join("service.pid")
+}
+
+pub(super) fn automation_runtime_process_is_running(pid: u32) -> bool {
+    if pid == 0 {
+        return false;
+    }
+    #[cfg(unix)]
+    {
+        std::process::Command::new("kill")
+            .arg("-0")
+            .arg(pid.to_string())
+            .status()
+            .is_ok_and(|status| status.success())
+    }
+    #[cfg(windows)]
+    {
+        std::process::Command::new("tasklist")
+            .args(["/FI", &format!("PID eq {pid}")])
+            .output()
+            .ok()
+            .and_then(|output| String::from_utf8(output.stdout).ok())
+            .is_some_and(|stdout| stdout.contains(&pid.to_string()))
+    }
+    #[cfg(not(any(unix, windows)))]
+    {
+        false
     }
 }
 
@@ -1766,7 +2035,13 @@ fn sync_packaged_runtime_assets(source_root: &Path, target_root: &Path) -> Resul
             target_root.display()
         )
     })?;
-    for dir in ["bin", "channels", "providers", "runtimes"] {
+    for dir in [
+        "automation-assets",
+        "bin",
+        "channels",
+        "providers",
+        "runtimes",
+    ] {
         copy_runtime_dir_if_exists(
             &source_root.join(dir),
             &target_root.join(dir),
@@ -2445,6 +2720,22 @@ fn router(state: GatewayState) -> Router {
         .route("/api/desktop/memory/query", patch(set_memory_query))
         .route("/api/desktop/memory/filter", patch(set_memory_filter))
         .route("/api/desktop/memory/dream/run", post(run_memory_dream))
+        .route(
+            "/api/desktop/automation/runtimes/{runtime_id}/status",
+            get(refresh_automation_runtime),
+        )
+        .route(
+            "/api/desktop/automation/runtimes/{runtime_id}/install",
+            post(install_automation_runtime),
+        )
+        .route(
+            "/api/desktop/automation/runtimes/{runtime_id}/start",
+            post(start_automation_runtime),
+        )
+        .route(
+            "/api/desktop/automation/runtimes/{runtime_id}/stop",
+            post(stop_automation_runtime),
+        )
         .layer(
             CorsLayer::new()
                 .allow_origin(Any)

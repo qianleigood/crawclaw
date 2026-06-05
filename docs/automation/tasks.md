@@ -199,11 +199,11 @@ A sweeper runs every **60 seconds** and handles three things:
 
 ## How tasks relate to other systems
 
-### Tasks and Task Flow
+### Tasks and workflows
 
-[Task Flow](/automation/taskflow) is the flow orchestration layer above background tasks. A single flow may coordinate multiple tasks over its lifetime using managed or mirrored sync modes. Use Desktop or the Gateway API to inspect individual task records and orchestrating flows.
+CrawClaw workflows manage multi-step automation assets and n8n execution bindings. Tasks remain the detached-work ledger for runs, status, notifications, and cleanup. Use Desktop or the Gateway API to inspect task records when a workflow, cron job, subagent, or API operation runs outside the main conversation.
 
-See [Task Flow](/automation/taskflow) for details.
+See [Task Flow](/automation/taskflow) for the compatibility boundary between older task-flow language and current workflows.
 
 ### Tasks and cron
 
@@ -229,7 +229,7 @@ A task's `runId` links to the agent run doing the work. Agent lifecycle events (
 ## Related
 
 - [Automation & Tasks](/automation) — all automation mechanisms at a glance
-- [Task Flow](/automation/taskflow) — flow orchestration above tasks
+- [Task Flow](/automation/taskflow) — compatibility boundary for older task-flow terminology
 - [Scheduled Tasks](/automation/cron-jobs) — scheduling background work
 - [Heartbeat](/gateway/heartbeat) — heartbeat migration notes
 - [Background tasks](/automation/tasks#gateway-api-reference) — API reference

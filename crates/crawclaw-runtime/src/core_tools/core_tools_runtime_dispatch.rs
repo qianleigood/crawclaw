@@ -4,9 +4,7 @@ use super::*;
 pub(super) enum CoreRuntimeToolKind {
     Canvas,
     Config,
-    SendUserMessage,
     Brief,
-    SendUserFile,
     Message,
     Sleep,
     Image,
@@ -14,7 +12,6 @@ pub(super) enum CoreRuntimeToolKind {
     Tts,
     ToolSearch,
     DiscoverSkills,
-    Skill,
     LoadSkill,
     Workflow,
     Workflowize,
@@ -25,9 +22,7 @@ impl CoreRuntimeToolKind {
         match self {
             Self::Canvas => "canvas",
             Self::Config => "Config",
-            Self::SendUserMessage => "SendUserMessage",
             Self::Brief => "Brief",
-            Self::SendUserFile => "SendUserFile",
             Self::Message => "message",
             Self::Sleep => "Sleep",
             Self::Image => "image",
@@ -35,7 +30,6 @@ impl CoreRuntimeToolKind {
             Self::Tts => "tts",
             Self::ToolSearch => "tool_search",
             Self::DiscoverSkills => "discover_skills",
-            Self::Skill => "Skill",
             Self::LoadSkill => "load_skill",
             Self::Workflow => "workflow",
             Self::Workflowize => "workflowize",
@@ -46,9 +40,7 @@ impl CoreRuntimeToolKind {
         match self {
             Self::Canvas => "Canvas control is unavailable in current CrawClaw builds.",
             Self::Config => "Get or set Claude Code configuration settings.",
-            Self::SendUserMessage => "Send a message to the user",
             Self::Brief => "Send a message to the user",
-            Self::SendUserFile => "Send one or more local files to the user.",
             Self::Message => "Send messages and channel actions through Rust outbound delivery.",
             Self::Sleep => "Wait for a specified duration",
             Self::Image => "Describe images through the Rust native media-understanding registry.",
@@ -58,7 +50,6 @@ impl CoreRuntimeToolKind {
                 "Search deferred tools and activate matching schemas for the next model request."
             }
             Self::DiscoverSkills => "Search available skills from the Rust runtime skill roots.",
-            Self::Skill => "Invoke a skill by loading its instructions into the main conversation.",
             Self::LoadSkill => "Load full instructions for an already surfaced skill.",
             Self::Workflow => "Manage local workflow registry entries through the Rust runtime.",
             Self::Workflowize => "Create a local workflow draft through the Rust runtime.",
@@ -89,7 +80,7 @@ impl CoreRuntimeToolKind {
                 "required": ["setting"],
                 "additionalProperties": false
             }),
-            Self::SendUserMessage | Self::Brief => json!({
+            Self::Brief => json!({
                 "type": "object",
                 "properties": {
                     "message": {
@@ -109,34 +100,6 @@ impl CoreRuntimeToolKind {
                 },
                 "required": ["message", "status"],
                 "additionalProperties": false
-            }),
-            Self::SendUserFile => json!({
-                "type": "object",
-                "properties": {
-                    "files": {
-                        "type": "array",
-                        "items": { "type": "string" },
-                        "description": "File paths, absolute or relative to the runtime root, to send to the user."
-                    },
-                    "attachments": {
-                        "type": "array",
-                        "items": { "type": "string" },
-                        "description": "Alias for files."
-                    },
-                    "path": {
-                        "type": "string",
-                        "description": "Single file path to send."
-                    },
-                    "message": {
-                        "type": "string",
-                        "description": "Optional message to send with the files."
-                    },
-                    "status": {
-                        "type": "string",
-                        "enum": ["normal", "proactive"],
-                        "description": "normal when replying to the user, proactive when surfacing an unsolicited update."
-                    }
-                }
             }),
             Self::Message => json!({
                 "type": "object",
@@ -245,21 +208,6 @@ impl CoreRuntimeToolKind {
                     "name": { "type": "string" }
                 }
             }),
-            Self::Skill => json!({
-                "type": "object",
-                "properties": {
-                    "skill": {
-                        "type": "string",
-                        "description": "The skill name. E.g., \"commit\", \"review-pr\", or \"pdf\""
-                    },
-                    "args": {
-                        "type": "string",
-                        "description": "Optional arguments for the skill."
-                    }
-                },
-                "required": ["skill"],
-                "additionalProperties": false
-            }),
             Self::Workflow => json!({
                 "type": "object",
                 "properties": {
@@ -299,9 +247,7 @@ impl CoreRuntimeToolKind {
             Self::Canvas
                 | Self::Image
                 | Self::Pdf
-                | Self::SendUserMessage
                 | Self::Brief
-                | Self::SendUserFile
                 | Self::Sleep
                 | Self::ToolSearch
                 | Self::DiscoverSkills
@@ -354,12 +300,10 @@ impl pi::sdk::Tool for CoreRuntimeTool {
                 .map_err(|error| tool_error(self.kind.name(), error))?,
             CoreRuntimeToolKind::Config => run_config_tool(&self.runtime_root, input)
                 .map_err(|error| tool_error(self.kind.name(), error))?,
-            CoreRuntimeToolKind::SendUserMessage | CoreRuntimeToolKind::Brief => {
+            CoreRuntimeToolKind::Brief => {
                 run_user_message_tool(&self.runtime_root, self.kind.name(), input)
                     .map_err(|error| tool_error(self.kind.name(), error))?
             }
-            CoreRuntimeToolKind::SendUserFile => run_send_user_file_tool(&self.runtime_root, input)
-                .map_err(|error| tool_error(self.kind.name(), error))?,
             CoreRuntimeToolKind::Message => run_message_tool(&self.runtime_root, input)
                 .map_err(|error| tool_error(self.kind.name(), error))?,
             CoreRuntimeToolKind::Sleep => run_sleep_tool(input)
@@ -380,8 +324,6 @@ impl pi::sdk::Tool for CoreRuntimeTool {
                 run_discover_skills_tool(&self.runtime_root, input)
                     .map_err(|error| tool_error(self.kind.name(), error))?
             }
-            CoreRuntimeToolKind::Skill => run_skill_tool(&self.runtime_root, input)
-                .map_err(|error| tool_error(self.kind.name(), error))?,
             CoreRuntimeToolKind::LoadSkill => run_load_skill_tool(&self.runtime_root, input)
                 .map_err(|error| tool_error(self.kind.name(), error))?,
             CoreRuntimeToolKind::Workflow => run_workflow_tool(&self.runtime_root, input)

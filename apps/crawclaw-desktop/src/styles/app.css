@@ -7462,18 +7462,33 @@
 }
 
 .automation-runtime-card__profiles {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 6px;
 }
 
-.automation-runtime-card__profiles span {
-  border: 1px solid var(--border-soft);
-  border-radius: 999px;
+.automation-runtime-card__profiles label {
+  display: grid;
+  gap: 5px;
+}
+
+.automation-runtime-card__profiles label span {
   color: var(--text-secondary);
   font-size: 11px;
-  min-height: 22px;
-  padding: 3px 7px;
+}
+
+.automation-runtime-card__profiles input,
+.automation-runtime-card__profiles select {
+  min-height: 30px;
+}
+
+.automation-runtime-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.automation-runtime-card__actions button {
+  flex: 1;
+  min-width: 0;
 }
 
 .automation-grid {

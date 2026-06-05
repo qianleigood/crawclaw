@@ -327,33 +327,6 @@ fn require_user_message_keys(
     Ok(())
 }
 
-pub(super) fn run_send_user_file_tool(runtime_root: &Path, input: Value) -> Result<Value, String> {
-    let attachments = user_message_attachment_paths(&input);
-    if attachments.is_empty() {
-        return Err("SendUserFile requires at least one file path".to_string());
-    }
-    let mut normalized = input.as_object().cloned().unwrap_or_default();
-    normalized.insert(
-        "message".to_string(),
-        Value::String(string_param(&input, &["message"]).unwrap_or_else(|| {
-            if attachments.len() == 1 {
-                "Sending 1 file.".to_string()
-            } else {
-                format!("Sending {} files.", attachments.len())
-            }
-        })),
-    );
-    normalized.insert(
-        "status".to_string(),
-        Value::String(string_param(&input, &["status"]).unwrap_or_else(|| "normal".to_string())),
-    );
-    normalized.insert(
-        "attachments".to_string(),
-        Value::Array(attachments.into_iter().map(Value::String).collect()),
-    );
-    run_user_message_tool(runtime_root, "SendUserFile", Value::Object(normalized))
-}
-
 pub(super) fn append_tool_jsonl(path: &Path, value: &Value) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|error| error.to_string())?;
@@ -1120,33 +1093,6 @@ pub(super) fn run_load_skill_tool(runtime_root: &Path, input: Value) -> Result<V
         format!("Loaded skill {}.", candidate.name),
         json!({
             "status": "ok",
-            "skill": {
-                "name": candidate.name,
-                "description": candidate.description,
-                "content": candidate.content
-            },
-            "source": "rust-native"
-        }),
-        false,
-    ))
-}
-
-pub(super) fn run_skill_tool(runtime_root: &Path, input: Value) -> Result<Value, String> {
-    require_media_tool_keys(&input, &["skill", "args"], "Skill")?;
-    let skill = required_param_string("Skill", &input, &["skill"])?;
-    let args = input
-        .get("args")
-        .and_then(Value::as_str)
-        .map(str::to_string);
-    let candidate = resolve_skill_candidate(runtime_root, &skill, "Skill")?;
-    record_loaded_skill_state(runtime_root, std::slice::from_ref(&candidate.name))?;
-    Ok(tool_envelope(
-        format!("Launching skill: {}", candidate.name),
-        json!({
-            "success": true,
-            "commandName": candidate.name,
-            "status": "inline",
-            "args": args,
             "skill": {
                 "name": candidate.name,
                 "description": candidate.description,

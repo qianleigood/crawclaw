@@ -1,234 +1,114 @@
 ---
-summary: "Hooks: event-driven automation for commands and lifecycle events"
+summary: "Hooks: Gateway SDK lifecycle callbacks and external webhooks"
 read_when:
-  - You want event-driven automation for /new, /stop, and agent lifecycle events
-  - You want to build, install, or debug hooks
+  - You want to register Claude Code-compatible SDK lifecycle hooks
+  - You want to react to Gateway lifecycle events or external webhooks
 title: "Hooks"
 ---
 
 # Hooks
 
-Hooks are small scripts that run when something happens inside the Gateway. They are automatically discovered from directories and can be inspected with CrawClaw Desktop or the local Gateway API.
+CrawClaw has two active hook surfaces:
 
-There are two kinds of hooks in CrawClaw:
-
-- **Internal hooks** (this page): run inside the Gateway when agent events fire, like `/new`, `/stop`, or lifecycle events.
+- **SDK lifecycle hooks**: Claude Code-compatible callback matchers supplied by an SDK client during Gateway `initialize`. These run through the live SDK control transport and can add context, block or adjust tool calls, and react to lifecycle events.
 - **Webhooks**: external HTTP endpoints that let other systems trigger work in CrawClaw. See [Webhooks](/automation/cron-jobs#webhooks).
 
-Hooks can also be bundled inside plugins. CrawClaw Desktop or the local Gateway API shows both standalone hooks and plugin-managed hooks.
+The older managed or workspace internal hook module loader is not part of the current Rust Gateway runtime. Do not put `HOOK.md` and `handler.ts` files under `~/.crawclaw/hooks` or `<workspace>/hooks` expecting automatic discovery.
 
-## Quick start
+## SDK Lifecycle Hooks
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+SDK lifecycle hooks are registered by sending `hooks` in the Gateway SDK `initialize` request. Each entry is keyed by hook event and contains callback matchers with `hookCallbackIds`.
 
-## Event types
+When a matching event fires, the Gateway sends a `hook_callback` control request back to the connected SDK client. If no live SDK control transport is attached, the Gateway creates a pending hook callback request that an operator client can inspect with `hook_callback.list` and answer with `hook_callback.respond`.
 
-| Event                    | When it fires                                    |
-| ------------------------ | ------------------------------------------------ |
-| `command:new`            | `/new` command issued                            |
-| `command:stop`           | `/stop` command issued                           |
-| `command`                | Any command event (general listener)             |
-| `session:compact:before` | Before compaction summarizes history             |
-| `session:compact:after`  | After compaction completes                       |
-| `session:patch`          | When session properties are modified             |
-| `agent:bootstrap`        | Before workspace bootstrap files are injected    |
-| `gateway:startup`        | After channels start and hooks are loaded        |
-| `message:received`       | Inbound message from any channel                 |
-| `message:transcribed`    | After audio transcription completes              |
-| `message:preprocessed`   | After all media and link understanding completes |
-| `message:sent`           | Outbound message delivered                       |
+For the full control protocol shape, see [Gateway Protocol](/gateway/protocol).
 
-## Writing hooks
+## Supported Events
 
-### Hook structure
+| Event                | When it fires                                                               |
+| -------------------- | --------------------------------------------------------------------------- |
+| `Setup`              | During SDK `initialize`                                                     |
+| `SessionStart`       | Before the first turn in a new Gateway session                              |
+| `UserPromptSubmit`   | Before a submitted user prompt enters the agent run                         |
+| `PreToolUse`         | Immediately before Rust tool execution                                      |
+| `PostToolUse`        | Immediately after a successful tool call                                    |
+| `PostToolUseFailure` | Immediately after a failed tool call                                        |
+| `PermissionRequest`  | During `can_use_tool` permission checks                                     |
+| `PermissionDenied`   | After Gateway permission denial                                             |
+| `Stop`               | After a successful agent turn completes                                     |
+| `StopFailure`        | When a Gateway agent turn fails before completion                           |
+| `SessionEnd`         | Before a session reset clears transcript state                              |
+| `SubagentStart`      | Before an `Agent` or `Task` child run starts                                |
+| `SubagentStop`       | After an `Agent` or `Task` child run stops                                  |
+| `Notification`       | For SDK-facing prompts and hook callback or elicitation failures            |
+| `ConfigChange`       | After `config.set`, `config.apply`, or `config.patch` writes Gateway config |
+| `Elicitation`        | Before an SDK MCP elicitation prompt is shown                               |
+| `ElicitationResult`  | Before an SDK MCP elicitation response is returned                          |
+| `PreCompact`         | Before Gateway compaction                                                   |
+| `PostCompact`        | After Gateway compaction                                                    |
 
-Each hook is a directory containing two files:
+## Hook Responses
 
-```
-my-hook/
-├── HOOK.md          # Metadata + documentation
-└── handler.ts       # Handler implementation
-```
+Callbacks return the Claude Code HookJSONOutput shape. CrawClaw currently consumes these fields:
 
-### HOOK.md format
+| Field                                     | Effect                                                      |
+| ----------------------------------------- | ----------------------------------------------------------- |
+| `continue: false`                         | Blocks the current lifecycle step where blocking is honored |
+| `decision: "block"`                       | Blocks the current lifecycle step with `reason`             |
+| `hookSpecificOutput.additionalContext`    | Adds context for supported events                           |
+| `hookSpecificOutput.initialUserMessage`   | Prepends initial user text for `SessionStart`               |
+| `hookSpecificOutput.updatedInput`         | Replaces tool input for `PreToolUse`                        |
+| `hookSpecificOutput.updatedMCPToolOutput` | Replaces MCP tool output for `PostToolUse`                  |
+| `hookSpecificOutput.decision`             | Allows or denies `PermissionRequest`                        |
+| `hookSpecificOutput.retry`                | Marks `PermissionDenied` as retryable                       |
+| `hookSpecificOutput.action` and `content` | Overrides `Elicitation` or `ElicitationResult`              |
 
-```markdown
----
-name: my-hook
-description: "Short description of what this hook does"
-metadata:
-  { "crawclaw": { "emoji": "🔗", "events": ["command:new"], "requires": { "bins": ["node"] } } }
----
+`PreToolUse`, `PostToolUse`, and `PostToolUseFailure` additional context is returned to the model as a system reminder attached to the related tool result. `Setup` additional context is appended to the main agent system prompt for later runs.
 
-# My Hook
+## Matchers
 
-Detailed documentation goes here.
-```
+Hook matcher strings are matched against event-specific values:
 
-**Metadata fields** (`metadata.crawclaw`):
+| Event family                          | Matcher input      |
+| ------------------------------------- | ------------------ |
+| Tool and permission events            | Tool name          |
+| `SessionStart`                        | Startup source     |
+| `Setup`                               | Trigger            |
+| `PreCompact` and `PostCompact`        | Compaction trigger |
+| `Notification`                        | Notification type  |
+| `SessionEnd`                          | End reason         |
+| `StopFailure`                         | Error text         |
+| `SubagentStart` and `SubagentStop`    | Agent type         |
+| `ConfigChange`                        | Config source      |
+| `Elicitation` and `ElicitationResult` | MCP server name    |
 
-| Field      | Description                                          |
-| ---------- | ---------------------------------------------------- |
-| `emoji`    | Display emoji for CLI                                |
-| `events`   | Array of events to listen for                        |
-| `export`   | Named export to use (defaults to `"default"`)        |
-| `os`       | Required platforms (e.g., `["darwin", "linux"]`)     |
-| `requires` | Required `bins`, `anyBins`, `env`, or `config` paths |
-| `always`   | Bypass eligibility checks (boolean)                  |
-| `install`  | Installation methods                                 |
+An empty matcher or `*` matches all values. Simple `A|B` strings match exact values, and other matcher strings are treated as regular expressions.
 
-### Handler implementation
+## Webhooks
 
-```typescript
-const handler = async (event) => {
-  if (event.type !== "command" || event.action !== "new") {
-    return;
-  }
+Use Webhooks when an external service should trigger CrawClaw over HTTP. Webhook routes, mappings, transforms, and delivery settings live under the `hooks` Gateway configuration keys. See [Webhooks](/automation/cron-jobs#webhooks) and [Configuration](/gateway/configuration-reference#hooks).
 
-  console.log(`[my-hook] New command triggered`);
-  // Your logic here
+## Removed Local Module Loader
 
-  // Optionally send message to user
-  event.messages.push("Hook executed!");
-};
+The generated configuration reference still includes legacy `hooks.internal.*` keys for compatibility, but the current Rust Gateway runtime does not load local TypeScript hook modules from managed or workspace hook directories.
 
-export default handler;
-```
-
-Each event includes: `type`, `action`, `sessionKey`, `timestamp`, `messages` (push to send to user), and `context` (event-specific data).
-
-### Event context highlights
-
-**Command events** (`command:new`): `context.sessionEntry`, `context.previousSessionEntry`, `context.commandSource`, `context.workspaceDir`, `context.cfg`.
-
-**Message events** (`message:received`): `context.from`, `context.content`, `context.channelId`, `context.metadata` (provider-specific data including `senderId`, `senderName`, `guildId`).
-
-**Message events** (`message:sent`): `context.to`, `context.content`, `context.success`, `context.channelId`.
-
-**Message events** (`message:transcribed`): `context.transcript`, `context.from`, `context.channelId`, `context.mediaPath`.
-
-**Message events** (`message:preprocessed`): `context.bodyForAgent` (final enriched body), `context.from`, `context.channelId`.
-
-**Bootstrap events** (`agent:bootstrap`): `context.bootstrapFiles` (mutable array), `context.agentId`.
-
-**Session patch events** (`session:patch`): `context.sessionEntry`, `context.patch` (only changed fields), `context.cfg`. Only privileged clients can trigger patch events.
-
-**Compaction events**: `session:compact:before` includes `messageCount`, `tokenCount`. `session:compact:after` adds `compactedCount`, `summaryLength`, `tokensBefore`, `tokensAfter`.
-
-## Hook discovery
-
-Hooks are discovered from these directories, in order of increasing override precedence:
-
-1. **Managed hooks**: `~/.crawclaw/hooks/` (user-installed, shared across workspaces). Extra directories from `hooks.internal.load.extraDirs` share this precedence.
-2. **Workspace hooks**: `<workspace>/hooks/` (per-agent, disabled by default until explicitly enabled)
-
-Workspace hooks can add new hook names but cannot override managed hooks with the same name.
-
-### Hook modules
-
-Standalone hook-pack install/update commands have been removed from the default product path. Put trusted hook modules in the managed or workspace hook directories, or ship native plugin capabilities for distributable extension behavior.
-
-## Removed bundled hooks
-
-CrawClaw no longer ships TypeScript bundled hook handlers. The old
-`bootstrap-extra-files`, `command-logger`, and `boot-md` handlers were removed
-from the product runtime boundary; use a managed hook module or a workspace hook
-when you need local automation.
-
-## Plugin hooks
-
-Typed Plugin SDK lifecycle hooks have been removed. Plugins no longer register
-`before_tool_call`, `before_agent_reply`, `before_install`, model resolution, or
-message-flow hooks through the removed typed plugin API; use the internal hook and webhook
-systems on this page for operational automation.
-
-## Configuration
-
-```json
-{
-  "hooks": {
-    "internal": {
-      "enabled": true,
-      "entries": {
-        "my-hook": { "enabled": true }
-      }
-    }
-  }
-}
-```
-
-Per-hook environment variables:
-
-```json
-{
-  "hooks": {
-    "internal": {
-      "entries": {
-        "my-hook": {
-          "enabled": true,
-          "env": { "MY_CUSTOM_VAR": "value" }
-        }
-      }
-    }
-  }
-}
-```
-
-Extra hook directories:
-
-```json
-{
-  "hooks": {
-    "internal": {
-      "load": {
-        "extraDirs": ["/path/to/more/hooks"]
-      }
-    }
-  }
-}
-```
-
-<Note>
-The legacy `hooks.internal.handlers` array config format has been removed. Use managed or workspace hook directories for trusted local automation.
-</Note>
-
-## Gateway API reference
-
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
-
-## Best practices
-
-- **Keep handlers fast.** Hooks run during command processing. Fire-and-forget heavy work with `void processInBackground(event)`.
-- **Handle errors gracefully.** Wrap risky operations in try/catch; do not throw so other handlers can run.
-- **Filter events early.** Return immediately if the event type/action is not relevant.
-- **Use specific event keys.** Prefer `"events": ["command:new"]` over `"events": ["command"]` to reduce overhead.
+The removed local module loader used `HOOK.md`, `handler.ts`, `hooks.internal.entries`, and `hooks.internal.load.extraDirs`. Those files and keys should not be used for new automation. Use SDK lifecycle hooks for Gateway lifecycle interception, Webhooks for external triggers, or Rust native plugin capabilities for distributable plugin behavior.
 
 ## Troubleshooting
 
-### Hook not discovered
+### SDK hook not firing
 
-```bash
-# Verify directory structure
-ls -la ~/.crawclaw/hooks/my-hook/
-# Should show: HOOK.md, handler.ts
-```
+1. Confirm the SDK client sent `hooks` during `initialize`.
+2. Confirm the callback id appears in the matcher for the expected event.
+3. Confirm the matcher matches the event-specific value, such as tool name for `PreToolUse`.
+4. Keep the SDK control transport connected, or respond to the pending callback with `hook_callback.respond`.
 
-Use CrawClaw Desktop or the local Gateway API to inspect the discovered hook list.
+### External webhook not firing
 
-### Hook not eligible
-
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
-
-Check for missing binaries (PATH), environment variables, config values, or OS compatibility.
-
-### Hook not executing
-
-1. Verify the hook is enabled: CrawClaw Desktop or the local Gateway API
-2. Restart your gateway process so hooks reload.
-3. Check gateway logs: `./scripts/clawlog.sh | grep hook`
+Check that `hooks.enabled` is set, the request path matches a `hooks.mappings` entry, and the request uses the configured token when one is required.
 
 ## Related
 
-- [Gateway API Reference: hooks](/automation/hooks)
+- [Gateway Protocol](/gateway/protocol)
 - [Webhooks](/automation/cron-jobs#webhooks)
 - [Configuration](/gateway/configuration-reference#hooks)

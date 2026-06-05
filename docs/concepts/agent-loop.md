@@ -122,26 +122,25 @@ debug logs.
 
 ## Hook points (where you can intercept)
 
-CrawClaw has two hook systems:
+CrawClaw's current public hook surface is the Gateway SDK lifecycle hook API.
+Claude Code-compatible SDK clients register callback matchers during
+`initialize`, and the Gateway calls them around session start, prompt submit,
+tool use, permission checks, compaction, sub-agent runs, notifications, and
+session end.
 
-- **Internal hooks** (Gateway hooks): event-driven scripts for commands and lifecycle events.
-- **Gateway runtime hooks**: internal extension points inside the agent/tool lifecycle and gateway pipeline.
+These hooks can add context to supported lifecycle points and can block or adjust
+tool and permission flows. They are not a local TypeScript hook module loader,
+and the removed typed Plugin SDK lifecycle hooks are no longer a third-party
+plugin registration surface.
 
-### Internal hooks (Gateway hooks)
-
-- **`agent:bootstrap`**: runs while building bootstrap files before the system prompt is finalized.
-  Use this to add/remove bootstrap context files.
-- **Command hooks**: `/new`, `/stop`, and other command events (see Hooks doc).
-
-See [Hooks](/automation/hooks) for setup and examples.
+See [Hooks](/automation/hooks) for supported events and callback behavior.
 
 ### Runtime lifecycle
 
 The agent loop still has runtime-owned lifecycle stages for model selection,
 prompt assembly, tool execution, transcript persistence, compaction, and
-outbound delivery. Typed Plugin SDK lifecycle hooks have been removed from the
-public plugin API, so these stages are no longer a third-party plugin
-registration surface.
+outbound delivery. Internal Rust extension points may adapt these stages inside
+the product runtime, but they are not a public plugin or local script API.
 
 ## Streaming + partial replies
 
@@ -243,7 +242,7 @@ longer treats every critical result as the same generic block.
 ## Related
 
 - [Tools](/tools) — available agent tools
-- [Hooks](/automation/hooks) — event-driven scripts triggered by agent lifecycle events
+- [Hooks](/automation/hooks) — SDK lifecycle hooks and webhooks
 - [Compaction](/concepts/compaction) — how long conversations are summarized
 - [Exec Approvals](/tools/exec-approvals) — approval gates for shell commands
 - [Thinking](/tools/thinking) — thinking/reasoning level configuration

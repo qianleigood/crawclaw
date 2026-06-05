@@ -1,4 +1,5 @@
 import type {
+  AutomationWorkspaceState,
   DesktopState,
   PluginSkill,
   PluginTool,
@@ -41,6 +42,7 @@ export function createDesktopUnavailableState(detail = '正在连接本机 Gatew
       selectedAgentId: '',
       agents: [],
     },
+    automationWorkspace: fallbackAutomationWorkspaceState(),
     memoryWorkspace: {
       selectedAgentId: '',
       selectedItemId: '',
@@ -120,6 +122,81 @@ export function createDesktopUnavailableState(detail = '正在连接本机 Gatew
       status: 'denied',
     },
     searchSuggestions: [],
+  }
+}
+
+function fallbackAutomationWorkspaceState(): AutomationWorkspaceState {
+  return {
+    runtimes: [
+      {
+        baseUrl: 'http://127.0.0.1:5679',
+        computeProfiles: [],
+        defaultPort: 5679,
+        detail: '等待本机 Gateway 返回 Automation Runtime Manager manifest。',
+        healthUrl: 'http://127.0.0.1:5679/healthz',
+        id: 'n8n',
+        install: {
+          channel: 'github-release',
+          manifestPath: 'automation/n8n/manifest.json',
+          scriptPolicy: 'release-asset-checksum',
+        },
+        license: 'Sustainable Use License',
+        mode: 'managed',
+        name: 'n8n',
+        provider: 'n8n',
+        runtime: 'node-service',
+        service: 'n8n',
+        status: 'unavailable',
+      },
+      {
+        baseUrl: 'http://127.0.0.1:8188',
+        computeProfiles: [
+          { backend: 'mps', experimental: false, id: 'apple-metal', requiresPytorchIndexUrl: false },
+          {
+            backend: 'cuda',
+            experimental: false,
+            id: 'nvidia-cuda',
+            pytorchIndexUrlDefault: 'https://download.pytorch.org/whl/cu126',
+            pytorchIndexUrlHint: 'https://download.pytorch.org/whl/cu126',
+            requiresPytorchIndexUrl: true,
+          },
+          {
+            backend: 'rocm',
+            experimental: true,
+            id: 'amd-rocm',
+            pytorchIndexUrlDefault: 'https://download.pytorch.org/whl/rocm7.1',
+            pytorchIndexUrlHint: 'https://download.pytorch.org/whl/rocm7.1',
+            requiresPytorchIndexUrl: true,
+          },
+          {
+            backend: 'xpu',
+            experimental: true,
+            id: 'intel-xpu',
+            pytorchIndexUrlDefault: 'https://download.pytorch.org/whl/xpu',
+            pytorchIndexUrlHint: 'https://download.pytorch.org/whl/xpu',
+            requiresPytorchIndexUrl: true,
+          },
+          { backend: 'cpu', experimental: false, id: 'cpu', requiresPytorchIndexUrl: false },
+          { backend: 'external', experimental: false, id: 'external', requiresPytorchIndexUrl: false },
+        ],
+        defaultPort: 8188,
+        detail: '等待本机 Gateway 返回 Automation Runtime Manager manifest。',
+        healthUrl: 'http://127.0.0.1:8188/system_stats',
+        id: 'comfyui',
+        install: {
+          channel: 'github-release',
+          manifestPath: 'automation/comfyui/manifest.json',
+          scriptPolicy: 'release-asset-checksum',
+        },
+        license: 'GPL-3.0',
+        mode: 'managed',
+        name: 'ComfyUI',
+        provider: 'comfyui',
+        runtime: 'python-service',
+        service: 'comfyui',
+        status: 'unavailable',
+      },
+    ],
   }
 }
 

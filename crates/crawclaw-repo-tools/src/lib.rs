@@ -49,9 +49,10 @@ pub use npm_release::{
     RootNpmReleaseCheckResult,
 };
 pub use package_build::{
+    build_automation_release_upload_plan, list_automation_release_assets,
     list_bundled_plugin_pack_artifacts, list_static_package_asset_outputs,
     stage_native_binary_artifacts, stage_package_postbuild, write_package_build_metadata,
-    StaticPackageAsset,
+    AutomationReleaseAsset, AutomationReleaseUploadPlan, StaticPackageAsset,
 };
 pub use package_release::{
     collect_package_release_check_errors, format_package_release_check_errors, run_package_prepack,

@@ -762,6 +762,18 @@ pub struct AutomationRuntimeSummary {
     pub install: AutomationRuntimeInstallSummary,
     pub license: String,
     pub compute_profiles: Vec<AutomationRuntimeComputeProfile>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub health_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub health_status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub health_detail: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub process_id: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub log_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_compute_profile: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -778,6 +790,12 @@ pub struct AutomationRuntimeComputeProfile {
     pub id: String,
     pub backend: String,
     pub experimental: bool,
+    #[serde(default)]
+    pub requires_pytorch_index_url: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pytorch_index_url_default: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pytorch_index_url_hint: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

@@ -78,9 +78,9 @@ default: `once`).
 Sub-agent and cron sessions also stay on the same single-file bootstrap:
 `AGENTS.md`.
 
-Internal hooks can intercept this step via `agent:bootstrap` to mutate or replace
-the injected bootstrap files when a workflow truly needs more than the default
-single-file bootstrap.
+The current public hook surface does not mutate the bootstrap file list. SDK
+`Setup`, `SessionStart`, and `UserPromptSubmit` hooks can add context around a
+run, but bootstrap file selection remains owned by the runtime.
 
 To inspect how much each injected file contributes (raw vs injected, truncation, plus tool schema overhead), use `/context list` or `/context detail`. See [Context](/concepts/context).
 

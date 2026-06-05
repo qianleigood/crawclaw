@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "runtimeId": "n8n",
+  "name": "n8n",
+  "description": "Managed n8n runtime for CrawClaw Automation Runtime Manager.",
+  "runtime": "node-service",
+  "provider": "n8n",
+  "service": "n8n",
+  "version": "2.23.3",
+  "license": "Sustainable Use License",
+  "defaultPort": 5679,
+  "baseUrl": "http://127.0.0.1:5679",
+  "install": {
+    "channel": "github-release",
+    "scriptPolicy": "release-asset-checksum",
+    "script": "install.sh"
+  },
+  "assets": {
+    "manifest": {
+      "publishedAs": "crawclaw-automation-n8n-manifest.json",
+      "url": "https://github.com/qianleigood/crawclaw/releases/download/v2026.5.3/crawclaw-automation-n8n-manifest.json"
+    },
+    "installScript": {
+      "path": "install.sh",
+      "publishedAs": "crawclaw-automation-n8n-install.sh",
+      "url": "https://github.com/qianleigood/crawclaw/releases/download/v2026.5.3/crawclaw-automation-n8n-install.sh",
+      "sha256": "53513b41f8a3f3669bdc2ed42b30c9d1a592717ad6680e3cd852167ca95f440c"
+    }
+  },
+  "environment": ["CRAWCLAW_AUTOMATION_HOME", "N8N_VERSION", "N8N_PORT"],
+  "health": {
+    "kind": "http",
+    "url": "http://127.0.0.1:5679/healthz"
+  }
+}

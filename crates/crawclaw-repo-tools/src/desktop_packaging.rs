@@ -153,6 +153,7 @@ pub fn stage_desktop_tauri_runtime(
     )?;
 
     crawclaw_runtime::stage_desktop_runtime_manifests(&paths.runtime_root)?;
+    stage_automation_runtime_assets(root_dir, &paths.runtime_root)?;
     copy_release_binaries(&paths)?;
     stage_hindsight_embed_runtime(&paths.runtime_root, &envs)?;
     stage_searxng_runtime(root_dir, &paths.runtime_root, &envs)?;
@@ -331,6 +332,21 @@ fn copy_release_binaries(paths: &DesktopRuntimeStagePaths) -> Result<(), String>
             )
         })?;
         set_executable(dest)?;
+    }
+    Ok(())
+}
+
+fn stage_automation_runtime_assets(root_dir: &Path, runtime_root: &Path) -> Result<(), String> {
+    for runtime_id in ["comfyui", "n8n"] {
+        for file_name in ["install.sh", "manifest.json"] {
+            copy_file(
+                &root_dir.join("automation").join(runtime_id).join(file_name),
+                &runtime_root
+                    .join("automation-assets")
+                    .join(runtime_id)
+                    .join(file_name),
+            )?;
+        }
     }
     Ok(())
 }
@@ -696,6 +712,7 @@ fn assert_runtime_tree(
     assert_hindsight_embed_runtime_tree(&paths.runtime_root, label)?;
     assert_searxng_runtime_tree(&paths.runtime_root, label)?;
     assert_agent_browser_runtime_tree(&paths.runtime_root, label)?;
+    assert_automation_runtime_assets(&paths.runtime_root, label)?;
     assert_no_default_js_plugin_runtime(
         &runtime_manifest,
         &format!("{label} managed runtime manifest"),
@@ -770,6 +787,21 @@ fn assert_searxng_runtime_tree(runtime_root: &Path, label: &str) -> Result<(), S
         "AGPL-3.0-or-later",
         &format!("{label} SearXNG license"),
     )
+}
+
+fn assert_automation_runtime_assets(runtime_root: &Path, label: &str) -> Result<(), String> {
+    for runtime_id in ["comfyui", "n8n"] {
+        let asset_dir = runtime_root.join("automation-assets").join(runtime_id);
+        assert_file(
+            &asset_dir.join("manifest.json"),
+            &format!("{label} {runtime_id} automation manifest"),
+        )?;
+        assert_executable_file(
+            &asset_dir.join("install.sh"),
+            &format!("{label} {runtime_id} automation installer"),
+        )?;
+    }
+    Ok(())
 }
 
 fn assert_agent_browser_runtime_tree(runtime_root: &Path, label: &str) -> Result<(), String> {

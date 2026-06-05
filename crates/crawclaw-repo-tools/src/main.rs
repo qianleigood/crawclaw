@@ -33,6 +33,7 @@ async fn main() {
     }
 
     match args.remove(0).as_str() {
+        "automation-release-assets" => automation_release_assets(args),
         "build" => build(args),
         "check" => check(args),
         "desktop-check" => desktop_check(args),
@@ -1338,6 +1339,9 @@ fn package_artifacts(args: Vec<String>) {
     let mut index = 0;
     while index < args.len() {
         match args[index].as_str() {
+            "--" => {
+                index += 1;
+            }
             "--json" => {
                 json_output = true;
                 index += 1;
@@ -1380,13 +1384,144 @@ fn package_artifacts(args: Vec<String>) {
                 std::process::exit(1);
             }
         };
+    let automation_release_assets =
+        match crawclaw_repo_tools::list_automation_release_assets(&root_dir) {
+            Ok(value) => value,
+            Err(error) => {
+                eprintln!("{error}");
+                std::process::exit(1);
+            }
+        };
     println!(
         "{}",
         json!({
+            "automationReleaseAssets": automation_release_assets,
             "bundledPluginPackArtifacts": bundled_plugin_pack_artifacts,
             "staticPackageAssetOutputs": static_package_asset_outputs,
         })
     );
+}
+
+fn automation_release_assets(args: Vec<String>) {
+    let mut allow_tag_mismatch = false;
+    let mut root: Option<PathBuf> = None;
+    let mut tag: Option<String> = None;
+    let mut json_output = false;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--" => {
+                index += 1;
+            }
+            "--json" => {
+                json_output = true;
+                index += 1;
+            }
+            "--allow-tag-mismatch" => {
+                allow_tag_mismatch = true;
+                index += 1;
+            }
+            "--root" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--root requires a value");
+                    std::process::exit(2);
+                };
+                root = Some(PathBuf::from(value));
+                index += 2;
+            }
+            "--tag" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--tag requires a value");
+                    std::process::exit(2);
+                };
+                tag = Some(value.clone());
+                index += 2;
+            }
+            other => {
+                eprintln!("unsupported automation-release-assets option: {other}");
+                std::process::exit(2);
+            }
+        }
+    }
+    let Some(root_dir) = root else {
+        eprintln!(
+            "usage: crawclaw-repo-tools automation-release-assets --root <repo-root> --tag <release-tag> [--json] [--allow-tag-mismatch]"
+        );
+        std::process::exit(2);
+    };
+    let Some(tag) = tag else {
+        eprintln!(
+            "usage: crawclaw-repo-tools automation-release-assets --root <repo-root> --tag <release-tag> [--json] [--allow-tag-mismatch]"
+        );
+        std::process::exit(2);
+    };
+    if !allow_tag_mismatch {
+        match ensure_git_tag_matches_head(&root_dir, &tag) {
+            Ok(()) => {}
+            Err(error) => {
+                eprintln!("{error}");
+                std::process::exit(1);
+            }
+        }
+    }
+    let plan = match crawclaw_repo_tools::build_automation_release_upload_plan(&root_dir, tag) {
+        Ok(plan) => plan,
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    };
+    if json_output {
+        println!("{}", json!(plan));
+        return;
+    }
+    println!(
+        "{}",
+        plan.gh_release_upload_args
+            .iter()
+            .map(|arg| shell_quote(arg))
+            .collect::<Vec<_>>()
+            .join(" ")
+    );
+}
+
+fn ensure_git_tag_matches_head(root_dir: &Path, tag: &str) -> Result<(), String> {
+    let head = git_output(root_dir, &["rev-parse", "HEAD"])?;
+    let tag_commit = git_output(root_dir, &["rev-list", "-1", tag])?;
+    if head == tag_commit {
+        return Ok(());
+    }
+    Err(format!(
+        "automation release assets tag mismatch: {tag} points to {tag_commit}, but HEAD is {head}. Check out the release tag or pass --allow-tag-mismatch only for an intentional backfill."
+    ))
+}
+
+fn git_output(root_dir: &Path, args: &[&str]) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(args)
+        .current_dir(root_dir)
+        .output()
+        .map_err(|error| format!("failed to run git {}: {error}", args.join(" ")))?;
+    if !output.status.success() {
+        return Err(format!(
+            "git {} failed: {}",
+            args.join(" "),
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+fn shell_quote(value: &str) -> String {
+    if value.is_empty() {
+        return "''".to_string();
+    }
+    if value.chars().all(|ch| {
+        ch.is_ascii_alphanumeric() || matches!(ch, '/' | '.' | '_' | '-' | ':' | '#' | '=')
+    }) {
+        return value.to_string();
+    }
+    format!("'{}'", value.replace('\'', "'\"'\"'"))
 }
 
 fn repo_check_ts_loc(args: Vec<String>) {
@@ -2134,6 +2269,65 @@ fn runtime_root() -> PathBuf {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-repo-tools --worker | check --profile <local|ci|rust-core|desktop-renderer|docs-core|docs-hosted> [--root <repo-root>] | build --profile <package|strict-smoke|desktop-renderer> [--root <repo-root>] | release-check [--root <repo-root>] | desktop-renderer <dev|build|tauri-dev|tauri-build> [--root <repo-root>] | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | docs-check-i18n-glossary [--root <repo-root>] [--base <rev>] [--head <rev>] | docs-check-links [--root <repo-root>] [--anchors] | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-plugin-dependency-plan [--check|--write] [--json-output <path>] [--jsonl-output <path>] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | emit-rust-tool-catalog --output <path> [--check|--write] | ghsa-patch --ghsa <GHSA-id-or-url> --summary <text> --severity <level> --description-file <path> --vulnerable-version-range <range> --patched-versions <range-or-null> | github-labels-sync [--root <repo-root>] [--check] | npm-package-metadata --package-dir <package-dir> | npm-publish-plan [--root <repo-root>|--package-dir <package-dir>|--version <version>] [--root-package] [--requested-tag <tag>] [--current-beta-version <version>] [--publish-mode <mode>] | npm-release-check [--root <repo-root>] | npm-postpublish-verify <version> | plugin-npm-release-check [--root <repo-root>] [plugin release options] | plugin-npm-release-plan [--root <repo-root>] [plugin release options] | plugins-sync [--root <repo-root>] | run-oxlint [args...] | run-tsgo [args...] | run-typecheck [args...] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | package-build-native-artifacts --root <repo-root> | package-prepack --root <repo-root> | package-release-check --root <repo-root> | package-write-build-metadata --root <repo-root> [--build-info] | repo-check-no-conflict-markers [--root <repo-root>] | repo-check-runtime-module-boundaries [--root <repo-root>] [--json] | repo-check-plugin-extension-import-boundary [--root <repo-root>] [--json] | repo-check-no-extension-src-imports [--root <repo-root>] | repo-check-no-register-http-handler [--root <repo-root>] | repo-check-web-fetch-provider-boundaries [--root <repo-root>] [--json] | repo-check-web-search-provider-boundaries [--root <repo-root>] [--json] | repo-check-webhook-auth-body-order [--root <repo-root>] | repo-check-ts-loc --root <repo-root> --max <lines> | test-workspace [cargo-test-filter...] | tool <name> [json-input]"
+        "Usage: crawclaw-repo-tools --worker | check --profile <local|ci|rust-core|desktop-renderer|docs-core|docs-hosted> [--root <repo-root>] | build --profile <package|strict-smoke|desktop-renderer> [--root <repo-root>] | release-check [--root <repo-root>] | desktop-renderer <dev|build|tauri-dev|tauri-build> [--root <repo-root>] | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | docs-check-i18n-glossary [--root <repo-root>] [--base <rev>] [--head <rev>] | docs-check-links [--root <repo-root>] [--anchors] | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-plugin-dependency-plan [--check|--write] [--json-output <path>] [--jsonl-output <path>] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | emit-rust-tool-catalog --output <path> [--check|--write] | ghsa-patch --ghsa <GHSA-id-or-url> --summary <text> --severity <level> --description-file <path> --vulnerable-version-range <range> --patched-versions <range-or-null> | github-labels-sync [--root <repo-root>] [--check] | npm-package-metadata --package-dir <package-dir> | npm-publish-plan [--root <repo-root>|--package-dir <package-dir>|--version <version>] [--root-package] [--requested-tag <tag>] [--current-beta-version <version>] [--publish-mode <mode>] | npm-release-check [--root <repo-root>] | npm-postpublish-verify <version> | plugin-npm-release-check [--root <repo-root>] [plugin release options] | plugin-npm-release-plan [--root <repo-root>] [plugin release options] | plugins-sync [--root <repo-root>] | run-oxlint [args...] | run-tsgo [args...] | run-typecheck [args...] | automation-release-assets --root <repo-root> --tag <release-tag> [--json] [--allow-tag-mismatch] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | package-build-native-artifacts --root <repo-root> | package-prepack --root <repo-root> | package-release-check --root <repo-root> | package-write-build-metadata --root <repo-root> [--build-info] | repo-check-no-conflict-markers [--root <repo-root>] | repo-check-runtime-module-boundaries [--root <repo-root>] [--json] | repo-check-plugin-extension-import-boundary [--root <repo-root>] [--json] | repo-check-no-extension-src-imports [--root <repo-root>] | repo-check-no-register-http-handler [--root <repo-root>] | repo-check-web-fetch-provider-boundaries [--root <repo-root>] [--json] | repo-check-web-search-provider-boundaries [--root <repo-root>] [--json] | repo-check-webhook-auth-body-order [--root <repo-root>] | repo-check-ts-loc --root <repo-root> --max <lines> | test-workspace [cargo-test-filter...] | tool <name> [json-input]"
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn automation_release_assets_accepts_tag_at_head() {
+        let temp = init_git_repo();
+        write_and_commit(temp.path(), "first", "one");
+        git(temp.path(), &["tag", "vtest"]);
+
+        ensure_git_tag_matches_head(temp.path(), "vtest").expect("tag at HEAD");
+    }
+
+    #[test]
+    fn automation_release_assets_rejects_stale_tag() {
+        let temp = init_git_repo();
+        write_and_commit(temp.path(), "first", "one");
+        git(temp.path(), &["tag", "vtest"]);
+        write_and_commit(temp.path(), "second", "two");
+
+        let error = ensure_git_tag_matches_head(temp.path(), "vtest").expect_err("stale tag");
+        assert!(error.contains("tag mismatch"), "{error}");
+        assert!(error.contains("vtest"), "{error}");
+        assert!(error.contains("--allow-tag-mismatch"), "{error}");
+    }
+
+    fn init_git_repo() -> tempfile::TempDir {
+        let temp = tempfile::tempdir().expect("tempdir");
+        git(temp.path(), &["init", "-q"]);
+        git(temp.path(), &["config", "user.name", "CrawClaw Test"]);
+        git(
+            temp.path(),
+            &["config", "user.email", "test@example.invalid"],
+        );
+        temp
+    }
+
+    fn write_and_commit(root: &Path, message: &str, contents: &str) {
+        fs::write(root.join("file.txt"), contents).expect("write file");
+        git(root, &["add", "file.txt"]);
+        git(root, &["commit", "-q", "-m", message]);
+    }
+
+    fn git(root: &Path, args: &[&str]) {
+        let output = Command::new("git")
+            .args(args)
+            .current_dir(root)
+            .output()
+            .unwrap_or_else(|error| panic!("git {} failed to run: {error}", args.join(" ")));
+        assert!(
+            output.status.success(),
+            "git {} failed: {}",
+            args.join(" "),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
 }

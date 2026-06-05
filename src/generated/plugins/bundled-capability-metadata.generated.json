@@ -194,6 +194,18 @@
       "toolNames": []
     },
     {
+      "pluginId": "minimax-mcp",
+      "providerIds": [],
+      "webFetchProviderIds": [],
+      "webSearchProviderIds": [],
+      "toolNames": [
+        "generate_video",
+        "image_to_video",
+        "text_to_image",
+        "understand_image"
+      ]
+    },
+    {
       "pluginId": "mistral",
       "providerIds": [
         "mistral"
@@ -2206,12 +2218,23 @@
         },
         "providerAuthChoices": [
           {
+            "choiceHint": "Pay-as-you-go endpoint - api.xiaomimimo.com",
             "choiceId": "xiaomi-api-key",
             "choiceLabel": "Xiaomi API key",
-            "groupHint": "API key",
+            "groupHint": "API key / Token Plan",
             "groupId": "xiaomi",
             "groupLabel": "Xiaomi",
             "method": "api-key",
+            "provider": "xiaomi"
+          },
+          {
+            "choiceHint": "Paste the OpenAI-compatible Base URL from Subscription; use a tp- key.",
+            "choiceId": "xiaomi-token-plan",
+            "choiceLabel": "Xiaomi Token Plan",
+            "groupHint": "API key / Token Plan",
+            "groupId": "xiaomi",
+            "groupLabel": "Xiaomi",
+            "method": "token-plan",
             "provider": "xiaomi"
           }
         ],

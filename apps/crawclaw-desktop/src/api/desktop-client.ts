@@ -7,6 +7,7 @@ import type {
   AddVoiceMessageInput,
   AddWorkflowMessageInput,
   ArchiveMemoryItemInput,
+  AutomationRuntimeInstallInput,
   BootstrapResponse,
   CreateAgentInput,
   CreateMemoryItemInput,
@@ -214,6 +215,36 @@ export async function addVoiceMessage(input: AddVoiceMessageInput): Promise<Desk
 export async function addWorkflowMessage(input: AddWorkflowMessageInput): Promise<DesktopState> {
   return mutateDesktopState('/api/desktop/messages/workflows', {
     body: input,
+    method: 'POST',
+  })
+}
+
+export async function refreshAutomationRuntime(runtimeId: string): Promise<DesktopState> {
+  const context = await ensureContext()
+  return requestDesktopState(
+    context,
+    `/api/desktop/automation/runtimes/${encodeURIComponent(runtimeId)}/status`,
+  )
+}
+
+export async function installAutomationRuntime(
+  runtimeId: string,
+  input: AutomationRuntimeInstallInput = {},
+): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/automation/runtimes/${encodeURIComponent(runtimeId)}/install`, {
+    body: input,
+    method: 'POST',
+  })
+}
+
+export async function startAutomationRuntime(runtimeId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/automation/runtimes/${encodeURIComponent(runtimeId)}/start`, {
+    method: 'POST',
+  })
+}
+
+export async function stopAutomationRuntime(runtimeId: string): Promise<DesktopState> {
+  return mutateDesktopState(`/api/desktop/automation/runtimes/${encodeURIComponent(runtimeId)}/stop`, {
     method: 'POST',
   })
 }

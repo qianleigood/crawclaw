@@ -234,6 +234,7 @@ fn write_release_fixture(root: &Path, options: FixtureOptions) {
         &paths.runtime_root,
         options.extra_agent_browser_platform_binary,
     );
+    write_automation_runtime_assets(&paths.runtime_root);
 
     if options.node_runtime_entrypoint {
         fs::write(paths.runtime_root.join("crawclaw.mjs"), "export {};\n").expect("node entry");
@@ -242,6 +243,27 @@ fn write_release_fixture(root: &Path, options: FixtureOptions) {
         let sdk_dir = paths.runtime_root.join("dist/plugin-sdk");
         fs::create_dir_all(&sdk_dir).expect("sdk dir");
         fs::write(sdk_dir.join("core.js"), "export {};\n").expect("sdk artifact");
+    }
+}
+
+fn write_automation_runtime_assets(runtime_root: &Path) {
+    for runtime_id in ["comfyui", "n8n"] {
+        let asset_dir = runtime_root.join("automation-assets").join(runtime_id);
+        fs::create_dir_all(&asset_dir).expect("automation asset dir");
+        write_executable(&asset_dir.join("install.sh"));
+        write_json(
+            asset_dir.join("manifest.json"),
+            &json!({
+                "runtimeId": runtime_id,
+                "assets": {
+                    "installScript": {
+                        "path": "install.sh",
+                        "publishedAs": format!("crawclaw-automation-{runtime_id}-install.sh"),
+                        "sha256": "fixture"
+                    }
+                }
+            }),
+        );
     }
 }
 

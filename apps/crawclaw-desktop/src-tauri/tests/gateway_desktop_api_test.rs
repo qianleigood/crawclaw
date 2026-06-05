@@ -1,5 +1,5 @@
 use std::fs;
-use std::net::SocketAddr;
+use std::net::{SocketAddr, TcpListener};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
@@ -7,6 +7,7 @@ use crawclaw_desktop::gateway::desktop_api::{
     is_loopback_addr, start_gateway_server, GatewayConfig,
 };
 use crawclaw_desktop::runtime_engine::RuntimeLayout;
+use sha2::{Digest, Sha256};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 const TEST_HTTP_READ_TIMEOUT: Duration = Duration::from_secs(30);
@@ -483,15 +484,386 @@ esac
     let profiles = comfyui["computeProfiles"]
         .as_array()
         .expect("ComfyUI compute profiles");
-    assert!(profiles
-        .iter()
-        .any(|profile| profile["id"] == "nvidia-cuda" && profile["backend"] == "cuda"));
+    assert!(profiles.iter().any(|profile| profile["id"] == "nvidia-cuda"
+        && profile["backend"] == "cuda"
+        && profile["requiresPytorchIndexUrl"] == true
+        && profile["pytorchIndexUrlDefault"] == "https://download.pytorch.org/whl/cu126"
+        && profile["pytorchIndexUrlHint"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("download.pytorch.org/whl/cu")));
     assert!(profiles
         .iter()
         .any(|profile| profile["id"] == "apple-metal" && profile["backend"] == "mps"));
     assert!(profiles
         .iter()
         .any(|profile| profile["id"] == "external" && profile["backend"] == "external"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_automation_runtime_lifecycle_installs_starts_and_stops_managed_runtime() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-automation-runtime-lifecycle",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    crawclaw_runtime::stage_desktop_runtime_manifests(&runtime_layout.runtime_root)
+        .expect("stage managed runtime manifest");
+    write_automation_asset_installer(
+        &runtime_layout,
+        "n8n",
+        r#"#!/usr/bin/env bash
+set -euo pipefail
+
+runtime_dir="$CRAWCLAW_AUTOMATION_HOME/n8n"
+mkdir -p "$runtime_dir"
+cat > "$runtime_dir/start.sh" <<'SCRIPT'
+#!/bin/sh
+trap 'exit 0' TERM INT
+while true; do
+  sleep 1
+done
+SCRIPT
+chmod +x "$runtime_dir/start.sh"
+cat > "$runtime_dir/runtime.json" <<JSON
+{
+  "runtimeId": "n8n",
+  "baseUrl": "http://127.0.0.1:5679",
+  "startScript": "$runtime_dir/start.sh",
+  "installedAt": "2026-06-05T00:00:00Z"
+}
+JSON
+"#,
+    );
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, body) = post_desktop_json(
+        server.addr,
+        "/api/desktop/automation/runtimes/n8n/install",
+        "{}",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let mut state: serde_json::Value = serde_json::from_str(&body).expect("install state json");
+    assert_eq!(automation_runtime(&state, "n8n")["status"], "installed");
+
+    let (status, body) = post_desktop_json(
+        server.addr,
+        "/api/desktop/automation/runtimes/n8n/start",
+        "{}",
+    )
+    .await;
+    assert_eq!(status, 200);
+    state = serde_json::from_str(&body).expect("start state json");
+    let runtime = automation_runtime(&state, "n8n");
+    assert_eq!(runtime["status"], "running");
+    assert!(runtime["processId"].as_u64().is_some());
+    assert!(runtime_layout
+        .runtime_root
+        .join("automation")
+        .join("n8n")
+        .join("service.pid")
+        .exists());
+
+    let (status, body) = post_desktop_json(
+        server.addr,
+        "/api/desktop/automation/runtimes/n8n/stop",
+        "{}",
+    )
+    .await;
+    assert_eq!(status, 200);
+    state = serde_json::from_str(&body).expect("stop state json");
+    let runtime = automation_runtime(&state, "n8n");
+    assert_eq!(runtime["status"], "installed");
+    assert!(runtime["processId"].is_null());
+    assert!(!runtime_layout
+        .runtime_root
+        .join("automation")
+        .join("n8n")
+        .join("service.pid")
+        .exists());
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_automation_runtime_install_passes_comfyui_pytorch_index_url() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-automation-runtime-comfyui-index-url",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    crawclaw_runtime::stage_desktop_runtime_manifests(&runtime_layout.runtime_root)
+        .expect("stage managed runtime manifest");
+    write_automation_asset_installer(
+        &runtime_layout,
+        "comfyui",
+        r#"#!/usr/bin/env bash
+set -euo pipefail
+
+runtime_dir="$CRAWCLAW_AUTOMATION_HOME/comfyui"
+mkdir -p "$runtime_dir"
+printf '%s\n' "${COMFYUI_COMPUTE_PROFILE:-}" > "$runtime_dir/profile.txt"
+printf '%s\n' "${PYTORCH_INDEX_URL:-}" > "$runtime_dir/pytorch-index-url.txt"
+cat > "$runtime_dir/runtime.json" <<JSON
+{
+  "runtimeId": "comfyui",
+  "computeProfile": "${COMFYUI_COMPUTE_PROFILE:-}",
+  "baseUrl": "http://127.0.0.1:8188",
+  "installedAt": "2026-06-05T00:00:00Z"
+}
+JSON
+"#,
+    );
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, body) = post_desktop_json(
+        server.addr,
+        "/api/desktop/automation/runtimes/comfyui/install",
+        r#"{"computeProfile":"nvidia-cuda","pytorchIndexUrl":"https://download.pytorch.org/whl/cu126"}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let state: serde_json::Value = serde_json::from_str(&body).expect("install state json");
+    assert_eq!(
+        automation_runtime(&state, "comfyui")["selectedComputeProfile"],
+        "nvidia-cuda"
+    );
+    let runtime_dir = runtime_layout
+        .runtime_root
+        .join("automation")
+        .join("comfyui");
+    assert_eq!(
+        fs::read_to_string(runtime_dir.join("profile.txt")).expect("profile"),
+        "nvidia-cuda\n"
+    );
+    assert_eq!(
+        fs::read_to_string(runtime_dir.join("pytorch-index-url.txt")).expect("index url"),
+        "https://download.pytorch.org/whl/cu126\n"
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_automation_runtime_install_rejects_checksum_mismatch() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-automation-runtime-checksum",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    crawclaw_runtime::stage_desktop_runtime_manifests(&runtime_layout.runtime_root)
+        .expect("stage managed runtime manifest");
+    write_automation_asset_installer(
+        &runtime_layout,
+        "n8n",
+        "#!/usr/bin/env bash\nset -euo pipefail\nexit 0\n",
+    );
+    let manifest_path = runtime_layout
+        .runtime_root
+        .join("automation-assets")
+        .join("n8n")
+        .join("manifest.json");
+    let mut manifest: serde_json::Value =
+        serde_json::from_slice(&fs::read(&manifest_path).expect("manifest bytes"))
+            .expect("manifest json");
+    manifest["assets"]["installScript"]["sha256"] = serde_json::Value::String(
+        "0000000000000000000000000000000000000000000000000000000000000000".to_string(),
+    );
+    fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&manifest).expect("manifest bytes"),
+    )
+    .expect("write manifest");
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, _) = post_desktop_json(
+        server.addr,
+        "/api/desktop/automation/runtimes/n8n/install",
+        "{}",
+    )
+    .await;
+    assert_eq!(status, 502);
+    assert!(!runtime_layout
+        .runtime_root
+        .join("automation")
+        .join("n8n")
+        .join("runtime.json")
+        .exists());
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_automation_runtime_install_rejects_release_manifest_pin_drift() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-automation-runtime-pin-drift",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    crawclaw_runtime::stage_desktop_runtime_manifests(&runtime_layout.runtime_root)
+        .expect("stage managed runtime manifest");
+    write_automation_asset_installer(
+        &runtime_layout,
+        "n8n",
+        "#!/usr/bin/env bash\nset -euo pipefail\nexit 0\n",
+    );
+
+    let installer_dir = runtime_layout
+        .runtime_root
+        .join("automation-assets")
+        .join("n8n");
+    let tampered_script = "#!/usr/bin/env bash\nset -euo pipefail\necho tampered\n";
+    fs::write(installer_dir.join("install.sh"), tampered_script).expect("tampered installer");
+    let manifest_path = installer_dir.join("manifest.json");
+    let mut manifest: serde_json::Value =
+        serde_json::from_slice(&fs::read(&manifest_path).expect("manifest bytes"))
+            .expect("manifest json");
+    manifest["assets"]["installScript"]["sha256"] =
+        serde_json::Value::String(sha256_hex(tampered_script.as_bytes()));
+    fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&manifest).expect("manifest bytes"),
+    )
+    .expect("write manifest");
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, _) = post_desktop_json(
+        server.addr,
+        "/api/desktop/automation/runtimes/n8n/install",
+        "{}",
+    )
+    .await;
+    assert_eq!(status, 502);
+    assert!(!runtime_layout
+        .runtime_root
+        .join("automation")
+        .join("n8n")
+        .join("runtime.json")
+        .exists());
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_automation_runtime_status_reports_live_http_health() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-automation-runtime-health",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    crawclaw_runtime::stage_desktop_runtime_manifests(&runtime_layout.runtime_root)
+        .expect("stage managed runtime manifest");
+    let listener = TcpListener::bind(("127.0.0.1", 0)).expect("health listener");
+    let health_url = format!(
+        "http://127.0.0.1:{}/healthz",
+        listener.local_addr().expect("health addr").port()
+    );
+    std::thread::spawn(move || {
+        for _ in 0..4 {
+            let Ok((mut stream, _)) = listener.accept() else {
+                return;
+            };
+            let mut request = [0_u8; 512];
+            let _ = std::io::Read::read(&mut stream, &mut request);
+            let _ = std::io::Write::write_all(
+                &mut stream,
+                b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok",
+            );
+        }
+    });
+    patch_automation_runtime_health_url(&runtime_layout, "n8n", &health_url);
+    let runtime_dir = runtime_layout.runtime_root.join("automation").join("n8n");
+    fs::create_dir_all(&runtime_dir).expect("runtime dir");
+    fs::write(
+        runtime_dir.join("runtime.json"),
+        r#"{
+  "runtimeId": "n8n",
+  "baseUrl": "http://127.0.0.1:5679",
+  "installedAt": "2026-06-05T00:00:00Z"
+}"#,
+    )
+    .expect("runtime json");
+    fs::write(
+        runtime_dir.join("service.pid"),
+        std::process::id().to_string(),
+    )
+    .expect("pid");
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, body) = request(
+        server.addr,
+        "GET /api/desktop/automation/runtimes/n8n/status HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let state: serde_json::Value = serde_json::from_str(&body).expect("status state json");
+    let runtime = automation_runtime(&state, "n8n");
+    assert_eq!(runtime["status"], "running");
+    assert_eq!(runtime["healthStatus"], "healthy");
+    assert_eq!(runtime["healthUrl"], health_url);
 }
 
 #[cfg(unix)]
@@ -5815,6 +6187,15 @@ async fn get_desktop_state(addr: SocketAddr) -> serde_json::Value {
     serde_json::from_str(&body).expect("state json")
 }
 
+fn automation_runtime<'a>(state: &'a serde_json::Value, runtime_id: &str) -> &'a serde_json::Value {
+    state["automationWorkspace"]["runtimes"]
+        .as_array()
+        .expect("automation runtimes")
+        .iter()
+        .find(|runtime| runtime["id"] == runtime_id)
+        .unwrap_or_else(|| panic!("missing automation runtime {runtime_id}"))
+}
+
 async fn wait_for_assistant_text(addr: SocketAddr, expected_text: &str) -> serde_json::Value {
     for _ in 0..80 {
         let state = get_desktop_state(addr).await;
@@ -6554,6 +6935,81 @@ fn write_plugin_manifest(layout: &RuntimeLayout) {
         .expect("plugin manifest json"),
     )
     .expect("plugin manifest");
+}
+
+#[cfg(unix)]
+fn write_automation_asset_installer(layout: &RuntimeLayout, runtime_id: &str, script: &str) {
+    let installer_dir = layout
+        .runtime_root
+        .join("automation-assets")
+        .join(runtime_id);
+    fs::create_dir_all(&installer_dir).expect("installer dir");
+    let installer_path = installer_dir.join("install.sh");
+    let script_sha256 = sha256_hex(script.as_bytes());
+    fs::write(&installer_path, script).expect("installer script");
+    fs::write(
+        installer_dir.join("manifest.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "schemaVersion": 1,
+            "runtimeId": runtime_id,
+            "install": {
+                "channel": "github-release",
+                "scriptPolicy": "release-asset-checksum",
+                "script": "install.sh"
+            },
+            "assets": {
+                "installScript": {
+                    "path": "install.sh",
+                    "publishedAs": format!("crawclaw-automation-{runtime_id}-install.sh"),
+                    "sha256": script_sha256
+                }
+            }
+        }))
+        .expect("automation manifest json"),
+    )
+    .expect("automation manifest");
+    patch_automation_runtime_install_sha(layout, runtime_id, &script_sha256);
+
+    use std::os::unix::fs::PermissionsExt;
+    let mut permissions = fs::metadata(&installer_path)
+        .expect("installer metadata")
+        .permissions();
+    permissions.set_mode(0o755);
+    fs::set_permissions(&installer_path, permissions).expect("installer chmod");
+}
+
+#[cfg(unix)]
+fn patch_automation_runtime_install_sha(layout: &RuntimeLayout, runtime_id: &str, sha256: &str) {
+    let raw = fs::read_to_string(&layout.manifest_path).expect("runtime manifest");
+    let mut manifest: serde_json::Value =
+        serde_json::from_str(&raw).expect("runtime manifest json");
+    manifest["managedRuntimes"][runtime_id]["install"]["sha256"] =
+        serde_json::Value::String(sha256.to_string());
+    fs::write(
+        &layout.manifest_path,
+        serde_json::to_vec_pretty(&manifest).expect("runtime manifest bytes"),
+    )
+    .expect("runtime manifest");
+}
+
+#[cfg(unix)]
+fn patch_automation_runtime_health_url(layout: &RuntimeLayout, runtime_id: &str, health_url: &str) {
+    let raw = fs::read_to_string(&layout.manifest_path).expect("runtime manifest");
+    let mut manifest: serde_json::Value =
+        serde_json::from_str(&raw).expect("runtime manifest json");
+    manifest["managedRuntimes"][runtime_id]["health"]["url"] =
+        serde_json::Value::String(health_url.to_string());
+    fs::write(
+        &layout.manifest_path,
+        serde_json::to_vec_pretty(&manifest).expect("runtime manifest bytes"),
+    )
+    .expect("runtime manifest write");
+}
+
+#[cfg(unix)]
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    format!("{digest:x}")
 }
 
 fn missing_runtime_layout() -> RuntimeLayout {

@@ -492,6 +492,12 @@ export interface AutomationRuntimeSummary {
   install: AutomationRuntimeInstallSummary
   license: string
   computeProfiles: AutomationRuntimeComputeProfile[]
+  healthUrl?: string
+  healthStatus?: string
+  healthDetail?: string
+  processId?: number
+  logPath?: string
+  selectedComputeProfile?: string
 }
 
 export interface AutomationRuntimeInstallSummary {
@@ -504,6 +510,14 @@ export interface AutomationRuntimeComputeProfile {
   id: string
   backend: string
   experimental: boolean
+  requiresPytorchIndexUrl: boolean
+  pytorchIndexUrlDefault?: string
+  pytorchIndexUrlHint?: string
+}
+
+export interface AutomationRuntimeInstallInput {
+  computeProfile?: string
+  pytorchIndexUrl?: string
 }
 
 export interface PluginsWorkspaceState {

@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "runtimeId": "comfyui",
+  "name": "ComfyUI",
+  "description": "Managed ComfyUI runtime for CrawClaw Automation Runtime Manager.",
+  "runtime": "python-service",
+  "provider": "comfyui",
+  "service": "comfyui",
+  "sourceRef": "5aa71b9bc28809a16596bb9fa3d0a6300d8e3f0e",
+  "license": "GPL-3.0",
+  "defaultPort": 8188,
+  "baseUrl": "http://127.0.0.1:8188",
+  "install": {
+    "channel": "github-release",
+    "scriptPolicy": "release-asset-checksum",
+    "script": "install.sh"
+  },
+  "assets": {
+    "manifest": {
+      "publishedAs": "crawclaw-automation-comfyui-manifest.json",
+      "url": "https://github.com/qianleigood/crawclaw/releases/download/v2026.5.3/crawclaw-automation-comfyui-manifest.json"
+    },
+    "installScript": {
+      "path": "install.sh",
+      "publishedAs": "crawclaw-automation-comfyui-install.sh",
+      "url": "https://github.com/qianleigood/crawclaw/releases/download/v2026.5.3/crawclaw-automation-comfyui-install.sh",
+      "sha256": "af3b920b3547e8fa79d9085ee8e799479d6ca38a8f96dc78136623b0a616f090"
+    }
+  },
+  "computeProfiles": [
+    {
+      "id": "apple-metal",
+      "backend": "mps",
+      "description": "Apple Silicon Metal Performance Shaders."
+    },
+    {
+      "id": "nvidia-cuda",
+      "backend": "cuda",
+      "description": "NVIDIA CUDA through PyTorch wheels.",
+      "requiresPytorchIndexUrl": true,
+      "pytorchIndexUrlDefault": "https://download.pytorch.org/whl/cu126",
+      "pytorchIndexUrlHint": "https://download.pytorch.org/whl/cu126"
+    },
+    {
+      "id": "amd-rocm",
+      "backend": "rocm",
+      "description": "AMD ROCm through a profile default PyTorch wheel channel.",
+      "experimental": true,
+      "requiresPytorchIndexUrl": true,
+      "pytorchIndexUrlDefault": "https://download.pytorch.org/whl/rocm7.1",
+      "pytorchIndexUrlHint": "https://download.pytorch.org/whl/rocm7.1"
+    },
+    {
+      "id": "intel-xpu",
+      "backend": "xpu",
+      "description": "Intel XPU through a profile default PyTorch wheel channel.",
+      "experimental": true,
+      "requiresPytorchIndexUrl": true,
+      "pytorchIndexUrlDefault": "https://download.pytorch.org/whl/xpu",
+      "pytorchIndexUrlHint": "https://download.pytorch.org/whl/xpu"
+    },
+    {
+      "id": "cpu",
+      "backend": "cpu",
+      "description": "CPU-only PyTorch install."
+    },
+    {
+      "id": "external",
+      "backend": "external",
+      "description": "Bind to an externally managed ComfyUI endpoint."
+    }
+  ],
+  "environment": [
+    "CRAWCLAW_AUTOMATION_HOME",
+    "COMFYUI_COMPUTE_PROFILE",
+    "COMFYUI_PORT",
+    "COMFYUI_HOST",
+    "COMFYUI_REPO",
+    "COMFYUI_REF",
+    "COMFYUI_EXTERNAL_BASE_URL",
+    "PYTORCH_INDEX_URL"
+  ],
+  "health": {
+    "kind": "http",
+    "url": "http://127.0.0.1:8188/system_stats"
+  }
+}
