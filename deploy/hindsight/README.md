@@ -32,6 +32,16 @@ deploy/hindsight/
 
 ## 快速开始
 
+### 桌面本地服务
+
+桌面应用需要本机可访问的 Hindsight API。可以直接从 GitHub 安装单容器本地服务：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/qianleigood/crawclaw/main/scripts/install-hindsight-service.sh | bash
+```
+
+脚本会下载 `deploy/hindsight/docker-compose.yml`，在 `~/.crawclaw/hindsight-service` 写入本地 `.env`，启动 Hindsight，并检查 `http://127.0.0.1:8888/health`。如果需要覆盖端口或服务目录，可以设置 `CRAWCLAW_HINDSIGHT_PORT`、`CRAWCLAW_HINDSIGHT_WEB_PORT`、`CRAWCLAW_HINDSIGHT_HOME`。
+
 ### 1. 首次部署
 
 ```bash

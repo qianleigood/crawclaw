@@ -9,14 +9,14 @@ services:
     container_name: crawclaw-hindsight
     restart: unless-stopped
     ports:
-      - "8888:8888"  # API 端口
-      - "9999:9999"  # Web UI 端口
+      - "${HINDSIGHT_API_PORT:-8888}:${HINDSIGHT_API_PORT:-8888}"  # API 端口
+      - "${HINDSIGHT_WEB_PORT:-9999}:9999"  # Web UI 端口
     env_file:
       - .env
     volumes:
       - hindsight-data:/home/hindsight/.pg0
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:${HINDSIGHT_API_PORT:-8888}/health"]
       interval: 30s
       timeout: 10s
       retries: 3
