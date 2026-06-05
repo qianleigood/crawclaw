@@ -40,7 +40,7 @@ deploy/hindsight/
 curl -fsSL https://raw.githubusercontent.com/qianleigood/crawclaw/main/scripts/install-hindsight-service.sh | bash
 ```
 
-脚本会下载 `deploy/hindsight/docker-compose.yml`，在 `~/.crawclaw/hindsight-service` 写入本地 `.env`，启动 Hindsight，并检查 `http://127.0.0.1:8888/health`。默认模型策略是 `auto`：根据内存和 CPU 动态选择中文质量配置，模型文件会持久化到 Docker volume `hindsight-model-cache`。
+脚本会下载 `deploy/hindsight/docker-compose.yml`，在 `~/.crawclaw/hindsight-service` 写入本地 `.env`，预下载模型，启动 Hindsight，并检查 `http://127.0.0.1:8888/health`。默认模型策略是 `auto`：根据内存和 CPU 动态选择中文质量配置，模型文件会持久化到 Docker volume `crawclaw-hindsight-model-cache`。
 
 | 自动选择条件                            | Profile       | 模型策略                                  |
 | --------------------------------------- | ------------- | ----------------------------------------- |
@@ -51,6 +51,12 @@ curl -fsSL https://raw.githubusercontent.com/qianleigood/crawclaw/main/scripts/i
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/qianleigood/crawclaw/main/scripts/install-hindsight-service.sh | CRAWCLAW_HINDSIGHT_PLAN_ONLY=1 bash
+```
+
+也可以只执行模型预下载，不启动 Hindsight：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/qianleigood/crawclaw/main/scripts/install-hindsight-service.sh | CRAWCLAW_HINDSIGHT_PREWARM_ONLY=1 bash
 ```
 
 如果只想快速启动而不下载中文质量模型，可以显式使用 fast profile：

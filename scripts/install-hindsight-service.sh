@@ -9,6 +9,8 @@ SERVICE_DIR="${CRAWCLAW_HINDSIGHT_HOME:-${HOME}/.crawclaw/hindsight-service}"
 API_PORT="${CRAWCLAW_HINDSIGHT_PORT:-8888}"
 WEB_PORT="${CRAWCLAW_HINDSIGHT_WEB_PORT:-9999}"
 MODEL_PROFILE="${CRAWCLAW_HINDSIGHT_MODEL_PROFILE:-auto}"
+MODEL_CACHE_VOLUME="${CRAWCLAW_HINDSIGHT_MODEL_CACHE_VOLUME:-crawclaw-hindsight-model-cache}"
+PREWARM_IMAGE="${CRAWCLAW_HINDSIGHT_PREWARM_IMAGE:-python:3.11-slim}"
 RAW_BASE="https://raw.githubusercontent.com/${REPO}/${REF}"
 
 log() {
@@ -203,6 +205,62 @@ print_model_plan() {
   fi
 }
 
+prewarm_model_list() {
+  PREWARM_MODELS="${EMBEDDINGS_MODEL}"
+  if [ -n "${RERANKER_MODEL}" ]; then
+    PREWARM_MODELS="${PREWARM_MODELS},${RERANKER_MODEL}"
+  fi
+}
+
+prewarm_models() {
+  local hf_endpoint_args=()
+  if [ "${CRAWCLAW_HINDSIGHT_SKIP_MODEL_PREWARM:-0}" = "1" ]; then
+    log "skipping model prewarm because CRAWCLAW_HINDSIGHT_SKIP_MODEL_PREWARM=1"
+    return
+  fi
+
+  prewarm_model_list
+  log "prewarm models: ${PREWARM_MODELS}"
+  log "prewarm cache volume: ${MODEL_CACHE_VOLUME}"
+  if [ "${CRAWCLAW_HINDSIGHT_PREWARM_DRY_RUN:-0}" = "1" ]; then
+    log "model prewarm dry run; no model downloads started"
+    return
+  fi
+
+  log "prewarming models before starting Hindsight"
+  if [ -n "${CRAWCLAW_HINDSIGHT_HF_ENDPOINT:-}" ]; then
+    hf_endpoint_args=(-e "HF_ENDPOINT=${CRAWCLAW_HINDSIGHT_HF_ENDPOINT}")
+  fi
+  docker run --rm \
+    -v "${MODEL_CACHE_VOLUME}:/home/hindsight/.cache" \
+    -e "CRAWCLAW_HINDSIGHT_PREWARM_MODELS=${PREWARM_MODELS}" \
+    -e "HF_HOME=/home/hindsight/.cache/huggingface" \
+    -e "HUGGINGFACE_HUB_CACHE=/home/hindsight/.cache/huggingface/hub" \
+    -e "TRANSFORMERS_CACHE=/home/hindsight/.cache/huggingface/transformers" \
+    -e "SENTENCE_TRANSFORMERS_HOME=/home/hindsight/.cache/sentence-transformers" \
+    "${hf_endpoint_args[@]}" \
+    "${PREWARM_IMAGE}" sh -lc '
+set -eu
+umask 000
+python -m pip install --no-cache-dir huggingface_hub
+python - <<'"'"'PY'"'"'
+import os
+from huggingface_hub import snapshot_download
+
+models = [
+    model.strip()
+    for model in os.environ["CRAWCLAW_HINDSIGHT_PREWARM_MODELS"].split(",")
+    if model.strip()
+]
+for model in models:
+    print(f"[crawclaw-hindsight] downloading {model}", flush=True)
+    snapshot_download(repo_id=model)
+    print(f"[crawclaw-hindsight] downloaded {model}", flush=True)
+PY
+chmod -R a+rwX /home/hindsight/.cache
+'
+}
+
 write_env() {
   local env_path="${SERVICE_DIR}/.env"
   local llm_provider_value
@@ -224,10 +282,11 @@ write_env() {
 HINDSIGHT_API_PORT=${API_PORT}
 HINDSIGHT_API_HOST=0.0.0.0
 HINDSIGHT_WEB_PORT=${WEB_PORT}
+HINDSIGHT_MODEL_CACHE_VOLUME=${MODEL_CACHE_VOLUME}
 
 # Model profile: auto selects the strongest Chinese profile the detected
-# hardware can support. Model files are cached by Docker in the
-# hindsight-model-cache volume.
+# hardware can support. Model files are cached by Docker in
+# HINDSIGHT_MODEL_CACHE_VOLUME.
 CRAWCLAW_HINDSIGHT_MODEL_PROFILE=${MODEL_PROFILE}
 CRAWCLAW_HINDSIGHT_SELECTED_MODEL_PROFILE=${SELECTED_MODEL_PROFILE}
 CRAWCLAW_HINDSIGHT_DETECTED_MEMORY_MIB=${DETECTED_MEMORY_MIB}
@@ -259,6 +318,14 @@ main() {
     print_model_plan
     return
   fi
+  if [ "${CRAWCLAW_HINDSIGHT_PREWARM_ONLY:-0}" = "1" ]; then
+    if [ "${CRAWCLAW_HINDSIGHT_PREWARM_DRY_RUN:-0}" != "1" ]; then
+      need_command docker
+    fi
+    print_model_plan
+    prewarm_models
+    return
+  fi
 
   need_command curl
   need_command docker
@@ -276,8 +343,9 @@ main() {
   if [ -n "${CRAWCLAW_HINDSIGHT_HF_ENDPOINT:-}" ]; then
     log "Hugging Face endpoint: ${CRAWCLAW_HINDSIGHT_HF_ENDPOINT}"
   fi
-  log "model cache: Docker volume hindsight-model-cache"
+  log "model cache: Docker volume ${MODEL_CACHE_VOLUME}"
   log "first run may take several minutes while models download"
+  prewarm_models
 
   log "starting Hindsight"
   compose -f "${SERVICE_DIR}/docker-compose.yml" --env-file "${SERVICE_DIR}/.env" up -d

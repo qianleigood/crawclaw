@@ -25,4 +25,5 @@ volumes:
   hindsight-data:
     driver: local
   hindsight-model-cache:
+    name: ${HINDSIGHT_MODEL_CACHE_VOLUME:-crawclaw-hindsight-model-cache}
     driver: local
