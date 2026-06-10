@@ -1,5 +1,5 @@
 ---
-summary: "Logging surfaces, file logs, WS log styles, and console formatting"
+summary: "Logging surfaces, file logs, WebSocket protocol logs, and console formatting"
 read_when:
   - Changing logging output or formats
   - Debugging desktop, Gateway, or automation output
@@ -31,7 +31,7 @@ Desktop diagnostics use the same Gateway log stream.
 **Verbose vs. log levels**
 
 - **File logs** are controlled exclusively by `logging.level`.
-- Per-run verbosity only affects **console verbosity** (and WS log style); it does **not**
+- Per-run verbosity only affects **console verbosity**; it does **not**
   raise the file log level.
 - To capture verbose-only details in file logs, set `logging.level` to `debug` or
   `trace`.
@@ -59,26 +59,27 @@ console stream. This is **tools-only** and does not alter file logs.
 
 ## Gateway WebSocket logs
 
-The gateway prints WebSocket protocol logs in two modes:
+The gateway prints WebSocket protocol logs through the same console/file logging pipeline:
 
-- **Normal mode (no `--verbose`)**: only “interesting” RPC results are printed:
+- Normal console level: only interesting RPC results are printed:
   - errors (`ok=false`)
   - slow calls (default threshold: `>= 50ms`)
   - parse errors
-- **Verbose mode (`--verbose`)**: prints all WS request/response traffic.
+- Debug or trace console level: prints more protocol detail.
 
-### WS log style
+The Rust gateway binary currently exposes `--bind`, `--port`, and `--runtime-root` startup flags. Tune logging with config instead:
 
-CrawClaw Desktop or the local Gateway API supports a per-gateway style switch:
+```json5
+{
+  logging: {
+    level: "debug",
+    consoleLevel: "debug",
+    consoleStyle: "compact",
+  },
+}
+```
 
-- `--ws-log auto` (default): normal mode is optimized; verbose mode uses compact output
-- `--ws-log compact`: compact output (paired request/response) when verbose
-- `--ws-log full`: full per-frame output when verbose
-- `--compact`: alias for `--ws-log compact`
-
-Examples:
-
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use `logs.tail` or Desktop diagnostics to inspect the file log stream.
 
 ## Console formatting (subsystem logging)
 
@@ -93,8 +94,8 @@ Behavior:
 - **Shortened subsystem prefixes**: drops leading `gateway/` + `channels/`, keeps last 2 segments (e.g. `weixin/outbound`)
 - **Sub-loggers by subsystem** (auto prefix + structured field `{ subsystem }`)
 - **`logRaw()`** for QR/UX output (no prefix, no formatting)
-- **Console styles** (e.g. `pretty | compact | json`)
+- **Console styles** (`pretty | compact | json`)
 - **Console log level** separate from file log level (file keeps full detail when `logging.level` is set to `debug`/`trace`)
-- **Weixin message bodies** are logged at `debug` (use `--verbose` to see them)
+- **Weixin message bodies** are logged at `debug` (raise `logging.consoleLevel` or inspect file logs to see them)
 
 This keeps existing file logs stable while making interactive output scannable.

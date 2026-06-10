@@ -2,20 +2,20 @@
 read_when:
   - 在同一台机器上运行多个 Gateway
   - 你需要每个 Gateway 隔离的配置/状态/端口
-summary: 在同一主机上运行多个 CrawClaw Gateway（隔离、端口和配置）
+summary: 在同一主机上使用隔离的配置、状态、工作区和端口运行多个 CrawClaw Gateway
 title: 多 Gateway
 x-i18n:
-  generated_at: "2026-06-05T14:17:48Z"
+  generated_at: "2026-06-10T20:16:06Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: a1bc1addf44cf5df9bffc4f61ae2ff59e7878916c2943a8da03c747c79c2bc82
+  source_hash: 3fbe2cbdf2df186a688a4303f837fb3cc6c72231494370fdf940642c3be6ae9d
   source_path: gateway/multiple-gateways.md
   workflow: 15
 ---
 
 # 多 Gateway（同主机）
 
-大多数设置应该使用一个 Gateway，因为单个 Gateway 可以处理多个消息连接和智能体。如果你需要更强的隔离或冗余（例如救援机器人），请使用隔离的配置/端口运行单独的 Gateway。
+大多数设置应该使用一个 Gateway，因为单个 Gateway 可以处理多个消息连接和智能体。如果你需要更强的隔离或冗余（例如救援机器人），请使用隔离的配置、状态、工作区和端口运行单独的 Gateway。
 
 ## 隔离清单（必需）
 
@@ -27,21 +27,19 @@ x-i18n:
 
 如果这些被共享，你将遇到配置竞争和端口冲突。
 
-## 推荐：配置（`--profile`）
+## 推荐：环境隔离的实例
 
-配置自动限定 `CRAWCLAW_STATE_DIR` + `CRAWCLAW_CONFIG_PATH` 的范围并为服务名称添加后缀。
+Gateway 二进制通过环境变量和配置值来隔离实例，而不是通过 `--profile` 标志。为每个实例分配自己的 `CRAWCLAW_CONFIG_PATH`、`CRAWCLAW_STATE_DIR`、工作区和基础端口。如果同时设置 `CRAWCLAW_PROFILE`，请把它当作工作区/名称标签；不要依赖它单独隔离配置或状态。
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
+安装 OS 服务时，为每个服务使用单独的服务名和包含这些值的环境文件。
 
-每个配置的服务：
-
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
+两个服务绝不能指向同一个配置路径或状态目录。
 
 ## 救援机器人指南
 
 在同一主机上运行第二个 Gateway，拥有自己的：
 
-- 配置/配置文件
+- 配置路径（和可选的 `CRAWCLAW_PROFILE` 标签）
 - 状态目录
 - 工作区
 - 基础端口（加上派生端口）
@@ -52,7 +50,7 @@ x-i18n:
 
 ### 如何安装（救援机器人）
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
+先创建救援机器人的配置、状态目录和工作区，然后用独立的环境变量和端口启动第二个 Gateway。下面的手动环境示例是本地运行的标准模式。
 
 ## 端口映射（派生）
 
@@ -84,4 +82,7 @@ cargo run -q -p crawclaw-gateway -- --bind loopback --port 18790
 
 ## 快速检查
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
+- `lsof -nP -iTCP:<port> -sTCP:LISTEN` 显示每个基础端口由预期进程占用。
+- 每个进程都有不同的 `CRAWCLAW_CONFIG_PATH` 和 `CRAWCLAW_STATE_DIR`。
+- 浏览器控制端口和 CDP 派生端口不重叠。
+- 每个消息账号或浏览器配置只被一个实例占用。

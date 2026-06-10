@@ -2539,7 +2539,7 @@ Notes:
 
 - Default log file: `/tmp/crawclaw/crawclaw-YYYY-MM-DD.log`.
 - Set `logging.file` for a stable path.
-- `consoleLevel` bumps to `debug` when `--verbose`.
+- Set `consoleLevel` to `debug` or `trace` for verbose interactive diagnostics.
 - `maxFileBytes`: maximum log file size in bytes before writes are suppressed (positive integer; default: `524288000` = 500 MB). Use external log rotation for production deployments.
 
 ---

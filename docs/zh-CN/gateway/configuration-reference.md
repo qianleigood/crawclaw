@@ -5,10 +5,10 @@ read_when:
 summary: 每个 CrawClaw config key、默认值和 channel settings 的完整参考
 title: 配置参考
 x-i18n:
-  generated_at: "2026-06-05T15:37:26Z"
+  generated_at: "2026-06-10T20:16:06Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: e21f7a1d96e2d042f02631ec8a5b1d18c0552ddd6a69106b187375eab0b65267
+  source_hash: 34b1d928f39fd7b4afde0295bc91a7fb2903290913f1cdfeaed3070ebe22c414
   source_path: gateway/configuration-reference.md
   workflow: 15
 ---
@@ -2535,7 +2535,7 @@ SecretRef 是增量式的：明文值仍然有效。
 
 - 默认日志文件：`/tmp/crawclaw/crawclaw-YYYY-MM-DD.log`。
 - 设置 `logging.file` 以获得稳定路径。
-- 使用 `--verbose` 时 `consoleLevel` 提升到 `debug`。
+- 将 `consoleLevel` 设置为 `debug` 或 `trace` 可启用更详细的交互式诊断。
 - `maxFileBytes`：写入被禁止前的最大日志文件大小（正整数；默认值：`524288000` = 500 MB）。生产部署使用外部日志轮转。
 
 ---

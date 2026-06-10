@@ -1,5 +1,5 @@
 ---
-summary: "Run multiple CrawClaw Gateways on one host (isolation, ports, and profiles)"
+summary: "Run multiple CrawClaw Gateways on one host with isolated config, state, workspaces, and ports"
 read_when:
   - Running more than one Gateway on the same machine
   - You need isolated config/state/ports per Gateway
@@ -8,7 +8,7 @@ title: "Multiple Gateways"
 
 # Multiple Gateways (same host)
 
-Most setups should use one Gateway because a single Gateway can handle multiple messaging connections and agents. If you need stronger isolation or redundancy (e.g., a rescue bot), run separate Gateways with isolated profiles/ports.
+Most setups should use one Gateway because a single Gateway can handle multiple messaging connections and agents. If you need stronger isolation or redundancy (e.g., a rescue bot), run separate Gateways with isolated config, state, workspace, and ports.
 
 ## Isolation checklist (required)
 
@@ -20,21 +20,19 @@ Most setups should use one Gateway because a single Gateway can handle multiple 
 
 If these are shared, you will hit config races and port conflicts.
 
-## Recommended: profiles (`--profile`)
+## Recommended: environment-scoped instances
 
-Profiles auto-scope `CRAWCLAW_STATE_DIR` + `CRAWCLAW_CONFIG_PATH` and suffix service names.
+The gateway binary scopes instances through environment and config values, not a `--profile` flag. Give each instance its own `CRAWCLAW_CONFIG_PATH`, `CRAWCLAW_STATE_DIR`, workspace, and base port. If you also set `CRAWCLAW_PROFILE`, treat it as a workspace/name label; do not rely on it to isolate config or state by itself.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+When installing OS services, give each service its own name and environment file with those values.
 
-Per-profile services:
-
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Two services must never point at the same config path or state directory.
 
 ## Rescue-bot guide
 
 Run a second Gateway on the same host with its own:
 
-- profile/config
+- config path (and optional `CRAWCLAW_PROFILE` label)
 - state dir
 - workspace
 - base port (plus derived ports)
@@ -45,7 +43,7 @@ Port spacing: leave at least 20 ports between base ports so the derived browser/
 
 ### How to install (rescue bot)
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Create the rescue config, state directory, and workspace first, then start the second gateway with its own environment and port. The manual environment example below is the canonical local pattern.
 
 ## Port mapping (derived)
 
@@ -77,4 +75,7 @@ cargo run -q -p crawclaw-gateway -- --bind loopback --port 18790
 
 ## Quick checks
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+- `lsof -nP -iTCP:<port> -sTCP:LISTEN` shows each base port owned by the expected process.
+- Each process has a different `CRAWCLAW_CONFIG_PATH` and `CRAWCLAW_STATE_DIR`.
+- Browser control and CDP derived ports do not overlap.
+- Only one instance owns a given messaging account or browser profile.

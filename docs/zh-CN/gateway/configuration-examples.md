@@ -6,10 +6,10 @@ read_when:
 summary: 常见 CrawClaw 配置的 Schema 精确配置示例
 title: 配置示例
 x-i18n:
-  generated_at: "2026-06-10T17:56:16Z"
+  generated_at: "2026-06-10T20:16:06Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 0d5b92910b5ddd9adbab4454c4a1e95573fd19a75d49a1d0e0a178dd42ccda10
+  source_hash: daf584914d2be9c00b2e0e1c420706e3dd59d24a738c0289bd953d8a02f92d34
   source_path: gateway/configuration-examples.md
   workflow: 15
 ---
@@ -478,7 +478,7 @@ x-i18n:
 }
 ```
 
-对于 QQBot/DingTalk/Feishu/QQBot/Feishu/native channel，发送者授权默认优先使用 ID。只有在你明确接受该风险的情况下，才使用各渠道的 `dangerouslyAllowNameMatching: true` 启用直接可变名称/邮箱/昵称匹配。
+对于 QQBot、DingTalk、Feishu、Weixin 和 native/plugin chat channel，发送者授权默认优先使用 ID。只有在你明确接受该风险的情况下，才使用各渠道的 `dangerouslyAllowNameMatching: true` 启用直接可变名称/邮箱/昵称匹配。
 
 ### OAuth 与 API 密钥故障转移
 

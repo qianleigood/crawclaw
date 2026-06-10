@@ -471,7 +471,7 @@ If more than one person can DM your bot (multiple entries in `allowFrom`, pairin
 }
 ```
 
-For QQBot/DingTalk/Feishu/QQBot/Feishu/native chat, sender authorization is ID-first by default.
+For QQBot, DingTalk, Feishu, Weixin, and native/plugin chat channels, sender authorization is ID-first by default.
 Only enable direct mutable name/email/nick matching with each channel's `dangerouslyAllowNameMatching: true` if you explicitly accept that risk.
 
 ### OAuth with API key failover
