@@ -353,6 +353,7 @@ async function runP7SettingsWorkspace(page) {
   await page.waitFor(() => Boolean(document.querySelector('[data-testid="settings-section"][data-settings-section="automation"].is-active')), {
     label: 'automation environment settings section is active',
   })
+  assert(!(await page.exists('[data-testid="settings-section"][data-settings-section="automation"] > .settings-section__header')), 'automation environment settings should not repeat the section title above the panel')
   assert(await page.exists('[data-testid="automation-environment-panel"]'), 'automation environment panel should be visible')
   assert(await page.exists('[data-testid="automation-environment-overview"]'), 'automation environment overview should be visible')
   assert(await page.exists('[data-testid="automation-environment-service"][data-runtime-id="n8n"]'), 'n8n environment should be visible')
