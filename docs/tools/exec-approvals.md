@@ -2,13 +2,15 @@
 read_when:
   - Configuring exec approvals or allowlists
   - Implementing exec approval UX in web control surfaces
+summary: "Approval, allowlist, and host policy controls for gateway-host exec"
 title: "Exec Approvals"
 ---
 
 # Exec approvals
 
-commands on the gateway host. Think of it like a safety interlock:
-commands are allowed only when policy + allowlist + (optional) user approval all agree.
+Exec approvals are the safety interlock for commands on the Gateway host:
+commands are allowed only when policy + allowlist + (optional) user approval
+all agree.
 Exec approvals are **in addition** to tool policy and elevated gating (unless elevated is set to `full`, which skips approvals).
 Effective policy is the **stricter** of `tools.exec.*` and approvals defaults; if an approvals field is omitted, the `tools.exec` value is used.
 Host exec also uses the local approvals state on that machine. A host-local

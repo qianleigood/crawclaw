@@ -3,6 +3,7 @@ read_when:
   - You want CrawClaw isolated from your main macOS environment
   - You want a resettable macOS environment you can clone
   - You want to compare local vs hosted macOS VM options
+summary: "Run CrawClaw in an isolated, resettable macOS VM"
 title: "macOS VMs"
 ---
 

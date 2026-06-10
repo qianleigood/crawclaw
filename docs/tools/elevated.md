@@ -1,12 +1,14 @@
 ---
 read_when:
   - Adjusting elevated mode defaults, allowlists, or slash command behavior
+summary: "Run approved exec commands on the Gateway host with configurable gates"
 title: "Elevated Mode"
 ---
 
 # Elevated Mode
 
-on the gateway host instead, with configurable approval gates.
+Elevated mode lets approved senders run `exec` commands on the Gateway host,
+with configurable approval gates.
 
 <Info>
 </Info>
