@@ -94,10 +94,10 @@ export function AutomationEnvironment({
     <section className="automation-environment-panel" data-testid="automation-environment-panel">
       <header className="automation-environment-panel__header">
         <div>
-          <h3>自动化环境</h3>
-          <p>安装、启动和检查 n8n / ComfyUI，本机内置 Cron 不需要安装。</p>
+          <h3>环境安装中心</h3>
+          <p>安装和管理 n8n / ComfyUI；Cron 是内置调度器，不需要安装环境。</p>
         </div>
-        <Badge tone="neutral">{environmentStats.installed}/{environmentStats.total} 已安装</Badge>
+        <Badge tone="neutral">{environmentStats.installed}/{environmentStats.total} 环境就绪</Badge>
       </header>
 
       {managedRuntimes.length === 0 ? (
@@ -106,19 +106,19 @@ export function AutomationEnvironment({
         <div className="automation-environment-layout">
           <div className="automation-environment-overview" data-testid="automation-environment-overview">
             <div>
-              <span>安装入口</span>
+              <span>环境安装</span>
               <strong>{environmentStats.total}</strong>
               <small>n8n / ComfyUI</small>
             </div>
             <div>
-              <span>已就绪</span>
-              <strong>{environmentStats.installed}</strong>
-              <small>ready / installed / running</small>
+              <span>运行中</span>
+              <strong>{environmentStats.running}</strong>
+              <small>本机服务进程</small>
             </div>
             <div>
               <span>内置 Cron</span>
               <strong>无需安装</strong>
-              <small>在自动化工作区执行和查看</small>
+              <small>工作区内查看任务和日志</small>
             </div>
           </div>
 
@@ -156,12 +156,56 @@ export function AutomationEnvironment({
 
                   <section className="automation-environment-install-center" aria-label={`${runtime.name} 安装环境`}>
                     <div className="automation-environment-install-center__header">
-                      <span>安装环境</span>
+                      <div>
+                        <span>安装环境</span>
+                        <strong>{runtimeInstallTitle(runtime)}</strong>
+                      </div>
                       <Badge tone="neutral">{runtime.install.channel}</Badge>
                     </div>
+                    {computeProfiles.length > 0 ? (
+                      <div className="automation-environment-install-options">
+                        <div className="automation-environment-install-options__header">
+                          <strong>显卡与 PyTorch</strong>
+                          <span>{runtime.selectedComputeProfile ? `当前 ${runtime.selectedComputeProfile}` : 'auto'}</span>
+                        </div>
+                        <label>
+                          <span>Profile</span>
+                          <select
+                            disabled={runtime.status === 'running' || pendingRuntimeAction !== null}
+                            value={selectedComputeProfile ?? runtime.selectedComputeProfile ?? ''}
+                            onChange={(event) => setSelectedComputeProfiles((profiles) => ({
+                              ...profiles,
+                              [runtime.id]: event.target.value,
+                            }))}
+                          >
+                            <option value="">auto</option>
+                            {computeProfiles.map((profile) => (
+                              <option key={profile.id} value={profile.id}>
+                                {profile.id}{profile.experimental ? ' experimental' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        {runtime.id === 'comfyui' ? (
+                          <label>
+                            <span>PyTorch index URL</span>
+                            <input
+                              disabled={runtime.status === 'running' || pendingRuntimeAction !== null}
+                              placeholder={runtimePytorchIndexUrlPlaceholder(runtime, selectedComputeProfile)}
+                              required={runtimeRequiresPytorchIndexUrl(runtime, selectedComputeProfile)}
+                              value={pytorchIndexUrl ?? ''}
+                              onChange={(event) => setRuntimePytorchIndexUrls((urls) => ({
+                                ...urls,
+                                [runtime.id]: event.target.value,
+                              }))}
+                            />
+                          </label>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <div className="automation-environment-install">
                       <div className="automation-environment-install__body">
-                        <strong>{runtimeInstallTitle(runtime)}</strong>
+                        <span>脚本策略</span>
                         <small>{runtime.install.scriptPolicy} · {runtime.install.manifestPath}</small>
                       </div>
                       <button
@@ -179,84 +223,44 @@ export function AutomationEnvironment({
                     </div>
                   </section>
 
-                  <dl className="automation-environment-service__meta" aria-label={`${runtime.name} 运行状态`}>
-                    <div>
-                      <dt>Endpoint</dt>
-                      <dd>{runtime.baseUrl}</dd>
+                  <section className="automation-environment-runtime-state" aria-label={`${runtime.name} 运行状态`}>
+                    <div className="automation-environment-runtime-state__header">
+                      <strong>运行状态</strong>
+                      <span>{runtimeStatusSummary(runtime)}</span>
                     </div>
-                    {runtime.healthUrl ? (
+                    <dl className="automation-environment-service__meta">
                       <div>
-                        <dt>Health</dt>
-                        <dd>
-                          {runtime.healthStatus
-                            ? `${runtime.healthStatus}${runtime.healthDetail ? ` (${runtime.healthDetail})` : ''}`
-                            : runtime.healthUrl}
-                        </dd>
+                        <dt>Endpoint</dt>
+                        <dd>{runtime.baseUrl}</dd>
                       </div>
-                    ) : null}
-                    <div>
-                      <dt>Runtime</dt>
-                      <dd>{runtime.runtime} · {runtime.service}</dd>
-                    </div>
-                    <div>
-                      <dt>Mode</dt>
-                      <dd>{runtime.mode}</dd>
-                    </div>
-                    {runtime.processId ? (
-                      <div>
-                        <dt>PID</dt>
-                        <dd>{runtime.processId}</dd>
-                      </div>
-                    ) : null}
-                    {runtime.logPath ? (
-                      <div>
-                        <dt>Log</dt>
-                        <dd>{runtime.logPath}</dd>
-                      </div>
-                    ) : null}
-                  </dl>
-
-                  {computeProfiles.length > 0 ? (
-                    <div className="automation-environment-service__profiles">
-                      <div className="automation-environment-service__profiles-header">
-                        <strong>显卡与 PyTorch</strong>
-                        <span>{runtime.selectedComputeProfile ? `当前 ${runtime.selectedComputeProfile}` : 'auto'}</span>
-                      </div>
-                      <label>
-                        <span>Profile</span>
-                        <select
-                          disabled={runtime.status === 'running' || pendingRuntimeAction !== null}
-                          value={selectedComputeProfile ?? runtime.selectedComputeProfile ?? ''}
-                          onChange={(event) => setSelectedComputeProfiles((profiles) => ({
-                            ...profiles,
-                            [runtime.id]: event.target.value,
-                          }))}
-                        >
-                          <option value="">auto</option>
-                          {computeProfiles.map((profile) => (
-                            <option key={profile.id} value={profile.id}>
-                              {profile.id}{profile.experimental ? ' experimental' : ''}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      {runtime.id === 'comfyui' ? (
-                        <label>
-                          <span>PyTorch index URL</span>
-                          <input
-                            disabled={runtime.status === 'running' || pendingRuntimeAction !== null}
-                            placeholder={runtimePytorchIndexUrlPlaceholder(runtime, selectedComputeProfile)}
-                            required={runtimeRequiresPytorchIndexUrl(runtime, selectedComputeProfile)}
-                            value={pytorchIndexUrl ?? ''}
-                            onChange={(event) => setRuntimePytorchIndexUrls((urls) => ({
-                              ...urls,
-                              [runtime.id]: event.target.value,
-                            }))}
-                          />
-                        </label>
+                      {runtime.healthUrl ? (
+                        <div>
+                          <dt>Health</dt>
+                          <dd title={runtime.healthUrl}>{runtimeHealthSummary(runtime)}</dd>
+                        </div>
                       ) : null}
-                    </div>
-                  ) : null}
+                      <div>
+                        <dt>Runtime</dt>
+                        <dd>{runtime.runtime} · {runtime.service}</dd>
+                      </div>
+                      <div>
+                        <dt>Mode</dt>
+                        <dd>{runtime.mode}</dd>
+                      </div>
+                      {runtime.processId ? (
+                        <div>
+                          <dt>PID</dt>
+                          <dd>{runtime.processId}</dd>
+                        </div>
+                      ) : null}
+                      {runtime.logPath ? (
+                        <div>
+                          <dt>Log</dt>
+                          <dd>{runtime.logPath}</dd>
+                        </div>
+                      ) : null}
+                    </dl>
+                  </section>
 
                   <section className="automation-environment-run-control" aria-label={`${runtime.name} 运行控制`}>
                     <div>
@@ -349,6 +353,35 @@ function runtimeStatusTone(status: AutomationRuntimeSummary['status']): BadgeTon
     return 'danger'
   }
   return 'idle'
+}
+
+function runtimeStatusSummary(runtime: AutomationRuntimeSummary) {
+  if (runtime.status === 'running' && runtime.processId) {
+    return `PID ${runtime.processId}`
+  }
+  if (runtime.healthStatus) {
+    return runtime.healthDetail ? `${runtime.healthStatus} · ${runtime.healthDetail}` : runtime.healthStatus
+  }
+  if (runtime.status === 'notInstalled') {
+    return '等待安装'
+  }
+  if (runtime.status === 'unavailable') {
+    return '等待 Gateway'
+  }
+  return runtimeStatusLabel(runtime.status)
+}
+
+function runtimeHealthSummary(runtime: AutomationRuntimeSummary) {
+  if (runtime.healthStatus) {
+    return runtime.healthDetail ? `${runtime.healthStatus} · ${runtime.healthDetail}` : runtime.healthStatus
+  }
+  if (runtime.status === 'running') {
+    return '等待健康检查'
+  }
+  if (runtime.status === 'unavailable') {
+    return '等待 Gateway'
+  }
+  return '未检查'
 }
 
 function runtimeCanStart(runtime: AutomationRuntimeSummary) {

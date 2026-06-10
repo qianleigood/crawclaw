@@ -86,7 +86,7 @@ export function AutomationWorkspace({
       <section className="automation-workspace__header">
         <div>
           <h1>自动化工作区</h1>
-          <p>执行 ComfyUI、n8n 和 Cron 工作流，运行结果会回到当前对话流。</p>
+          <p>只处理执行、历史和产物；n8n / ComfyUI 的安装与启动在设置里的自动化环境管理。</p>
         </div>
       </section>
 
@@ -98,7 +98,7 @@ export function AutomationWorkspace({
             <small>running / queued</small>
           </div>
           <div>
-            <span>工作流</span>
+            <span>可执行项</span>
             <strong>{summary.workflows}</strong>
             <small>ComfyUI / n8n / Cron</small>
           </div>
@@ -140,7 +140,7 @@ export function AutomationWorkspace({
               <div>
                 <span className="automation-execution-board__eyebrow">{activeTab.title} 工作台</span>
                 <h2>{automationTabHeading(activeTab.kind)}</h2>
-                <p>{automationTabDescription(activeTab.kind)}</p>
+                <p>{automationTabDescription(activeTab.kind)} {activeTab.runtime.detail}</p>
               </div>
               <Badge tone={automationRuntimeTone(activeTab.runtime.status)}>
                 {automationReadinessLabel(activeTab.runtime.status)}
