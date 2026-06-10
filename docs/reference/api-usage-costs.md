@@ -89,8 +89,9 @@ See [Web tools](/tools/web).
 Some status commands call **provider usage endpoints** to display quota windows or auth health.
 These are typically low-volume calls but still hit provider APIs:
 
-- CrawClaw Desktop or the local Gateway API
-- CrawClaw Desktop or the local Gateway API
+- `usage.status` reports provider quota/auth windows through CrawClaw Desktop
+  or the local Gateway API.
+- `usage.cost` aggregates local session transcript usage for cost summaries.
 
 See [Models](/concepts/models).
 

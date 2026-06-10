@@ -470,9 +470,9 @@ Exec note:
 
 Helpful modes:
 
-- CrawClaw Desktop or the local Gateway API
-- CrawClaw Desktop or the local Gateway API
-- CrawClaw Desktop or the local Gateway API
+- interactive configuration when you want the picker to build a plan
+- preflight-only review when you want to inspect SecretRef resolution before writing
+- `configure --apply` when you want the reviewed plan applied immediately
 
 `configure` apply defaults:
 

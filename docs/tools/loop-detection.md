@@ -116,5 +116,7 @@ normal tool access.
   policy runs, which is the preferred way to validate loop-tuning changes
   before enabling stricter blocking behavior.
 - The current operator path is:
-  - CrawClaw Desktop or the local Gateway API
-  - CrawClaw Desktop or the local Gateway API
+  - Configure `tools.loopDetection` globally or under the affected agent.
+  - Inspect loop signals through CrawClaw Desktop diagnostics or the local
+    Gateway API, then validate stricter thresholds with harness reports before
+    rolling them out broadly.

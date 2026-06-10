@@ -2225,8 +2225,8 @@ Because process state and API reachability are different checks. The RPC probe c
     - Set `gateway.auth.token` (or `CRAWCLAW_GATEWAY_TOKEN`) on the gateway host.
     - Configure the same token in the client you are using.
     - If mismatch persists after the one retry, rotate/re-approve the paired device token:
-      - CrawClaw Desktop or the local Gateway API
-      - CrawClaw Desktop or the local Gateway API
+      - Clear the browser client's saved credential for that Gateway URL.
+      - Re-approve the browser pairing from CrawClaw Desktop or the local Gateway API.
     - Still stuck? Run CrawClaw Desktop or the local Gateway API and follow [Troubleshooting](/gateway/troubleshooting).
 
   </Accordion>
