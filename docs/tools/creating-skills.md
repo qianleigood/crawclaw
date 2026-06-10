@@ -53,23 +53,26 @@ For how skills are loaded and prioritized, see [Skills](/tools/skills).
   <Step title="Load the skill">
     Start a new session so CrawClaw picks up the skill:
 
-```bash
-# From chat
-/new
-```
+    ```bash
+    # From chat
+    /new
+    ```
 
-Or restart CrawClaw Desktop or the Gateway process so the new skill is loaded.
+    Or restart CrawClaw Desktop or the Gateway process so the new skill is loaded.
 
     Verify the skill loaded:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Open the Skills settings view, or ask a new agent turn to use
+    `discover_skills` for a greeting task and confirm `hello_world` appears.
 
   </Step>
 
   <Step title="Test it">
     Send a message that should trigger the skill:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    ```text
+    Say hello using the hello_world skill.
+    ```
 
     Or just chat with the agent and ask for a greeting.
 

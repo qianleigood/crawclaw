@@ -18,16 +18,19 @@ with CrawClaw), others are **external** (published on npm by the community).
 
 <Steps>
   <Step title="See what is loaded">
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Open the Desktop Plugins view, call Gateway RPC `plugins.list`, or enable
+    `commands.plugins: true` and send `/plugins list`.
   </Step>
 
   <Step title="Install a plugin">
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
-
+    Use the Desktop install dialog, call Gateway RPC `plugins.install`, or send
+    `/plugin install <spec>` when `commands.plugins` is enabled.
   </Step>
 
-  <Step title="Restart the Gateway">
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+  <Step title="Configure and reload">
+    Most plugin enablement and config changes apply through Gateway live
+    reconfigure. Restart the Gateway only when an install, native service, or
+    host runtime change requires a fresh process.
 
     Then configure under `plugins.entries.\<id\>.config` in your config file.
 
@@ -172,7 +175,10 @@ Some categories are exclusive (only one active at a time):
 
 ## Gateway API reference
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+The Gateway RPC surface exposes `plugins.list`, `plugins.install`,
+`plugins.update`, and `plugins.uninstall`. Desktop wraps the install flow with
+`POST /api/desktop/plugins/install`, which accepts a `source` plus optional
+`link` or `pin` flags and forwards to `plugins.install`.
 
 `--dangerously-force-unsafe-install` is a break-glass override for false
 positives from the built-in dangerous-code scanner. It allows installs to

@@ -14,11 +14,14 @@ that cannot launch in the current host environment.
 
 If the tool reports that `agent-browser` is missing, reinstall managed runtimes:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open CrawClaw Desktop on the gateway host and let it stage the bundled managed
+runtimes, or run the same host through the local Gateway runtime install path.
+The staged browser binary lives under `runtimes/browser/bin/agent-browser`.
 
 Then check the runtime manifest:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Confirm the gateway runtime root contains `runtimes/manifest.json` and that the
+manifest advertises the `browser-agent-browser-runtime` service.
 
 ## Browser executable fails to launch
 

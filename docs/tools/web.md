@@ -24,7 +24,9 @@ JS-heavy sites or authenticated pages, use the [Web Browser](/tools/browser).
     installs you do not need an API key or a separately managed service.
   </Step>
   <Step title="Optional configuration">
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Keep the defaults unless you need different result limits, timeouts, cache
+    TTL, or a pre-existing SearXNG endpoint. Those values live under
+    `tools.web.search.*` and `plugins.entries.searxng.config.webSearch.*`.
   </Step>
   <Step title="Use it">
     ```javascript
