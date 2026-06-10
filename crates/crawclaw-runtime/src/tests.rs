@@ -808,6 +808,21 @@ fn rust_runtime_repo_guardrails_remove_pi_agent_runtime_dependency() {
 }
 
 #[test]
+fn rust_runtime_repo_guardrails_keep_legacy_pi_prompt_assets_absent() {
+    let root = repo_root();
+    let existing = tracked_files(&root)
+        .into_iter()
+        .filter(|relative| relative.starts_with(".pi/"))
+        .filter(|relative| root.join(relative).exists())
+        .collect::<Vec<_>>();
+
+    assert!(
+        existing.is_empty(),
+        "legacy Pi prompt assets should live outside this repo: {existing:?}"
+    );
+}
+
+#[test]
 fn rust_runtime_repo_guardrails_keep_removed_ts_plugin_control_plane_absent() {
     let root = repo_root();
     let removed = [
