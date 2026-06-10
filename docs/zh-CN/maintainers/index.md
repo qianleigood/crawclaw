@@ -19,9 +19,9 @@ x-i18n:
 
 ## 核心维护文档
 
-- [Plugin dependency maintenance](/maintainers/plugin-dependency-maintenance)
-- [Provider and plugin metadata drift](/maintainers/provider-plugin-metadata-drift)
-- [Repository structure](/maintainers/repo-structure)
+- [Plugin 依赖维护](/maintainers/plugin-dependency-maintenance)
+- [Provider 和 plugin 元数据漂移](/maintainers/provider-plugin-metadata-drift)
+- [仓库结构](/maintainers/repo-structure)
 - [Runtime surface](/maintainers/runtime-surface)
 - [Skills catalog](/maintainers/skills-catalog)
 
@@ -29,6 +29,6 @@ x-i18n:
 
 维护系统时，下面这些章节通常需要一起看：
 
-- [Concepts](/concepts)
-- [Debug docs](/debug)
-- [Reference docs](/reference)
+- [概念文档](/concepts)
+- [调试文档](/debug)
+- [参考文档](/reference)
