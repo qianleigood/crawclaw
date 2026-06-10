@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-05T14:47:24Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: b860702afdc6933a160f8cd65449207dd1fb784430be743cf57741fea3103541
+  source_hash: bb27135699df91a8767249c223a899a918f1f58e72ef8ae3125134d102681ebb
   source_path: reference/session-management-compaction.md
   workflow: 15
 ---
@@ -93,9 +93,9 @@ CrawClaw 通过 Rust 运行时会话存储解析这些。
 
 在 `mode: "warn"` 中，CrawClaw 报告潜在驱逐但不修改存储/文件。
 
-按需运行维护：
-
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+要将清理从报告切换为实际修改，请在查看警告和阈值后将
+`session.maintenance.mode` 设置为 `"enforce"`。调优保留策略时保持
+`warn`，这样 CrawClaw 会报告潜在驱逐，但不会删除会话状态。
 
 ---
 

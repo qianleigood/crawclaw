@@ -86,9 +86,10 @@ Enforcement order for disk budget cleanup (`mode: "enforce"`):
 
 In `mode: "warn"`, CrawClaw reports potential evictions but does not mutate the store/files.
 
-Run maintenance on demand:
-
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+To turn cleanup from reporting into mutation, set `session.maintenance.mode` to
+`"enforce"` after reviewing the warnings and thresholds. Keep `warn` while
+tuning retention so CrawClaw reports potential evictions without deleting
+session state.
 
 ---
 

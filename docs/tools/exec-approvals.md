@@ -102,7 +102,10 @@ or `deny`.
 
 Persistent gateway-host "never prompt" setup:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Set the requested exec policy to `tools.exec.security="full"` and
+`tools.exec.ask="off"` in CrawClaw config. Then inspect the host approvals state
+with `exec.approvals.get` and update it with `exec.approvals.set` if the
+host-local defaults are still stricter.
 
 Then set the host approvals file to match:
 

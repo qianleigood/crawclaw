@@ -8,7 +8,7 @@ title: "Personal Assistant Setup"
 
 # Building a personal assistant with CrawClaw
 
-CrawClaw is a self-hosted gateway that connects Weixin, Feishu, QQBot, Weixin, and more to AI agents. This guide covers the "personal assistant" setup: a dedicated Weixin number that behaves like your always-on AI assistant.
+CrawClaw is a self-hosted gateway that connects Weixin, Feishu, QQBot, plugin channels, and more to AI agents. This guide covers the "personal assistant" setup: a dedicated Weixin number that behaves like your always-on AI assistant.
 
 ## ⚠️ Safety first
 
@@ -16,7 +16,7 @@ You’re putting an agent in a position to:
 
 - run commands on your machine (depending on your tool policy)
 - read/write files in your workspace
-- send messages back out via Weixin/Feishu/QQBot/Feishu (plugin)
+- send messages back out via Weixin, Feishu, QQBot, or plugin channels
 
 Start conservative:
 
@@ -35,7 +35,7 @@ You want this:
 
 ```mermaid
 flowchart TB
-    A["<b>Your Phone (personal)<br></b><br>Your Weixin<br>+1-555-YOU"] -- message --> B["<b>Second Phone (assistant)<br></b><br>Assistant WA<br>+1-555-ASSIST"]
+    A["<b>Your Phone (personal)<br></b><br>Your Weixin<br>+1-555-YOU"] -- message --> B["<b>Second Phone (assistant)<br></b><br>Assistant Weixin<br>+1-555-ASSIST"]
     B -- linked via QR --> C["<b>Your Mac (crawclaw)<br></b><br>AI agent"]
 ```
 
@@ -45,11 +45,14 @@ If you link your personal Weixin to CrawClaw, every message to you becomes “ag
 
 1. Pair Weixin Web (shows QR; scan with the assistant phone):
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open CrawClaw Desktop, go to channel setup, choose Weixin, and scan the QR code
+with the assistant phone. For scripted setups, use the local Gateway channel
+pairing/status API against the gateway host.
 
 2. Start the Gateway (leave it running):
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Leave CrawClaw Desktop running on the host that owns the Weixin session. If you
+run a standalone Gateway, keep that supervised process running on the same host.
 
 3. Put a minimal config in `~/.crawclaw/crawclaw.json`:
 
@@ -82,7 +85,10 @@ Default runtime bootstrap injection is intentionally narrow:
 
 Tip: treat this folder like CrawClaw’s “memory” and make it a git repo (ideally private) so your `AGENTS.md` + memory files are backed up. If git is installed, brand-new workspaces are auto-initialized.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+After bootstrap, review the generated workspace files in
+`~/.crawclaw/workspace`. At minimum, edit `AGENTS.md` and `SOUL.md` so the
+assistant has the right operating rules and personality before exposing it to
+channels.
 
 Full workspace layout + backup guide: [Agent workspace](/concepts/agent-workspace)
 Memory workflow: [Memory](/concepts/memory)
@@ -193,7 +199,10 @@ That means generated images/files outside the workspace can now send when your f
 
 ## Operations checklist
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+- Check CrawClaw Desktop health before relying on the assistant.
+- Confirm the Weixin channel is linked and accepting only the allowlisted sender.
+- Keep the Gateway host awake and on a stable network.
+- Review `/tmp/crawclaw/` logs after pairing, restarts, or failed deliveries.
 
 Logs live under `/tmp/crawclaw/` (default: `crawclaw-YYYY-MM-DD.log`).
 

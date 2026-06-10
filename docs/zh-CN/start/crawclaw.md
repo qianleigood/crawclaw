@@ -8,14 +8,14 @@ x-i18n:
   generated_at: "2026-06-05T14:48:53Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: bf02299e750a7e66ac82b8dcdedaa7beb68d249b03ee8b73e96c6ae68b5c2184
+  source_hash: 8f6c55169522bcacceb1dfa08b3a089dfeec7bea05c536637c3a746fb29e4ec4
   source_path: start/crawclaw.md
   workflow: 15
 ---
 
 # 使用 CrawClaw 构建个人助手
 
-CrawClaw 是一个自托管 Gateway，可将 Weixin、Feishu、QQBot、Weixin 等渠道连接到 AI 智能体。本指南涵盖"个人助手"设置：行为类似于始终在线 AI 助手的专用 Weixin 号码。
+CrawClaw 是一个自托管 Gateway，可将 Weixin、Feishu、QQBot、插件渠道等连接到 AI 智能体。本指南涵盖"个人助手"设置：行为类似于始终在线 AI 助手的专用 Weixin 号码。
 
 ## ⚠️ 安全第一
 
@@ -23,7 +23,7 @@ CrawClaw 是一个自托管 Gateway，可将 Weixin、Feishu、QQBot、Weixin �
 
 - 在你的机器上运行命令（取决于你的工具策略）
 - 在你的工作区中读取/写入文件
-- 通过 Weixin/Feishu/QQBot/Feishu（插件）发送消息
+- 通过 Weixin、Feishu、QQBot 或插件渠道发送消息
 
 从保守设置开始：
 
@@ -42,7 +42,7 @@ CrawClaw 是一个自托管 Gateway，可将 Weixin、Feishu、QQBot、Weixin �
 
 ```mermaid
 flowchart TB
-    A["<b>你的手机（个人）<br></b><br>你的 Weixin<br>+1-555-YOU"] -- message --> B["<b>第二部手机（助手）<br></b><br>助手 WA<br>+1-555-ASSIST"]
+    A["<b>你的手机（个人）<br></b><br>你的 Weixin<br>+1-555-YOU"] -- message --> B["<b>第二部手机（助手）<br></b><br>助手 Weixin<br>+1-555-ASSIST"]
     B -- linked via QR --> C["<b>你的 Mac（crawclaw）<br></b><br>AI 智能体"]
 ```
 
@@ -52,11 +52,11 @@ flowchart TB
 
 1. 配对 Weixin Web（显示二维码；用助手手机扫描）：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+打开 CrawClaw Desktop，进入渠道设置，选择 Weixin，然后用助手手机扫描二维码。脚本化设置可以针对 Gateway 主机调用本地 Gateway 渠道配对/状态 API。
 
 2. 启动 Gateway（保持运行）：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+让 CrawClaw Desktop 持续运行在拥有 Weixin 会话的主机上。如果你运行独立 Gateway，请在同一主机上保持该受监管进程运行。
 
 3. 在 `~/.crawclaw/crawclaw.json` 中放入最小配置：
 
@@ -85,7 +85,7 @@ CrawClaw 从其工作区目录读取操作指令和"记忆"。
 
 提示：把这个文件夹当作 CrawClaw 的"记忆"，并将其设为 git 仓库（最好私有），这样你的 `AGENTS.md` + 记忆文件就有备份了。如果安装了 git，全新工作区会自动初始化。
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+引导完成后，检查 `~/.crawclaw/workspace` 中生成的工作区文件。至少先编辑 `AGENTS.md` 和 `SOUL.md`，让助手在暴露给渠道前拥有正确的操作规则和人格设定。
 
 完整工作区布局 + 备份指南：[智能体工作区](/concepts/agent-workspace)
 记忆工作流：[记忆](/concepts/memory)
@@ -191,7 +191,10 @@ CrawClaw 提取这些内容并随文本一起发送媒体。
 
 ## 操作检查清单
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+- 依赖助手前先检查 CrawClaw Desktop 健康状态。
+- 确认 Weixin 渠道已链接，并且只接受 allowlist 中的发送者。
+- 让 Gateway 主机保持唤醒并连接稳定网络。
+- 配对、重启或投递失败后检查 `/tmp/crawclaw/` 日志。
 
 日志位于 `/tmp/crawclaw/`（默认：`crawclaw-YYYY-MM-DD.log`）。
 

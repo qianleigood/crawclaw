@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-10T18:59:33Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 6f4e182e13716f82d64abc29d3502c0efea66402fa36060c159dc95d9017d205
+  source_hash: 34f367d5c961ab4eaa43be72f09910f697c5942488f183d19f88ef7c10763904
   source_path: tools/exec-approvals.md
   workflow: 15
 ---
@@ -98,7 +98,10 @@ Exec 审批在执行主机上本地执行：
 
 持久化 Gateway 主机"从不提示"设置：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 CrawClaw 配置中将请求的 exec 策略设置为
+`tools.exec.security="full"` 和 `tools.exec.ask="off"`。然后用
+`exec.approvals.get` 检查主机审批状态；如果主机本地默认值仍更严格，
+再用 `exec.approvals.set` 更新它。
 
 然后设置主机审批文件以匹配：
 
