@@ -1,0 +1,68 @@
+---
+title: "Volcengine (Doubao)"
+summary: "Volcano Engine 设置（Doubao models，general + coding endpoints）"
+read_when:
+  - 你想在 CrawClaw 中使用 Volcano Engine 或 Doubao models
+  - 你需要 Volcengine API key setup
+x-i18n:
+  generated_at: "2026-06-10T11:23:26Z"
+  model: codex
+  provider: openai
+  source_hash: 0da153ff799ac07dcbb9e07c7e0c05e1961881c45ec74b52f532c4e496cefe60
+  source_path: providers/volcengine.md
+  workflow: 15
+---
+
+# Volcengine (Doubao)
+
+Volcengine provider 提供对 Doubao models 和 Volcano Engine 上托管的 third-party models 的访问，并为 general 与 coding workloads 提供独立 endpoints。
+
+- Providers: `volcengine`（general）+ `volcengine-plan`（coding）
+- Auth: `VOLCANO_ENGINE_API_KEY`
+- API: OpenAI-compatible
+
+## Quick start
+
+1. 设置 API key：
+
+使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+
+2. 设置 default model：
+
+```json5
+{
+  agents: {
+    defaults: {
+      model: { primary: "volcengine-plan/ark-code-latest" },
+    },
+  },
+}
+```
+
+## Non-interactive example
+
+使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+
+## Providers and endpoints
+
+| Provider          | Endpoint                                  | Use case       |
+| ----------------- | ----------------------------------------- | -------------- |
+| `volcengine`      | `ark.cn-beijing.volces.com/api/v3`        | General models |
+| `volcengine-plan` | `ark.cn-beijing.volces.com/api/coding/v3` | Coding models  |
+
+两个 providers 都由同一个 API key 配置。Setup 会自动注册两者。
+
+## Available models
+
+- **doubao-seed-1-8** - Doubao Seed 1.8（general, default）
+- **doubao-seed-code-preview** - Doubao coding model
+- **ark-code-latest** - Coding plan default
+- **Kimi K2.5** - Moonshot AI via Volcano Engine
+- **GLM-4.7** - GLM via Volcano Engine
+- **DeepSeek V3.2** - DeepSeek via Volcano Engine
+
+大多数 models 支持 text + image input。Context windows 范围从 128K 到 256K tokens。
+
+## Environment note
+
+如果 Gateway 作为 daemon（launchd/systemd）运行，确保 `VOLCANO_ENGINE_API_KEY` 对该 process 可用，例如放在 `~/.crawclaw/.env` 或通过 `env.shellEnv`。
