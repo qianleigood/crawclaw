@@ -942,6 +942,36 @@ fn rust_runtime_repo_guardrails_keep_readme_desktop_quick_start_current() {
 }
 
 #[test]
+fn rust_runtime_repo_guardrails_keep_configuration_docs_on_current_sandbox_schema() {
+    let root = repo_root();
+    let configuration = fs::read_to_string(root.join("docs/gateway/configuration.md"))
+        .expect("read configuration guide");
+    let examples = fs::read_to_string(root.join("docs/gateway/configuration-examples.md"))
+        .expect("read configuration examples");
+    let combined = format!("{configuration}\n{examples}");
+    let forbidden_needles = [
+        "scripts/sandbox-setup.sh",
+        "sandbox: {",
+        "mode: \"non-main\"",
+        "workspaceAccess",
+        "backend: \"ssh\"",
+    ];
+    let hits = forbidden_needles
+        .into_iter()
+        .filter(|needle| combined.contains(needle))
+        .collect::<Vec<_>>();
+
+    assert!(
+        hits.is_empty(),
+        "configuration docs must not advertise removed agent sandbox config: {hits:?}"
+    );
+    assert!(
+        configuration.contains("browser.noSandbox"),
+        "configuration guide should point sandbox troubleshooting at the current browser.noSandbox field"
+    );
+}
+
+#[test]
 fn rust_runtime_repo_guardrails_keep_removed_ts_plugin_control_plane_absent() {
     let root = repo_root();
     let removed = [

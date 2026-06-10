@@ -268,14 +268,6 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
       mediaMaxMb: 5,
       typingIntervalSeconds: 5,
       maxConcurrent: 3,
-        mode: "non-main",
-        scope: "session", // preferred over legacy perSession: true
-        backend: "ssh",
-        workspaceAccess: "rw",
-        ssh: {
-          target: "user@gateway-host:22",
-        },
-      },
     },
     list: [
       {

@@ -211,25 +211,23 @@ When validation fails:
 
   </Accordion>
 
-  <Accordion title="Enable sandbox isolation">
-    Run agent sessions in isolated Docker containers:
+  <Accordion title="Troubleshoot Chromium sandbox startup">
+    Keep Chromium sandboxing enabled unless the browser runtime cannot start in
+    your host environment. If Chromium fails because the host blocks sandbox
+    setup, disable only the browser sandbox flags:
 
     ```json5
     {
-      agents: {
-        defaults: {
-          sandbox: {
-            mode: "non-main",  // off | non-main | all
-            scope: "agent",    // session | agent | shared
-          },
-        },
+      browser: {
+        noSandbox: true,
       },
     }
     ```
 
-    Build the image first: `scripts/sandbox-setup.sh`
-
-    See [Security](/gateway/security) for the full guide.
+    - `browser.noSandbox` reduces Chromium process isolation; leave it unset
+      unless browser startup fails.
+    - See the [full reference](/gateway/configuration-reference#browser) for
+      Browser fields.
 
   </Accordion>
 
