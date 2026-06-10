@@ -21,33 +21,32 @@ When you copy the **state directory** (`~/.crawclaw/` by default) and your **wor
 - **Workspace files** -- `MEMORY.md`, `USER.md`, skills, and prompts
 
 <Tip>
-Run CrawClaw Desktop or the local Gateway API on the old machine to confirm your state directory path.
-Custom profiles use `~/.crawclaw-<profile>/` or a path set via `CRAWCLAW_STATE_DIR`.
+In CrawClaw Desktop, open **Settings** → **Data and Privacy** and read **Current desktop data directory** before you archive anything.
+The default desktop runtime uses `~/.crawclaw`; custom profiles use `~/.crawclaw-<profile>/` or a path set via `CRAWCLAW_STATE_DIR`.
 </Tip>
 
 ## Migration Steps
 
 <Steps>
   <Step title="Stop the gateway and back up">
-    On the **old** machine, stop the gateway so files are not changing mid-copy, then archive:
+    On the **old** machine, quit CrawClaw Desktop or stop the service that owns the Gateway so files are not changing mid-copy, then archive the state directory:
 
     ```bash
-    # Stop CrawClaw Desktop or the Gateway service first.
     cd ~
     tar -czf crawclaw-state.tgz .crawclaw
     ```
 
-    If you use multiple profiles (e.g. `~/.crawclaw-work`), archive each separately.
+    If **Current desktop data directory** points somewhere else, archive that exact directory instead. If you use multiple profiles, archive each state directory separately.
 
   </Step>
 
   <Step title="Install CrawClaw on the new machine">
-    [Install](/install) the CLI (and Node if needed) on the new machine.
+    [Install CrawClaw Desktop](/install) on the new machine, or follow your server runtime guide for a headless Gateway host.
     It is fine if onboarding creates a fresh `~/.crawclaw/` -- you will overwrite it next.
   </Step>
 
   <Step title="Copy state directory and workspace">
-    Transfer the archive via `scp`, `rsync -a`, or an external drive, then extract:
+    Quit CrawClaw Desktop on the new machine, transfer the archive via `scp`, `rsync -a`, or an external drive, then extract:
 
     ```bash
     cd ~
@@ -58,10 +57,8 @@ Custom profiles use `~/.crawclaw-<profile>/` or a path set via `CRAWCLAW_STATE_D
 
   </Step>
 
-  <Step title="Run doctor and verify">
-    On the new machine, run [Doctor](/gateway/doctor) to apply config migrations and repair services:
-
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+  <Step title="Refresh runtime and verify">
+    Launch CrawClaw Desktop on the new machine. Open **Settings** → **Advanced**, click **Refresh Runtime**, then generate **Diagnostics** if the runtime is not ready. Confirm **Settings** → **Data and Privacy** shows the migrated data directory. For automation or external monitoring, use the [Gateway health API](/gateway/health).
 
   </Step>
 </Steps>
@@ -72,7 +69,7 @@ Custom profiles use `~/.crawclaw-<profile>/` or a path set via `CRAWCLAW_STATE_D
   <Accordion title="Profile or state-dir mismatch">
     If the old gateway used `--profile` or `CRAWCLAW_STATE_DIR` and the new one does not,
     channels will appear logged out and sessions will be empty.
-    Launch the gateway with the **same** profile or state-dir you migrated, then rerun CrawClaw Desktop or the local Gateway API.
+    Launch the gateway with the **same** profile or state directory you migrated, then confirm CrawClaw Desktop shows that directory under **Settings** → **Data and Privacy**.
   </Accordion>
 
   <Accordion title="Copying only crawclaw.json">
@@ -100,7 +97,8 @@ Custom profiles use `~/.crawclaw-<profile>/` or a path set via `CRAWCLAW_STATE_D
 
 On the new machine, confirm:
 
-- [ ] CrawClaw Desktop or the local Gateway API shows the gateway running
+- [ ] **Settings** → **Advanced** shows the runtime is ready, or the Gateway health API reports healthy
+- [ ] **Settings** → **Data and Privacy** shows the migrated state directory
 - [ ] Channels are still connected (no re-pairing needed)
 - [ ] The dashboard opens and shows existing sessions
 - [ ] Workspace files (memory, configs) are present

@@ -5,10 +5,10 @@ read_when:
 summary: 将 CrawClaw 安装迁移到另一台机器
 title: 迁移指南
 x-i18n:
-  generated_at: "2026-06-05T14:39:35Z"
+  generated_at: "2026-06-10T21:36:28Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 3b296f455ed417ed46808d011941dc53961cdcffb0981c1fc866bdb244c7d287
+  source_hash: a2a9dd3180fb454b79923b952e7e9d0511bb903542fee9ed71964c13923a1835
   source_path: install/migrating.md
   workflow: 15
 ---
@@ -28,34 +28,33 @@ x-i18n:
 - **工作区文件** -- `MEMORY.md`、`USER.md`、Skills 和提示词
 
 <Tip>
-在旧机器上运行 CrawClaw Desktop 或本地 Gateway API 以确认你的状态目录路径。
-自定义配置使用 `~/.crawclaw-<profile>/` 或通过 `CRAWCLAW_STATE_DIR` 设置的路径。
+在归档任何内容之前，在 CrawClaw Desktop 中打开**设置** → **数据与隐私**，查看**当前桌面数据目录**。
+默认桌面 runtime 使用 `~/.crawclaw`；自定义 profile 使用 `~/.crawclaw-<profile>/` 或通过 `CRAWCLAW_STATE_DIR` 设置的路径。
 </Tip>
 
 ## 迁移步骤
 
 <Steps>
   <Step title="停止 gateway 并备份">
-    在**旧**机器上，停止 gateway 以确保文件在复制过程中不会变更，然后打包：
+    在**旧**机器上，退出 CrawClaw Desktop 或停止拥有 Gateway 的服务，以确保文件在复制过程中不会变更，然后打包状态目录：
 
     ```bash
-    # 首先停止 CrawClaw Desktop 或 Gateway 服务。
     cd ~
     tar -czf crawclaw-state.tgz .crawclaw
     ```
 
-    如果你使用多个配置（例如 `~/.crawclaw-work`），请分别打包每个。
+    如果**当前桌面数据目录**指向其他位置，请改为打包那个确切目录。如果你使用多个 profile，请分别打包每个状态目录。
 
   </Step>
 
   <Step title="在新机器上安装 CrawClaw">
-    在新机器上[安装](/install) CLI（以及 Node 如果需要）。
+    在新机器上[安装 CrawClaw Desktop](/install)，或者针对 headless Gateway 主机遵循你的 server runtime 指南。
     如果新手引导创建了新的 `~/.crawclaw/` 也没有问题 -- 你将在下一步覆盖它。
 
   </Step>
 
   <Step title="复制状态目录和工作区">
-    通过 `scp`、`rsync -a` 或外部驱动器传输压缩包，然后解压：
+    在新机器上退出 CrawClaw Desktop，通过 `scp`、`rsync -a` 或外部驱动器传输压缩包，然后解压：
 
     ```bash
     cd ~
@@ -66,10 +65,8 @@ x-i18n:
 
   </Step>
 
-  <Step title="运行 Doctor 并验证">
-    在新机器上，运行 [Doctor](/gateway/doctor) 以应用配置迁移并修复服务：
-
-    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
+  <Step title="刷新 Runtime 并验证">
+    在新机器上启动 CrawClaw Desktop。打开**设置** → **高级**，点击**刷新 Runtime**；如果 runtime 未就绪，再生成**诊断信息**。确认**设置** → **数据与隐私**显示的是已迁移的数据目录。自动化或外部监控使用 [Gateway health API](/gateway/health)。
 
   </Step>
 </Steps>
@@ -80,7 +77,7 @@ x-i18n:
   <Accordion title="配置或状态目录不匹配">
     如果旧 gateway 使用了 `--profile` 或 `CRAWCLAW_STATE_DIR`，而新 gateway 没有使用，
     渠道将显示为已登出，会话将为空。
-    使用你迁移时**相同的** profile 或状态目录启动 gateway，然后重新运行 CrawClaw Desktop 或本地 Gateway API。
+    使用你迁移时**相同的** profile 或状态目录启动 gateway，然后确认 CrawClaw Desktop 在**设置** → **数据与隐私**下显示该目录。
   </Accordion>
 
   <Accordion title="仅复制 crawclaw.json">
@@ -108,7 +105,8 @@ x-i18n:
 
 在新机器上确认：
 
-- [ ] CrawClaw Desktop 或本地 Gateway API 显示 gateway 正在运行
+- [ ] **设置** → **高级**显示 runtime 已就绪，或 Gateway health API 报告健康
+- [ ] **设置** → **数据与隐私**显示已迁移的状态目录
 - [ ] 渠道仍保持连接（无需重新配对）
 - [ ] 仪表盘正常打开并显示现有会话
 - [ ] 工作区文件（记忆、配置）存在
