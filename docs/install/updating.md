@@ -10,15 +10,17 @@ title: "Updating"
 
 Keep CrawClaw up to date.
 
-## Recommended: CrawClaw Desktop or the local Gateway API
+## Recommended: CrawClaw Desktop
 
 The fastest way to update is through CrawClaw Desktop. It fetches the latest application bundle and restarts the embedded Gateway when needed.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+For source checkouts and automation, use the Gateway `update.run` control-plane method. It checks the current git checkout, refuses to proceed when the worktree is dirty, fetches upstream refs and tags, and reports whether the checkout is already current or whether an update is available. It does not replace the packaged desktop app bundle.
 
 To switch channels or target a specific version:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+- Set `update.channel` to `stable`, `beta`, or `dev`.
+- For automation, patch config through the Gateway API (`config.patch`) and then run `update.run` to check the active checkout.
+- For packaged desktop installs, download the exact version you want from [GitHub Releases](https://github.com/qianleigood/crawclaw/releases).
 
 See [Auto-updater](#auto-updater) for channel semantics.
 
@@ -65,17 +67,17 @@ The gateway also logs an update hint on startup (disable with `update.checkOnSta
 
 ### Run doctor
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Run Doctor from CrawClaw Desktop or the Gateway repair surface.
 
 Migrates config, audits DM policies, and checks gateway health. Details: [Doctor](/gateway/doctor)
 
 ### Restart the gateway
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Restart from CrawClaw Desktop so the embedded Gateway reloads startup-bound settings. For source checkouts, stop the running dev process, rebuild if needed, and start the Gateway from the updated checkout.
 
 ### Verify
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Check the Desktop health view or the Gateway `health` / `system.health` RPC. Confirm the Gateway is reachable, expected channels are connected or ready, and the log has no blocking config or service errors.
 
 </Steps>
 
@@ -91,7 +93,7 @@ Tip: `npm view crawclaw version` shows the current published version.
 
 ```bash
 git fetch origin
-git checkout "$(git rev-list -n 1 --before=\"2026-01-01\" origin/main)"
+git checkout "$(git rev-list -n 1 --before='2026-01-01' origin/main)"
 pnpm install && pnpm build
 ```
 
