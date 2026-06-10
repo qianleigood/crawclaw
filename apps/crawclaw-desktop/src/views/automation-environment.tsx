@@ -155,7 +155,7 @@ export function AutomationEnvironment({
                   </header>
 
                   <div className="automation-environment-flow" aria-label={`${runtime.name} 环境管理`}>
-                    <section className="automation-environment-step">
+                    <section className="automation-environment-step automation-environment-install-center">
                       <div className="automation-environment-step__marker">1</div>
                       <div>
                         <span>安装环境</span>
@@ -221,7 +221,7 @@ export function AutomationEnvironment({
                       </section>
                     ) : null}
 
-                    <section className="automation-environment-step automation-environment-step--runtime">
+                    <section className="automation-environment-step automation-environment-step--runtime automation-environment-run-control">
                       <div className="automation-environment-step__marker">{computeProfiles.length > 0 ? '3' : '2'}</div>
                       <div className="automation-environment-runtime">
                         <div>
