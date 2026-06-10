@@ -948,6 +948,16 @@ fn rust_runtime_repo_guardrails_keep_readme_desktop_quick_start_current() {
         !zh_readme.contains("管理界面"),
         "README.zh-CN.md must not use retired admin UI wording"
     );
+    assert!(
+        readme.contains("[bundled plugin tree](extensions)")
+            && !readme.contains("[extensions](extensions)"),
+        "README.md repo map should label extensions as the bundled plugin tree"
+    );
+    assert!(
+        zh_readme.contains("[捆绑插件树](extensions)")
+            && !zh_readme.contains("[extensions](extensions)"),
+        "README.zh-CN.md repo map should label extensions as the bundled plugin tree"
+    );
 }
 
 #[test]

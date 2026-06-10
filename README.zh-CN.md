@@ -134,7 +134,7 @@ Gateway 是核心边界。客户端和渠道连接 Gateway；agent runtime 位�
 | [apps/crawclaw-desktop](apps/crawclaw-desktop) | Tauri 桌面应用、desktop BFF 和 UI workbench                            |
 | [crates](crates)                               | Rust Gateway、runtime、native-plugin、provider 和 SDK crates           |
 | [src](src)                                     | 保留的非 runtime metadata、generated JSON 和本地边界说明               |
-| [extensions](extensions)                       | 渠道、providers、浏览器后端、speech、media 和 tools 的 bundled plugins |
+| [捆绑插件树](extensions)                       | 渠道、providers、浏览器后端、speech、media 和 tools 的 bundled plugins |
 | [packages](packages)                           | 预留 workspace 支持包槽位，不是 runtime package tree                   |
 | [skills](skills)                               | 随包发布的 runtime skills                                              |
 | [docs](docs)                                   | Mintlify 文档源文件                                                    |

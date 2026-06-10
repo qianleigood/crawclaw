@@ -112,7 +112,7 @@ Key docs:
 | [apps/crawclaw-desktop](apps/crawclaw-desktop) | Tauri desktop app, desktop BFF, and UI workbench                                    |
 | [crates](crates)                               | Rust Gateway, runtime, native-plugin, provider, and SDK crates                      |
 | [src](src)                                     | Retained non-runtime metadata, generated JSON, and local boundary notes             |
-| [extensions](extensions)                       | Bundled plugins for channels, providers, browser backends, speech, media, and tools |
+| [bundled plugin tree](extensions)              | Bundled plugins for channels, providers, browser backends, speech, media, and tools |
 | [packages](packages)                           | Reserved workspace support package slot                                             |
 | [skills](skills)                               | Shipped runtime skills                                                              |
 | [docs](docs)                                   | Mintlify documentation source                                                       |
