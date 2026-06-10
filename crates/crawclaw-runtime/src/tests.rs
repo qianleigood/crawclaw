@@ -408,6 +408,27 @@ fn rust_runtime_repo_guardrails_keep_agents_desktop_guidance_current() {
 }
 
 #[test]
+fn rust_runtime_repo_guardrails_keep_copilot_instructions_aligned_with_commit_flow() {
+    let root = repo_root();
+    let instructions_path = root.join(".github/instructions/copilot.instructions.md");
+    let instructions_source =
+        fs::read_to_string(&instructions_path).expect("read copilot instructions");
+
+    assert!(
+        instructions_source.contains("scripts/committer"),
+        "Copilot instructions should reference the repo scoped commit helper"
+    );
+    assert!(
+        !instructions_source.contains("do NOT use scripts/committer"),
+        "Copilot instructions must not contradict AGENTS.md scoped commit guidance"
+    );
+    assert!(
+        instructions_source.contains("pnpm check") && instructions_source.contains("pnpm test"),
+        "Copilot instructions should keep the same local verification gate names as AGENTS.md"
+    );
+}
+
+#[test]
 fn rust_runtime_repo_guardrails_keep_desktop_dialogs_app_owned() {
     let root = repo_root();
     let desktop_src = root.join("apps/crawclaw-desktop/src");

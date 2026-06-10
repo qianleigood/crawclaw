@@ -50,4 +50,4 @@
 - **Tests**: `pnpm test`
 - **Build**: `pnpm build`
 
-If you are coding together with a human, do NOT use scripts/committer, but git directly and run the above commands manually to ensure quality.
+For commits in this repository, use `scripts/committer "<msg>" <file...>` with an explicit file list so staging stays scoped. Run the relevant commands above before committing unless the human explicitly asks for a narrower check.
