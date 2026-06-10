@@ -31,7 +31,7 @@ Node/npm，但它们现在只是 repo tooling adapter，不是产品 runtime bou
 从
 [GitHub Releases](https://github.com/qianleigood/crawclaw/releases) 安装
 **CrawClaw Desktop**。桌面 app 会内置 Rust Gateway/runtime/native-plugin
-二进制，初始化 `~/.crawclaw`，启动本机 Gateway，并打开连接本机 Gateway 的管理界面。
+二进制，初始化 `~/.crawclaw`，启动本机 Gateway，并打开连接本机 Gateway 的桌面工作台。
 
 文档：
 
