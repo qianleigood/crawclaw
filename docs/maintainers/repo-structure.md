@@ -17,13 +17,15 @@ The short version:
 - `apps/crawclaw-desktop/` is the desktop application
 - `src/` is retained non-runtime metadata, generated JSON, and local boundary notes
 - `extensions/` is the bundled plugin metadata ecosystem
+- `automation/` contains managed local runtime install assets for n8n and ComfyUI
 - `packages/` is a reserved workspace support package slot, not runtime core
 - `docs/` contains both product docs and maintainer-facing design material
 - `scripts/` and `.github/` are the delivery layer
-- `test/` is shared test infrastructure
+- `test-fixtures/` is shared test fixture data
 - `dist/` is build output, not source
 - `skills-optional/` is an optional skill catalog, not runtime core code
 - `Swabble/` is a separate sidecar app/codebase, not part of the main runtime
+- `firmware/` is hardware sidecar code and device metadata, not desktop runtime code
 
 ## Main Runtime
 
@@ -66,6 +68,11 @@ not the main runtime layer.
 
 `skills-optional/` also belongs to the ecosystem side of the repo. It is a catalog
 of optional skills and recipes, not a core runtime tree.
+
+`automation/` is also ecosystem-adjacent. It contains the release-manifest-backed
+install scripts and checksums for managed local runtimes such as n8n and
+ComfyUI. Runtime control still lives in Rust and the desktop app; these files are
+environment assets, not a separate workflow engine.
 
 ## Support Packages
 
@@ -123,17 +130,18 @@ when a Rust orchestration path exists.
 
 ## Test Infrastructure
 
-`test/` is shared test infrastructure.
+`test-fixtures/` is shared test fixture data.
 
 Use it for:
 
 - shared fixtures
-- mocks
-- helper utilities
+- contract samples
+- cross-domain test inputs
 - cross-domain test support
 
-Keep small, domain-local tests near source when possible. Use `test/` when the
-support asset is shared across multiple domains.
+Keep small, domain-local tests near source when possible. Use `test-fixtures/`
+when the support asset is shared across multiple domains. Do not add new
+TypeScript test suites; the active test surface is the Rust workspace.
 
 ## Non-Core / Sidecar Code
 
@@ -142,6 +150,10 @@ support asset is shared across multiple domains.
 It is a separate sidecar app/codebase living in the same repository. Treat it as
 an adjacent project. If the repo is reorganized later, this directory should move
 under an explicit umbrella such as `apps/` or `experiments/`.
+
+`firmware/` follows the same non-core rule. It carries device-side code and
+metadata for hardware integrations, while the main product runtime remains under
+`crates/` and `apps/crawclaw-desktop/`.
 
 ## Build Output
 

@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:40:36Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 5c72c43b7a931065c198e9d8335b5bc6ea9a8e869937c3477fe99a5f2a4e4aab
+  source_hash: 4aca319342aa4a425ebb21174c30ff2bcf2e802104b946d3fba94d358b7d9d1f
   source_path: maintainers/repo-structure.md
   workflow: 15
 ---
@@ -23,13 +23,15 @@ x-i18n:
 - `apps/crawclaw-desktop/` 是桌面应用程序
 - `src/` 是保留的非运行时元数据、生成的 JSON 和本地边界说明
 - `extensions/` 是捆绑的插件元数据生态系统
+- `automation/` 包含 n8n 和 ComfyUI 的托管本机运行时安装资产
 - `packages/` 是预留的工作区支持包槽位，非运行时核心
 - `docs/` 包含产品文档和维护者面向的设计资料
 - `scripts/` 和 `.github/` 是交付层
-- `test/` 是共享测试基础设施
+- `test-fixtures/` 是共享测试夹具数据
 - `dist/` 是构建输出，不是源码
 - `skills-optional/` 是可选的技能目录，非运行时核心代码
 - `Swabble/` 是一个独立的 sidecar 应用/代码库，不属于主运行时
+- `firmware/` 是硬件 sidecar 代码和设备元数据，不是桌面运行时代码
 
 ## 主运行时
 
@@ -69,6 +71,8 @@ x-i18n:
 并非每个扩展在角色上都相同，但它们都属于能力层，而非主运行时层。
 
 `skills-optional/` 也属于仓库的生态系统侧。它是可选技能和配方的目录，不是核心运行时树。
+
+`automation/` 也靠近生态系统侧。它包含 n8n 和 ComfyUI 等托管本机运行时的 release manifest 安装脚本和校验和。运行时控制仍位于 Rust 和 Desktop 应用中；这些文件是环境资产，不是单独的工作流引擎。
 
 ## 支持包
 
@@ -116,22 +120,24 @@ Node/npm 仍然存在用于桌面渲染器、文档托管工具和 npm pack/publ
 
 ## 测试基础设施
 
-`test/` 是共享测试基础设施。
+`test-fixtures/` 是共享测试夹具数据。
 
 用于：
 
 - 共享 fixtures
-- mocks
-- 辅助工具
+- 合约样例
+- 跨域测试输入
 - 跨域测试支持
 
-尽可能将小型、领域局部的测试放在源码附近。当支持资产跨多个领域共享时使用 `test/`。
+尽可能将小型、领域局部的测试放在源码附近。当支持资产跨多个领域共享时使用 `test-fixtures/`。不要添加新的 TypeScript 测试套件；当前活跃测试面是 Rust 工作区。
 
 ## 非核心 / Sidecar 代码
 
 `Swabble/` 不属于 CrawClaw 主运行时树。
 
 它是一个独立的 sidecar 应用/代码库，位于同一仓库中。将其视为相邻项目。如果仓库稍后重组，此目录应移至明确的伞形目录下，如 `apps/` 或 `experiments/`。
+
+`firmware/` 遵循同样的非核心规则。它承载硬件集成的设备端代码和元数据，而主产品运行时仍位于 `crates/` 和 `apps/crawclaw-desktop/`。
 
 ## 构建输出
 
