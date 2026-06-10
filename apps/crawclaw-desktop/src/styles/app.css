@@ -7358,11 +7358,8 @@
 }
 
 .automation-environment-panel {
-  border: 1px solid var(--border);
-  border-radius: 8px;
   display: grid;
-  gap: 14px;
-  padding: 16px;
+  gap: 16px;
 }
 
 .automation-environment-panel__header {
@@ -7378,7 +7375,7 @@
 }
 
 .automation-environment-panel__header h3 {
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .automation-environment-panel__header p,
@@ -7393,17 +7390,17 @@
 
 .automation-environment-services {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .automation-environment-service {
-  border: 1px solid var(--border-soft);
+  border: 1px solid var(--border);
   border-radius: 8px;
   display: grid;
-  gap: 12px;
+  gap: 14px;
   min-width: 0;
-  padding: 14px;
+  padding: 16px;
 }
 
 .automation-environment-service header {
@@ -7430,13 +7427,55 @@
 
 .automation-environment-service__icon {
   align-items: center;
-  background: var(--surface-active);
+  background: var(--surface-muted);
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
   color: var(--text-primary);
   display: inline-flex;
   height: 32px;
   justify-content: center;
   width: 32px;
+}
+
+.automation-environment-install {
+  align-items: center;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px;
+}
+
+.automation-environment-install__body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.automation-environment-install__body span {
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.automation-environment-install__body strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.automation-environment-install__body small {
+  color: var(--text-secondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.automation-environment-install button {
+  min-height: 34px;
+  padding: 0 12px;
+  white-space: nowrap;
 }
 
 .automation-environment-service__meta {
@@ -7464,8 +7503,27 @@
 }
 
 .automation-environment-service__profiles {
+  border-top: 1px solid var(--border-soft);
   display: grid;
-  gap: 6px;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.automation-environment-service__profiles-header {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.automation-environment-service__profiles-header strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.automation-environment-service__profiles-header span {
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 
 .automation-environment-service__profiles label {
@@ -7887,6 +7945,7 @@
   }
 
   .automation-command-bar,
+  .automation-environment-install,
   .automation-environment-services,
   .automation-execution-metrics,
   .automation-section-grid,

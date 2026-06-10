@@ -306,7 +306,8 @@ fn rust_runtime_repo_guardrails_keep_automation_environment_in_settings() {
     assert!(
         !automation_source.contains("Automation Runtime Manager")
             && !automation_source.contains("automation-runtime-panel")
-            && !automation_source.contains("automation-environment-strip"),
+            && !automation_source.contains("automation-environment-strip")
+            && !automation_source.contains("automation-environment-panel"),
         "Automation workspace should focus on execution tabs; runtime install/config UI belongs in Settings"
     );
     assert!(
@@ -330,8 +331,10 @@ fn rust_runtime_repo_guardrails_keep_automation_environment_in_settings() {
     assert!(
         automation_environment_source.contains("automation-environment-services")
             && automation_environment_source.contains("automation-environment-service")
+            && automation_environment_source.contains("automation-environment-install")
             && automation_environment_source.contains("onInstallRuntime")
             && automation_environment_source.contains("'install'")
+            && automation_environment_source.contains("data-runtime-action=\"install\"")
             && automation_environment_source.contains("安装环境")
             && automation_environment_source.contains("'start'")
             && automation_environment_source.contains("'stop'")

@@ -88,8 +88,8 @@ export function AutomationEnvironment({
     <section className="automation-environment-panel" data-testid="automation-environment-panel">
       <header className="automation-environment-panel__header">
         <div>
-          <h3>自动化环境</h3>
-          <p>n8n / ComfyUI</p>
+          <h3>外部运行环境</h3>
+          <p>安装、启动和检查 n8n / ComfyUI。Cron 是内置能力，不需要安装环境。</p>
         </div>
         <Badge tone="neutral">{managedRuntimes.length} 个环境</Badge>
       </header>
@@ -120,7 +120,33 @@ export function AutomationEnvironment({
                 </Badge>
               </header>
 
-              <dl className="automation-environment-service__meta">
+              <section className="automation-environment-install" aria-label={`${runtime.name} 安装环境`}>
+                <div className="automation-environment-install__body">
+                  <span>安装环境</span>
+                  <strong>{runtime.install.channel}</strong>
+                  <small>{runtime.install.scriptPolicy} · {runtime.install.manifestPath}</small>
+                </div>
+                <button
+                  className="workspace-primary-button"
+                  data-runtime-action="install"
+                  data-testid="automation-runtime-action"
+                  disabled={pendingRuntimeAction !== null
+                    || runtime.status === 'running'
+                    || runtimeInstallNeedsPytorchIndexUrl(
+                      runtime,
+                      selectedComputeProfiles[runtime.id],
+                      runtimePytorchIndexUrls[runtime.id],
+                    )}
+                  onClick={() => runRuntimeAction(runtime, 'install')}
+                  title={runtime.status === 'running' ? '停止环境后再安装。' : undefined}
+                  type="button"
+                >
+                  <Download aria-hidden="true" size={14} strokeWidth={2} />
+                  安装环境
+                </button>
+              </section>
+
+              <dl className="automation-environment-service__meta" aria-label={`${runtime.name} 运行状态`}>
                 <div>
                   <dt>Endpoint</dt>
                   <dd>{runtime.baseUrl}</dd>
@@ -137,15 +163,11 @@ export function AutomationEnvironment({
                 ) : null}
                 <div>
                   <dt>Runtime</dt>
-                  <dd>{runtime.runtime}</dd>
+                  <dd>{runtime.runtime} · {runtime.service}</dd>
                 </div>
                 <div>
-                  <dt>Install</dt>
-                  <dd>{runtime.install.channel}</dd>
-                </div>
-                <div>
-                  <dt>Policy</dt>
-                  <dd>{runtime.install.scriptPolicy}</dd>
+                  <dt>Mode</dt>
+                  <dd>{runtime.mode}</dd>
                 </div>
                 {runtime.processId ? (
                   <div>
@@ -163,6 +185,10 @@ export function AutomationEnvironment({
 
               {runtime.computeProfiles.length > 0 ? (
                 <div className="automation-environment-service__profiles">
+                  <div className="automation-environment-service__profiles-header">
+                    <strong>显卡与 PyTorch</strong>
+                    <span>{runtime.selectedComputeProfile ? `当前 ${runtime.selectedComputeProfile}` : 'auto'}</span>
+                  </div>
                   <label>
                     <span>Profile</span>
                     <select
@@ -209,24 +235,6 @@ export function AutomationEnvironment({
                 >
                   <RefreshCw aria-hidden="true" size={14} strokeWidth={2} />
                   刷新
-                </button>
-                <button
-                  className="workspace-primary-button"
-                  data-runtime-action="install"
-                  data-testid="automation-runtime-action"
-                  disabled={pendingRuntimeAction !== null
-                    || runtime.status === 'running'
-                    || runtimeInstallNeedsPytorchIndexUrl(
-                      runtime,
-                      selectedComputeProfiles[runtime.id],
-                      runtimePytorchIndexUrls[runtime.id],
-                    )}
-                  onClick={() => runRuntimeAction(runtime, 'install')}
-                  title={runtime.status === 'running' ? '停止环境后再安装。' : undefined}
-                  type="button"
-                >
-                  <Download aria-hidden="true" size={14} strokeWidth={2} />
-                  安装环境
                 </button>
                 {runtimeCanStop(runtime) ? (
                   <button
