@@ -127,12 +127,12 @@ CrawClaw scans for plugins in this order (first match wins):
     `plugins.load.paths` — explicit file or directory paths.
   </Step>
 
-  <Step title="Workspace extensions">
+  <Step title="Workspace plugin roots">
     Manifest roots under `\<workspace\>/.crawclaw/<plugin-root>/` that contain
     `crawclaw.plugin.json`.
   </Step>
 
-  <Step title="Global extensions">
+  <Step title="Global plugin roots">
     Manifest roots under `~/.crawclaw/<plugin-root>/` that contain
     `crawclaw.plugin.json`.
   </Step>

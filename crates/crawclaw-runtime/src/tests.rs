@@ -961,6 +961,47 @@ fn rust_runtime_repo_guardrails_keep_readme_desktop_quick_start_current() {
 }
 
 #[test]
+fn rust_runtime_repo_guardrails_keep_public_plugin_docs_on_plugin_terminology() {
+    let root = repo_root();
+    let plugin_overview = fs::read_to_string(root.join("docs/tools/plugin.md"))
+        .expect("read plugin overview");
+    let plugin_architecture = fs::read_to_string(root.join("docs/plugins/architecture.md"))
+        .expect("read plugin architecture");
+    let start_hubs = fs::read_to_string(root.join("docs/start/hubs.md"))
+        .expect("read start hubs");
+    let combined = format!("{plugin_overview}\n{plugin_architecture}\n{start_hubs}");
+    let forbidden_needles = [
+        "Workspace extensions",
+        "Global extensions",
+        "Extensions + plugins",
+        "global extension roots",
+        "bundled extensions",
+    ];
+    let hits = forbidden_needles
+        .into_iter()
+        .filter(|needle| combined.contains(needle))
+        .collect::<Vec<_>>();
+
+    assert!(
+        hits.is_empty(),
+        "public plugin docs must use plugin terminology instead of extension-facing labels: {hits:?}"
+    );
+    assert!(
+        plugin_overview.contains("Workspace plugin roots")
+            && plugin_overview.contains("Global plugin roots"),
+        "plugin overview discovery steps should use plugin root terminology"
+    );
+    assert!(
+        plugin_architecture.contains("global plugin roots, and bundled plugins"),
+        "plugin architecture should describe discovery with plugin terminology"
+    );
+    assert!(
+        start_hubs.contains("## Plugins"),
+        "start hub should use the Plugins section heading"
+    );
+}
+
+#[test]
 fn rust_runtime_repo_guardrails_keep_configuration_docs_on_current_sandbox_schema() {
     let root = repo_root();
     let configuration = fs::read_to_string(root.join("docs/gateway/configuration.md"))

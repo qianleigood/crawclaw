@@ -100,7 +100,7 @@ CrawClaw's plugin system has four layers:
 
 1. **Manifest + discovery**
    CrawClaw finds candidate plugins from configured paths, workspace roots,
-   global extension roots, and bundled extensions. Discovery reads native
+   global plugin roots, and bundled plugins. Discovery reads native
    `crawclaw.plugin.json` manifests through the Rust runtime registry.
 2. **Enablement + validation**
    Core decides whether a discovered plugin is enabled, disabled, blocked, or

@@ -107,7 +107,7 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Windows](/platforms/windows)
 - [Linux](/platforms/linux)
 
-## Extensions + plugins
+## Plugins
 
 - [Plugins overview](/tools/plugin)
 - [Building plugins](/plugins/building-plugins)
