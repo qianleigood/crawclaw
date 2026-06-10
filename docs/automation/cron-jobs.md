@@ -13,7 +13,9 @@ Cron is the Gateway's built-in scheduler. It persists jobs, wakes the agent at t
 
 ## Quick start
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+For operators, use **CrawClaw Desktop** → **Automation** → **Cron** to inspect jobs, current runs, history, and run logs. Cron is built into the Gateway scheduler, so there is no separate runtime to install.
+
+For automation, call the local Gateway RPC endpoint with the `cron.*` methods documented below.
 
 ## How cron works
 
@@ -24,15 +26,15 @@ Use CrawClaw Desktop for interactive setup, or call the local Gateway API for au
 
 ## Schedule types
 
-| Kind    | CLI flag  | Description                                             |
-| ------- | --------- | ------------------------------------------------------- |
-| `at`    | `--at`    | One-shot timestamp (ISO 8601 or relative like `20m`)    |
-| `every` | `--every` | Fixed interval                                          |
-| `cron`  | `--cron`  | 5-field or 6-field cron expression with optional `--tz` |
+| Kind    | `schedule` shape                        | Description                        |
+| ------- | --------------------------------------- | ---------------------------------- |
+| `at`    | `{ "kind": "at", "at": "..." }`         | One-shot timestamp (ISO 8601)      |
+| `every` | `{ "kind": "every", "everyMs": 60000 }` | Fixed interval in milliseconds     |
+| `cron`  | `{ "kind": "cron", "expr": "..." }`     | 5-field or 6-field cron expression |
 
-Timestamps without a timezone are treated as UTC. Add `--tz America/New_York` for local wall-clock scheduling.
+Timestamps without a timezone are treated as UTC. Add `tz` to a `cron` schedule for local wall-clock scheduling, for example `"tz": "America/New_York"`.
 
-Recurring top-of-hour expressions are automatically staggered by up to 5 minutes to reduce load spikes. Use `--exact` to force precise timing or `--stagger 30s` for an explicit window.
+Recurring top-of-hour expressions are automatically staggered by up to 5 minutes to reduce load spikes. Set `staggerMs` explicitly for a custom window, or set it to `0` when exact timing matters.
 
 ## Execution styles
 
@@ -47,10 +49,10 @@ Recurring top-of-hour expressions are automatically staggered by up to 5 minutes
 
 ### Payload options for isolated jobs
 
-- `--message`: prompt text (required for isolated)
-- `--model` / `--thinking`: model and thinking level overrides
-- `--light-context`: skip workspace bootstrap file injection
-- `--tools exec,read`: restrict which tools the job can use
+- `payload.kind: "agentTurn"` and `payload.message`: prompt text (required for non-main targets)
+- `payload.model` / `payload.thinking`: model and thinking level overrides
+- `payload.lightContext`: skip workspace bootstrap file injection
+- `payload.toolsAllow`: restrict which tools the job can use
 
 ## Delivery and output
 
@@ -60,21 +62,77 @@ Recurring top-of-hour expressions are automatically staggered by up to 5 minutes
 | `webhook`  | POST finished event payload to a URL                     |
 | `none`     | Internal only, no delivery                               |
 
-Use `--announce --channel feishu --to "-1001234567890"` for channel delivery. For Feishu forum topics, use `-1001234567890:topic:123`. DingTalk/QQBot/Feishu targets should use explicit prefixes (`channel:<id>`, `user:<id>`).
+Set `delivery` on `cron.add` or `cron.update`, for example `{ "mode": "announce", "channel": "feishu", "to": "-1001234567890" }`. For Feishu forum topics, use `-1001234567890:topic:123`. DingTalk/QQBot/Feishu targets should use explicit prefixes (`channel:<id>`, `user:<id>`).
 
-## Gateway API examples
+## Gateway RPC examples
+
+The RPC endpoint is `POST /api/gateway/rpc` on the same local Gateway port. It uses the same Gateway bearer auth as the rest of the local API.
 
 One-shot reminder (main session):
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "id": "cron-add-reminder",
+    "method": "cron.add",
+    "params": {
+      "name": "Stand up",
+      "schedule": { "kind": "at", "at": "2999-01-01T09:00:00Z" },
+      "sessionTarget": "main",
+      "wakeMode": "now",
+      "payload": { "kind": "systemEvent", "text": "Stand up reminder" }
+    }
+  }'
+```
 
 Recurring isolated job with delivery:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "id": "cron-add-report",
+    "method": "cron.add",
+    "params": {
+      "name": "Daily report",
+      "schedule": { "kind": "cron", "expr": "0 9 * * *", "tz": "Asia/Shanghai" },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": { "kind": "agentTurn", "message": "Summarize the previous workday" },
+      "delivery": { "mode": "announce", "channel": "last" }
+    }
+  }'
+```
 
 Isolated job with model and thinking override:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "id": "cron-add-model-report",
+    "method": "cron.add",
+    "params": {
+      "name": "Lightweight health report",
+      "schedule": { "kind": "every", "everyMs": 3600000 },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Check health and report only blockers",
+        "model": "openai/gpt-5.2-mini",
+        "thinking": "low",
+        "lightContext": true,
+        "toolsAllow": ["read", "grep"]
+      },
+      "delivery": { "mode": "none" }
+    }
+  }'
+```
 
 ## Webhooks
 
@@ -145,11 +203,9 @@ Wire Gmail inbox triggers to CrawClaw via Google PubSub.
 
 **Prerequisites**: `gcloud` CLI, `gog` (gogcli), CrawClaw hooks enabled, Tailscale for the public HTTPS endpoint.
 
-### Wizard setup (recommended)
+### Configuration setup
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
-
-This writes `hooks.gmail` config, enables the Gmail preset, and uses Tailscale Funnel for the push endpoint.
+Configure `hooks.gmail` with the account, topic, subscription, push token, and hook URL for the mailbox automation. Use Tailscale Serve/Funnel only when the Gmail callback URL must be reachable from outside the gateway host.
 
 ### Serve push callbacks
 
@@ -200,7 +256,17 @@ gog gmail watch start \
 
 ## Managing jobs
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the Desktop Cron tab for manual inspection and these Gateway RPC methods for automation:
+
+| Method        | Purpose                                      |
+| ------------- | -------------------------------------------- |
+| `cron.status` | Scheduler status and runtime summary         |
+| `cron.list`   | List jobs with filters and pagination        |
+| `cron.add`    | Create a job                                 |
+| `cron.update` | Patch schedule, payload, delivery, or state  |
+| `cron.remove` | Delete a job                                 |
+| `cron.run`    | Manually run a job (`mode: "due"`/`"force"`) |
+| `cron.runs`   | Read run-log entries for one job or all jobs |
 
 ## Configuration
 
@@ -237,7 +303,10 @@ Disable cron: `cron.enabled: false` or `CRAWCLAW_SKIP_CRON=1`.
 
 ### Command ladder
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+1. Check scheduler health with `cron.status`.
+2. Confirm the job exists and is enabled with `cron.list`.
+3. Inspect recent attempts with `cron.runs`.
+4. Reproduce manually with `cron.run` and `mode: "force"` when you need to bypass the due-time check.
 
 ### Cron not firing
 

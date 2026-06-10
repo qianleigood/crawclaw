@@ -6,10 +6,10 @@ read_when:
 summary: 定时任务、Webhook 和 Gmail PubSub 触发器，用于 Gateway 调度器
 title: 定时任务
 x-i18n:
-  generated_at: "2026-06-05T14:12:20Z"
+  generated_at: "2026-06-10T21:46:43Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 6d2fa4bf499d1dfebf499954989ea286843aee0bddc07286dbe95289494e5b23
+  source_hash: 8c29480f4182e84b79bdef0f1b39fa4fe4bb1715062e4400b8c8bf3f4ca218ce
   source_path: automation/cron-jobs.md
   workflow: 15
 ---
@@ -20,7 +20,9 @@ Cron 是 Gateway 网关的内置调度器。它会持久化任务、在正确的
 
 ## 快速开始
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
+操作员可以在 **CrawClaw Desktop** → **自动化** → **Cron** 中查看 jobs、当前运行、历史和运行日志。Cron 内置于 Gateway 调度器，因此没有需要单独安装的 runtime。
+
+自动化调用使用本地 Gateway RPC 端点和下文列出的 `cron.*` 方法。
 
 ## Cron 工作原理
 
@@ -31,15 +33,15 @@ Cron 是 Gateway 网关的内置调度器。它会持久化任务、在正确的
 
 ## 调度类型
 
-| 类型    | CLI 标志  | 说明                                        |
-| ------- | --------- | ------------------------------------------- |
-| `at`    | `--at`    | 一次性时间戳（ISO 8601 或相对时间如 `20m`） |
-| `every` | `--every` | 固定间隔                                    |
-| `cron`  | `--cron`  | 5 字段或 6 字段 cron 表达式，可选 `--tz`    |
+| 类型    | `schedule` 形态                         | 说明                        |
+| ------- | --------------------------------------- | --------------------------- |
+| `at`    | `{ "kind": "at", "at": "..." }`         | 一次性时间戳（ISO 8601）    |
+| `every` | `{ "kind": "every", "everyMs": 60000 }` | 以毫秒表示的固定间隔        |
+| `cron`  | `{ "kind": "cron", "expr": "..." }`     | 5 字段或 6 字段 cron 表达式 |
 
-没有时区的时间戳被视为 UTC。添加 `--tz America/New_York` 以按本地挂钟时间调度。
+没有时区的时间戳被视为 UTC。为 `cron` 调度添加 `tz` 可按本地挂钟时间调度，例如 `"tz": "America/New_York"`。
 
-每小时顶部的循环表达式会自动错开最多 5 分钟以减少负载峰值。使用 `--exact` 强制精确计时，或使用 `--stagger 30s` 设置显式窗口。
+每小时顶部的循环表达式会自动错开最多 5 分钟以减少负载峰值。设置 `staggerMs` 可使用自定义窗口；需要精确计时时将其设为 `0`。
 
 ## 执行方式
 
@@ -54,10 +56,10 @@ Cron 是 Gateway 网关的内置调度器。它会持久化任务、在正确的
 
 ### 独立任务的负载选项
 
-- `--message`：提示文本（独立任务必需）
-- `--model` / `--thinking`：模型和思考级别覆盖
-- `--light-context`：跳过工作区引导文件注入
-- `--tools exec,read`：限制任务可使用的工具
+- `payload.kind: "agentTurn"` 和 `payload.message`：提示文本（非 main 目标必需）
+- `payload.model` / `payload.thinking`：模型和思考级别覆盖
+- `payload.lightContext`：跳过工作区引导文件注入
+- `payload.toolsAllow`：限制任务可使用的工具
 
 ## 传递和输出
 
@@ -67,21 +69,77 @@ Cron 是 Gateway 网关的内置调度器。它会持久化任务、在正确的
 | `webhook`  | POST 完成的事件负载到 URL              |
 | `none`     | 仅内部使用，不进行传递                 |
 
-使用 `--announce --channel feishu --to "-1001234567890"` 进行渠道传递。对于飞书论坛话题，使用 `-1001234567890:topic:123`。DingTalk/QQBot/飞书目标应使用显式前缀（`channel:<id>`、`user:<id>`）。
+在 `cron.add` 或 `cron.update` 中设置 `delivery`，例如 `{ "mode": "announce", "channel": "feishu", "to": "-1001234567890" }`。对于飞书论坛话题，使用 `-1001234567890:topic:123`。DingTalk/QQBot/飞书目标应使用显式前缀（`channel:<id>`、`user:<id>`）。
 
-## Gateway API 示例
+## Gateway RPC 示例
+
+RPC 端点是本地 Gateway 同一端口上的 `POST /api/gateway/rpc`。它使用与其他本地 API 相同的 Gateway bearer 认证。
 
 一次性提醒（主会话）：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "id": "cron-add-reminder",
+    "method": "cron.add",
+    "params": {
+      "name": "Stand up",
+      "schedule": { "kind": "at", "at": "2999-01-01T09:00:00Z" },
+      "sessionTarget": "main",
+      "wakeMode": "now",
+      "payload": { "kind": "systemEvent", "text": "Stand up reminder" }
+    }
+  }'
+```
 
 带传递的循环独立任务：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "id": "cron-add-report",
+    "method": "cron.add",
+    "params": {
+      "name": "Daily report",
+      "schedule": { "kind": "cron", "expr": "0 9 * * *", "tz": "Asia/Shanghai" },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": { "kind": "agentTurn", "message": "Summarize the previous workday" },
+      "delivery": { "mode": "announce", "channel": "last" }
+    }
+  }'
+```
 
 带模型和思考级别覆盖的独立任务：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "id": "cron-add-model-report",
+    "method": "cron.add",
+    "params": {
+      "name": "Lightweight health report",
+      "schedule": { "kind": "every", "everyMs": 3600000 },
+      "sessionTarget": "isolated",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Check health and report only blockers",
+        "model": "openai/gpt-5.2-mini",
+        "thinking": "low",
+        "lightContext": true,
+        "toolsAllow": ["read", "grep"]
+      },
+      "delivery": { "mode": "none" }
+    }
+  }'
+```
 
 ## Webhook
 
@@ -152,11 +210,9 @@ curl -X POST http://127.0.0.1:18789/hooks/agent \
 
 **前置条件**：`gcloud` CLI、`gog`（gogcli）、CrawClaw hooks 已启用、Tailscale 用于公共 HTTPS 端点。
 
-### 向导设置（推荐）
+### 配置设置
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
-
-这将写入 `hooks.gmail` 配置，启用 Gmail 预设，并使用 Tailscale Funnel 作为推送端点。
+为邮箱自动化配置 `hooks.gmail`，包括 account、topic、subscription、push token 和 hook URL。只有当 Gmail callback URL 必须从 gateway host 外部访问时，才使用 Tailscale Serve/Funnel。
 
 ### 服务推送回调
 
@@ -205,7 +261,17 @@ gog gmail watch start \
 
 ## 管理任务
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
+手动检查使用 Desktop 的 Cron tab；自动化使用这些 Gateway RPC 方法：
+
+| 方法          | 用途                                     |
+| ------------- | ---------------------------------------- |
+| `cron.status` | 调度器状态和 runtime 摘要                |
+| `cron.list`   | 带过滤和分页的 job 列表                  |
+| `cron.add`    | 创建 job                                 |
+| `cron.update` | Patch schedule、payload、delivery 或状态 |
+| `cron.remove` | 删除 job                                 |
+| `cron.run`    | 手动运行 job（`mode: "due"`/`"force"`）  |
+| `cron.runs`   | 读取单个 job 或所有 jobs 的运行日志条目  |
 
 ## 配置
 
@@ -242,7 +308,10 @@ gog gmail watch start \
 
 ### 命令阶梯
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化操作。
+1. 用 `cron.status` 检查调度器健康状态。
+2. 用 `cron.list` 确认 job 存在且已启用。
+3. 用 `cron.runs` 查看最近尝试。
+4. 需要绕过到期时间检查时，用 `cron.run` 和 `mode: "force"` 手动复现。
 
 ### Cron 未触发
 
