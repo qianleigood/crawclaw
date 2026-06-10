@@ -4,6 +4,13 @@ summary: "CrawClaw 控制 n8n 工作流执行的架构方案"
 read_when:
   - 修改 workflow 执行、编译或 n8n 回调
   - 理解 CrawClaw 控制面和 n8n 执行面的边界
+x-i18n:
+  generated_at: "2026-06-10T09:29:16Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 72410f928c91c0bc6ddec3bbd6b1c0f4cda64a376e6a3e8ad3118043e8b1a6c4
+  source_path: reference/n8n-workflow-architecture.md
+  workflow: 15
 ---
 
 # CrawClaw n8n 工作流架构方案
