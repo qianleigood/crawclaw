@@ -1287,8 +1287,10 @@ fn unquote_scalar(raw: &str) -> String {
 }
 
 fn is_english_doc_path(path: &str) -> bool {
-    path.starts_with("docs/")
-        && !path.starts_with("docs/zh-CN/")
+    let Some(docs_relative) = path.strip_prefix("docs/") else {
+        return false;
+    };
+    !is_generated_translated_doc(docs_relative)
         && (path.ends_with(".md") || path.ends_with(".mdx"))
 }
 
@@ -2182,7 +2184,16 @@ mod tests {
     #[test]
     fn identifies_localized_doc_paths() {
         assert!(is_generated_translated_doc("zh-CN/start/index.md"));
+        assert!(is_generated_translated_doc("ja-JP/start/index.md"));
         assert!(!is_generated_translated_doc("start/index.md"));
+    }
+
+    #[test]
+    fn english_doc_path_excludes_generated_locale_dirs() {
+        assert!(is_english_doc_path("docs/start/index.md"));
+        assert!(is_english_doc_path("docs/gateway/protocol.mdx"));
+        assert!(!is_english_doc_path("docs/zh-CN/start/index.md"));
+        assert!(!is_english_doc_path("docs/ja-JP/start/index.md"));
     }
 
     #[test]
