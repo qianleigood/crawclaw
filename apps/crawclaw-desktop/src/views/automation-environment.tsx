@@ -94,19 +94,19 @@ export function AutomationEnvironment({
     <section className="automation-environment-panel" data-testid="automation-environment-panel">
       <header className="automation-environment-panel__header">
         <div>
-          <h3>环境安装中心</h3>
-          <p>安装和管理 n8n / ComfyUI；Cron 是内置调度器，不需要安装环境。</p>
+          <h3>自动化环境</h3>
+          <p>安装、启动并维护 n8n / ComfyUI 本机服务。</p>
         </div>
-        <Badge tone="neutral">{environmentStats.installed}/{environmentStats.total} 环境就绪</Badge>
+        <Badge tone="neutral">{environmentStats.installed}/{environmentStats.total} 就绪</Badge>
       </header>
 
       {managedRuntimes.length === 0 ? (
-        <p className="automation-environment-empty">自动化环境清单未返回 n8n / ComfyUI。</p>
+        <p className="automation-environment-empty">自动化环境清单未返回可安装环境。</p>
       ) : (
         <div className="automation-environment-layout">
           <div className="automation-environment-overview" data-testid="automation-environment-overview">
             <div>
-              <span>环境安装</span>
+              <span>可安装环境</span>
               <strong>{environmentStats.total}</strong>
               <small>n8n / ComfyUI</small>
             </div>
@@ -114,11 +114,6 @@ export function AutomationEnvironment({
               <span>运行中</span>
               <strong>{environmentStats.running}</strong>
               <small>本机服务进程</small>
-            </div>
-            <div>
-              <span>内置 Cron</span>
-              <strong>无需安装</strong>
-              <small>工作区内查看任务和日志</small>
             </div>
           </div>
 
@@ -160,7 +155,7 @@ export function AutomationEnvironment({
                         <span>安装环境</span>
                         <strong>{runtimeInstallTitle(runtime)}</strong>
                       </div>
-                      <Badge tone="neutral">{runtime.install.channel}</Badge>
+                      <Badge tone="neutral">{runtimeInstallModeLabel(runtime.install.channel)}</Badge>
                     </div>
                     {computeProfiles.length > 0 ? (
                       <div className="automation-environment-install-options">
@@ -205,8 +200,9 @@ export function AutomationEnvironment({
                     ) : null}
                     <div className="automation-environment-install">
                       <div className="automation-environment-install__body">
-                        <span>脚本策略</span>
-                        <small>{runtime.install.scriptPolicy} · {runtime.install.manifestPath}</small>
+                        <span>安装来源</span>
+                        <strong>{runtime.install.scriptPolicy}</strong>
+                        <small>{runtime.install.manifestPath}</small>
                       </div>
                       <button
                         className="workspace-primary-button"
@@ -396,6 +392,13 @@ function runtimeInstallTitle(runtime: AutomationRuntimeSummary) {
   return runtime.id === 'comfyui'
     ? '安装 ComfyUI 与匹配的 PyTorch'
     : '安装 n8n 本机运行环境'
+}
+
+function runtimeInstallModeLabel(channel: string) {
+  if (channel === 'github-release') {
+    return 'GitHub Release'
+  }
+  return channel
 }
 
 function selectedRuntimeComputeProfile(

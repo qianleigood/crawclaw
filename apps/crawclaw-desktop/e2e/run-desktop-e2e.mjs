@@ -358,6 +358,10 @@ async function runP7SettingsWorkspace(page) {
   assert(await page.exists('[data-testid="automation-environment-service"][data-runtime-id="n8n"]'), 'n8n environment should be visible')
   assert(await page.exists('[data-testid="automation-environment-service"][data-runtime-id="comfyui"]'), 'ComfyUI environment should be visible')
   assert(!(await page.exists('[data-testid="automation-environment-service"][data-runtime-id="cron"]')), 'Cron should not be managed from automation environment settings')
+  assert(
+    !(await page.evaluate(() => document.querySelector('[data-testid="automation-environment-panel"]')?.textContent?.includes('内置 Cron'))),
+    'Cron should not be described as an automation environment in settings',
+  )
   assert(await page.exists('[data-testid="automation-environment-service"][data-runtime-id="n8n"] .automation-environment-install-center'), 'n8n install center should be visible')
   assert(await page.exists('[data-testid="automation-environment-service"][data-runtime-id="comfyui"] .automation-environment-install-center'), 'ComfyUI install center should be visible')
   assert(await page.exists('[data-testid="automation-environment-service"][data-runtime-id="n8n"] [data-testid="automation-runtime-action"][data-runtime-action="install"]'), 'n8n install environment action should be visible')

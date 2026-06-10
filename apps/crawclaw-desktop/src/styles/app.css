@@ -7400,7 +7400,7 @@
 }
 
 .automation-environment-overview {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .automation-environment-overview div {
@@ -7484,6 +7484,7 @@
 }
 
 .automation-environment-install-center {
+  background: var(--surface-muted);
   border: 1px solid var(--border);
   border-radius: 8px;
   display: grid;
@@ -7519,11 +7520,13 @@
 
 .automation-environment-install {
   align-items: center;
-  border-top: 1px solid var(--border-soft);
+  background: var(--surface-strong);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
   display: grid;
   gap: 12px;
   grid-template-columns: minmax(0, 1fr) auto;
-  padding-top: 12px;
+  padding: 10px;
 }
 
 .automation-environment-install__body {
@@ -7558,7 +7561,7 @@
 }
 
 .automation-environment-install-options {
-  background: var(--surface-muted);
+  background: var(--surface-strong);
   border: 1px solid var(--border-soft);
   border-radius: 8px;
   display: grid;

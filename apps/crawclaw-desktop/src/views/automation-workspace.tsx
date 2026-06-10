@@ -86,7 +86,7 @@ export function AutomationWorkspace({
       <section className="automation-workspace__header">
         <div>
           <h1>自动化工作区</h1>
-          <p>只处理执行、历史和产物；n8n / ComfyUI 的安装与启动在设置里的自动化环境管理。</p>
+          <p>管理本机工作流入口，执行结果会回到当前对话流。</p>
         </div>
       </section>
 

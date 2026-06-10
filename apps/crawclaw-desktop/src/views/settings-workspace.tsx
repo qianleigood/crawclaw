@@ -481,7 +481,7 @@ const settingsCopy = {
         title: '高级',
       },
       automation: {
-        detail: '安装和管理 n8n / ComfyUI；Cron 是内置调度器，不需要安装环境。',
+        detail: '安装和管理 n8n / ComfyUI 的本机自动化环境。',
         title: '自动化环境',
       },
       general: {
@@ -617,7 +617,7 @@ const settingsCopy = {
         title: 'Advanced',
       },
       automation: {
-        detail: 'Install and manage n8n / ComfyUI. Built-in Cron does not need an environment setup.',
+        detail: 'Install and manage the local n8n / ComfyUI automation environments.',
         title: 'Automation environment',
       },
       general: {
