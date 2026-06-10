@@ -3,20 +3,20 @@ read_when:
   - 学习如何配置 CrawClaw
   - 查找配置示例
   - 首次设置 CrawClaw
-summary: 常见 CrawClaw 配置的架构精准配置示例
+summary: 常见 CrawClaw 配置的 Schema 精确配置示例
 title: 配置示例
 x-i18n:
-  generated_at: "2026-06-05T14:16:17Z"
+  generated_at: "2026-06-10T17:56:16Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: ffa2289dbcd48a5e7249104aee342e58fe7320a72c4122671ec03d68255a5cdd
+  source_hash: 0d5b92910b5ddd9adbab4454c4a1e95573fd19a75d49a1d0e0a178dd42ccda10
   source_path: gateway/configuration-examples.md
   workflow: 15
 ---
 
 # 配置示例
 
-以下示例与当前配置架构对齐。详细的参考和每个字段的说明，请参阅[配置](/gateway/configuration)。
+以下示例与当前配置 schema 保持一致。如需完整参考和每个字段的详细说明，请参阅 [Configuration](/gateway/configuration)。
 
 ## 快速开始
 
@@ -29,9 +29,9 @@ x-i18n:
 }
 ```
 
-保存到 `~/.crawclaw/crawclaw.json`，你就可以从该号码私信机器人了。
+保存到 `~/.crawclaw/crawclaw.json` 后，你就可以通过该号码私信机器人了。
 
-### 推荐的入门配置
+### 推荐入门配置
 
 ```json5
 {
@@ -55,11 +55,11 @@ x-i18n:
 
 ## 扩展示例（主要选项）
 
-> JSON5 允许你使用注释和尾随逗号。标准 JSON 也可以。
+> JSON5 支持注释和尾随逗号，常规 JSON 也可以。
 
 ```json5
 {
-  // Environment + shell
+  // 环境 + shell
   env: {
     OPENROUTER_API_KEY: "sk-or-...",
     vars: {
@@ -71,7 +71,7 @@ x-i18n:
     },
   },
 
-  // Auth profile metadata (secrets live in auth-profiles.json)
+  // 认证配置元数据（密钥存储在 auth-profiles.json）
   auth: {
     profiles: {
       "anthropic:me@example.com": {
@@ -90,14 +90,14 @@ x-i18n:
     },
   },
 
-  // Identity
+  // 身份
   identity: {
     name: "Samantha",
     theme: "helpful sloth",
     emoji: "🦥",
   },
 
-  // Logging
+  // 日志
   logging: {
     level: "info",
     file: "/tmp/crawclaw/crawclaw.log",
@@ -106,14 +106,14 @@ x-i18n:
     redactSensitive: "tools",
   },
 
-  // Message formatting
+  // 消息格式化
   messages: {
     responsePrefix: ">",
     ackReaction: "👀",
     ackReactionScope: "group-mentions",
   },
 
-  // Routing + queue
+  // 路由 + 队列
   routing: {
     groupChat: {
       mentionPatterns: ["@crawclaw", "crawclaw"],
@@ -135,7 +135,7 @@ x-i18n:
     },
   },
 
-  // Tooling
+  // 工具
   tools: {
     media: {
       audio: {
@@ -143,7 +143,7 @@ x-i18n:
         maxBytes: 20971520,
         models: [
           { provider: "openai", model: "gpt-4o-mini-transcribe" },
-          // Optional CLI fallback (Whisper binary):
+          // 可选 CLI 备用方案（Whisper 二进制文件）：
           // { type: "cli", command: "whisper", args: ["--model", "base", "{{MediaPath}}"] }
         ],
         timeoutSeconds: 120,
@@ -156,10 +156,10 @@ x-i18n:
     },
   },
 
-  // Session behavior
+  // 会话行为
   session: {
     scope: "per-sender",
-    dmScope: "per-channel-peer", // recommended for multi-user inboxes
+    dmScope: "per-channel-peer", // 推荐用于多用户收件箱
     reset: {
       mode: "daily",
       atHour: 4,
@@ -175,9 +175,9 @@ x-i18n:
       pruneAfter: "30d",
       maxEntries: 500,
       rotateBytes: "10mb",
-      resetArchiveRetention: "30d", // duration or false
-      maxDiskBytes: "500mb", // optional
-      highWaterBytes: "400mb", // optional (defaults to 80% of maxDiskBytes)
+      resetArchiveRetention: "30d", // 时长或 false
+      maxDiskBytes: "500mb", // 可选
+      highWaterBytes: "400mb", // 可选（默认为 maxDiskBytes 的 80%）
     },
     typingIntervalSeconds: 5,
     sendPolicy: {
@@ -186,7 +186,7 @@ x-i18n:
     },
   },
 
-  // Channels
+  // 渠道
   channels: {
     weixin: {
       dmPolicy: "pairing",
@@ -238,7 +238,7 @@ x-i18n:
     },
   },
 
-  // Agent runtime
+  // 智能体运行时
   agents: {
     defaults: {
       workspace: "~/.crawclaw/workspace",
@@ -275,26 +275,18 @@ x-i18n:
       mediaMaxMb: 5,
       typingIntervalSeconds: 5,
       maxConcurrent: 3,
-        mode: "non-main",
-        scope: "session", // preferred over legacy perSession: true
-        backend: "ssh",
-        workspaceAccess: "rw",
-        ssh: {
-          target: "user@gateway-host:22",
-        },
-      },
     },
     list: [
       {
         id: "main",
         default: true,
-        thinkingDefault: "high", // per-agent thinking override
-        reasoningDefault: "on", // per-agent reasoning visibility
-        fastModeDefault: false, // per-agent fast mode
+        thinkingDefault: "high", // 智能体级别的 thinking 覆盖
+        reasoningDefault: "on", // 智能体级别的 reasoning 可见性
+        fastModeDefault: false, // 智能体级别的快速模式
       },
       {
         id: "quick",
-        fastModeDefault: true, // this agent always runs fast
+        fastModeDefault: true, // 此智能体始终快速运行
         thinkingDefault: "off",
       },
     ],
@@ -321,7 +313,7 @@ x-i18n:
     },
   },
 
-  // Custom model providers
+  // 自定义模型提供商
   models: {
     mode: "merge",
     providers: {
@@ -347,7 +339,7 @@ x-i18n:
     },
   },
 
-  // Cron jobs
+  // 定时任务
   cron: {
     enabled: true,
     store: "~/.crawclaw/cron/cron.json",
@@ -402,7 +394,7 @@ x-i18n:
     },
   },
 
-  // Gateway + networking
+  // Gateway + 网络
   gateway: {
     mode: "local",
     port: 18789,
@@ -462,21 +454,21 @@ x-i18n:
 
 ### 安全私信模式（共享收件箱 / 多用户私信）
 
-如果有多个人可以私信你的机器人（`allowFrom` 中有多个条目、多人的配对批准，或 `dmPolicy: "open"`），启用**安全私信模式**，使来自不同发送者的私信默认不共享上下文：
+如果有超过一个人可以私信你的机器人（`allowFrom` 中有多个条目、多人的配对审批或 `dmPolicy: "open"`），请启用**安全私信模式**，这样来自不同发送者的私信默认不会共享一个上下文：
 
 ```json5
 {
-  // Secure DM mode (recommended for multi-user or sensitive DM agents)
+  // 安全私信模式（推荐用于多用户或敏感私信智能体）
   session: { dmScope: "per-channel-peer" },
 
   channels: {
-    // Example: Weixin multi-user inbox
+    // 示例：Weixin 多用户收件箱
     weixin: {
       dmPolicy: "allowlist",
       allowFrom: ["+15555550123", "+15555550124"],
     },
 
-    // Example: QQBot multi-user inbox
+    // 示例：QQBot 多用户收件箱
     qqbot: {
       enabled: true,
       token: "YOUR_DISCORD_BOT_TOKEN",
@@ -486,8 +478,7 @@ x-i18n:
 }
 ```
 
-对于 QQBot/DingTalk/飞书/QQBot/飞书/native chat，发送者授权默认按 ID 优先。
-只有当你明确接受该风险时，才在每个渠道启用危险的名称/邮箱/昵称匹配 `dangerouslyAllowNameMatching: true`。
+对于 QQBot/DingTalk/Feishu/QQBot/Feishu/native channel，发送者授权默认优先使用 ID。只有在你明确接受该风险的情况下，才使用各渠道的 `dangerouslyAllowNameMatching: true` 启用直接可变名称/邮箱/昵称匹配。
 
 ### OAuth 与 API 密钥故障转移
 
@@ -519,10 +510,10 @@ x-i18n:
 }
 ```
 
-### Anthropic setup-token + API 密钥，MiniMax 回退
+### Anthropic 设置令牌 + API 密钥，MiniMax 备用
 
 <Warning>
-过去 Anthropic setup-token 在 Claude Code 之外的使用已对某些用户受限。在依赖订阅认证之前，将其视为用户选择风险并验证当前的 Anthropic 服务条款。
+此前 Anthropic 对部分用户限制了 Claude Code 之外的使用设置令牌。根据用户选择风险处理，并在依赖订阅认证前验证当前 Anthropic 服务条款。
 </Warning>
 
 ```json5
@@ -621,7 +612,7 @@ x-i18n:
 
 ## 提示
 
-- 如果你设置 `dmPolicy: "open"`，匹配的 `allowFrom` 列表必须包含 `"*"`。
-- 提供商 ID 有所不同（电话号码、用户 ID、渠道 ID）。使用提供商文档确认格式。
-- 可稍后添加的可选部分：`web`、`browser`、`ui`、`discovery`、`talk`、`native channel`、`weixin`。
-- 参见[提供商](/providers)和[故障排除](/gateway/troubleshooting)以获取更深入的配置说明。
+- 如果设置 `dmPolicy: "open"`，则匹配的 `allowFrom` 列表必须包含 `"*"`。
+- 提供商 ID 的格式有所不同（电话号码、用户 ID、渠道 ID）。请查阅提供商文档确认格式。
+- 可选的后续添加章节：`web`、`browser`、`ui`、`discovery`、`talk`、`native channel`、`weixin`。
+- 深入设置说明请参阅 [Providers](/providers) 和 [Troubleshooting](/gateway/troubleshooting)。
