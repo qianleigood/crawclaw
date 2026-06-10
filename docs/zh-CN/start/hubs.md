@@ -1,24 +1,24 @@
 ---
 read_when:
-  - 你想要完整的文档地图
-summary: 文档中心，链接到所有 CrawClaw 文档
-title: 文档中心
+  - 你想获取完整的文档索引
+summary: 链接到所有 CrawClaw 文档的枢纽
+title: 文档枢纽
 x-i18n:
-  generated_at: "2026-05-22T03:02:11Z"
+  generated_at: "2026-06-10T17:01:37Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 920c9550d4616abb633f543070d2ccdd040d0358aa959e583bc8a5eba1b8f84d
+  source_hash: f35153163a28bf305f3b0ae3ba8d58d6dc727a85119a194fb469ba085c7dfc4c
   source_path: start/hubs.md
   workflow: 15
 ---
 
-# 文档中心
+# 文档枢纽
 
 <Note>
 如果你刚接触 CrawClaw，请从[入门指南](/start/getting-started)开始。
 </Note>
 
-使用这些中心发现每一页文档，包括左侧导航中未显示的深度文档和参考文档。
+使用这些枢纽来发现每一个页面，包括左侧导航中未显示的深度文档和参考文档。
 
 ## 从这里开始
 
@@ -31,13 +31,13 @@ x-i18n:
 - [配置](/gateway/configuration)
 - [配置示例](/gateway/configuration-examples)
 - [CrawClaw 助手](/start/crawclaw)
-- [展示](/start/showcase)
+- [案例展示](/start/showcase)
 - [背景故事](/start/lore)
 
-## 安装 + 更新
+## 安装与更新
 
 - [Nix](/install/nix)
-- [更新/回滚](/install/updating)
+- [更新与回滚](/install/updating)
 - [Bun 工作流（实验性）](/install/bun)
 
 ## 核心概念
@@ -49,7 +49,7 @@ x-i18n:
 - [智能体工作区](/concepts/agent-workspace)
 - [记忆](/concepts/memory)
 - [智能体循环](/concepts/agent-loop)
-- [流式传输 + 分块](/concepts/streaming)
+- [流式传输与分块](/concepts/streaming)
 - [多智能体路由](/concepts/multi-agent)
 - [压缩](/concepts/compaction)
 - [会话](/concepts/session)
@@ -67,41 +67,41 @@ x-i18n:
 - [模型故障转移](/concepts/model-failover)
 - [OAuth](/concepts/oauth)
 
-## 提供商 + 入口
+## 提供商与入口
 
 - [聊天渠道中心](/channels)
 - [模型提供商中心](/providers/models)
 - [Webhooks](/automation/cron-jobs#webhooks)
 - [Gmail Pub/Sub](/automation/cron-jobs#gmail-pubsub-integration)
 
-## Gateway + 运维
+## Gateway 网关与运维
 
 - [Gateway 运行手册](/gateway)
 - [网络模型](/gateway/network-model)
 - [配对](/channels/pairing)
 - [Gateway 锁](/gateway/gateway-lock)
 - [后台进程](/gateway/background-process)
-- [健康状态](/gateway/health)
+- [健康检查](/gateway/health)
 - [Heartbeat 兼容性](/gateway/heartbeat)
 - [Doctor](/gateway/doctor)
-- [日志记录](/gateway/logging)
+- [日志](/gateway/logging)
 - [安全](/gateway/security)
 - [远程访问](/gateway/remote)
-- [远程 gateway README](/gateway/remote-gateway-readme)
+- [远程 Gateway README](/gateway/remote-gateway-readme)
 - [Tailscale](/gateway/tailscale)
 - [安全](/gateway/security)
 - [故障排除](/gateway/troubleshooting)
 
-## 工具 + 自动化
+## 工具与自动化
 
-- [工具接口](/tools)
+- [工具界面](/tools)
 - [OpenProse](/prose)
 - [Exec 工具](/tools/exec)
 - [PDF 工具](/tools/pdf)
-- [提权模式](/tools/elevated)
+- [提升权限模式](/tools/elevated)
 - [定时任务](/automation/cron-jobs)
 - [自动化与任务](/automation)
-- [思考 + 详细](/tools/thinking)
+- [思考与详细输出](/tools/thinking)
 - [模型](/concepts/models)
 - [子智能体](/tools/subagents)
 - [智能体发送](/tools/agent-send)
@@ -114,17 +114,17 @@ x-i18n:
 - [Windows](/platforms/windows)
 - [Linux](/platforms/linux)
 
-## 扩展 + 插件
+## 插件
 
 - [插件概览](/tools/plugin)
 - [构建插件](/plugins/building-plugins)
 - [插件清单](/plugins/manifest)
 - [智能体工具](/plugins/building-plugins#runtime-capabilities)
-- [插件捆绑包](/plugins/bundles)
+- [插件包](/plugins/bundles)
 - [社区插件](/plugins/community)
 - [能力扩展手册](/tools/capability-cookbook)
 
-## 工作区 + 模板
+## 工作区与模板
 
 - [Skills](/tools/skills)
 - [ClawHub](/tools/clawhub)
@@ -142,14 +142,14 @@ x-i18n:
 
 - [致谢](/reference/credits)
 
-## 维护者 + 深度文档
+## 维护者与深度文档
 
 - [概念索引](/concepts)
 - [调试文档](/debug)
 - [参考文档](/reference)
 - [维护者文档](/maintainers)
 
-## 测试 + 发布
+## 测试与发布
 
 - [测试](/reference/test)
 - [发布策略](/reference/RELEASING)

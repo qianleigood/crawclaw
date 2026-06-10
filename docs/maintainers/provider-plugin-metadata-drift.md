@@ -53,7 +53,7 @@ Keep Rust as the runtime source of truth:
 - Provider runtime behavior stays in `crates/crawclaw-providers`.
 - Native tool and sidecar behavior stays in `crates/crawclaw-native-plugins` and
   the runtime native plugin registry.
-- Extension manifests stay as package and distribution contracts, not as a
+- Plugin manifests stay as package and distribution contracts, not as a
   second runtime catalog.
 - Generated metadata remains derived output and should be checked, not edited by
   hand.

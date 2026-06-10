@@ -212,7 +212,7 @@ When the audit prints findings, treat this as a priority order:
 2. **Public network exposure** (LAN bind, Funnel, missing auth): fix immediately.
 3. **Browser control remote exposure**: treat it like operator access (tailnet-only, authenticated, avoid public exposure).
 4. **Permissions**: make sure state/config/credentials/auth are not group/world-readable.
-5. **Plugins/extensions**: only load what you explicitly trust.
+5. **Plugins**: only load what you explicitly trust.
 6. **Model choice**: prefer modern, instruction-hardened models for any bot with tools.
 
 ## Security audit glossary
@@ -412,7 +412,7 @@ For any agent/surface that handles untrusted content, deny these by default:
 
 `commands.restart=false` only blocks restart actions. It does not disable `gateway` config/update actions.
 
-## Plugins/extensions
+## Plugins
 
 Plugins run **in-process** with the Gateway. Treat them as trusted code:
 

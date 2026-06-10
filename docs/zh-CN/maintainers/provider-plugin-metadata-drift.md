@@ -1,57 +1,56 @@
 ---
-summary: "provider 和 plugin 元数据 ownership 的维护者审计说明"
 read_when:
-  - 你在添加或修改捆绑 provider 或 native plugin 元数据
-  - 你需要判断哪个元数据来源是权威来源
-  - 你在评审 provider、plugin 或生成元数据漂移
-title: "Provider and Plugin Metadata Drift"
+  - 你正在添加或更改捆绑提供商或原生插件元数据
+  - 你需要决定哪个元数据源是权威的
+  - 你正在审查提供商、插件或生成的元数据漂移
+summary: 维护者对提供商和插件元数据所有权的审查
+title: 提供商和插件元数据漂移
 x-i18n:
-  generated_at: "2026-06-10T10:39:08Z"
-  model: codex
-  provider: openai
-  source_hash: 9e8220848b3060b298e12913d65c6e100f18bb811e5aa1b7a1a54bcb5cb26b4a
+  generated_at: "2026-06-10T17:03:26Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 127b476fa5c0390a77b00d2dad740dc98ecfcb80bbd8aba94a930bc2406c93f9
   source_path: maintainers/provider-plugin-metadata-drift.md
   workflow: 15
 ---
 
-# Provider and Plugin Metadata Drift
+# 提供商和插件元数据漂移
 
-本文记录捆绑 provider 和 plugin 元数据当前的 ownership 划分。该区域里有几个实现文件受 CODEOWNERS 限制，
-所以未来的运行时 contract 变更在编辑这些文件前仍需要明确的 owner review。
+本页面记录了捆绑提供商和插件元数据的当前所有权划分。该领域的多个实现文件受 CODEOWNERS 限制，因此未来的运行时契约变更在编辑这些文件之前仍需要明确的 owner 审查。
 
 ## 当前来源
 
-- `crates/crawclaw-providers` 拥有 runtime provider catalog、provider defaults、transport metadata、config schema 和 request normalization。
-- `crates/crawclaw-native-plugins` 拥有内置 native plugin descriptors、tools、native web providers、speech providers、media providers、services 和 native gateway method descriptors。
-- `extensions/*/crawclaw.plugin.json` 拥有 package identity、native entry declaration、config schema、bundled skills、runtime assets，以及用于守护兼容性的 public manifest snapshot。
-- `src/generated/` 存放生成的 JSON read models，供 docs、package checks、desktop 或 runtime guardrails 消费。
+- `crates/crawclaw-providers` 拥有运行时提供商目录、提供商默认值、传输元数据、配置 schema 和请求规范化。
+- `crates/crawclaw-native-plugins` 拥有内置原生插件描述符、工具、原生 Web 提供商、语音提供商、媒体提供商、服务和原生网关方法描述符。
+- `extensions/*/crawclaw.plugin.json` 拥有包标识、原生入口声明、配置 schema、捆绑 Skills、运行时资源以及保护兼容性的公共清单快照。
+- `src/generated/` 存储生成的 JSON 读取模型，供文档、包检查和 Desktop 或运行时防护栏使用。
 
-## Manifest Guard Metadata
+## 清单防护元数据
 
-这些字段仍会出现在 manifests 中，因为它们是 public bundled plugin contract 的一部分，但 runtime 和生成元数据优先从 Rust catalogs 派生：
+这些字段仍出现在清单中，因为它们是公共捆绑插件契约的一部分，但运行时和生成的元数据首先从 Rust 目录派生：
 
-- Provider-to-plugin mappings 来自 `BUNDLED_PROVIDER_PLUGINS`。
-- Provider auth environment variables 来自 `BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES`。
-- Provider legacy plugin aliases 和 auto-enable mappings 来自 `BUNDLED_PROVIDER_PLUGIN_CONTRACT_OVERRIDES`。
-- Native tool names 出现在 native plugin descriptors 和捆绑 extensions 的 manifest contracts 中。
-- Web、speech 和 media provider descriptors 出现在 native plugin descriptors 和 generated capability metadata 中。
+- 提供商到插件的映射来自 `BUNDLED_PROVIDER_PLUGINS`。
+- 提供商凭证环境变量来自 `BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES`。
+- 提供商旧版插件别名和自动启用映射来自 `BUNDLED_PROVIDER_PLUGIN_CONTRACT_OVERRIDES`。
+- 原生工具名称出现在原生插件描述符和捆绑插件的清单契约中。
+- Web、语音和媒体提供商描述符出现在原生插件描述符和生成的 capability 元数据中。
 
-provider crate 保留 guard tests，用 Rust catalog 对比 manifest snapshot，确保 public manifest contract 不会静默漂移。
+提供商 crate 保留防护测试，将 Rust 目录与清单快照进行比较，以便公共清单契约不会静默漂移。
 
 ## 当前规则
 
-保持 Rust 作为运行时事实来源：
+将 Rust 作为运行时事实来源：
 
-- Provider runtime behavior 留在 `crates/crawclaw-providers`。
-- Native tool 和 sidecar behavior 留在 `crates/crawclaw-native-plugins` 以及 runtime native plugin registry。
-- Extension manifests 保持为 package 和 distribution contracts，不作为第二套 runtime catalog。
-- Generated metadata 仍是派生输出，应检查它，而不是手工编辑它。
+- 提供商运行时行为保持在 `crates/crawclaw-providers` 中。
+- 原生工具和 sidecar 行为保持在 `crates/crawclaw-native-plugins` 和运行时原生插件注册表中。
+- 插件清单作为包和分发契约保留，而不是作为第二个运行时目录。
+- 生成的元数据保持为派生输出，应进行检查，而非手动编辑。
 
-不要移除第三方 plugin packaging 或 docs 仍当作 public contract 的 manifest 字段，除非另有兼容性决策。
+不要删除第三方插件打包或文档仍视为公共契约的清单字段，除非有单独的兼容性决策。
 
 ## 验证
 
-在元数据变更前后使用现有生成检查：
+在元数据变更前后使用现有的生成检查：
 
 - `pnpm check:bundled-capability-metadata`
 - `pnpm check:bundled-provider-auth-env-vars`

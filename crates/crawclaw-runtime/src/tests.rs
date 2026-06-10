@@ -973,15 +973,19 @@ fn rust_runtime_repo_guardrails_keep_public_plugin_docs_on_plugin_terminology() 
         root.join("docs/maintainers/provider-plugin-metadata-drift.md"),
     )
     .expect("read provider plugin metadata guide");
+    let security = fs::read_to_string(root.join("docs/gateway/security/index.md"))
+        .expect("read security guide");
     let combined = format!(
-        "{plugin_overview}\n{plugin_architecture}\n{start_hubs}\n{provider_plugin_metadata}",
+        "{plugin_overview}\n{plugin_architecture}\n{start_hubs}\n{provider_plugin_metadata}\n{security}",
     );
     let forbidden_needles = [
         "Workspace extensions",
         "Global extensions",
         "Extensions + plugins",
+        "Plugins/extensions",
         "global extension roots",
         "bundled extensions",
+        "Extension manifests",
     ];
     let hits = forbidden_needles
         .into_iter()
@@ -1006,8 +1010,13 @@ fn rust_runtime_repo_guardrails_keep_public_plugin_docs_on_plugin_terminology() 
         "start hub should use the Plugins section heading"
     );
     assert!(
-        provider_plugin_metadata.contains("contracts for bundled plugins"),
+        provider_plugin_metadata.contains("contracts for bundled plugins")
+            && provider_plugin_metadata.contains("Plugin manifests stay as package"),
         "provider plugin metadata guide should use plugin terminology"
+    );
+    assert!(
+        security.contains("## Plugins") && !security.contains("## Plugins/extensions"),
+        "security guide should use plugin terminology"
     );
 }
 
