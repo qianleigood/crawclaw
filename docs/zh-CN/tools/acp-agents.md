@@ -4,7 +4,7 @@ x-i18n:
   generated_at: "2026-06-10T12:33:42Z"
   model: codex
   provider: openai
-  source_hash: ce6a75c084be7ac015caadda60912f2ee171f903d4f7fbbf118480497593db05
+  source_hash: 58029c8963be6c31fd7ea9ed2c37eef3f06eeb87f7093b4ab42cbc4dfdd4460a
   source_path: tools/acp-agents.md
   workflow: 15
 title: "ACP 智能体"
@@ -616,11 +616,36 @@ Current-conversation binds 不需要 child-thread creation。它们需要 active
 
 Install and enable plugin：
 
-使用 CrawClaw Desktop 做交互式设置，或调用 local Gateway API 自动化。
+使用 Desktop Plugins 视图，或直接调用 Gateway RPC：
+
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "method": "plugins.install",
+    "params": { "pluginId": "acpx" }
+  }'
+```
+
+`plugins.install` 会启用安装后的 plugin。如果 plugin 已存在但被禁用，请用 `{ "id": "acpx" }` 调用 `plugins.enable`，再用 `plugins.list` 确认。
 
 Local workspace install during development：
 
-使用 CrawClaw Desktop 做交互式设置，或调用 local Gateway API 自动化。
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "method": "plugins.install",
+    "params": {
+      "raw": "/path/to/crawclaw/extensions/acpx",
+      "link": true
+    }
+  }'
+```
+
+本地 plugin 开发使用 `link: true`，这样 runtime 会指向你的 checkout。需要 CrawClaw 复制到托管 workspace plugin 目录时，使用普通安装。
 
 然后验证 backend health：
 
@@ -677,7 +702,36 @@ Notes：
 
 如果你希望 Codex 或 Claude Code 等 ACP agents 调用已安装的 CrawClaw plugin tools，例如 memory recall/store，请启用 dedicated bridge：
 
-使用 CrawClaw Desktop 做交互式设置，或调用 local Gateway API 自动化。
+在 `plugins.entries.acpx.config.mcpServers` 下配置 ACP-local MCP servers。这些 servers 会传给 acpx-backed ACP sessions：
+
+```json5
+{
+  plugins: {
+    entries: {
+      acpx: {
+        enabled: true,
+        config: {
+          mcpServers: {
+            github: {
+              command: "npx",
+              args: ["-y", "@modelcontextprotocol/server-github"],
+              env: {
+                GITHUB_PERSONAL_ACCESS_TOKEN: {
+                  source: "env",
+                  provider: "default",
+                  id: "MCP_GITHUB_PAT",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+}
+```
+
+未通过 ACP-local MCP server 暴露的 CrawClaw-owned operations，请直接使用 Gateway RPC。
 
 Plugin-owned tool execution 已从 TypeScript runtime 移除。对 CrawClaw-owned operations 使用 Rust Gateway API。
 
@@ -719,7 +773,23 @@ ACP sessions 以 non-interactive 方式运行，没有 TTY 可用于 approve 或
 
 通过 plugin config 设置：
 
-使用 CrawClaw Desktop 做交互式设置，或调用 local Gateway API 自动化。
+```json5
+{
+  plugins: {
+    entries: {
+      acpx: {
+        enabled: true,
+        config: {
+          permissionMode: "approve-reads",
+          nonInteractivePermissions: "fail",
+        },
+      },
+    },
+  },
+}
+```
+
+只有高信任 ACP sessions 需要在没有交互式 prompt 的情况下写文件或运行 shell 命令时，才使用 `permissionMode: "approve-all"`。希望被阻止的 writes/exec 降级而不是 abort session 时，使用 `nonInteractivePermissions: "deny"`。
 
 修改这些值后重启 gateway。
 

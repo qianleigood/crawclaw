@@ -633,11 +633,40 @@ See [Configuration Reference](/gateway/configuration-reference).
 
 Install and enable plugin:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the Desktop Plugins view, or call Gateway RPC directly:
+
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "method": "plugins.install",
+    "params": { "pluginId": "acpx" }
+  }'
+```
+
+`plugins.install` enables the installed plugin. If the plugin is already present
+but disabled, call `plugins.enable` with `{ "id": "acpx" }`, then confirm it
+with `plugins.list`.
 
 Local workspace install during development:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "method": "plugins.install",
+    "params": {
+      "raw": "/path/to/crawclaw/extensions/acpx",
+      "link": true
+    }
+  }'
+```
+
+Use `link: true` for local plugin development so the runtime points at your
+checkout. Use a normal install when you want CrawClaw to copy the plugin into
+the managed workspace plugin directory.
 
 Then verify backend health:
 
@@ -699,7 +728,38 @@ the ACP harness.
 If you want ACP agents such as Codex or Claude Code to call installed
 CrawClaw plugin tools such as memory recall/store, enable the dedicated bridge:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Configure ACP-local MCP servers under `plugins.entries.acpx.config.mcpServers`.
+Those servers are passed to acpx-backed ACP sessions:
+
+```json5
+{
+  plugins: {
+    entries: {
+      acpx: {
+        enabled: true,
+        config: {
+          mcpServers: {
+            github: {
+              command: "npx",
+              args: ["-y", "@modelcontextprotocol/server-github"],
+              env: {
+                GITHUB_PERSONAL_ACCESS_TOKEN: {
+                  source: "env",
+                  provider: "default",
+                  id: "MCP_GITHUB_PAT",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+}
+```
+
+Use Gateway RPC directly for CrawClaw-owned operations that are not exposed
+through an ACP-local MCP server.
 
 Plugin-owned tool execution has been removed from the TypeScript runtime.
 Use the Rust Gateway API for CrawClaw-owned operations.
@@ -744,7 +804,26 @@ Controls what happens when a permission prompt would be shown but no interactive
 
 Set via plugin config:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+```json5
+{
+  plugins: {
+    entries: {
+      acpx: {
+        enabled: true,
+        config: {
+          permissionMode: "approve-reads",
+          nonInteractivePermissions: "fail",
+        },
+      },
+    },
+  },
+}
+```
+
+Use `permissionMode: "approve-all"` only for high-trust ACP sessions that may
+write files or run shell commands without an interactive prompt. Use
+`nonInteractivePermissions: "deny"` when you want blocked writes/exec to degrade
+instead of aborting the session.
 
 Restart the gateway after changing these values.
 
