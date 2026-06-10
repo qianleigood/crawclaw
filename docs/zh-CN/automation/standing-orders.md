@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-05T14:02:39Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: a17db5f8873d0cd5ed3cdd163f3846d79bd75144416c2cd1c22fff4775ba10fe
+  source_hash: 57e10303ccab210bf82c09bb09bf064467cf9af598c5c7f016a9ddc2b5441bad
   source_path: automation/standing-orders.md
   workflow: 15
 ---
@@ -92,7 +92,34 @@ Cron 任务（每天上午 8 点）："按常设指令执行收件箱分类"
 
 Cron 任务提示应引用常设指令而不是重复它：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+```markdown
+Execute Program: Daily Inbox Triage from AGENTS.md.
+Follow the program scope, approval gates, escalation rules, and Execute-Verify-Report loop.
+Report only verified outcomes and blockers.
+```
+
+可以在 Desktop 的 Cron tab 创建计划，也可以通过本地 Gateway RPC 端点调用 `cron.add`：
+
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "method": "cron.add",
+    "params": {
+      "name": "Daily inbox triage",
+      "schedule": { "kind": "cron", "expr": "0 8 * * 1-5", "tz": "Asia/Shanghai" },
+      "sessionTarget": "main",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Execute Program: Daily Inbox Triage from AGENTS.md. Follow the approval gates and report verified outcomes."
+      }
+    }
+  }'
+```
+
+当常设指令需要在主会话上下文中执行时，使用 `sessionTarget: "main"`。当程序应在单独任务中运行并使用自己的投递策略时，使用 `sessionTarget: "isolated"`。
 
 ## 示例
 

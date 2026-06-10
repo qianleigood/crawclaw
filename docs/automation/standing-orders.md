@@ -85,7 +85,37 @@ Agent: Reads standing orders → executes steps → reports results
 
 The cron job prompt should reference the standing order rather than duplicating it:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+```markdown
+Execute Program: Daily Inbox Triage from AGENTS.md.
+Follow the program scope, approval gates, escalation rules, and Execute-Verify-Report loop.
+Report only verified outcomes and blockers.
+```
+
+Create the schedule from the Desktop Cron tab or call `cron.add` through the
+local Gateway RPC endpoint:
+
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "method": "cron.add",
+    "params": {
+      "name": "Daily inbox triage",
+      "schedule": { "kind": "cron", "expr": "0 8 * * 1-5", "tz": "Asia/Shanghai" },
+      "sessionTarget": "main",
+      "wakeMode": "now",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "Execute Program: Daily Inbox Triage from AGENTS.md. Follow the approval gates and report verified outcomes."
+      }
+    }
+  }'
+```
+
+Use `sessionTarget: "main"` when the standing order should run in the main
+session context. Use `sessionTarget: "isolated"` when the program should run in a
+separate task with its own delivery policy.
 
 ## Examples
 
