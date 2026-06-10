@@ -96,7 +96,7 @@ export function AutomationEnvironment({
   return (
     <section className="automation-environment-panel" data-testid="automation-environment-panel">
       {managedRuntimes.length === 0 ? (
-        <p className="automation-environment-empty">自动化环境清单未返回可安装环境。</p>
+        <p className="automation-environment-empty">暂未返回可安装环境。</p>
       ) : (
         <div className="automation-environment-layout">
           <div className="automation-environment-overview" data-testid="automation-environment-overview">

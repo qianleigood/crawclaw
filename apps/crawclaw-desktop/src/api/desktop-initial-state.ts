@@ -133,7 +133,7 @@ function fallbackAutomationWorkspaceState(): AutomationWorkspaceState {
         baseUrl: 'http://127.0.0.1:5679',
         computeProfiles: [],
         defaultPort: 5679,
-        detail: '等待本机 Gateway 返回自动化环境清单。',
+        detail: '等待本机 Gateway 返回运行清单。',
         healthUrl: 'http://127.0.0.1:5679/healthz',
         id: 'n8n',
         install: {
@@ -181,7 +181,7 @@ function fallbackAutomationWorkspaceState(): AutomationWorkspaceState {
           { backend: 'external', experimental: false, id: 'external', requiresPytorchIndexUrl: false },
         ],
         defaultPort: 8188,
-        detail: '等待本机 Gateway 返回自动化环境清单。',
+        detail: '等待本机 Gateway 返回运行清单。',
         healthUrl: 'http://127.0.0.1:8188/system_stats',
         id: 'comfyui',
         install: {
