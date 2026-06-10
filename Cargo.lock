@@ -1134,6 +1134,7 @@ name = "crawclaw-core"
 version = "2026.5.3"
 dependencies = [
  "serde",
+ "serde_json",
 ]
 
 [[package]]

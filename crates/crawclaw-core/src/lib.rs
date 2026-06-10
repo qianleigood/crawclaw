@@ -30,3 +30,34 @@ impl Default for RuntimeCompatStatus {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn runtime_status_value_uses_lowercase_json() {
+        assert_eq!(
+            serde_json::to_value(RuntimeStatusValue::Ready).unwrap(),
+            json!("ready")
+        );
+        assert_eq!(
+            serde_json::from_value::<RuntimeStatusValue>(json!("missing")).unwrap(),
+            RuntimeStatusValue::Missing
+        );
+    }
+
+    #[test]
+    fn runtime_compat_status_default_matches_desktop_contract() {
+        let value = serde_json::to_value(RuntimeCompatStatus::default()).unwrap();
+
+        assert_eq!(
+            value,
+            json!({
+                "mode": "none",
+                "detail": "Rust native runtime path."
+            })
+        );
+    }
+}
