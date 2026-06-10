@@ -26,7 +26,7 @@ CrawClaw 正在将 Desktop 应用和原生运行时收敛为产品边界。默�
 - 仅测试门控：`pnpm test`
 - 针对 crate 调试：`cargo test -p crawclaw-runtime <filter>`
 
-`pnpm check` 和 `pnpm build` 是 `crawclaw-repo-tools check --profile local` 和 `crawclaw-repo-tools build --profile package` 的兼容别名。`pnpm test` 运行 `crawclaw-repo-tools test-workspace`，它委托给 `cargo test --workspace -- --test-threads=1`，并使用更大的默认 Rust 栈。并行默认值是有意的，因为多个 Desktop 和原生运行时测试使用共享的本地资源。
+`pnpm check` 和 `pnpm build` 是 `crawclaw-repo-tools check --profile local` 和 `crawclaw-repo-tools build --profile package` 的兼容别名。`pnpm test` 运行 `crawclaw-repo-tools test-workspace`，它委托给 `cargo test --workspace -- --test-threads=1`，并使用更大的默认 Rust 栈。串行默认值是有意的，因为多个 Desktop 和原生运行时测试使用共享的本地资源。
 
 ## 当前测试命令
 
