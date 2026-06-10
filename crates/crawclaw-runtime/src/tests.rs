@@ -972,6 +972,19 @@ fn rust_runtime_repo_guardrails_keep_configuration_docs_on_current_sandbox_schem
 }
 
 #[test]
+fn rust_runtime_repo_guardrails_keep_repo_structure_on_tracked_extension_layout() {
+    let root = repo_root();
+    let repo_structure = fs::read_to_string(root.join("docs/maintainers/repo-structure.md"))
+        .expect("read repo structure guide");
+    if !root.join("extensions/shared").exists() {
+        assert!(
+            !repo_structure.contains("extensions/shared"),
+            "repo structure guide must not describe a missing extensions/shared directory"
+        );
+    }
+}
+
+#[test]
 fn rust_runtime_repo_guardrails_keep_removed_ts_plugin_control_plane_absent() {
     let root = repo_root();
     let removed = [

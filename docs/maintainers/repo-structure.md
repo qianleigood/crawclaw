@@ -61,7 +61,7 @@ It includes multiple kinds of packages:
 - model/provider adapters
 - browser/runtime helpers
 - tool-oriented extensions
-- shared support packages under `extensions/shared`
+- shared support packages when they are modeled as extension packages
 
 Not every extension is equal in role, but they all belong to the capability layer,
 not the main runtime layer.
