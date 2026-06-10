@@ -50,6 +50,7 @@ export function AutomationWorkspace({
   const [activeTabKind, setActiveTabKind] = useState<AutomationTabKind>('comfyui')
   const automationTabs = normalizedAutomationTabs(automationWorkspace)
   const activeTab = automationTabs.find((tab) => tab.kind === activeTabKind) ?? automationTabs[0]
+  const summary = automationWorkspaceSummary(automationTabs)
 
   const runAutomation = (
     kind: AutomationKind,
@@ -90,6 +91,29 @@ export function AutomationWorkspace({
       </section>
 
       <section className="automation-product">
+        <div className="automation-workspace__summary" data-testid="automation-workspace-summary">
+          <div>
+            <span>当前执行</span>
+            <strong>{summary.activeRuns}</strong>
+            <small>running / queued</small>
+          </div>
+          <div>
+            <span>工作流</span>
+            <strong>{summary.workflows}</strong>
+            <small>ComfyUI / n8n / Cron</small>
+          </div>
+          <div>
+            <span>执行历史</span>
+            <strong>{summary.history}</strong>
+            <small>最近运行记录</small>
+          </div>
+          <div>
+            <span>执行产物</span>
+            <strong>{summary.artifacts}</strong>
+            <small>真实 output / artifact</small>
+          </div>
+        </div>
+
         <div className="automation-tabs" role="tablist" aria-label="Automation tabs">
           {automationTabs.map((tab) => (
             <button
@@ -371,6 +395,20 @@ function emptyAutomationTab(kind: AutomationTabKind, title: string): AutomationT
     title,
     workflows: [],
   }
+}
+
+function automationWorkspaceSummary(tabs: AutomationTabSummary[]) {
+  return tabs.reduce((summary, tab) => ({
+    activeRuns: summary.activeRuns + tab.activeRuns.length,
+    artifacts: summary.artifacts + tab.artifacts.length,
+    history: summary.history + tab.history.length,
+    workflows: summary.workflows + tab.workflows.length,
+  }), {
+    activeRuns: 0,
+    artifacts: 0,
+    history: 0,
+    workflows: 0,
+  })
 }
 
 function tabWorkflowKind(kind: string): AutomationKind {

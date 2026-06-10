@@ -325,12 +325,15 @@ fn rust_runtime_repo_guardrails_keep_automation_environment_in_settings() {
     assert!(
         automation_source.contains("automation-execution-board")
             && automation_source.contains("automation-command-bar")
-            && automation_source.contains("automation-section-grid"),
+            && automation_source.contains("automation-section-grid")
+            && automation_source.contains("automation-workspace__summary"),
         "Automation workspace should use the execution-board layout with command controls and four sections"
     );
     assert!(
         automation_environment_source.contains("automation-environment-services")
+            && automation_environment_source.contains("automation-environment-overview")
             && automation_environment_source.contains("automation-environment-service")
+            && automation_environment_source.contains("automation-environment-install-center")
             && automation_environment_source.contains("automation-environment-install")
             && automation_environment_source.contains("onInstallRuntime")
             && automation_environment_source.contains("'install'")
