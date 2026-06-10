@@ -1118,17 +1118,6 @@
   margin-bottom: 14px;
 }
 
-.settings-section__header--with-status {
-  align-items: flex-start;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-}
-
-.settings-section__header--with-status > div {
-  min-width: 0;
-}
-
 .settings-group {
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
