@@ -65,4 +65,6 @@ Use these groups instead of jumping through filenames at random.
 
 ## Related Maintainer Docs
 
-Project governance and phase-by-phase refactor docs currently live in `docs/zh-CN/concepts/project-*`. Use those when you are working on architecture cleanup, boundaries, or execution visibility unification.
+Maintainer-focused cleanup and boundary notes live in [Maintainers](/maintainers)
+and [Debug docs](/debug). Use those sections for repository ownership,
+architecture cleanup, and runtime investigation notes.
