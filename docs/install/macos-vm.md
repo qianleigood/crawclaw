@@ -12,7 +12,8 @@ title: "macOS VMs"
 - **Small Linux VPS** for an always-on Gateway and low cost. See [VPS hosting](/vps).
 - **Dedicated hardware** (Mac mini or Linux box) if you want full control and a **residential IP** for browser automation. Many sites block data center IPs, so local browsing often works better.
 
-Use a macOS VM when you specifically need macOS-only capabilities (Weixin/Weixin) or want strict isolation from your daily Mac.
+Use a macOS VM when you specifically need macOS-only capabilities like Weixin
+or want strict isolation from your daily Mac.
 
 ## macOS VM options
 
@@ -21,7 +22,7 @@ Use a macOS VM when you specifically need macOS-only capabilities (Weixin/Weixin
 This gives you:
 
 - Full macOS environment in isolation (your host stays clean)
-- Weixin support via Weixin (impossible on Linux/Windows)
+- Weixin channel support (impossible on Linux/Windows)
 - Instant reset by cloning VMs
 - No extra hardware or cloud costs
 
