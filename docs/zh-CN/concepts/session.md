@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:14:57Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 1354acc65d980b6bba1f6bf7d5c2d9541ce0647a9ba7ce28d95ebb7c35759e17
+  source_hash: d11af812b9117f8ff9e81f84187662f7463a697d0caaf0b8eabaad16b2bce6f0
   source_path: concepts/session.md
   workflow: 15
 ---
@@ -95,8 +95,8 @@ CrawClaw 自动限制会话存储随时间的增长。默认情况下，它以 `
 
 ## 检查会话
 
-- CrawClaw Desktop 或本地 Gateway API ——会话存储路径和最近活动。
-- CrawClaw Desktop 或本地 Gateway API ——所有会话（使用 `--active <minutes>` 过滤）。
+- `/health` ——网关、会话存储路径和最近活动。
+- `/sessions` ——已存储会话列表。使用工具目录中的 `session_status` 检查当前会话。
 - 聊天中的 `/status` ——上下文使用量、模型和切换状态。
 - `/context list` ——系统提示词中的内容。
 

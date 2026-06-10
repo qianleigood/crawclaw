@@ -148,8 +148,6 @@ Related:
 
 - [/channels/troubleshooting](/channels/troubleshooting)
 - [/channels/index](/channels/index)
-- [/channels/index](/channels/index)
-- [/channels/index](/channels/index)
 
 ## Cron and main-session wake delivery
 

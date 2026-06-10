@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T15:07:30Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 7d0019d88352c5fd138210a6b94831b16fd2ff10ee7a576c6dfd0471f52efab3
+  source_hash: b42569a32d587111654d24a3ae3bb17401460f4945b243fed4cdfd27a00d5661
   source_path: gateway/troubleshooting.md
   workflow: 15
 ---
@@ -154,8 +154,6 @@ x-i18n:
 相关：
 
 - [/channels/troubleshooting](/channels/troubleshooting)
-- [/channels/index](/channels/index)
-- [/channels/index](/channels/index)
 - [/channels/index](/channels/index)
 
 ## Cron 和主会话唤醒传递

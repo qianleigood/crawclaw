@@ -99,8 +99,8 @@ Preview with CrawClaw Desktop or the local Gateway API.
 
 ## Inspecting sessions
 
-- CrawClaw Desktop or the local Gateway API -- session store path and recent activity.
-- CrawClaw Desktop or the local Gateway API -- all sessions (filter with `--active <minutes>`).
+- `/health` -- gateway, session store path, and recent activity.
+- `/sessions` -- stored-session list. Use `session_status` from the tool catalog for the current session.
 - `/status` in chat -- context usage, model, and toggles.
 - `/context list` -- what is in the system prompt.
 
