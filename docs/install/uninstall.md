@@ -10,28 +10,33 @@ title: "Uninstall"
 
 Two paths:
 
-- **Easy path** from CrawClaw Desktop.
+- **Current desktop install**: quit CrawClaw Desktop, remove the app/package, then decide whether to remove local state.
 - **Manual legacy startup cleanup** if the desktop app is gone but an older startup entry is still running.
 
-## Easy path
+## Current desktop install
 
-Recommended: use the built-in uninstaller:
+Current desktop builds do not expose a one-click full-system uninstaller through
+the Gateway API. Use the OS package/app removal path for the application itself.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Before removing the app, use **Settings > Data and privacy** in CrawClaw Desktop
+to export data or delete local desktop data if you want the app to do that while
+the embedded Gateway is still running.
 
-Non-interactive automation should call the local Gateway API. If that API is not reachable, use the manual steps below.
-
-Manual steps (same result):
+Manual steps:
 
 1. Stop CrawClaw Desktop and any manual Gateway process:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Quit CrawClaw Desktop. If you started a Gateway or dev server manually, stop that
+process before deleting files.
 
-2. Remove any legacy OS startup entry:
+2. Remove the app or package:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+- macOS app: move CrawClaw Desktop from `/Applications` to Trash.
+- Legacy package install: remove the old global package with `npm rm -g crawclaw`
+  (or `pnpm remove -g crawclaw` / `bun remove -g crawclaw` if you installed it
+  that way).
 
-3. Delete state + config:
+3. Delete state + config if you want a full local cleanup:
 
 ```bash
 rm -rf "${CRAWCLAW_STATE_DIR:-$HOME/.crawclaw}"
@@ -39,18 +44,16 @@ rm -rf "${CRAWCLAW_STATE_DIR:-$HOME/.crawclaw}"
 
 If you set `CRAWCLAW_CONFIG_PATH` to a custom location outside the state dir, delete that file too.
 
-4. Delete your workspace (optional, removes agent files):
+4. Delete your workspace only if it lives outside the state dir:
 
 ```bash
-rm -rf ~/.crawclaw/workspace
+rm -rf /path/to/your/crawclaw-workspace
 ```
-
-5. Remove any old global `crawclaw` package only if you installed one before the desktop-first packaging model.
 
 Notes:
 
-- If you used profiles (`--profile` / `CRAWCLAW_PROFILE`), repeat step 3 for each state dir (defaults are `~/.crawclaw-<profile>`).
-- In remote mode, the state dir lives on the **gateway host**, so run steps 1-4 there too.
+- If you used profiles (`--profile` / `CRAWCLAW_PROFILE`), repeat the state-dir cleanup for each profile (defaults are `~/.crawclaw-<profile>`).
+- In remote mode, state lives on the **gateway host**, so run cleanup there too.
 
 ## Manual legacy startup cleanup
 
@@ -58,14 +61,17 @@ Use this if an older startup entry keeps running but `crawclaw` is missing.
 
 ### macOS (launchd)
 
-Default label is `ai.crawclaw.gateway` (or `ai.crawclaw.<profile>`; legacy `com.crawclaw.*` may still exist):
+Current desktop installs do not create a separate Gateway helper LaunchAgent.
+Only remove legacy Gateway launchd entries when they exist:
 
 ```bash
-launchctl bootout gui/$UID/ai.crawclaw.gateway
+launchctl print gui/$UID | grep crawclaw
+launchctl bootout gui/$UID/ai.crawclaw.gateway 2>/dev/null || true
 rm -f ~/Library/LaunchAgents/ai.crawclaw.gateway.plist
 ```
 
-If you used a profile, replace the label and plist name with `ai.crawclaw.<profile>`. Remove any legacy `com.crawclaw.*` plists if present.
+If you used a profile, replace the label and plist name with
+`ai.crawclaw.<profile>`. Remove any legacy `com.crawclaw.*` plists if present.
 
 ### Linux (systemd user unit)
 
@@ -93,12 +99,14 @@ If you used a profile, delete the matching task name and `~\.crawclaw-<profile>\
 
 ### Normal install (CrawClaw Desktop / npm / pnpm / bun)
 
-If you installed an older global `crawclaw` package, remove it with `npm rm -g crawclaw` (or `pnpm remove -g` / `bun remove -g` if you installed that way).
+Remove the desktop app through the OS package/app flow. If you installed an
+older global `crawclaw` package, remove it with `npm rm -g crawclaw` (or `pnpm
+remove -g crawclaw` / `bun remove -g crawclaw` if you installed that way).
 
 ### Source checkout (git clone)
 
 If you run from a repo checkout (`git clone` + CrawClaw Desktop or Gateway API / Gateway API calls):
 
-1. Stop the local Gateway runtime **before** deleting the repo (use the easy path above or manual cleanup).
+1. Stop the local Gateway runtime **before** deleting the repo (quit CrawClaw Desktop or stop the manual dev process).
 2. Delete the repo directory.
 3. Remove state + workspace as shown above.
