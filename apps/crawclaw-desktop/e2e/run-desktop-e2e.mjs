@@ -366,12 +366,20 @@ async function runP7SettingsWorkspace(page) {
   ), {
     label: 'n8n environment install updates status',
   })
+  assert(
+    await page.exists('[data-testid="automation-environment-service"][data-runtime-id="n8n"] [data-testid="automation-runtime-action"][data-runtime-action="install"]'),
+    'n8n install environment action should remain visible after install',
+  )
   await page.click('[data-testid="automation-environment-service"][data-runtime-id="comfyui"] [data-testid="automation-runtime-action"][data-runtime-action="install"]')
   await page.waitFor(() => (
     document.querySelector('[data-testid="automation-environment-service"][data-runtime-id="comfyui"]')?.textContent?.includes('已安装')
   ), {
     label: 'ComfyUI environment install updates status',
   })
+  assert(
+    await page.exists('[data-testid="automation-environment-service"][data-runtime-id="comfyui"] [data-testid="automation-runtime-action"][data-runtime-action="install"]'),
+    'ComfyUI install environment action should remain visible after install',
+  )
 
   await page.click('[data-testid="settings-sidebar-section"][data-settings-section="advanced"]')
   await page.waitFor(() => Boolean(document.querySelector('[data-testid="settings-section"][data-settings-section="advanced"].is-active')), {

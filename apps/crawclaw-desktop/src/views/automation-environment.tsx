@@ -210,7 +210,25 @@ export function AutomationEnvironment({
                   <RefreshCw aria-hidden="true" size={14} strokeWidth={2} />
                   刷新
                 </button>
-                {runtimePrimaryAction(runtime) === 'stop' ? (
+                <button
+                  className="workspace-primary-button"
+                  data-runtime-action="install"
+                  data-testid="automation-runtime-action"
+                  disabled={pendingRuntimeAction !== null
+                    || runtime.status === 'running'
+                    || runtimeInstallNeedsPytorchIndexUrl(
+                      runtime,
+                      selectedComputeProfiles[runtime.id],
+                      runtimePytorchIndexUrls[runtime.id],
+                    )}
+                  onClick={() => runRuntimeAction(runtime, 'install')}
+                  title={runtime.status === 'running' ? '停止环境后再安装。' : undefined}
+                  type="button"
+                >
+                  <Download aria-hidden="true" size={14} strokeWidth={2} />
+                  安装环境
+                </button>
+                {runtimeCanStop(runtime) ? (
                   <button
                     className="workspace-secondary-button"
                     data-runtime-action="stop"
@@ -222,7 +240,7 @@ export function AutomationEnvironment({
                     <Square aria-hidden="true" size={13} fill="currentColor" strokeWidth={0} />
                     停止
                   </button>
-                ) : runtimePrimaryAction(runtime) === 'start' ? (
+                ) : runtimeCanStart(runtime) ? (
                   <button
                     className="workspace-primary-button"
                     data-runtime-action="start"
@@ -234,24 +252,7 @@ export function AutomationEnvironment({
                     <Play aria-hidden="true" size={14} fill="currentColor" strokeWidth={0} />
                     启动
                   </button>
-                ) : (
-                  <button
-                    className="workspace-primary-button"
-                    data-runtime-action="install"
-                    data-testid="automation-runtime-action"
-                    disabled={pendingRuntimeAction !== null
-                      || runtimeInstallNeedsPytorchIndexUrl(
-                        runtime,
-                        selectedComputeProfiles[runtime.id],
-                        runtimePytorchIndexUrls[runtime.id],
-                      )}
-                    onClick={() => runRuntimeAction(runtime, 'install')}
-                    type="button"
-                  >
-                    <Download aria-hidden="true" size={14} strokeWidth={2} />
-                    安装环境
-                  </button>
-                )}
+                ) : null}
               </div>
             </article>
           ))}
@@ -293,14 +294,12 @@ function runtimeStatusTone(status: AutomationRuntimeSummary['status']): BadgeTon
   return 'idle'
 }
 
-function runtimePrimaryAction(runtime: AutomationRuntimeSummary): 'install' | 'start' | 'stop' {
-  if (runtime.status === 'running') {
-    return 'stop'
-  }
-  if (runtime.status === 'installed' || runtime.status === 'stopped') {
-    return 'start'
-  }
-  return 'install'
+function runtimeCanStart(runtime: AutomationRuntimeSummary) {
+  return runtime.status === 'installed' || runtime.status === 'stopped'
+}
+
+function runtimeCanStop(runtime: AutomationRuntimeSummary) {
+  return runtime.status === 'running'
 }
 
 function selectedRuntimeComputeProfile(
