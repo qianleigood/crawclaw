@@ -337,6 +337,7 @@ fn rust_runtime_repo_guardrails_keep_automation_environment_in_settings() {
         automation_environment_source.contains("automation-environment-services")
             && automation_environment_source.contains("automation-environment-overview")
             && automation_environment_source.contains("automation-environment-service")
+            && automation_environment_source.contains("automation-environment-service__quick-status")
             && automation_environment_source.contains("automation-environment-install-center")
             && automation_environment_source.contains("automation-environment-install")
             && automation_environment_source.contains("automation-environment-run-control")
@@ -344,6 +345,9 @@ fn rust_runtime_repo_guardrails_keep_automation_environment_in_settings() {
             && automation_environment_source.contains("'install'")
             && automation_environment_source.contains("data-runtime-action=\"install\"")
             && automation_environment_source.contains("安装环境")
+            && automation_environment_source.contains("更新环境")
+            && automation_environment_source.contains("显卡 profile")
+            && automation_environment_source.contains("PyTorch index URL")
             && automation_environment_source.contains("'start'")
             && automation_environment_source.contains("'stop'")
             && automation_environment_source.contains("'refresh'"),

@@ -1,6 +1,9 @@
 import {
   Blocks,
+  Cpu,
   Download,
+  FileText,
+  Gauge,
   Image as ImageIcon,
   Play,
   RefreshCw,
@@ -106,19 +109,24 @@ export function AutomationEnvironment({
         <div className="automation-environment-layout">
           <div className="automation-environment-overview" data-testid="automation-environment-overview">
             <div>
-              <span>安装环境</span>
+              <span>可安装环境</span>
               <strong>{environmentStats.total}</strong>
               <small>n8n / ComfyUI</small>
             </div>
             <div>
-              <span>未安装</span>
-              <strong>{environmentStats.notInstalled}</strong>
-              <small>需要先准备依赖</small>
+              <span>已安装</span>
+              <strong>{environmentStats.installed}</strong>
+              <small>本机 runtime 已准备</small>
             </div>
             <div>
               <span>运行中</span>
               <strong>{environmentStats.running}</strong>
               <small>可直接执行工作流</small>
+            </div>
+            <div>
+              <span>健康通过</span>
+              <strong>{environmentStats.healthy}</strong>
+              <small>health endpoint 可访问</small>
             </div>
           </div>
 
@@ -154,13 +162,30 @@ export function AutomationEnvironment({
                     </Badge>
                   </header>
 
+                  <div className="automation-environment-service__quick-status" aria-label={`${runtime.name} 环境状态`}>
+                    <span>
+                      <Gauge aria-hidden="true" size={14} strokeWidth={2} />
+                      {runtimeHealthSummary(runtime)}
+                    </span>
+                    <span>
+                      <FileText aria-hidden="true" size={14} strokeWidth={2} />
+                      {runtime.logPath ? '日志已记录' : '暂无日志'}
+                    </span>
+                    {computeProfiles.length > 0 ? (
+                      <span>
+                        <Cpu aria-hidden="true" size={14} strokeWidth={2} />
+                        {runtimeProfileSummary(runtime, selectedComputeProfile)}
+                      </span>
+                    ) : null}
+                  </div>
+
                   <div className="automation-environment-flow" aria-label={`${runtime.name} 环境管理`}>
                     <section className="automation-environment-step automation-environment-install-center">
                       <div className="automation-environment-step__marker">1</div>
                       <div>
                         <span>安装环境</span>
                         <strong>{runtimeInstallTitle(runtime)}</strong>
-                        <small>{runtime.install.scriptPolicy} · {runtimeInstallModeLabel(runtime.install.channel)}</small>
+                        <small>{runtimeInstallDetail(runtime)}</small>
                       </div>
                       <button
                         className="workspace-primary-button automation-environment-install-button"
@@ -172,7 +197,11 @@ export function AutomationEnvironment({
                         type="button"
                       >
                         <Download aria-hidden="true" size={14} strokeWidth={2} />
-                        {pendingRuntimeAction === `${runtime.id}:install` ? '安装中' : '安装环境'}
+                        {pendingRuntimeAction === `${runtime.id}:install`
+                          ? '安装中'
+                          : runtimeInstalled(runtime)
+                          ? '更新环境'
+                          : '安装环境'}
                       </button>
                     </section>
 
@@ -185,7 +214,7 @@ export function AutomationEnvironment({
                             <strong>{runtimeProfileSummary(runtime, selectedComputeProfile)}</strong>
                           </div>
                           <label>
-                            <span>Profile</span>
+                            <span>显卡 profile</span>
                             <select
                               disabled={runtime.status === 'running' || pendingRuntimeAction !== null}
                               value={selectedComputeProfile ?? runtime.selectedComputeProfile ?? ''}
@@ -313,13 +342,18 @@ export function AutomationEnvironment({
 }
 
 function automationEnvironmentStats(runtimes: AutomationRuntimeSummary[]) {
-  const installed = runtimes.filter((runtime) => ['installed', 'ready', 'running'].includes(runtime.status)).length
+  const installed = runtimes.filter(runtimeInstalled).length
   return {
+    healthy: runtimes.filter((runtime) => runtime.healthStatus === 'healthy').length,
     installed,
     notInstalled: runtimes.filter((runtime) => runtime.status === 'notInstalled').length,
     running: runtimes.filter((runtime) => runtime.status === 'running').length,
     total: runtimes.length,
   }
+}
+
+function runtimeInstalled(runtime: AutomationRuntimeSummary) {
+  return ['installed', 'ready', 'running'].includes(runtime.status)
 }
 
 function runtimeStatusLabel(status: AutomationRuntimeSummary['status']) {
@@ -402,6 +436,16 @@ function runtimeInstallTitle(runtime: AutomationRuntimeSummary) {
   return runtime.id === 'comfyui'
     ? '安装 ComfyUI 与匹配的 PyTorch'
     : '安装 n8n 本机运行环境'
+}
+
+function runtimeInstallDetail(runtime: AutomationRuntimeSummary) {
+  const policy = runtime.install.scriptPolicy?.trim()
+  const channel = runtime.install.channel?.trim()
+  const parts = [
+    policy ? `${policy} 校验` : '',
+    channel ? runtimeInstallModeLabel(channel) : '',
+  ].filter(Boolean)
+  return parts.length > 0 ? parts.join(' · ') : '按本机 manifest 安装'
 }
 
 function runtimeProfileSummary(
