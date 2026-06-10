@@ -842,6 +842,23 @@ fn rust_runtime_repo_guardrails_keep_legacy_agents_redirect_absent() {
 }
 
 #[test]
+fn rust_runtime_repo_guardrails_keep_contributing_desktop_frontend_current() {
+    let root = repo_root();
+    let contributing = fs::read_to_string(root.join("CONTRIBUTING.md"))
+        .expect("read contributing guide");
+    assert!(
+        contributing.contains("apps/crawclaw-desktop")
+            && contributing.contains("CrawClaw Desktop Frontend"),
+        "CONTRIBUTING.md must point contributors at the current desktop renderer"
+    );
+    assert!(
+        !contributing.contains("apps/crawclaw-admin")
+            && !contributing.contains("CrawClaw Admin Frontend"),
+        "CONTRIBUTING.md must not direct contributors to the removed admin frontend"
+    );
+}
+
+#[test]
 fn rust_runtime_repo_guardrails_keep_removed_ts_plugin_control_plane_absent() {
     let root = repo_root();
     let removed = [

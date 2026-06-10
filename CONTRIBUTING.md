@@ -118,14 +118,15 @@ If a review bot leaves review conversations on your PR, you are expected to hand
 
 This applies to both human-authored and AI-assisted PRs.
 
-## CrawClaw Admin Frontend
+## CrawClaw Desktop Frontend
 
-The tracked admin console lives in `apps/crawclaw-admin` and uses Vue 3, Vite,
-Pinia, Vue Router, Vue I18n, and Naive UI. Keep frontend changes aligned with
-that stack and run the app-local checks when you touch admin UI behavior.
+The tracked desktop frontend lives in `apps/crawclaw-desktop` and uses React,
+Vite, Tauri, and the Rust-owned Desktop API contract. Keep renderer changes
+aligned with that stack and run the desktop contract or renderer checks when
+you touch desktop UI behavior.
 
-Older Control UI / Lit decorator notes are historical and should not be used as
-guidance for new admin code.
+Older Admin Console, Control UI, and Lit decorator notes are historical and
+should not be used as guidance for new desktop code.
 
 ## AI/Vibe-Coded PRs Welcome! 🤖
 
