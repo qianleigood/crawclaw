@@ -969,7 +969,13 @@ fn rust_runtime_repo_guardrails_keep_public_plugin_docs_on_plugin_terminology() 
         .expect("read plugin architecture");
     let start_hubs = fs::read_to_string(root.join("docs/start/hubs.md"))
         .expect("read start hubs");
-    let combined = format!("{plugin_overview}\n{plugin_architecture}\n{start_hubs}");
+    let provider_plugin_metadata = fs::read_to_string(
+        root.join("docs/maintainers/provider-plugin-metadata-drift.md"),
+    )
+    .expect("read provider plugin metadata guide");
+    let combined = format!(
+        "{plugin_overview}\n{plugin_architecture}\n{start_hubs}\n{provider_plugin_metadata}",
+    );
     let forbidden_needles = [
         "Workspace extensions",
         "Global extensions",
@@ -998,6 +1004,10 @@ fn rust_runtime_repo_guardrails_keep_public_plugin_docs_on_plugin_terminology() 
     assert!(
         start_hubs.contains("## Plugins"),
         "start hub should use the Plugins section heading"
+    );
+    assert!(
+        provider_plugin_metadata.contains("contracts for bundled plugins"),
+        "provider plugin metadata guide should use plugin terminology"
     );
 }
 

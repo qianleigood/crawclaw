@@ -39,7 +39,7 @@ Rust catalogs first:
 - Provider legacy plugin aliases and auto-enable mappings come from
   `BUNDLED_PROVIDER_PLUGIN_CONTRACT_OVERRIDES`.
 - Native tool names appear in native plugin descriptors and in manifest
-  contracts for bundled extensions.
+  contracts for bundled plugins.
 - Web, speech, and media provider descriptors appear in native plugin
   descriptors and generated capability metadata.
 
