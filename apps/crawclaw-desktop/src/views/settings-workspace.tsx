@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   ArrowRight,
+  Blocks,
   Bot,
   Brain,
   ChevronDown,
@@ -20,6 +21,8 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import type {
+  AutomationRuntimeInstallInput,
+  AutomationWorkspaceState,
   DesktopModelProfileSummary,
   DesktopPreferences,
   DesktopPreferencesPatch,
@@ -27,10 +30,12 @@ import type {
   ModelProfileSetupInput,
   ModelProfileSource,
 } from '../desktop-api'
+import type { ConfirmationRequestInput } from '../ui/confirmation-dialog'
+import { AutomationEnvironment } from './automation-environment'
 import { modelSupportsConfigurableThinking } from './model-capabilities'
 import { normalizeReplyMode, replyModeLabel, replyModeOptions } from './reply-mode'
 
-export type SettingsSectionId = 'general' | 'model' | 'permissions' | 'memory' | 'notifications' | 'privacy' | 'advanced'
+export type SettingsSectionId = 'general' | 'automation' | 'model' | 'permissions' | 'memory' | 'notifications' | 'privacy' | 'advanced'
 type SettingsPreferencePatch = DesktopPreferencesPatch
 type SettingsLanguage = 'en' | 'zh-CN'
 type ModelSetupStep = 0 | 1 | 2 | 3
@@ -359,6 +364,7 @@ const fallbackBuiltInProviderOptions = fallbackBuiltInProviderDefaults.map(([pro
 
 const settingsSections: Array<{ icon: LucideIcon; id: SettingsSectionId }> = [
   { icon: Wrench, id: 'general' },
+  { icon: Blocks, id: 'automation' },
   { icon: Bot, id: 'model' },
   { icon: ShieldCheck, id: 'permissions' },
   { icon: Brain, id: 'memory' },
@@ -429,6 +435,7 @@ const settingsCopy = {
       modelName: '模型名称',
       sections: {
         advanced: '高级',
+        automation: '自动化环境',
         general: '常规',
         memory: '记忆偏好',
         model: '模型与回复',
@@ -473,6 +480,10 @@ const settingsCopy = {
         detail: '只保留诊断入口和状态表达，不进入普通工作流。',
         title: '高级',
       },
+      automation: {
+        detail: '安装、启动和检查 n8n / ComfyUI，本机内置 Cron 不需要配置环境。',
+        title: '自动化环境',
+      },
       general: {
         detail: '控制桌面应用的基础使用习惯。',
         title: '常规',
@@ -514,6 +525,10 @@ const settingsCopy = {
       language: ['语言', '设置桌面界面的显示语言。'],
       launchAtLogin: ['启动时打开 CrawClaw', '登录系统后自动打开桌面应用。'],
       logLevel: ['日志级别', '控制本机诊断日志的详细程度。'],
+      memoryEnvironmentStatus: ['记忆环境状态', 'Hindsight 配置、生命周期和 worker 的当前状态。'],
+      checkMemoryEnvironment: ['检查记忆环境', '检查 Hindsight 服务、banks、outbox 和 worker 状态。'],
+      repairMemoryEnvironment: ['修复记忆环境', '重新准备 Hindsight 生命周期并初始化记忆 banks。'],
+      reinstallMemoryEnvironment: ['重新安装记忆运行环境', '保留 memory/ 与 hindsight/ 数据目录，只重装/重启运行环境。'],
       memoryCleanupConfirmation: ['清理记忆确认', '清理记忆前是否需要再次确认。'],
       memoryDreamEnabled: ['做梦整理记忆', '空闲时整理最近对话中的长期记忆。'],
       memoryDreamFrequency: ['做梦频率', '决定记忆整理触发的频率。'],
@@ -556,6 +571,7 @@ const settingsCopy = {
       modelName: 'Model name',
       sections: {
         advanced: 'Advanced',
+        automation: 'Automation environment',
         general: 'General',
         memory: 'Memory',
         model: 'Models and replies',
@@ -600,6 +616,10 @@ const settingsCopy = {
         detail: 'Keep diagnostics and runtime state separate from everyday workflows.',
         title: 'Advanced',
       },
+      automation: {
+        detail: 'Install, start, and check n8n / ComfyUI. Built-in Cron does not need an environment setup.',
+        title: 'Automation environment',
+      },
       general: {
         detail: 'Control basic desktop app behavior.',
         title: 'General',
@@ -641,6 +661,10 @@ const settingsCopy = {
       language: ['Language', 'Set the desktop interface language.'],
       launchAtLogin: ['Open CrawClaw at login', 'Automatically open the desktop app after signing in.'],
       logLevel: ['Log level', 'Control local diagnostic log detail.'],
+      memoryEnvironmentStatus: ['Memory environment status', 'Current Hindsight config, lifecycle, and worker status.'],
+      checkMemoryEnvironment: ['Check memory environment', 'Check Hindsight service, banks, outbox, and worker status.'],
+      repairMemoryEnvironment: ['Repair memory environment', 'Prepare the Hindsight lifecycle again and initialize memory banks.'],
+      reinstallMemoryEnvironment: ['Reinstall memory runtime', 'Keep memory/ and hindsight/ data directories, then reinstall or restart the runtime environment.'],
       memoryCleanupConfirmation: ['Memory cleanup confirmation', 'Choose whether memory cleanup asks again.'],
       memoryDreamEnabled: ['Dream and organize memory', 'Organize long-term memory from recent chats while idle.'],
       memoryDreamFrequency: ['Dream frequency', 'Decide how memory organization is triggered.'],
@@ -671,16 +695,27 @@ const settingsCopy = {
 
 type SettingsWorkspaceProps = {
   activeSettingsSection: SettingsSectionId
+  automationWorkspace: AutomationWorkspaceState
+  confirmHighRisk: boolean
   language: SettingsLanguage
+  memoryRuntimeStatus: unknown
   modelOptions: string[]
+  onCheckMemoryEnvironment: () => void
   onClearCache: () => void
   onDeleteLocalData: () => void
   onExportData: () => void
   onGenerateDiagnostics: () => void
+  onInstallRuntime: (runtimeId: string, input: AutomationRuntimeInstallInput) => Promise<void>
   onModelProfileTestAndSave: (input: ModelProfileSetupInput) => Promise<void>
   onPreferenceUpdate: (patch: SettingsPreferencePatch) => void
+  onRepairMemoryEnvironment: () => void
+  onRefreshAutomationRuntime: (runtimeId: string) => Promise<void>
   onRefreshRuntimeStatus: () => void
+  onReinstallMemoryEnvironment: () => void
+  onRequestConfirmation: (input: ConfirmationRequestInput) => Promise<boolean>
   onResetState: () => void
+  onStartRuntime: (runtimeId: string) => Promise<void>
+  onStopRuntime: (runtimeId: string) => Promise<void>
   preferences: DesktopPreferences
   runtimeStatus: string
 }
@@ -694,16 +729,27 @@ type SettingsSidebarProps = {
 
 export function SettingsWorkspace({
   activeSettingsSection,
+  automationWorkspace,
+  confirmHighRisk,
   language,
+  memoryRuntimeStatus,
   modelOptions,
+  onCheckMemoryEnvironment,
   onClearCache,
   onDeleteLocalData,
   onExportData,
   onGenerateDiagnostics,
+  onInstallRuntime,
   onModelProfileTestAndSave,
   onPreferenceUpdate,
+  onRepairMemoryEnvironment,
+  onRefreshAutomationRuntime,
   onRefreshRuntimeStatus,
+  onReinstallMemoryEnvironment,
+  onRequestConfirmation,
   onResetState,
+  onStartRuntime,
+  onStopRuntime,
   preferences,
   runtimeStatus,
 }: SettingsWorkspaceProps) {
@@ -924,6 +970,22 @@ export function SettingsWorkspace({
           </div>
         </section>
 
+        <section aria-label={copy.aria.sections.automation} className={getSettingsSectionClass('automation')} data-settings-section="automation" data-testid="settings-section" id="settings-automation">
+          <header className="settings-section__header">
+            <h2>{copy.sections.automation.title}</h2>
+            <p>{copy.sections.automation.detail}</p>
+          </header>
+          <AutomationEnvironment
+            automationWorkspace={automationWorkspace}
+            confirmHighRisk={confirmHighRisk}
+            onInstallRuntime={onInstallRuntime}
+            onRequestConfirmation={onRequestConfirmation}
+            onRefreshRuntime={onRefreshAutomationRuntime}
+            onStartRuntime={onStartRuntime}
+            onStopRuntime={onStopRuntime}
+          />
+        </section>
+
         <section aria-label={copy.aria.sections.model} className={getSettingsSectionClass('model')} data-settings-section="model" data-testid="settings-section" id="settings-model">
           <header className="settings-section__header">
             <h2>{copy.sections.model.title}</h2>
@@ -966,6 +1028,10 @@ export function SettingsWorkspace({
             <p>{copy.sections.memory.detail}</p>
           </header>
           <div className="settings-group">
+            {renderSettingsValueRow(copy.rows.memoryEnvironmentStatus[0], copy.rows.memoryEnvironmentStatus[1], memoryRuntimeStatusLabel(language, memoryRuntimeStatus))}
+            {renderSettingsActionRow(copy.rows.checkMemoryEnvironment[0], copy.rows.checkMemoryEnvironment[1], onCheckMemoryEnvironment)}
+            {renderSettingsActionRow(copy.rows.repairMemoryEnvironment[0], copy.rows.repairMemoryEnvironment[1], onRepairMemoryEnvironment)}
+            {renderSettingsActionRow(copy.rows.reinstallMemoryEnvironment[0], copy.rows.reinstallMemoryEnvironment[1], onReinstallMemoryEnvironment, 'danger')}
             {renderSettingsToggleRow(copy.rows.rememberPreferences[0], copy.rows.rememberPreferences[1], memoryDefaults.rememberPreferences, () => updateMemoryDefaults({ rememberPreferences: !memoryDefaults.rememberPreferences }))}
             {renderSettingsToggleRow(copy.rows.rememberProjectContext[0], copy.rows.rememberProjectContext[1], memoryDefaults.rememberProjectContext, () => updateMemoryDefaults({ rememberProjectContext: !memoryDefaults.rememberProjectContext }))}
             {renderSettingsToggleRow(copy.rows.memoryDreamEnabled[0], copy.rows.memoryDreamEnabled[1], memoryDefaults.memoryDreamEnabled, () => updateMemoryDefaults({ memoryDreamEnabled: !memoryDefaults.memoryDreamEnabled }))}
@@ -1454,6 +1520,53 @@ function identityLabel(value: string) {
 
 function settingValueLabel(language: SettingsLanguage, value: string) {
   return settingValueLabels[language][value] ?? value
+}
+
+function memoryRuntimeStatusLabel(language: SettingsLanguage, value: unknown) {
+  const fallback = language === 'en' ? 'Unknown' : '未知'
+  const status = recordValue(value)
+  if (!status) {
+    return fallback
+  }
+
+  const hindsight = recordValue(status['hindsight'])
+  const lifecycle = hindsight ? recordValue(hindsight['lifecycle']) : null
+  const action = memoryEnvironmentActionLabel(language, stringRecordValue(status, 'action'))
+  const state = lifecycle
+    ? stringRecordValue(lifecycle, 'status')
+    : stringRecordValue(status, 'status')
+  const reason = lifecycle
+    ? stringRecordValue(lifecycle, 'reason')
+    : stringRecordValue(status, 'error')
+  const baseUrl = lifecycle ? stringRecordValue(lifecycle, 'baseUrl') : ''
+  const checkedAt = stringRecordValue(status, 'checkedAt')
+  const parts = [action, state || fallback, reason, baseUrl, checkedAt].filter(Boolean)
+  return parts.join(' · ')
+}
+
+function memoryEnvironmentActionLabel(language: SettingsLanguage, action: string) {
+  if (language === 'en') {
+    if (action === 'check') {
+      return 'Checked'
+    }
+    if (action === 'reinstall') {
+      return 'Reinstalled'
+    }
+    if (action === 'repair') {
+      return 'Repaired'
+    }
+    return ''
+  }
+  if (action === 'check') {
+    return '已检查'
+  }
+  if (action === 'reinstall') {
+    return '已重装'
+  }
+  if (action === 'repair') {
+    return '已修复'
+  }
+  return ''
 }
 
 function modelProviderOptions(preferences: DesktopPreferences): ModelProviderOption[] {

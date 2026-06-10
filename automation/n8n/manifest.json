@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "runtimeId": "n8n",
   "name": "n8n",
-  "description": "Managed n8n runtime for CrawClaw Automation Runtime Manager.",
+  "description": "Managed n8n runtime for CrawClaw Automation Environment.",
   "runtime": "node-service",
   "provider": "n8n",
   "service": "n8n",

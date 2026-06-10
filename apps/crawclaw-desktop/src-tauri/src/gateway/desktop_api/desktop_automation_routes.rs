@@ -12,7 +12,7 @@ use sha2::{Digest, Sha256};
 use super::{
     authorize_headers, automation_runtime_dir, automation_runtime_pid_path,
     automation_runtime_process_is_running, emit_state_changed, is_managed_automation_runtime_id,
-    refresh_automation_runtime_state, GatewayState,
+    refresh_automation_runtime_state, refresh_automation_workspace_tabs, GatewayState,
 };
 
 #[derive(Deserialize)]
@@ -106,7 +106,9 @@ pub(super) async fn stop_automation_runtime(
 async fn refresh_runtime_state(state: &GatewayState, runtime_id: &str) -> Result<(), StatusCode> {
     let mut desktop_state = state.desktop_state.write().await;
     refresh_automation_runtime_state(&mut desktop_state, &state.runtime_root, runtime_id)
-        .map_err(|_| StatusCode::NOT_FOUND)
+        .map_err(|_| StatusCode::NOT_FOUND)?;
+    refresh_automation_workspace_tabs(&mut desktop_state, &state.runtime_root).await;
+    Ok(())
 }
 
 fn ensure_runtime_id(runtime_id: &str) -> Result<(), StatusCode> {

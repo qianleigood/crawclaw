@@ -31,23 +31,23 @@ flowchart TD
     Q3 -->|Yes| FLOW[Workflow + n8n]
     Q4 -->|Yes| HOOKS[Hooks]
     Q5 -->|Yes| SO[Standing Orders]
-    Q6 -->|Yes| RUNTIME[Automation Runtime Manager]
+    Q6 -->|Yes| ENV[Automation Environment]
 ```
 
-| Use case                                | Recommended                | Why                                               |
-| --------------------------------------- | -------------------------- | ------------------------------------------------- |
-| Send daily report at 9 AM sharp         | Scheduled Tasks (Cron)     | Exact timing, isolated execution                  |
-| Remind me in 20 minutes                 | Scheduled Tasks (Cron)     | One-shot with precise timing (`--at`)             |
-| Run weekly deep analysis                | Scheduled Tasks (Cron)     | Standalone task, can use different model          |
-| Check inbox every 30 min                | Scheduled Tasks (Cron)     | Use a main-session cron job for shared context    |
-| Monitor calendar for upcoming events    | Scheduled Tasks (Cron)     | Explicit schedule, visible run records            |
-| Inspect status of a subagent or ACP run | Background Tasks           | Tasks ledger tracks all detached work             |
-| Audit what ran and when                 | Background Tasks           | Desktop task ledger or Gateway API                |
-| Install or bind local n8n / ComfyUI     | Automation Runtime Manager | Desktop-managed local services with health status |
-| Multi-step research then summarize      | Workflow + n8n             | Workflow registry plus n8n execution              |
-| Add context on session start            | Hooks                      | SDK lifecycle callback before the run             |
-| Guard tool calls or permissions         | Hooks                      | SDK lifecycle callback around tool use            |
-| Always check compliance before replying | Standing Orders            | Injected into every session automatically         |
+| Use case                                | Recommended            | Why                                               |
+| --------------------------------------- | ---------------------- | ------------------------------------------------- |
+| Send daily report at 9 AM sharp         | Scheduled Tasks (Cron) | Exact timing, isolated execution                  |
+| Remind me in 20 minutes                 | Scheduled Tasks (Cron) | One-shot with precise timing (`--at`)             |
+| Run weekly deep analysis                | Scheduled Tasks (Cron) | Standalone task, can use different model          |
+| Check inbox every 30 min                | Scheduled Tasks (Cron) | Use a main-session cron job for shared context    |
+| Monitor calendar for upcoming events    | Scheduled Tasks (Cron) | Explicit schedule, visible run records            |
+| Inspect status of a subagent or ACP run | Background Tasks       | Tasks ledger tracks all detached work             |
+| Audit what ran and when                 | Background Tasks       | Desktop task ledger or Gateway API                |
+| Install or bind local n8n / ComfyUI     | Automation Environment | Desktop-managed local services with health status |
+| Multi-step research then summarize      | Workflow + n8n         | Workflow registry plus n8n execution              |
+| Add context on session start            | Hooks                  | SDK lifecycle callback before the run             |
+| Guard tool calls or permissions         | Hooks                  | SDK lifecycle callback around tool use            |
+| Always check compliance before replying | Standing Orders        | Injected into every session automatically         |
 
 ### Scheduled Tasks and main-session wakes
 
@@ -77,14 +77,14 @@ The background task ledger tracks all detached work: ACP runs, subagent spawns, 
 
 See [Background Tasks](/automation/tasks).
 
-### Automation Runtime Manager
+### Automation Environment
 
-Automation Runtime Manager is the Desktop-owned lifecycle layer for heavier
-local automation services. The first managed runtimes are n8n and ComfyUI.
-Desktop reads the embedded runtime manifest, stages versioned GitHub release
-assets into the packaged runtime tree, verifies installer checksums, runs
-installers with a constrained environment, starts or stops local service
-processes, and reports health status back to the Automation workspace.
+Automation Environment is the Desktop settings area for heavier local automation
+services. The first managed environments are n8n and ComfyUI. Desktop reads the
+embedded runtime manifest, stages versioned GitHub release assets into the
+packaged runtime tree, verifies installer checksums, runs installers with a
+constrained environment, starts or stops local service processes, and reports
+health status back to the Automation workspace.
 
 n8n is managed as a pinned Node service and defaults to loopback
 `http://127.0.0.1:5679`. ComfyUI is managed as a Python service and defaults to
@@ -92,9 +92,10 @@ loopback `http://127.0.0.1:8188`. ComfyUI installs are profile based because
 PyTorch wheels differ by compute backend: Apple Metal, NVIDIA CUDA, AMD ROCm,
 Intel XPU, CPU, or an external user-managed ComfyUI endpoint.
 
-The manager owns installation and local process lifecycle. Workflow tools,
-plugins, and agents still own the actual automation calls after a runtime is
-available.
+Automation Environment owns installation and local process lifecycle. Workflow
+tools, plugins, and agents still own the actual automation calls after a runtime
+is available. Cron is built into the Gateway scheduler, so it is shown in the
+Automation workspace but is not installed from Automation Environment.
 
 ### Workflows and Task Flow
 
@@ -127,7 +128,7 @@ See [Heartbeat](/gateway/heartbeat) for legacy compatibility notes.
 ## How they work together
 
 - **Cron** handles precise schedules (daily reports, weekly reviews) and one-shot reminders. All cron executions create task records.
-- **Automation Runtime Manager** installs, starts, stops, and health-checks local n8n and ComfyUI services for Desktop.
+- **Automation Environment** installs, starts, stops, and health-checks local n8n and ComfyUI services for Desktop.
 - **Main-session wakes** handle queued event follow-ups in the active session.
 - **Hooks** react to SDK lifecycle events or external webhook requests.
 - **Standing orders** give the agent persistent context and authority boundaries.

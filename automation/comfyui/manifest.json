@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "runtimeId": "comfyui",
   "name": "ComfyUI",
-  "description": "Managed ComfyUI runtime for CrawClaw Automation Runtime Manager.",
+  "description": "Managed ComfyUI runtime for CrawClaw Automation Environment.",
   "runtime": "python-service",
   "provider": "comfyui",
   "service": "comfyui",

@@ -4432,6 +4432,10 @@ async fn rust_gateway_usage_cost_aggregates_local_session_transcripts() {
         ..GatewayRunConfig::default()
     });
     let key = "usage-cost";
+    let usage_date = chrono::Utc::now()
+        .date_naive()
+        .format("%Y-%m-%d")
+        .to_string();
     let transcript_path = state
         .session_store
         .session_transcript_path(key)
@@ -4439,7 +4443,7 @@ async fn rust_gateway_usage_cost_aggregates_local_session_transcripts() {
     append_jsonl(
         &transcript_path,
         &json!({
-            "timestamp": "2026-05-11T00:00:00.000Z",
+            "timestamp": format!("{usage_date}T00:00:00.000Z"),
             "message": {
                 "role": "assistant",
                 "usage": {
@@ -4463,7 +4467,7 @@ async fn rust_gateway_usage_cost_aggregates_local_session_transcripts() {
     append_jsonl(
         &transcript_path,
         &json!({
-            "timestamp": "2026-05-11T01:00:00.000Z",
+            "timestamp": format!("{usage_date}T01:00:00.000Z"),
             "message": {
                 "role": "assistant",
                 "usage": {
@@ -4481,7 +4485,7 @@ async fn rust_gateway_usage_cost_aggregates_local_session_transcripts() {
         .expect("usage cost");
     assert_eq!(cost["days"], 30);
     assert_eq!(cost["daily"].as_array().expect("daily").len(), 1);
-    assert_eq!(cost["daily"][0]["date"], "2026-05-11");
+    assert_eq!(cost["daily"][0]["date"], usage_date);
     assert_eq!(cost["totals"]["input"], 13);
     assert_eq!(cost["totals"]["output"], 9);
     assert_eq!(cost["totals"]["cacheRead"], 2);

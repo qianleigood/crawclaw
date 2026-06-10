@@ -289,6 +289,58 @@ fn rust_runtime_repo_guardrails_keep_desktop_settings_view_split() {
 }
 
 #[test]
+fn rust_runtime_repo_guardrails_keep_automation_environment_in_settings() {
+    let root = repo_root();
+    let automation_view_path =
+        root.join("apps/crawclaw-desktop/src/views/automation-workspace.tsx");
+    let settings_view_path = root.join("apps/crawclaw-desktop/src/views/settings-workspace.tsx");
+    let automation_source =
+        fs::read_to_string(&automation_view_path).expect("read automation workspace view");
+    let settings_source =
+        fs::read_to_string(&settings_view_path).expect("read settings workspace view");
+    let automation_environment_path =
+        root.join("apps/crawclaw-desktop/src/views/automation-environment.tsx");
+    let automation_environment_source = fs::read_to_string(&automation_environment_path)
+        .expect("read automation environment view");
+
+    assert!(
+        !automation_source.contains("Automation Runtime Manager")
+            && !automation_source.contains("automation-runtime-panel")
+            && !automation_source.contains("automation-environment-strip"),
+        "Automation workspace should focus on execution tabs; runtime install/config UI belongs in Settings"
+    );
+    assert!(
+        settings_source.contains("自动化环境") && settings_source.contains("'automation'"),
+        "Settings workspace must expose the n8n / ComfyUI automation environment section"
+    );
+    assert!(
+        !settings_source.contains("Automation Runtime Manager"),
+        "Settings workspace should use the product name 自动化环境 instead of Automation Runtime Manager"
+    );
+    assert!(
+        !settings_source.contains("Cron scheduler"),
+        "Cron is built in and should not be presented as an installable automation environment"
+    );
+    assert!(
+        automation_source.contains("automation-execution-board")
+            && automation_source.contains("automation-command-bar")
+            && automation_source.contains("automation-section-grid"),
+        "Automation workspace should use the execution-board layout with command controls and four sections"
+    );
+    assert!(
+        automation_environment_source.contains("automation-environment-services")
+            && automation_environment_source.contains("automation-environment-service")
+            && automation_environment_source.contains("onInstallRuntime")
+            && automation_environment_source.contains("'install'")
+            && automation_environment_source.contains("安装环境")
+            && automation_environment_source.contains("'start'")
+            && automation_environment_source.contains("'stop'")
+            && automation_environment_source.contains("'refresh'"),
+        "Automation environment settings must keep install/start/stop/refresh controls for n8n and ComfyUI"
+    );
+}
+
+#[test]
 fn rust_runtime_repo_guardrails_keep_desktop_dialogs_app_owned() {
     let root = repo_root();
     let desktop_src = root.join("apps/crawclaw-desktop/src");
@@ -868,7 +920,7 @@ fn desktop_runtime_manifest_advertises_managed_searxng_runtime() {
 }
 
 #[test]
-fn desktop_runtime_manifest_advertises_automation_runtime_manager_services() {
+fn desktop_runtime_manifest_advertises_automation_environment_services() {
     let runtime_root = unique_test_runtime_root("runtime-automation-manifest");
 
     stage_desktop_runtime_manifests(&runtime_root).expect("stage runtime manifests");
@@ -906,7 +958,7 @@ fn desktop_runtime_manifest_advertises_automation_runtime_manager_services() {
     );
     assert_eq!(
         managed["n8n"]["install"]["sha256"],
-        "53513b41f8a3f3669bdc2ed42b30c9d1a592717ad6680e3cd852167ca95f440c"
+        "ba56a100967b2743633c924f4924572e2a3c7fb474e1fe96f3b96a92c736c4ab"
     );
     assert_eq!(managed["n8n"]["license"], "Sustainable Use License");
 

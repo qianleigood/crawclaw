@@ -5,14 +5,13 @@ import {
   Image as ImageIcon,
   Play,
   RefreshCw,
-  Square,
 } from 'lucide-react'
 import { useState } from 'react'
 import type {
   AddWorkflowMessageInput,
-  AutomationRuntimeInstallInput,
-  AutomationRuntimeSummary,
+  AutomationTabSummary,
   AutomationWorkspaceState,
+  AutomationWorkspaceItem,
 } from '../desktop-api'
 import type { ConfirmationRequestInput } from '../ui/confirmation-dialog'
 import { Badge, type BadgeTone } from '../ui/badge'
@@ -21,105 +20,42 @@ type AutomationWorkspaceProps = {
   automationWorkspace: AutomationWorkspaceState
   confirmHighRisk: boolean
   onAddWorkflowMessage: (input: AddWorkflowMessageInput) => void
-  onInstallRuntime: (runtimeId: string, input: AutomationRuntimeInstallInput) => Promise<void>
   onRequestConfirmation: (input: ConfirmationRequestInput) => Promise<boolean>
-  onRefreshRuntime: (runtimeId: string) => Promise<void>
-  onStartRuntime: (runtimeId: string) => Promise<void>
-  onStopRuntime: (runtimeId: string) => Promise<void>
 }
 
 type AutomationKind = 'comfyui' | 'n8n' | 'schedule'
+type AutomationTabKind = 'comfyui' | 'n8n' | 'cron'
+type AutomationSectionKey = 'activeRuns' | 'workflows' | 'history' | 'artifacts'
 
-const automationCards: Array<{
-  detail: string
-  kind: AutomationKind
-  primaryAction: string
-  secondaryAction: string
+const automationSections: Array<{
+  empty: string
+  key: AutomationSectionKey
   title: string
 }> = [
-  {
-    detail: '查看本机 ComfyUI 服务状态，或向队列提交一个最小工作流请求。',
-    kind: 'comfyui',
-    primaryAction: 'status',
-    secondaryAction: 'run',
-    title: 'ComfyUI',
-  },
-  {
-    detail: '列出 n8n 工作流，或触发指定 workflowId 的执行。',
-    kind: 'n8n',
-    primaryAction: 'list',
-    secondaryAction: 'run',
-    title: 'n8n',
-  },
-  {
-    detail: '查看本机 cron 自动化状态，或创建一个最小定时任务请求。',
-    kind: 'schedule',
-    primaryAction: 'cron.status',
-    secondaryAction: 'cron.create',
-    title: 'Cron',
-  },
+  { empty: '暂无当前执行任务', key: 'activeRuns', title: '当前执行任务' },
+  { empty: '暂无工作流', key: 'workflows', title: '工作流' },
+  { empty: '暂无执行历史', key: 'history', title: '执行历史' },
+  { empty: '暂无产物', key: 'artifacts', title: '执行产物' },
 ]
 
 export function AutomationWorkspace({
   automationWorkspace,
   confirmHighRisk,
   onAddWorkflowMessage,
-  onInstallRuntime,
   onRequestConfirmation,
-  onRefreshRuntime,
-  onStartRuntime,
-  onStopRuntime,
 }: AutomationWorkspaceProps) {
   const [comfyBaseUrl, setComfyBaseUrl] = useState('http://127.0.0.1:8188')
   const [n8nWorkflowId, setN8nWorkflowId] = useState('')
   const [cronName, setCronName] = useState('desktop-check')
-  const [pendingRuntimeAction, setPendingRuntimeAction] = useState<string | null>(null)
-  const [selectedComputeProfiles, setSelectedComputeProfiles] = useState<Record<string, string>>({})
-  const [runtimePytorchIndexUrls, setRuntimePytorchIndexUrls] = useState<Record<string, string>>({})
-  const managedRuntimes = automationWorkspace.runtimes
+  const [activeTabKind, setActiveTabKind] = useState<AutomationTabKind>('comfyui')
+  const automationTabs = normalizedAutomationTabs(automationWorkspace)
+  const activeTab = automationTabs.find((tab) => tab.kind === activeTabKind) ?? automationTabs[0]
 
-  const runRuntimeAction = (runtime: AutomationRuntimeSummary, action: 'install' | 'refresh' | 'start' | 'stop') => {
-    const pendingKey = `${runtime.id}:${action}`
-    void (async () => {
-      if (confirmHighRisk && action !== 'refresh') {
-        const confirmed = await onRequestConfirmation({
-          cancelLabel: '取消',
-          confirmLabel: runtimeActionConfirmLabel(action),
-          detail: runtimeActionConfirmationDetail(runtime, action),
-          title: runtimeActionConfirmationTitle(runtime, action),
-          tone: action === 'stop' ? 'default' : 'danger',
-        })
-        if (!confirmed) {
-          return
-        }
-      }
-
-      setPendingRuntimeAction(pendingKey)
-      try {
-        if (action === 'refresh') {
-          await onRefreshRuntime(runtime.id)
-          return
-        }
-        if (action === 'install') {
-          await onInstallRuntime(runtime.id, runtimeInstallInput(
-            runtime,
-            selectedComputeProfiles[runtime.id],
-            runtimePytorchIndexUrls[runtime.id],
-          ))
-          return
-        }
-        if (action === 'start') {
-          await onStartRuntime(runtime.id)
-          return
-        }
-        await onStopRuntime(runtime.id)
-      } finally {
-        setPendingRuntimeAction(null)
-      }
-    })()
-  }
-
-  const runAutomation = (kind: AutomationKind, action: string) => {
+  const runAutomation = (
+    kind: AutomationKind,
+    action: string,
+    inputOverride: Record<string, unknown> = {},
+  ) => {
     const requiresConfirmation = confirmHighRisk && isHighRiskAutomationAction(kind, action)
     void (async () => {
       if (requiresConfirmation) {
@@ -138,6 +74,7 @@ export function AutomationWorkspace({
         comfyBaseUrl,
         confirm: requiresConfirmation,
         cronName,
+        inputOverride,
         n8nWorkflowId,
       }))
     })()
@@ -152,212 +89,120 @@ export function AutomationWorkspace({
         </div>
       </section>
 
-      <section className="automation-runtime-panel">
-        <header className="automation-runtime-panel__header">
-          <div>
-            <h2>Automation Runtime Manager</h2>
-            <p>n8n / ComfyUI</p>
-          </div>
-          <Badge tone="neutral">{managedRuntimes.length} runtimes</Badge>
-        </header>
+      <section className="automation-product">
+        <div className="automation-tabs" role="tablist" aria-label="Automation tabs">
+          {automationTabs.map((tab) => (
+            <button
+              aria-selected={activeTab?.kind === tab.kind}
+              className={activeTab?.kind === tab.kind ? 'is-active' : undefined}
+              key={tab.kind}
+              onClick={() => setActiveTabKind(tab.kind as AutomationTabKind)}
+              role="tab"
+              type="button"
+            >
+              {tab.kind === 'cron'
+                ? <CalendarClock aria-hidden="true" size={15} strokeWidth={2.1} />
+                : tab.kind === 'comfyui'
+                ? <ImageIcon aria-hidden="true" size={15} strokeWidth={2.1} />
+                : <Blocks aria-hidden="true" size={15} strokeWidth={2.1} />}
+              {tab.title}
+            </button>
+          ))}
+        </div>
 
-        {managedRuntimes.length === 0 ? (
-          <p className="automation-runtime-empty">Runtime manifest 未返回 n8n / ComfyUI。</p>
-        ) : (
-          <div className="automation-runtime-grid">
-            {managedRuntimes.map((runtime) => (
-              <article className="automation-runtime-card" key={runtime.id}>
-                <header>
-                  <span className="automation-runtime-card__icon">
-                    {runtime.id === 'comfyui'
-                      ? <ImageIcon aria-hidden="true" size={18} strokeWidth={2.1} />
-                      : <Blocks aria-hidden="true" size={18} strokeWidth={2.1} />}
-                  </span>
-                  <div>
-                    <h3>{runtime.name}</h3>
-                    <p>{runtime.detail}</p>
-                  </div>
-                  <Badge tone={runtimeStatusTone(runtime.status)}>{runtimeStatusLabel(runtime.status)}</Badge>
-                </header>
-
-                <dl className="automation-runtime-card__meta">
-                  <div>
-                    <dt>Endpoint</dt>
-                    <dd>{runtime.baseUrl}</dd>
-                  </div>
-                  {runtime.healthUrl ? (
-                    <div>
-                      <dt>Health</dt>
-                      <dd>
-                        {runtime.healthStatus
-                          ? `${runtime.healthStatus}${runtime.healthDetail ? ` (${runtime.healthDetail})` : ''}`
-                          : runtime.healthUrl}
-                      </dd>
-                    </div>
-                  ) : null}
-                  <div>
-                    <dt>Runtime</dt>
-                    <dd>{runtime.runtime}</dd>
-                  </div>
-                  <div>
-                    <dt>Install</dt>
-                    <dd>{runtime.install.channel}</dd>
-                  </div>
-                  <div>
-                    <dt>Policy</dt>
-                    <dd>{runtime.install.scriptPolicy}</dd>
-                  </div>
-                  {runtime.processId ? (
-                    <div>
-                      <dt>PID</dt>
-                      <dd>{runtime.processId}</dd>
-                    </div>
-                  ) : null}
-                  {runtime.logPath ? (
-                    <div>
-                      <dt>Log</dt>
-                      <dd>{runtime.logPath}</dd>
-                    </div>
-                  ) : null}
-                </dl>
-
-                {runtime.computeProfiles.length > 0 ? (
-                  <div className="automation-runtime-card__profiles">
-                    <label>
-                      <span>Profile</span>
-                      <select
-                        disabled={runtime.status === 'running' || pendingRuntimeAction !== null}
-                        value={selectedComputeProfiles[runtime.id] ?? runtime.selectedComputeProfile ?? ''}
-                        onChange={(event) => setSelectedComputeProfiles((profiles) => ({
-                          ...profiles,
-                          [runtime.id]: event.target.value,
-                        }))}
-                      >
-                        <option value="">auto</option>
-                        {runtime.computeProfiles.map((profile) => (
-                          <option key={profile.id} value={profile.id}>
-                            {profile.id}{profile.experimental ? ' experimental' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    {runtime.id === 'comfyui' ? (
-                      <label>
-                        <span>PyTorch index URL</span>
-                        <input
-                          disabled={runtime.status === 'running' || pendingRuntimeAction !== null}
-                          placeholder={runtimePytorchIndexUrlPlaceholder(runtime, selectedComputeProfiles[runtime.id])}
-                          required={runtimeRequiresPytorchIndexUrl(runtime, selectedComputeProfiles[runtime.id])}
-                          value={runtimePytorchIndexUrls[runtime.id] ?? ''}
-                          onChange={(event) => setRuntimePytorchIndexUrls((urls) => ({
-                            ...urls,
-                            [runtime.id]: event.target.value,
-                          }))}
-                        />
-                      </label>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                <div className="automation-runtime-card__actions">
-                  <button
-                    disabled={pendingRuntimeAction !== null}
-                    onClick={() => runRuntimeAction(runtime, 'refresh')}
-                    type="button"
-                  >
-                    <RefreshCw aria-hidden="true" size={14} strokeWidth={2} />
-                    刷新
-                  </button>
-                  {runtimePrimaryAction(runtime) === 'stop' ? (
-                    <button
-                      className="workspace-secondary-button"
-                      disabled={pendingRuntimeAction !== null}
-                      onClick={() => runRuntimeAction(runtime, 'stop')}
-                      type="button"
-                    >
-                      <Square aria-hidden="true" size={13} fill="currentColor" strokeWidth={0} />
-                      停止
-                    </button>
-                  ) : runtimePrimaryAction(runtime) === 'start' ? (
-                    <button
-                      className="workspace-primary-button"
-                      disabled={pendingRuntimeAction !== null}
-                      onClick={() => runRuntimeAction(runtime, 'start')}
-                      type="button"
-                    >
-                      <Play aria-hidden="true" size={14} fill="currentColor" strokeWidth={0} />
-                      启动
-                    </button>
-                  ) : (
-                    <button
-                      className="workspace-primary-button"
-                      disabled={pendingRuntimeAction !== null
-                        || runtimeInstallNeedsPytorchIndexUrl(
-                          runtime,
-                          selectedComputeProfiles[runtime.id],
-                          runtimePytorchIndexUrls[runtime.id],
-                        )}
-                      onClick={() => runRuntimeAction(runtime, 'install')}
-                      type="button"
-                    >
-                      <Download aria-hidden="true" size={14} strokeWidth={2} />
-                      安装
-                    </button>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <div className="automation-grid">
-        {automationCards.map((card) => (
-          <article className="automation-card" key={card.kind}>
-            <header>
-              <span className="automation-card__icon">
-                {card.kind === 'schedule'
-                  ? <CalendarClock aria-hidden="true" size={18} strokeWidth={2.1} />
-                  : <Blocks aria-hidden="true" size={18} strokeWidth={2.1} />}
-              </span>
+        {activeTab ? (
+          <div className="automation-execution-board">
+            <header className="automation-execution-board__header">
               <div>
-                <h2>{card.title}</h2>
-                <p>{card.detail}</p>
+                <h2>{activeTab.title}</h2>
+                <p>{activeTab.runtime.detail}</p>
               </div>
+              <Badge tone={automationRuntimeTone(activeTab.runtime.status)}>
+                {automationStatusLabel(activeTab.runtime.status)}
+              </Badge>
             </header>
 
-            {card.kind === 'comfyui' ? (
-              <label>
-                <span>Base URL</span>
-                <input value={comfyBaseUrl} onChange={(event) => setComfyBaseUrl(event.target.value)} />
-              </label>
-            ) : null}
-            {card.kind === 'n8n' ? (
-              <label>
-                <span>Workflow ID</span>
-                <input placeholder="可选" value={n8nWorkflowId} onChange={(event) => setN8nWorkflowId(event.target.value)} />
-              </label>
-            ) : null}
-            {card.kind === 'schedule' ? (
-              <label>
-                <span>任务名</span>
-                <input value={cronName} onChange={(event) => setCronName(event.target.value)} />
-              </label>
-            ) : null}
+            <div className="automation-execution-metrics">
+              {activeTab.runtime.baseUrl ? (
+                <div>
+                  <span>Endpoint</span>
+                  <strong>{activeTab.runtime.baseUrl}</strong>
+                </div>
+              ) : null}
+              {activeTab.runtime.healthStatus ? (
+                <div>
+                  <span>Health</span>
+                  <strong>{activeTab.runtime.healthStatus}</strong>
+                </div>
+              ) : null}
+              {activeTab.runtime.processId ? (
+                <div>
+                  <span>PID</span>
+                  <strong>{activeTab.runtime.processId}</strong>
+                </div>
+              ) : null}
+              {activeTab.runtime.metrics.map((metric) => (
+                <div key={`${metric.label}:${metric.value}`}>
+                  <span>{metric.label}</span>
+                  <strong>{metric.value}</strong>
+                </div>
+              ))}
+            </div>
 
-            <div className="automation-card__actions">
-              <button onClick={() => runAutomation(card.kind, card.primaryAction)} type="button">
+            <div className="automation-command-bar">
+              {activeTab.kind === 'comfyui' ? (
+                <label>
+                  <span>Base URL</span>
+                  <input value={comfyBaseUrl} onChange={(event) => setComfyBaseUrl(event.target.value)} />
+                </label>
+              ) : null}
+              {activeTab.kind === 'n8n' ? (
+                <label>
+                  <span>Workflow ID</span>
+                  <input placeholder="可选" value={n8nWorkflowId} onChange={(event) => setN8nWorkflowId(event.target.value)} />
+                </label>
+              ) : null}
+              {activeTab.kind === 'cron' ? (
+                <label>
+                  <span>任务名</span>
+                  <input value={cronName} onChange={(event) => setCronName(event.target.value)} />
+                </label>
+              ) : null}
+              <button
+                onClick={() => runAutomation(tabWorkflowKind(activeTab.kind), defaultStatusAction(activeTab.kind))}
+                type="button"
+              >
                 <RefreshCw aria-hidden="true" size={14} strokeWidth={2} />
                 状态
               </button>
-              <button className="workspace-primary-button" onClick={() => runAutomation(card.kind, card.secondaryAction)} type="button">
+              <button
+                className="workspace-primary-button"
+                onClick={() => runAutomation(tabWorkflowKind(activeTab.kind), defaultCreateAction(activeTab.kind))}
+                type="button"
+              >
                 <Play aria-hidden="true" size={14} fill="currentColor" strokeWidth={0} />
-                执行
+                {activeTab.kind === 'cron' ? '创建' : '执行'}
               </button>
             </div>
-          </article>
-        ))}
-      </div>
+
+            <div className="automation-section-grid">
+              {automationSections.map((section) => (
+                <AutomationSection
+                  errors={activeTab.errors.filter((error) => error.section === section.key)}
+                  key={section.key}
+                  empty={section.empty}
+                  items={activeTab[section.key]}
+                  kind={activeTab.kind as AutomationTabKind}
+                  onRunAutomation={runAutomation}
+                  sectionKey={section.key}
+                  title={section.title}
+                  values={{ comfyBaseUrl }}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </section>
     </div>
   )
 }
@@ -369,6 +214,7 @@ function createWorkflowMessage(
     comfyBaseUrl: string
     confirm: boolean
     cronName: string
+    inputOverride: Record<string, unknown>
     n8nWorkflowId: string
   },
 ): AddWorkflowMessageInput {
@@ -382,7 +228,7 @@ function createWorkflowMessage(
       action,
       confirm: values.confirm ? true : undefined,
       detail: 'ComfyUI 工作流请求已从自动化工作区发起。',
-      input: { action, baseUrl: values.comfyBaseUrl },
+      input: { action, baseUrl: values.comfyBaseUrl, ...values.inputOverride },
       status: 'running',
       steps: commonSteps,
       title: action === 'status' ? 'ComfyUI 状态' : 'ComfyUI 执行',
@@ -394,7 +240,10 @@ function createWorkflowMessage(
       action,
       confirm: values.confirm ? true : undefined,
       detail: 'n8n 工作流请求已从自动化工作区发起。',
-      input: values.n8nWorkflowId ? { workflowId: values.n8nWorkflowId } : { limit: 10 },
+      input: {
+        ...(values.n8nWorkflowId ? { workflowId: values.n8nWorkflowId } : { limit: 10 }),
+        ...values.inputOverride,
+      },
       status: 'running',
       steps: commonSteps,
       title: action === 'list' ? 'n8n 工作流列表' : 'n8n 工作流执行',
@@ -405,7 +254,9 @@ function createWorkflowMessage(
     action,
     confirm: values.confirm ? true : undefined,
     detail: 'Cron 自动化请求已从自动化工作区发起。',
-    input: action === 'cron.create'
+    input: Object.keys(values.inputOverride).length > 0
+      ? values.inputOverride
+      : action === 'cron.add'
       ? {
         name: values.cronName.trim() || 'desktop-check',
         schedule: {
@@ -422,17 +273,220 @@ function createWorkflowMessage(
   }
 }
 
+type AutomationSectionProps = {
+  empty: string
+  errors: Array<{ detail: string; section: string }>
+  items: AutomationWorkspaceItem[]
+  kind: AutomationTabKind
+  onRunAutomation: (kind: AutomationKind, action: string, inputOverride?: Record<string, unknown>) => void
+  sectionKey: AutomationSectionKey
+  title: string
+  values: {
+    comfyBaseUrl: string
+  }
+}
+
+function AutomationSection({
+  empty,
+  errors,
+  items,
+  kind,
+  onRunAutomation,
+  sectionKey,
+  title,
+  values,
+}: AutomationSectionProps) {
+  return (
+    <section className="automation-section">
+      <header>
+        <h3>{title}</h3>
+        <Badge tone={errors.length > 0 ? 'danger' : 'neutral'}>{items.length}</Badge>
+      </header>
+      {errors.map((error) => (
+        <p className="automation-section__error" key={`${error.section}:${error.detail}`}>{error.detail}</p>
+      ))}
+      {items.length === 0 ? (
+        <p className="automation-section__empty">{empty}</p>
+      ) : (
+        <div className="automation-section__items">
+          {items.map((item) => (
+            <div className="automation-item" key={`${sectionKey}:${item.id}`}>
+              <div className="automation-item__main">
+                <strong>{item.title}</strong>
+                <span>{item.detail}</span>
+                <small>{automationItemMeta(item)}</small>
+              </div>
+              <Badge tone={automationRuntimeTone(item.status)}>{automationStatusLabel(item.status)}</Badge>
+              <div className="automation-item__actions">
+                {automationItemActions(kind, sectionKey, item, values).map((action) => (
+                  <button
+                    className={action.primary ? 'workspace-primary-button' : undefined}
+                    key={action.action}
+                    onClick={() => onRunAutomation(tabWorkflowKind(kind), action.action, action.input)}
+                    type="button"
+                  >
+                    {action.icon === 'download'
+                      ? <Download aria-hidden="true" size={13} strokeWidth={2} />
+                      : action.icon === 'refresh'
+                      ? <RefreshCw aria-hidden="true" size={13} strokeWidth={2} />
+                      : <Play aria-hidden="true" size={13} fill="currentColor" strokeWidth={0} />}
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function normalizedAutomationTabs(automationWorkspace: AutomationWorkspaceState): AutomationTabSummary[] {
+  if (automationWorkspace.tabs.length > 0) {
+    return automationWorkspace.tabs
+  }
+  return [
+    emptyAutomationTab('comfyui', 'ComfyUI'),
+    emptyAutomationTab('n8n', 'n8n'),
+    emptyAutomationTab('cron', 'Cron'),
+  ]
+}
+
+function emptyAutomationTab(kind: AutomationTabKind, title: string): AutomationTabSummary {
+  return {
+    activeRuns: [],
+    artifacts: [],
+    availableActions: [],
+    errors: [],
+    history: [],
+    kind,
+    runtime: {
+      detail: '等待本机 Gateway 返回自动化状态。',
+      id: kind,
+      metrics: [],
+      name: title,
+      status: 'unavailable',
+    },
+    title,
+    workflows: [],
+  }
+}
+
+function tabWorkflowKind(kind: string): AutomationKind {
+  return kind === 'cron' ? 'schedule' : kind === 'n8n' ? 'n8n' : 'comfyui'
+}
+
+function defaultStatusAction(kind: string) {
+  if (kind === 'cron') {
+    return 'cron.status'
+  }
+  if (kind === 'n8n') {
+    return 'list'
+  }
+  return 'runs-list'
+}
+
+function defaultCreateAction(kind: string) {
+  if (kind === 'cron') {
+    return 'cron.add'
+  }
+  return 'run'
+}
+
+function automationItemActions(
+  kind: AutomationTabKind,
+  sectionKey: AutomationSectionKey,
+  item: AutomationWorkspaceItem,
+  values: { comfyBaseUrl: string },
+) {
+  if (kind === 'comfyui') {
+    if (sectionKey === 'workflows' && item.workflowId) {
+      return [{
+        action: 'run',
+        icon: 'play',
+        input: {
+          baseUrl: values.comfyBaseUrl,
+          downloadOutputs: true,
+          waitForCompletion: true,
+          workflowId: item.workflowId,
+        },
+        label: '执行',
+        primary: true,
+      }]
+    }
+    if ((sectionKey === 'activeRuns' || sectionKey === 'history') && item.runId) {
+      return [{
+        action: 'status',
+        icon: 'refresh',
+        input: { baseUrl: values.comfyBaseUrl, promptId: item.runId },
+        label: '状态',
+        primary: false,
+      }]
+    }
+    if (sectionKey === 'artifacts' && item.runId) {
+      return [{
+        action: 'outputs',
+        icon: 'download',
+        input: { baseUrl: values.comfyBaseUrl, download: false, promptId: item.runId },
+        label: '产物',
+        primary: false,
+      }]
+    }
+  }
+  if (kind === 'n8n') {
+    if (sectionKey === 'workflows' && item.workflowId) {
+      return [{
+        action: 'run',
+        icon: 'play',
+        input: { workflowId: item.workflowId },
+        label: '执行',
+        primary: true,
+      }]
+    }
+    if ((sectionKey === 'activeRuns' || sectionKey === 'history') && item.runId) {
+      return [{
+        action: 'status',
+        icon: 'refresh',
+        input: { runId: item.runId },
+        label: '状态',
+        primary: false,
+      }]
+    }
+  }
+  if (kind === 'cron' && sectionKey === 'workflows') {
+    const id = item.workflowId ?? item.id
+    return [{
+      action: 'cron.run',
+      icon: 'play',
+      input: { id, mode: 'force' },
+      label: '执行',
+      primary: true,
+    }]
+  }
+  return []
+}
+
+function automationItemMeta(item: AutomationWorkspaceItem) {
+  return [
+    item.workflowId ? `workflow ${item.workflowId}` : '',
+    item.runId ? `run ${item.runId}` : '',
+    item.path ?? '',
+    item.updatedAt ? `updated ${item.updatedAt}` : item.startedAt ? `started ${item.startedAt}` : '',
+  ].filter(Boolean).join(' · ')
+}
+
 function isHighRiskAutomationAction(kind: AutomationKind, action: string) {
   if (kind === 'comfyui') {
     return action === 'run'
   }
   if (kind === 'n8n') {
-    return action === 'run'
+    return ['run', 'cancel', 'resume'].includes(action)
   }
-  return action === 'cron.create'
+  return ['cron.add', 'cron.run', 'cron.remove'].includes(action)
 }
 
-function runtimeStatusLabel(status: AutomationRuntimeSummary['status']) {
+function automationStatusLabel(status: string) {
   if (status === 'ready') {
     return '可用'
   }
@@ -442,122 +496,42 @@ function runtimeStatusLabel(status: AutomationRuntimeSummary['status']) {
   if (status === 'running') {
     return '运行中'
   }
+  if (status === 'queued') {
+    return '排队'
+  }
+  if (status === 'pending') {
+    return '等待'
+  }
+  if (status === 'success' || status === 'done') {
+    return '完成'
+  }
+  if (status === 'scheduled' || status === 'enabled') {
+    return '已排程'
+  }
+  if (status === 'disabled') {
+    return '停用'
+  }
   if (status === 'notInstalled') {
     return '未安装'
   }
   if (status === 'unavailable') {
     return '等待 Gateway'
   }
-  if (status === 'error') {
+  if (status === 'idle') {
+    return '空闲'
+  }
+  if (status === 'error' || status === 'failed') {
     return '错误'
   }
   return status
 }
 
-function runtimeStatusTone(status: AutomationRuntimeSummary['status']): BadgeTone {
-  if (status === 'ready' || status === 'installed' || status === 'running') {
+function automationRuntimeTone(status: string): BadgeTone {
+  if (['ready', 'installed', 'running', 'success', 'done', 'scheduled', 'enabled'].includes(status)) {
     return 'ok'
   }
-  if (status === 'error') {
+  if (['error', 'failed', 'unhealthy'].includes(status)) {
     return 'danger'
   }
   return 'idle'
-}
-
-function runtimePrimaryAction(runtime: AutomationRuntimeSummary): 'install' | 'start' | 'stop' {
-  if (runtime.status === 'running') {
-    return 'stop'
-  }
-  if (runtime.status === 'installed' || runtime.status === 'stopped') {
-    return 'start'
-  }
-  return 'install'
-}
-
-function selectedRuntimeComputeProfile(
-  runtime: AutomationRuntimeSummary,
-  selectedComputeProfile: string | undefined,
-) {
-  const profileId = selectedComputeProfile?.trim() || runtime.selectedComputeProfile?.trim()
-  return runtime.computeProfiles.find((profile) => profile.id === profileId)
-}
-
-function runtimePytorchIndexUrlPlaceholder(
-  runtime: AutomationRuntimeSummary,
-  selectedComputeProfile: string | undefined,
-) {
-  const profile = selectedRuntimeComputeProfile(runtime, selectedComputeProfile)
-  const defaultUrl = profile?.pytorchIndexUrlDefault?.trim()
-  if (defaultUrl) {
-    return `默认 ${defaultUrl}`
-  }
-  return profile?.pytorchIndexUrlHint ?? ''
-}
-
-function runtimeRequiresPytorchIndexUrl(
-  runtime: AutomationRuntimeSummary,
-  selectedComputeProfile: string | undefined,
-) {
-  return selectedRuntimeComputeProfile(runtime, selectedComputeProfile)?.requiresPytorchIndexUrl ?? false
-}
-
-function runtimeInstallNeedsPytorchIndexUrl(
-  runtime: AutomationRuntimeSummary,
-  selectedComputeProfile: string | undefined,
-  pytorchIndexUrl: string | undefined,
-) {
-  const profile = selectedRuntimeComputeProfile(runtime, selectedComputeProfile)
-  return (profile?.requiresPytorchIndexUrl ?? false) && !profile?.pytorchIndexUrlDefault?.trim() && !pytorchIndexUrl?.trim()
-}
-
-function runtimeInstallInput(
-  runtime: AutomationRuntimeSummary,
-  selectedComputeProfile: string | undefined,
-  pytorchIndexUrl: string | undefined,
-): AutomationRuntimeInstallInput {
-  if (runtime.id !== 'comfyui') {
-    return {}
-  }
-  const computeProfile = selectedComputeProfile?.trim()
-  const indexUrl = pytorchIndexUrl?.trim()
-  return {
-    ...(computeProfile ? { computeProfile } : {}),
-    ...(indexUrl ? { pytorchIndexUrl: indexUrl } : {}),
-  }
-}
-
-function runtimeActionConfirmLabel(action: 'install' | 'refresh' | 'start' | 'stop') {
-  if (action === 'install') {
-    return '安装'
-  }
-  if (action === 'start') {
-    return '启动'
-  }
-  if (action === 'stop') {
-    return '停止'
-  }
-  return '刷新'
-}
-
-function runtimeActionConfirmationTitle(
-  runtime: AutomationRuntimeSummary,
-  action: 'install' | 'refresh' | 'start' | 'stop',
-) {
-  return `${runtime.name} ${runtimeActionConfirmLabel(action)}`
-}
-
-function runtimeActionConfirmationDetail(
-  runtime: AutomationRuntimeSummary,
-  action: 'install' | 'refresh' | 'start' | 'stop',
-) {
-  if (action === 'install') {
-    return `${runtime.name} 安装会在本机 runtime 目录写入文件，并可能下载依赖包。`
-  }
-  if (action === 'start') {
-    return `${runtime.name} 会作为本机服务进程启动。`
-  }
-  if (action === 'stop') {
-    return `${runtime.name} 当前本机服务进程会被停止。`
-  }
-  return `${runtime.name} 状态会重新读取。`
 }

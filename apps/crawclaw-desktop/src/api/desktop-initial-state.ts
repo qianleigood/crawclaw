@@ -1,4 +1,5 @@
 import type {
+  AutomationTabSummary,
   AutomationWorkspaceState,
   DesktopState,
   PluginSkill,
@@ -132,7 +133,7 @@ function fallbackAutomationWorkspaceState(): AutomationWorkspaceState {
         baseUrl: 'http://127.0.0.1:5679',
         computeProfiles: [],
         defaultPort: 5679,
-        detail: '等待本机 Gateway 返回 Automation Runtime Manager manifest。',
+        detail: '等待本机 Gateway 返回自动化环境清单。',
         healthUrl: 'http://127.0.0.1:5679/healthz',
         id: 'n8n',
         install: {
@@ -180,7 +181,7 @@ function fallbackAutomationWorkspaceState(): AutomationWorkspaceState {
           { backend: 'external', experimental: false, id: 'external', requiresPytorchIndexUrl: false },
         ],
         defaultPort: 8188,
-        detail: '等待本机 Gateway 返回 Automation Runtime Manager manifest。',
+        detail: '等待本机 Gateway 返回自动化环境清单。',
         healthUrl: 'http://127.0.0.1:8188/system_stats',
         id: 'comfyui',
         install: {
@@ -197,6 +198,56 @@ function fallbackAutomationWorkspaceState(): AutomationWorkspaceState {
         status: 'unavailable',
       },
     ],
+    tabs: fallbackAutomationTabs(),
+  }
+}
+
+function fallbackAutomationTabs(): AutomationTabSummary[] {
+  return [
+    fallbackAutomationTab('comfyui', 'ComfyUI', 'comfyui_workflow', [
+      ['workflows-list', '工作流', 'workflows'],
+      ['runs-list', '执行历史', 'history'],
+      ['outputs-list', '产物', 'artifacts'],
+      ['run', '执行', 'activeRuns'],
+    ]),
+    fallbackAutomationTab('n8n', 'n8n', 'workflow', [
+      ['list', '工作流', 'workflows'],
+      ['runs', '执行历史', 'history'],
+      ['run', '执行', 'activeRuns'],
+      ['cancel', '取消', 'activeRuns'],
+    ]),
+    fallbackAutomationTab('cron', 'Cron', 'cron', [
+      ['cron.status', '状态', 'activeRuns'],
+      ['cron.list', '任务列表', 'workflows'],
+      ['cron.runs', '执行历史', 'history'],
+      ['cron.run', '立即执行', 'activeRuns'],
+      ['cron.add', '创建', 'workflows'],
+    ]),
+  ]
+}
+
+function fallbackAutomationTab(
+  kind: string,
+  title: string,
+  tool: string,
+  actions: Array<[string, string, string]>,
+): AutomationTabSummary {
+  return {
+    activeRuns: [],
+    artifacts: [],
+    availableActions: actions.map(([id, label, section]) => ({ id, label, section, tool })),
+    errors: [],
+    history: [],
+    kind,
+    runtime: {
+      detail: '等待本机 Gateway 返回自动化状态。',
+      id: kind,
+      metrics: [],
+      name: title,
+      status: 'unavailable',
+    },
+    title,
+    workflows: [],
   }
 }
 

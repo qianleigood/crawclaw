@@ -53,6 +53,7 @@ pub fn initial_desktop_state(runtime: &RuntimeStatus) -> DesktopState {
         },
         automation_workspace: AutomationWorkspaceState {
             runtimes: Vec::new(),
+            tabs: Vec::new(),
         },
         memory_workspace: MemoryWorkspaceState {
             selected_agent_id: "main".to_string(),

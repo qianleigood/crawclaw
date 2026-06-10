@@ -75,11 +75,12 @@ Desktop speech is intentionally local-first. The desktop package exposes the
 native `qwen3-tts` path for text-to-speech; cloud speech plugins are not part of
 the default desktop Gateway surface.
 
-Automation Runtime Manager uses the packaged `automation-assets` directory to
-install or repair managed local n8n and ComfyUI services. The same installer
-manifests and scripts are also published as versioned GitHub release assets so a
-packaged app can download the matching assets when it needs to refresh its local
-cache.
+Automation Environment uses the packaged `automation-assets` directory to
+install and manage local n8n and ComfyUI services from Desktop settings.
+The same installer manifests and scripts are also published as versioned GitHub
+release assets so a packaged app can download the matching assets when it needs
+to refresh its local cache. Cron is built into the Gateway scheduler and is not
+installed from Automation Environment.
 
 ## Supported platforms
 

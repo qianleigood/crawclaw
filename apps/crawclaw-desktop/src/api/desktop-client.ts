@@ -503,6 +503,24 @@ export async function runMemoryDream(agentId?: string): Promise<DesktopState> {
   })
 }
 
+export async function refreshMemoryEnvironment(): Promise<DesktopState> {
+  const context = await ensureContext()
+  return requestDesktopState(context, '/api/desktop/memory/environment/status')
+}
+
+export async function repairMemoryEnvironment(): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/memory/environment/repair', {
+    method: 'POST',
+  })
+}
+
+export async function reinstallMemoryEnvironment(confirm: 'REINSTALL'): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/memory/environment/reinstall', {
+    body: { confirm },
+    method: 'POST',
+  })
+}
+
 async function mutateDesktopState(
   path: string,
   request: {

@@ -744,6 +744,8 @@ pub struct InstalledPlugin {
 #[serde(rename_all = "camelCase")]
 pub struct AutomationWorkspaceState {
     pub runtimes: Vec<AutomationRuntimeSummary>,
+    #[serde(default)]
+    pub tabs: Vec<AutomationTabSummary>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -796,6 +798,84 @@ pub struct AutomationRuntimeComputeProfile {
     pub pytorch_index_url_default: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pytorch_index_url_hint: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AutomationTabSummary {
+    pub kind: String,
+    pub title: String,
+    pub runtime: AutomationTabRuntimeSummary,
+    pub active_runs: Vec<AutomationWorkspaceItem>,
+    pub workflows: Vec<AutomationWorkspaceItem>,
+    pub history: Vec<AutomationWorkspaceItem>,
+    pub artifacts: Vec<AutomationWorkspaceItem>,
+    pub available_actions: Vec<AutomationActionSummary>,
+    #[serde(default)]
+    pub errors: Vec<AutomationSectionError>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AutomationTabRuntimeSummary {
+    pub id: String,
+    pub name: String,
+    pub status: String,
+    pub detail: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub base_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub health_status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub process_id: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub log_path: Option<String>,
+    #[serde(default)]
+    pub metrics: Vec<AutomationRuntimeMetric>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AutomationRuntimeMetric {
+    pub label: String,
+    pub value: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AutomationWorkspaceItem {
+    pub id: String,
+    pub title: String,
+    pub status: String,
+    pub detail: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workflow_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub run_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub started_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AutomationActionSummary {
+    pub id: String,
+    pub label: String,
+    pub tool: String,
+    pub section: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AutomationSectionError {
+    pub section: String,
+    pub detail: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

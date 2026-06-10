@@ -1,5 +1,5 @@
 ---
-title: "Automation Runtime Manager Design"
+title: "Automation Environment Design"
 summary: "Design for Desktop-managed n8n and ComfyUI local automation runtimes"
 read_when:
   - You are implementing Desktop-managed n8n or ComfyUI installation
@@ -7,21 +7,25 @@ read_when:
   - You need the boundary between runtime installation, Gateway workflow control, and plugin tools
 ---
 
-# Automation Runtime Manager Design
+# Automation Environment Design
 
 ## Goal
 
-Add an Automation Runtime Manager to CrawClaw Desktop so heavy local automation
-services such as n8n and ComfyUI can be discovered, installed, started, repaired,
-upgraded, and bound to the existing Gateway workflow and plugin surfaces.
+Add Automation Environment to CrawClaw Desktop so heavy local automation services
+such as n8n and ComfyUI can be discovered, installed, started, stopped,
+health-checked, and bound to the existing Gateway workflow and plugin surfaces.
 
 ## Current State
 
-The current automation UI can submit ComfyUI, n8n, and cron requests, but n8n
-and ComfyUI are assumed to already exist. The current ComfyUI tool documentation
-also states that ComfyUI must already be installed and running. The runtime
-manifest already has a `managedRuntimes` map for managed local dependencies such
-as browser and SearXNG. This design extends that model to automation services.
+Before this slice, the Automation UI could submit ComfyUI, n8n, and cron
+requests, but n8n and ComfyUI were assumed to already exist. The runtime
+manifest already had a `managedRuntimes` map for managed local dependencies such
+as browser and SearXNG.
+
+The current slice extends that model to automation services. Desktop Settings
+now owns the Automation Environment section for n8n and ComfyUI installation,
+health, and local process lifecycle, while the Automation workspace shows
+execution data for ComfyUI, n8n, and Cron.
 
 ## Non-Goals
 
@@ -35,17 +39,17 @@ as browser and SearXNG. This design extends that model to automation services.
 
 ## Architecture
 
-Automation Runtime Manager is a Desktop-owned lifecycle layer.
+Automation Environment is a Desktop-owned lifecycle layer.
 
 ```text
 CrawClaw Desktop
-  -> Automation Runtime Manager
+  -> Automation Environment
        -> runtime manifest cache
        -> installer script verifier
        -> installer script runner
        -> local service supervisor
        -> health checker
-       -> repair and uninstall actions
+       -> install, start, stop, and refresh actions
   -> Gateway
        -> workflow.n8n config
        -> plugin config injection
@@ -56,9 +60,9 @@ CrawClaw Desktop
        -> comfyui_workflow
 ```
 
-The manager owns installation and process lifecycle. Gateway owns workflow
-control, registry state, callbacks, and tool execution. Plugins own service
-specific tool calls once a service is ready.
+Automation Environment owns installation and process lifecycle. Gateway owns
+workflow control, registry state, callbacks, and tool execution. Plugins own
+service-specific tool calls once a service is ready.
 
 ## Runtime Manifest
 
@@ -106,7 +110,8 @@ Installer flow:
 7. Parse JSON progress and final status.
 8. Record the installed runtime state locally.
 
-Scripts must be idempotent. A repeated install is a repair.
+Scripts must be idempotent so a repeated install can safely repair files at the
+script layer, even when the Desktop UI does not expose a separate repair action.
 
 Scripts must not receive, print, or persist secrets. Desktop generates and stores
 n8n credentials and tokens through the local secret surface after installation.
@@ -161,15 +166,24 @@ n8n installation is a managed Node service:
 
 ## UI
 
-The Automation workspace should become a status and binding surface:
+Automation Environment belongs in Desktop Settings, while the Automation
+workspace remains the execution surface.
 
-- Runtime overview: Gateway, Cron, n8n, ComfyUI.
-- Runtime cards: install, start, stop, repair, logs, uninstall.
-- ComfyUI install path: external bind or managed install with compute profile.
-- n8n install path: external bind or managed install.
-- Binding wizard: bind ready services to an agent, workflow, or cron trigger.
-- Diagnostics: port conflicts, missing files, failed health checks, and script
-  output.
+Settings should expose an Automation Environment section:
+
+- n8n and ComfyUI runtime cards only. Cron is built into the Gateway scheduler
+  and is not presented as an installable environment.
+- Runtime status, endpoint, health, process id, logs, install policy, and
+  install/start/stop/refresh actions.
+- ComfyUI profile selection and PyTorch index URL override before installation.
+- Empty, unavailable, health-failed, and install-failed states per runtime.
+
+The Automation workspace should expose execution tabs:
+
+- `ComfyUI`, `n8n`, and `Cron` as top-level tabs.
+- Each tab shows current runs, workflows or cron jobs, execution history, and
+  artifacts.
+- Runtime install/configuration controls stay out of the execution workspace.
 
 The UI must not show raw secret values.
 
@@ -181,7 +195,7 @@ Suggested local state layout:
 ~/.crawclaw/runtimes/automation/manifest.cache.json
 ~/.crawclaw/runtimes/n8n/
 ~/.crawclaw/runtimes/comfyui/<profile>/
-~/.crawclaw/logs/automation-runtime-manager/
+~/.crawclaw/logs/automation-environment/
 ```
 
 Suggested non-secret config:
@@ -217,7 +231,7 @@ bounded contract:
 4. Expose Desktop API routes to refresh, install, start, and stop managed
    automation runtimes.
 5. Surface runtime status, health, logs, process id, and ComfyUI profile
-   selection in the Automation workspace.
+   selection in the Settings Automation Environment section.
 6. Keep installer defaults pinned: n8n defaults to `2.23.3`, and ComfyUI defaults
    to source ref `5aa71b9bc28809a16596bb9fa3d0a6300d8e3f0e`.
 7. Stage release assets into `dist/automation/` and expose a checked
@@ -225,16 +239,19 @@ bounded contract:
    command for a release tag. The command requires the requested tag to point at
    the current `HEAD` by default; intentional backfills must pass
    `--allow-tag-mismatch`.
+8. Keep the Automation workspace focused on execution data for ComfyUI, n8n,
+   and Cron.
 
 This slice still does not execute GitHub release uploads, generate service
-credentials, bind n8n config automatically, or add uninstall/upgrade flows.
+credentials, bind n8n config automatically, or add explicit repair, uninstall,
+or upgrade flows.
 
 ## Verification
 
 Minimum verification for this slice:
 
 ```bash
-cargo test -p crawclaw-runtime desktop_runtime_manifest_advertises_automation_runtime_manager_services -- --nocapture
+cargo test -p crawclaw-runtime desktop_runtime_manifest_advertises_automation_environment_services -- --nocapture
 cargo test -p crawclaw-runtime automation_runtime_release_manifests_match_install_scripts -- --nocapture
 cargo test --manifest-path apps/crawclaw-desktop/src-tauri/Cargo.toml gateway_automation_runtime_lifecycle_installs_starts_and_stops_managed_runtime -- --nocapture
 ```

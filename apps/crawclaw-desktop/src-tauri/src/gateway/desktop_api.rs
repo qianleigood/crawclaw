@@ -60,9 +60,11 @@ use crate::runtime_engine::RuntimeLayout;
 mod desktop_agent_model;
 mod desktop_agent_routes;
 mod desktop_automation_routes;
+mod desktop_automation_summary;
 mod desktop_core_routes;
 mod desktop_hindsight_lifecycle;
 mod desktop_logging;
+mod desktop_memory_environment_routes;
 mod desktop_memory_routes;
 mod desktop_model_profile_routes;
 mod desktop_mutation_routes;
@@ -81,6 +83,7 @@ use self::desktop_automation_routes::{
     install_automation_runtime, refresh_automation_runtime, start_automation_runtime,
     stop_automation_runtime,
 };
+pub(super) use self::desktop_automation_summary::refresh_automation_workspace_tabs;
 use self::desktop_core_routes::{
     bootstrap, desktop_state, events, permission_decision, runtime_status, search, select_nav,
     select_thread, send_message,
@@ -89,6 +92,9 @@ use self::desktop_hindsight_lifecycle::prepare_desktop_hindsight_lifecycle;
 use self::desktop_logging::configure_desktop_rust_logging;
 use self::desktop_memory_routes::{
     select_memory_agent, select_memory_item, set_memory_filter, set_memory_query,
+};
+use self::desktop_memory_environment_routes::{
+    check_memory_environment, reinstall_memory_environment, repair_memory_environment,
 };
 use self::desktop_model_profile_routes::{
     apply_active_model_profile_for_selection, merge_persisted_model_profiles,
@@ -277,6 +283,7 @@ async fn build_state(
     merge_persisted_sessions(&mut desktop_state, &session_store);
     merge_plugin_manifest(&mut desktop_state, &runtime_layout);
     merge_automation_runtime_manifest(&mut desktop_state, &runtime_layout);
+    refresh_automation_workspace_tabs(&mut desktop_state, &runtime_layout.runtime_root).await;
     if let Err(error) = apply_active_model_profile_for_selection(
         &runtime_layout.runtime_root,
         &model_profile_store,
@@ -573,7 +580,7 @@ fn merge_automation_runtime_manifest(
             .conversation
             .runtime_checks
             .push(RuntimeCheck {
-                label: "Automation runtimes".to_string(),
+                label: "Automation Environment".to_string(),
                 value: error,
                 tone: "error".to_string(),
             }),
@@ -638,7 +645,7 @@ fn automation_runtime_summary(
         id: runtime_id.to_string(),
         name: automation_runtime_name(runtime_id).to_string(),
         status: "notInstalled".to_string(),
-        detail: "可通过 Automation Runtime Manager 安装并绑定到本机服务。".to_string(),
+        detail: "可通过自动化环境设置安装并绑定到本机服务。".to_string(),
         runtime: manifest_string(runtime, "runtime"),
         provider: manifest_string(runtime, "provider"),
         service: manifest_string(runtime, "service"),
@@ -2721,6 +2728,18 @@ fn router(state: GatewayState) -> Router {
         .route("/api/desktop/memory/filter", patch(set_memory_filter))
         .route("/api/desktop/memory/dream/run", post(run_memory_dream))
         .route(
+            "/api/desktop/memory/environment/status",
+            get(check_memory_environment),
+        )
+        .route(
+            "/api/desktop/memory/environment/repair",
+            post(repair_memory_environment),
+        )
+        .route(
+            "/api/desktop/memory/environment/reinstall",
+            post(reinstall_memory_environment),
+        )
+        .route(
             "/api/desktop/automation/runtimes/{runtime_id}/status",
             get(refresh_automation_runtime),
         )
@@ -2795,7 +2814,18 @@ async fn desktop_state_snapshot(state: &GatewayState) -> DesktopState {
 
 async fn refresh_memory_runtime_status(state: &GatewayState, desktop_state: &mut DesktopState) {
     let runtime_root = state.runtime_root.clone();
-    let status = tokio::task::spawn_blocking(move || MemoryRuntime::new(runtime_root).status())
+    let previous_environment_fields = desktop_state
+        .memory_workspace
+        .runtime_status
+        .as_object()
+        .map(|object| {
+            ["action", "operation", "checkedAt"]
+                .into_iter()
+                .filter_map(|key| object.get(key).cloned().map(|value| (key.to_string(), value)))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let mut status = tokio::task::spawn_blocking(move || MemoryRuntime::new(runtime_root).status())
         .await
         .map_err(|error| format!("memory runtime status join failed: {error}"))
         .and_then(|result| result)
@@ -2805,6 +2835,11 @@ async fn refresh_memory_runtime_status(state: &GatewayState, desktop_state: &mut
                 "error": error,
             })
         });
+    if let Some(object) = status.as_object_mut() {
+        for (key, value) in previous_environment_fields {
+            object.insert(key, value);
+        }
+    }
     desktop_state.memory_workspace.runtime_status = status;
 }
 

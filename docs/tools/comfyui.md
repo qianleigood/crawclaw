@@ -24,8 +24,9 @@ install custom nodes, download models, or bypass ComfyUI's own runtime
 requirements.
 
 CrawClaw Desktop can install, start, stop, and health-check a managed local
-ComfyUI runtime through Automation Runtime Manager. You can also bind the tool
-to an externally managed ComfyUI endpoint. Managed installs are profile based:
+ComfyUI runtime from Automation Environment in Desktop settings. You can also
+bind the tool to an externally managed ComfyUI endpoint. Managed installs are
+profile based:
 Apple Metal, NVIDIA CUDA, AMD ROCm, Intel XPU, CPU, or external. CUDA, ROCm, and
 XPU profiles use profile-specific PyTorch wheel indexes and can be overridden
 with `PYTORCH_INDEX_URL` when your GPU or driver needs a different channel.
@@ -101,7 +102,6 @@ default. A non-loopback endpoint requires explicit config:
 - `create`: build graph IR, validate it, compile API prompt JSON, and optionally
   save artifacts.
 - `validate`: validate saved or provided graph IR against the live node catalog.
-- `repair`: fill safe defaults for repairable graph IR diagnostics.
 - `run`: submit a saved or validated graph after plugin approval.
 - `status`: read `/history/{prompt_id}` for a run.
 - `outputs`: parse history outputs and optionally download files through
@@ -133,7 +133,7 @@ Saved workflows use workspace-local paths:
 ```
 
 The IR file is the CrawClaw graph representation used for validation and
-repair. The prompt file is the ComfyUI API-format JSON submitted to `/prompt`.
+diagnostics. The prompt file is the ComfyUI API-format JSON submitted to `/prompt`.
 The metadata sidecar records the original goal, ComfyUI base URL, catalog
 fingerprint, diagnostics, run id, and output artifacts.
 
@@ -153,7 +153,7 @@ See the ComfyUI server route reference at
 
 ## Related
 
-- [Automation Overview](/automation) for Automation Runtime Manager and local
+- [Automation Overview](/automation) for Automation Environment and local
   runtime lifecycle
 - [Image Tool](/tools/image) for image analysis
 - [Plugins](/tools/plugin) for plugin enablement and installation behavior

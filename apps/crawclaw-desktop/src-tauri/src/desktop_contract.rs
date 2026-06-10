@@ -513,6 +513,7 @@ export interface AddAgentSkillInput {
 
 export interface AutomationWorkspaceState {
   runtimes: AutomationRuntimeSummary[]
+  tabs: AutomationTabSummary[]
 }
 
 export interface AutomationRuntimeSummary {
@@ -550,6 +551,60 @@ export interface AutomationRuntimeComputeProfile {
   requiresPytorchIndexUrl: boolean
   pytorchIndexUrlDefault?: string
   pytorchIndexUrlHint?: string
+}
+
+export interface AutomationTabSummary {
+  kind: string
+  title: string
+  runtime: AutomationTabRuntimeSummary
+  activeRuns: AutomationWorkspaceItem[]
+  workflows: AutomationWorkspaceItem[]
+  history: AutomationWorkspaceItem[]
+  artifacts: AutomationWorkspaceItem[]
+  availableActions: AutomationActionSummary[]
+  errors: AutomationSectionError[]
+}
+
+export interface AutomationTabRuntimeSummary {
+  id: string
+  name: string
+  status: string
+  detail: string
+  baseUrl?: string
+  healthStatus?: string
+  processId?: number
+  logPath?: string
+  metrics: AutomationRuntimeMetric[]
+}
+
+export interface AutomationRuntimeMetric {
+  label: string
+  value: string
+}
+
+export interface AutomationWorkspaceItem {
+  id: string
+  title: string
+  status: string
+  detail: string
+  kind?: string
+  workflowId?: string
+  runId?: string
+  path?: string
+  startedAt?: string
+  updatedAt?: string
+}
+
+export interface AutomationActionSummary {
+  id: string
+  label: string
+  tool: string
+  section: string
+}
+
+export interface AutomationSectionError {
+  section: string
+  detail: string
 }
 
 export interface AutomationRuntimeInstallInput {

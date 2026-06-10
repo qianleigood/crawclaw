@@ -431,9 +431,9 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
-async fn gateway_bootstrap_exposes_automation_runtime_manager_services() {
+async fn gateway_bootstrap_exposes_automation_environment_services() {
     let runtime_layout = create_runtime_fixture(
-        "desktop-automation-runtime-manager",
+        "desktop-automation-environment",
         r#"#!/bin/sh
 case "$*" in
   *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
@@ -498,6 +498,140 @@ esac
     assert!(profiles
         .iter()
         .any(|profile| profile["id"] == "external" && profile["backend"] == "external"));
+
+    let tabs = json["desktopState"]["automationWorkspace"]["tabs"]
+        .as_array()
+        .expect("automation tabs");
+    assert_eq!(
+        tabs.iter()
+            .map(|tab| tab["kind"].as_str().expect("tab kind"))
+            .collect::<Vec<_>>(),
+        vec!["comfyui", "n8n", "cron"]
+    );
+    let comfyui_tab = automation_tab(&json["desktopState"], "comfyui");
+    assert_eq!(comfyui_tab["title"], "ComfyUI");
+    assert_eq!(comfyui_tab["runtime"]["id"], "comfyui");
+    assert!(comfyui_tab["availableActions"]
+        .as_array()
+        .expect("ComfyUI actions")
+        .iter()
+        .any(|action| action["id"] == "outputs-list"));
+
+    let n8n_tab = automation_tab(&json["desktopState"], "n8n");
+    assert_eq!(n8n_tab["title"], "n8n");
+    assert_eq!(n8n_tab["runtime"]["id"], "n8n");
+    assert!(n8n_tab["availableActions"]
+        .as_array()
+        .expect("n8n actions")
+        .iter()
+        .any(|action| action["id"] == "runs"));
+
+    let cron_tab = automation_tab(&json["desktopState"], "cron");
+    assert_eq!(cron_tab["title"], "Cron");
+    assert_eq!(cron_tab["runtime"]["id"], "cron");
+    assert_eq!(cron_tab["runtime"]["status"], "idle");
+    assert!(cron_tab["availableActions"]
+        .as_array()
+        .expect("Cron actions")
+        .iter()
+        .any(|action| action["id"] == "cron.runs"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_bootstrap_maps_automation_tabs_from_runtime_tools() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-automation-productized-tabs",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    crawclaw_runtime::stage_desktop_runtime_manifests(&runtime_layout.runtime_root)
+        .expect("stage managed runtime manifest");
+    write_comfyui_workflow_fixture(&runtime_layout);
+    write_n8n_workflow_fixture(&runtime_layout);
+    write_cron_fixture(&runtime_layout);
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, body) = request(
+        server.addr,
+        "GET /api/desktop/bootstrap HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("bootstrap json");
+    let comfyui = automation_tab(&json["desktopState"], "comfyui");
+    assert!(comfyui["workflows"]
+        .as_array()
+        .expect("ComfyUI workflows")
+        .iter()
+        .any(|item| item["id"] == "hero-image" && item["title"] == "Create hero image"));
+    assert!(comfyui["history"]
+        .as_array()
+        .expect("ComfyUI history")
+        .iter()
+        .any(|item| item["runId"] == "prompt-1" && item["status"] == "success"));
+    assert!(comfyui["artifacts"]
+        .as_array()
+        .expect("ComfyUI artifacts")
+        .iter()
+        .any(|item| item["path"] == "/tmp/hero.png"));
+
+    let n8n = automation_tab(&json["desktopState"], "n8n");
+    assert!(n8n["workflows"]
+        .as_array()
+        .expect("n8n workflows")
+        .iter()
+        .any(|item| item["id"] == "wf_n8n_publish" && item["status"] == "deployed"));
+    assert!(n8n["activeRuns"]
+        .as_array()
+        .expect("n8n active runs")
+        .iter()
+        .any(|item| item["runId"] == "execution-active" && item["status"] == "running"));
+    assert!(n8n["history"]
+        .as_array()
+        .expect("n8n history")
+        .iter()
+        .any(|item| item["runId"] == "execution-done" && item["status"] == "success"));
+    assert!(n8n["artifacts"]
+        .as_array()
+        .expect("n8n artifacts")
+        .iter()
+        .any(|item| item["path"] == "/tmp/n8n-output.json"));
+
+    let cron = automation_tab(&json["desktopState"], "cron");
+    assert!(cron["workflows"]
+        .as_array()
+        .expect("Cron jobs")
+        .iter()
+        .any(|item| item["id"] == "daily-report" && item["status"] == "running"));
+    assert!(cron["activeRuns"]
+        .as_array()
+        .expect("Cron active runs")
+        .iter()
+        .any(|item| item["id"] == "daily-report" && item["status"] == "running"));
+    assert!(cron["history"]
+        .as_array()
+        .expect("Cron history")
+        .iter()
+        .any(|item| item["runId"] == "cron-run-1" && item["status"] == "success"));
+    assert!(cron["artifacts"]
+        .as_array()
+        .expect("Cron artifacts")
+        .is_empty());
 }
 
 #[cfg(unix)]
@@ -1824,7 +1958,7 @@ esac
 
     let body = serde_json::json!({
         "workflowKind": "schedule",
-        "action": "cron.create",
+        "action": "cron.add",
         "confirm": true,
         "title": "Cron 创建",
         "status": "running",
@@ -5952,6 +6086,103 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
+async fn gateway_memory_environment_actions_check_repair_and_reinstall_preserve_data() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-memory-environment-actions",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    write_text_fixture(&runtime_layout, "memory/runtime.db", "runtime-memory");
+    write_text_fixture(&runtime_layout, "hindsight/store.sqlite", "hindsight-data");
+    let policy_path = runtime_layout
+        .runtime_root
+        .join("config")
+        .join("desktop-memory-policy.json");
+    fs::create_dir_all(policy_path.parent().expect("policy parent")).expect("policy dir");
+    fs::write(
+        &policy_path,
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "hindsightEnabled": true,
+            "hindsightBaseUrl": "http://127.0.0.1:1",
+            "hindsightMode": "local",
+            "hindsightManaged": false,
+            "hindsightLifecycleStatus": "external"
+        }))
+        .expect("policy json"),
+    )
+    .expect("policy write");
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout: runtime_layout.clone(),
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let (status, body) = request(
+        server.addr,
+        "GET /api/desktop/memory/environment/status HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n",
+    )
+    .await;
+    assert_eq!(status, 200);
+    let state: serde_json::Value = serde_json::from_str(&body).expect("memory status state");
+    assert_eq!(state["memoryWorkspace"]["runtimeStatus"]["action"], "check");
+    assert!(state["conversation"]["runtimeChecks"]
+        .as_array()
+        .expect("runtime checks")
+        .iter()
+        .any(|check| check["label"] == "Memory"));
+
+    let (status, body) =
+        post_desktop_json(server.addr, "/api/desktop/memory/environment/repair", "{}").await;
+    assert_eq!(status, 200);
+    let state: serde_json::Value = serde_json::from_str(&body).expect("repair state");
+    assert_eq!(state["memoryWorkspace"]["runtimeStatus"]["action"], "repair");
+    assert!(state["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .iter()
+        .any(|message| message["kind"] == "status" && message["title"] == "记忆环境修复已完成"));
+
+    let (status, _) =
+        post_desktop_json(server.addr, "/api/desktop/memory/environment/reinstall", "{}").await;
+    assert_eq!(status, 400);
+
+    let (status, body) = post_desktop_json(
+        server.addr,
+        "/api/desktop/memory/environment/reinstall",
+        r#"{"confirm":"REINSTALL"}"#,
+    )
+    .await;
+    assert_eq!(status, 200);
+    let state: serde_json::Value = serde_json::from_str(&body).expect("reinstall state");
+    assert_eq!(state["memoryWorkspace"]["runtimeStatus"]["action"], "reinstall");
+    assert!(state["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .iter()
+        .any(|message| message["kind"] == "status" && message["title"] == "记忆运行环境已重新安装"));
+    assert_eq!(
+        fs::read_to_string(runtime_layout.runtime_root.join("memory/runtime.db"))
+            .expect("memory runtime data"),
+        "runtime-memory"
+    );
+    assert_eq!(
+        fs::read_to_string(runtime_layout.runtime_root.join("hindsight/store.sqlite"))
+            .expect("hindsight data"),
+        "hindsight-data"
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn gateway_memory_mutations_persist_through_rust_runtime_store() {
     let runtime_layout = create_runtime_fixture(
         "desktop-memory-store",
@@ -6194,6 +6425,15 @@ fn automation_runtime<'a>(state: &'a serde_json::Value, runtime_id: &str) -> &'a
         .iter()
         .find(|runtime| runtime["id"] == runtime_id)
         .unwrap_or_else(|| panic!("missing automation runtime {runtime_id}"))
+}
+
+fn automation_tab<'a>(state: &'a serde_json::Value, kind: &str) -> &'a serde_json::Value {
+    state["automationWorkspace"]["tabs"]
+        .as_array()
+        .expect("automation tabs")
+        .iter()
+        .find(|tab| tab["kind"] == kind)
+        .unwrap_or_else(|| panic!("missing automation tab {kind}"))
 }
 
 async fn wait_for_assistant_text(addr: SocketAddr, expected_text: &str) -> serde_json::Value {
@@ -6976,6 +7216,175 @@ fn write_automation_asset_installer(layout: &RuntimeLayout, runtime_id: &str, sc
         .permissions();
     permissions.set_mode(0o755);
     fs::set_permissions(&installer_path, permissions).expect("installer chmod");
+}
+
+#[cfg(unix)]
+fn write_comfyui_workflow_fixture(layout: &RuntimeLayout) {
+    let workflows_dir = layout
+        .runtime_root
+        .join(".crawclaw")
+        .join("comfyui")
+        .join("workflows");
+    fs::create_dir_all(&workflows_dir).expect("ComfyUI workflows dir");
+    fs::write(
+        workflows_dir.join("hero-image.meta.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "goal": "Create hero image",
+            "baseUrl": "http://127.0.0.1:8188",
+            "mediaKind": "image",
+            "createdAt": "2026-06-08T01:00:00Z",
+            "updatedAt": "2026-06-08T01:02:00Z"
+        }))
+        .expect("ComfyUI meta json"),
+    )
+    .expect("ComfyUI meta");
+    fs::write(
+        workflows_dir.join("hero-image.ir.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "id": "hero-image",
+            "goal": "Create hero image",
+            "intent": "Generate a product hero image",
+            "mediaKind": "image",
+            "nodes": [],
+            "edges": [],
+            "outputs": []
+        }))
+        .expect("ComfyUI ir json"),
+    )
+    .expect("ComfyUI ir");
+    fs::write(
+        workflows_dir.join("hero-image.prompt.json"),
+        "{}\n",
+    )
+    .expect("ComfyUI prompt");
+    fs::write(
+        workflows_dir.join("hero-image.runs.jsonl"),
+        serde_json::to_string(&serde_json::json!({
+            "workflowId": "hero-image",
+            "promptId": "prompt-1",
+            "status": "success",
+            "startedAt": "2026-06-08T01:03:00Z",
+            "completedAt": "2026-06-08T01:04:00Z",
+            "outputs": [
+                {
+                    "filename": "hero.png",
+                    "localPath": "/tmp/hero.png",
+                    "type": "output",
+                    "subfolder": ""
+                }
+            ]
+        }))
+        .expect("ComfyUI run json")
+            + "\n",
+    )
+    .expect("ComfyUI runs");
+}
+
+#[cfg(unix)]
+fn write_n8n_workflow_fixture(layout: &RuntimeLayout) {
+    let workflows_dir = layout.runtime_root.join("workflows");
+    fs::create_dir_all(&workflows_dir).expect("workflow dir");
+    fs::write(
+        workflows_dir.join("registry.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "workflows": [
+                {
+                    "workflowId": "wf_n8n_publish",
+                    "name": "Publish listing",
+                    "description": "Push product data through n8n",
+                    "enabled": true,
+                    "deploymentState": "deployed",
+                    "target": "n8n",
+                    "n8nWorkflowId": "n8n-123",
+                    "updatedAt": 1780860000000u64
+                }
+            ]
+        }))
+        .expect("workflow registry json"),
+    )
+    .expect("workflow registry");
+    fs::write(
+        workflows_dir.join("executions.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "executions": [
+                {
+                    "executionId": "execution-active",
+                    "workflowId": "wf_n8n_publish",
+                    "workflowName": "Publish listing",
+                    "status": "running",
+                    "updatedAt": 1780860001000u64,
+                    "startedAt": 1780860000000u64
+                },
+                {
+                    "executionId": "execution-done",
+                    "workflowId": "wf_n8n_publish",
+                    "workflowName": "Publish listing",
+                    "status": "success",
+                    "updatedAt": 1780860002000u64,
+                    "startedAt": 1780860000000u64,
+                    "outputs": [
+                        {
+                            "id": "listing-json",
+                            "title": "Listing JSON",
+                            "path": "/tmp/n8n-output.json",
+                            "kind": "json"
+                        }
+                    ]
+                }
+            ]
+        }))
+        .expect("workflow executions json"),
+    )
+    .expect("workflow executions");
+}
+
+#[cfg(unix)]
+fn write_cron_fixture(layout: &RuntimeLayout) {
+    let cron_dir = layout.runtime_root.join("cron");
+    fs::create_dir_all(cron_dir.join("runs")).expect("cron runs dir");
+    fs::write(
+        cron_dir.join("jobs.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "version": 1,
+            "jobs": [
+                {
+                    "id": "daily-report",
+                    "name": "Daily report",
+                    "schedule": {
+                        "kind": "every",
+                        "everyMs": 86400000
+                    },
+                    "payload": {
+                        "kind": "systemEvent",
+                        "text": "daily report"
+                    },
+                    "enabled": true,
+                    "state": {
+                        "runningAtMs": 1780860000000u64,
+                        "nextRunAtMs": 1780946400000u64,
+                        "lastRunAtMs": 1780860000000u64,
+                        "lastRunStatus": "success"
+                    }
+                }
+            ]
+        }))
+        .expect("cron jobs json"),
+    )
+    .expect("cron jobs");
+    fs::write(
+        cron_dir.join("runs").join("daily-report.jsonl"),
+        serde_json::to_string(&serde_json::json!({
+            "ts": 1780860000000u64,
+            "jobId": "daily-report",
+            "action": "run",
+            "status": "success",
+            "summary": "Daily report sent",
+            "runId": "cron-run-1"
+        }))
+        .expect("cron run json")
+            + "\n",
+    )
+    .expect("cron run log");
 }
 
 #[cfg(unix)]

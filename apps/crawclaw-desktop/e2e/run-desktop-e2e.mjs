@@ -314,11 +314,63 @@ async function runP7SettingsWorkspace(page) {
   await page.waitFor(() => Boolean(document.querySelector('[data-testid="settings-section"][data-settings-section="memory"].is-active')), {
     label: 'memory settings section is active',
   })
+  assert(await page.exists('[data-testid="settings-value-row"][data-setting-label="记忆环境状态"]'), 'memory environment status should be visible')
+  assert(await page.exists('[data-testid="settings-action-row"][data-setting-label="检查记忆环境"] [data-testid="settings-action"]'), 'memory environment check action should be visible')
+  assert(await page.exists('[data-testid="settings-action-row"][data-setting-label="修复记忆环境"] [data-testid="settings-action"]'), 'memory environment repair action should be visible')
+  assert(await page.exists('[data-testid="settings-action-row"][data-setting-label="重新安装记忆运行环境"] [data-testid="settings-action"]'), 'memory environment reinstall action should be visible')
+
+  await page.click('[data-testid="settings-action-row"][data-setting-label="检查记忆环境"] [data-testid="settings-action"]')
+  await page.waitFor(() => (
+    document.querySelector('[data-testid="settings-value-row"][data-setting-label="记忆环境状态"]')?.textContent?.includes('已检查')
+  ), {
+    label: 'memory environment check updates status',
+  })
+  await page.click('[data-testid="settings-action-row"][data-setting-label="修复记忆环境"] [data-testid="settings-action"]')
+  await page.waitFor(() => (
+    document.querySelector('[data-testid="settings-value-row"][data-setting-label="记忆环境状态"]')?.textContent?.includes('已修复')
+  ), {
+    label: 'memory environment repair updates status',
+  })
+  await page.click('[data-testid="settings-action-row"][data-setting-label="重新安装记忆运行环境"] [data-testid="settings-action"]')
+  await page.waitFor(() => document.body.textContent?.includes('重新安装记忆运行环境'), {
+    label: 'memory reinstall confirmation is visible',
+  })
+  await page.click('.confirmation-dialog__confirm')
+  await page.waitFor(() => (
+    document.querySelector('[data-testid="settings-value-row"][data-setting-label="记忆环境状态"]')?.textContent?.includes('已重装')
+  ), {
+    label: 'memory environment reinstall updates status after confirmation',
+  })
+
   await page.click('[data-testid="settings-toggle-row"][data-setting-label="整理项目上下文"] [data-testid="settings-toggle"]')
   await page.waitFor(() => (
     document.querySelector('[data-testid="settings-toggle-row"][data-setting-label="整理项目上下文"] [data-testid="settings-toggle"]')?.getAttribute('aria-pressed') === 'false'
   ), {
     label: 'memory preference toggle updates',
+  })
+
+  await page.click('[data-testid="settings-sidebar-section"][data-settings-section="automation"]')
+  await page.waitFor(() => Boolean(document.querySelector('[data-testid="settings-section"][data-settings-section="automation"].is-active')), {
+    label: 'automation environment settings section is active',
+  })
+  assert(await page.exists('[data-testid="automation-environment-panel"]'), 'automation environment panel should be visible')
+  assert(await page.exists('[data-testid="automation-environment-service"][data-runtime-id="n8n"]'), 'n8n environment should be visible')
+  assert(await page.exists('[data-testid="automation-environment-service"][data-runtime-id="comfyui"]'), 'ComfyUI environment should be visible')
+  assert(!(await page.exists('[data-testid="automation-environment-service"][data-runtime-id="cron"]')), 'Cron should not be managed from automation environment settings')
+  assert(await page.exists('[data-testid="automation-environment-service"][data-runtime-id="n8n"] [data-testid="automation-runtime-action"][data-runtime-action="install"]'), 'n8n install environment action should be visible')
+  assert(await page.exists('[data-testid="automation-environment-service"][data-runtime-id="comfyui"] [data-testid="automation-runtime-action"][data-runtime-action="install"]'), 'ComfyUI install environment action should be visible')
+
+  await page.click('[data-testid="automation-environment-service"][data-runtime-id="n8n"] [data-testid="automation-runtime-action"][data-runtime-action="install"]')
+  await page.waitFor(() => (
+    document.querySelector('[data-testid="automation-environment-service"][data-runtime-id="n8n"]')?.textContent?.includes('已安装')
+  ), {
+    label: 'n8n environment install updates status',
+  })
+  await page.click('[data-testid="automation-environment-service"][data-runtime-id="comfyui"] [data-testid="automation-runtime-action"][data-runtime-action="install"]')
+  await page.waitFor(() => (
+    document.querySelector('[data-testid="automation-environment-service"][data-runtime-id="comfyui"]')?.textContent?.includes('已安装')
+  ), {
+    label: 'ComfyUI environment install updates status',
   })
 
   await page.click('[data-testid="settings-sidebar-section"][data-settings-section="advanced"]')
@@ -654,6 +706,73 @@ async function startFakeDesktopApi() {
       return
     }
 
+    if (url.pathname === '/api/desktop/memory/environment/status' && request.method === 'GET') {
+      applyMemoryEnvironmentAction(state, 'check')
+      emit('stateChanged', { type: 'stateChanged', desktopState: state })
+      json(response, state)
+      return
+    }
+
+    if (url.pathname === '/api/desktop/memory/environment/repair' && request.method === 'POST') {
+      applyMemoryEnvironmentAction(state, 'repair', {
+        bootstrap: { status: 'ok' },
+        lifecycle: { status: 'ok' },
+      })
+      state.conversation.messages = [
+        ...state.conversation.messages,
+        {
+          kind: 'status',
+          id: 'memory-repair-e2e',
+          title: '记忆环境修复已完成',
+          detail: '已检查 Hindsight 生命周期并重新初始化记忆 banks。',
+          tone: 'ok',
+          createdAt: '刚刚',
+        },
+      ]
+      emit('stateChanged', { type: 'stateChanged', desktopState: state })
+      json(response, state)
+      return
+    }
+
+    if (url.pathname === '/api/desktop/memory/environment/reinstall' && request.method === 'POST') {
+      const body = await readJson(request)
+      if (body.confirm !== 'REINSTALL') {
+        json(response, { code: 'invalid_confirmation', message: 'missing REINSTALL confirmation' }, 400)
+        return
+      }
+      applyMemoryEnvironmentAction(state, 'reinstall', {
+        bootstrap: { status: 'ok' },
+        lifecycle: { status: 'ok' },
+      })
+      state.conversation.messages = [
+        ...state.conversation.messages,
+        {
+          kind: 'status',
+          id: 'memory-reinstall-e2e',
+          title: '记忆运行环境已重新安装',
+          detail: '已保留 memory/ 与 hindsight/ 数据目录，并重新准备 Hindsight 运行环境。',
+          tone: 'ok',
+          createdAt: '刚刚',
+        },
+      ]
+      emit('stateChanged', { type: 'stateChanged', desktopState: state })
+      json(response, state)
+      return
+    }
+
+    if (url.pathname.startsWith('/api/desktop/automation/runtimes/') && url.pathname.endsWith('/install') && request.method === 'POST') {
+      const runtimeId = decodeURIComponent(url.pathname.split('/').at(-2) ?? '')
+      const body = await readJson(request)
+      updateAutomationRuntime(state, runtimeId, {
+        detail: 'E2E 自动化环境已安装。',
+        selectedComputeProfile: typeof body.computeProfile === 'string' ? body.computeProfile : undefined,
+        status: 'installed',
+      })
+      emit('stateChanged', { type: 'stateChanged', desktopState: state })
+      json(response, state)
+      return
+    }
+
     if (url.pathname.startsWith('/api/desktop/agents/') && url.pathname.endsWith('/select') && request.method === 'POST') {
       const agentId = decodeURIComponent(url.pathname.split('/').at(-2) ?? '')
       state.agentWorkspace.selectedAgentId = agentId
@@ -812,6 +931,7 @@ function createInitialDesktopState() {
       contextSummary: contextSummary(4, 703),
     },
     agentWorkspace: { selectedAgentId: 'agent-e2e', agents: [e2eAgent()] },
+    automationWorkspace: e2eAutomationWorkspace(),
     memoryWorkspace: {
       selectedAgentId: 'agent-e2e',
       selectedItemId: 'memory-e2e-cn',
@@ -998,6 +1118,88 @@ function e2eMemoryRuntimeStatus() {
       },
     },
   }
+}
+
+function e2eAutomationWorkspace() {
+  return {
+    runtimes: [
+      {
+        baseUrl: 'http://127.0.0.1:5679',
+        computeProfiles: [],
+        defaultPort: 5679,
+        detail: 'E2E n8n managed runtime.',
+        healthUrl: 'http://127.0.0.1:5679/healthz',
+        id: 'n8n',
+        install: {
+          channel: 'github-release',
+          manifestPath: 'automation/n8n/manifest.json',
+          scriptPolicy: 'release-asset-checksum',
+        },
+        license: 'Sustainable Use License',
+        mode: 'managed',
+        name: 'n8n',
+        provider: 'n8n',
+        runtime: 'node-service',
+        service: 'n8n',
+        status: 'notInstalled',
+      },
+      {
+        baseUrl: 'http://127.0.0.1:8188',
+        computeProfiles: [
+          { backend: 'mps', experimental: false, id: 'apple-metal', requiresPytorchIndexUrl: false },
+          { backend: 'cpu', experimental: false, id: 'cpu', requiresPytorchIndexUrl: false },
+        ],
+        defaultPort: 8188,
+        detail: 'E2E ComfyUI managed runtime.',
+        healthUrl: 'http://127.0.0.1:8188/system_stats',
+        id: 'comfyui',
+        install: {
+          channel: 'github-release',
+          manifestPath: 'automation/comfyui/manifest.json',
+          scriptPolicy: 'release-asset-checksum',
+        },
+        license: 'GPL-3.0',
+        mode: 'managed',
+        name: 'ComfyUI',
+        provider: 'comfyui',
+        runtime: 'python-service',
+        service: 'comfyui',
+        status: 'notInstalled',
+      },
+    ],
+    tabs: [],
+  }
+}
+
+function applyMemoryEnvironmentAction(state, action, operation = {}) {
+  state.memoryWorkspace.runtimeStatus = {
+    ...e2eMemoryRuntimeStatus(),
+    action,
+    checkedAt: '刚刚',
+    operation,
+  }
+  const memoryCheck = {
+    label: 'Memory',
+    value: 'ready',
+    tone: 'ok',
+  }
+  const existing = state.conversation.runtimeChecks.findIndex((check) => check.label === memoryCheck.label)
+  if (existing >= 0) {
+    state.conversation.runtimeChecks[existing] = memoryCheck
+  } else {
+    state.conversation.runtimeChecks.push(memoryCheck)
+  }
+}
+
+function updateAutomationRuntime(state, runtimeId, patch) {
+  state.automationWorkspace.runtimes = state.automationWorkspace.runtimes.map((runtime) => (
+    runtime.id === runtimeId
+      ? {
+          ...runtime,
+          ...Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined)),
+        }
+      : runtime
+  ))
 }
 
 function e2ePluginsWorkspace() {

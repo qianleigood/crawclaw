@@ -65,6 +65,9 @@ import {
   loadRuntimeStatus,
   openDesktopAsset,
   refreshAutomationRuntime,
+  refreshMemoryEnvironment,
+  reinstallMemoryEnvironment,
+  repairMemoryEnvironment,
   resetDesktopState,
   revealDesktopAsset,
   toggleAgentSkill,
@@ -709,7 +712,7 @@ export default function App() {
         setDesktopState((state) => setRuntimeStatusLocally(state, runtime))
       })
       .catch((error: unknown) => {
-        const detail = error instanceof Error ? error.message : '刷新 runtime 状态失败。'
+        const detail = error instanceof Error ? error.message : '刷新运行状态失败。'
         setDesktopState((state) => ({
           ...state,
           conversation: {
@@ -905,11 +908,7 @@ export default function App() {
                 automationWorkspace={desktopState.automationWorkspace}
                 confirmHighRisk={desktopState.preferences.confirmationDefaults.confirmHighRisk}
                 onAddWorkflowMessage={(input) => void applyDesktopState(() => addWorkflowMessage(input))}
-                onInstallRuntime={(runtimeId, input) => applyDesktopState(() => installAutomationRuntime(runtimeId, input))}
                 onRequestConfirmation={requestConfirmation}
-                onStartRuntime={(runtimeId) => applyDesktopState(() => startAutomationRuntime(runtimeId))}
-                onStopRuntime={(runtimeId) => applyDesktopState(() => stopAutomationRuntime(runtimeId))}
-                onRefreshRuntime={(runtimeId) => applyDesktopState(() => refreshAutomationRuntime(runtimeId))}
               />
             ) : activeNavId === 'memory' ? (
               <MemoryWorkspace
@@ -929,6 +928,8 @@ export default function App() {
             ) : activeNavId === 'settings' ? (
               <SettingsWorkspace
                 activeSettingsSection={activeSettingsSection}
+                automationWorkspace={desktopState.automationWorkspace}
+                confirmHighRisk={desktopState.preferences.confirmationDefaults.confirmHighRisk}
                 language={appLanguageCode}
                 modelOptions={modelOptions}
                 onClearCache={() => void applyDesktopState(() => clearDesktopCache())}
@@ -947,9 +948,28 @@ export default function App() {
                 }}
                 onExportData={() => void applyDesktopState(() => exportDesktopData())}
                 onGenerateDiagnostics={() => void applyDesktopState(() => generateDesktopDiagnostics())}
+                memoryRuntimeStatus={desktopState.memoryWorkspace.runtimeStatus}
+                onCheckMemoryEnvironment={() => void applyDesktopState(() => refreshMemoryEnvironment())}
+                onInstallRuntime={(runtimeId, input) => applyDesktopState(() => installAutomationRuntime(runtimeId, input))}
+                onRepairMemoryEnvironment={() => void applyDesktopState(() => repairMemoryEnvironment())}
                 onModelProfileTestAndSave={saveModelProfile}
                 onPreferenceUpdate={applyPreferenceUpdate}
+                onRefreshAutomationRuntime={(runtimeId) => applyDesktopState(() => refreshAutomationRuntime(runtimeId))}
                 onRefreshRuntimeStatus={refreshRuntimeStatus}
+                onReinstallMemoryEnvironment={() => {
+                  void (async () => {
+                    const confirmed = await requestConfirmation({
+                      title: '重新安装记忆运行环境',
+                      detail: '会重新准备 Hindsight 运行环境并保留 memory/ 与 hindsight/ 数据目录。',
+                      confirmLabel: '重装',
+                      tone: 'danger',
+                    })
+                    if (confirmed) {
+                      void applyDesktopState(() => reinstallMemoryEnvironment('REINSTALL'))
+                    }
+                  })()
+                }}
+                onRequestConfirmation={requestConfirmation}
                 onResetState={() => {
                   void (async () => {
                     const confirmed = await requestConfirmation({
@@ -963,6 +983,8 @@ export default function App() {
                     }
                   })()
                 }}
+                onStartRuntime={(runtimeId) => applyDesktopState(() => startAutomationRuntime(runtimeId))}
+                onStopRuntime={(runtimeId) => applyDesktopState(() => stopAutomationRuntime(runtimeId))}
                 preferences={desktopState.preferences}
                 runtimeStatus={runtimeChecks.find((item) => item.label === 'Runtime')?.value ?? '未知'}
               />
