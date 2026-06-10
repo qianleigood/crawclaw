@@ -360,6 +360,45 @@ fn rust_runtime_repo_guardrails_keep_automation_environment_in_settings() {
 }
 
 #[test]
+fn rust_runtime_repo_guardrails_keep_agents_desktop_guidance_current() {
+    let root = repo_root();
+    let agents_path = root.join("AGENTS.md");
+    let agents_source = fs::read_to_string(&agents_path).expect("read AGENTS.md");
+
+    for needle in [
+        "desktop:tauri:build",
+        "desktop:tauri:dev",
+        "desktop:tauri:release-check",
+        "desktop:tauri:stage-runtime",
+        "apps/crawclaw-desktop/package.json",
+        "apps/crawclaw-desktop/src-tauri/Cargo.toml",
+        "apps/crawclaw-desktop/src-tauri/tauri.conf.json",
+        "scripts/codesign-mac-app.sh",
+        "scripts/notarize-mac-artifact.sh",
+    ] {
+        assert!(
+            agents_source.contains(needle),
+            "AGENTS.md should reference current desktop packaging/version guidance: {needle}"
+        );
+    }
+
+    for stale_path in [
+        "scripts/package-mac-app.sh",
+        "scripts/restart-mac.sh",
+        "apps/android/app/build.gradle.kts",
+        "apps/ios/Sources/Info.plist",
+        "apps/macos/Sources/CrawClaw/Resources/Info.plist",
+        "src/canvas-host/a2ui/.bundle.hash",
+        "scripts/bundle-a2ui.sh",
+    ] {
+        assert!(
+            !agents_source.contains(stale_path),
+            "AGENTS.md should not reference removed repo paths: {stale_path}"
+        );
+    }
+}
+
+#[test]
 fn rust_runtime_repo_guardrails_keep_desktop_dialogs_app_owned() {
     let root = repo_root();
     let desktop_src = root.join("apps/crawclaw-desktop/src");

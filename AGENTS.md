@@ -106,7 +106,12 @@
 - Bun is optional for ad hoc desktop renderer work. Repo scripts are Rust, shell, Go, or Python.
 - Run desktop/gateway dev flows through the dedicated package scripts; do not reintroduce a public `crawclaw` command.
 - Node remains supported for running built output (`dist/*`) and production installs.
-- Mac packaging (dev): `scripts/package-mac-app.sh` defaults to current arch.
+- Desktop packaging/dev:
+  - `pnpm desktop:tauri:stage-runtime` stages the bundled runtime.
+  - `pnpm desktop:tauri:build` builds the Desktop Tauri app.
+  - `pnpm desktop:tauri:dev` starts the Desktop Tauri dev flow.
+  - `pnpm desktop:tauri:release-check` runs the release packaging check.
+  - Signing helpers live in `scripts/codesign-mac-app.sh` and `scripts/notarize-mac-artifact.sh`.
 - Type-check/build: `pnpm build`
 - TypeScript checks: `pnpm tsgo`
 - Lint/format: `pnpm check`
@@ -225,17 +230,13 @@
 - When adding a new `AGENTS.md` anywhere in the repo, also add a `CLAUDE.md` symlink pointing to it (example: `ln -s AGENTS.md CLAUDE.md`).
 - Signal: "update fly" => `fly ssh console -a flawd-bot -C "bash -lc 'cd /data/clawd/crawclaw && git pull --rebase origin main'"` then `fly machines restart e825232f34d058 -a flawd-bot`.
 - Status output should stay read-only/pasteable, ANSI-safe, and owned by the Rust CLI/runtime surfaces.
-- Gateway currently runs only as the menubar app; there is no separate LaunchAgent/helper label installed. Restart via the CrawClaw Mac app or `scripts/restart-mac.sh`; to verify/kill use `launchctl print gui/$UID | grep crawclaw` rather than assuming a fixed label. **When debugging on macOS, start/stop the gateway via the app, not ad-hoc tmux sessions; kill any temporary tunnels before handoff.**
+- Gateway currently runs only as the menubar app; there is no separate LaunchAgent/helper label installed. Restart via the CrawClaw Mac app; to verify/kill use `launchctl print gui/$UID | grep crawclaw` rather than assuming a fixed label. **When debugging on macOS, start/stop the gateway via the app, not ad-hoc tmux sessions; kill any temporary tunnels before handoff.**
 - macOS logs: use `./scripts/clawlog.sh` to query unified logs for the CrawClaw subsystem; it supports follow/tail/category filters and expects passwordless sudo for `/usr/bin/log`.
 - If shared guardrails are available locally, review them; otherwise follow this repo's guidance.
-- SwiftUI state management (iOS/macOS): prefer the `Observation` framework (`@Observable`, `@Bindable`) over `ObservableObject`/`@StateObject`; don’t introduce new `ObservableObject` unless required for compatibility, and migrate existing usages when touching related code.
-- Connection providers: when adding a new connection, update every UI surface and docs (macOS app, web UI, mobile if applicable, onboarding/overview docs) and add matching status + configuration forms so provider lists and settings stay in sync.
-- Version locations: `package.json` (CLI), `apps/android/app/build.gradle.kts` (versionName/versionCode), `apps/ios/Sources/Info.plist` + `apps/ios/Tests/Info.plist` (CFBundleShortVersionString/CFBundleVersion), `apps/macos/Sources/CrawClaw/Resources/Info.plist` (CFBundleShortVersionString/CFBundleVersion), `docs/install/updating.md` (pinned npm version), and Peekaboo Xcode projects/Info.plists (MARKETING_VERSION/CURRENT_PROJECT_VERSION).
-- "Bump version everywhere" means all version locations above **except** `appcast.xml` (only touch appcast when cutting a new macOS Sparkle release).
-- **Restart apps:** “restart iOS/Android apps” means rebuild (recompile/install) and relaunch, not just kill/launch.
-- **Device checks:** before testing, verify connected real devices (iOS/Android) before reaching for simulators/emulators.
-- iOS Team ID lookup: `security find-identity -p codesigning -v` → use Apple Development (…) TEAMID. Fallback: `defaults read com.apple.dt.Xcode IDEProvisioningTeamIdentifiers`.
-- A2UI bundle hash: `src/canvas-host/a2ui/.bundle.hash` is auto-generated; ignore unexpected changes, and only regenerate via `pnpm canvas:a2ui:bundle` (or `scripts/bundle-a2ui.sh`) when needed. Commit the hash as a separate commit.
+- Connection providers: when adding a new connection, update every active UI surface and docs (Desktop settings/onboarding/overview docs) and add matching status + configuration forms so provider lists and settings stay in sync.
+- Version locations: `package.json`, `apps/crawclaw-desktop/package.json`, `apps/crawclaw-desktop/src-tauri/Cargo.toml`, `apps/crawclaw-desktop/src-tauri/tauri.conf.json`, and `docs/install/updating.md`.
+- "Bump version everywhere" means all version locations above.
+- **Restart desktop app:** rebuild when code or bundled runtime assets changed, then relaunch the CrawClaw Desktop app rather than only killing and launching the existing binary.
 - Release signing/notary credentials are managed outside the repo; maintainers keep that setup in the private [maintainer release docs](https://github.com/crawclaw/maintainers/tree/main/release).
 - CLI colors and prompts should use shared Rust runtime helpers instead of hardcoded ANSI styling.
 - When asked to open a “session” file, open the Pi session logs under `~/.crawclaw/agents/<agentId>/sessions/*.jsonl` (use the `agent=<id>` value in the Runtime line of the system prompt; newest unless a specific ID is given), not the default `sessions.json`. If logs are needed from another machine, SSH via Tailscale and read the same path there.
