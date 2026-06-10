@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:16:10Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 59b1296de2b9b173b0c0f5b6f4caeb9369f016d622ab7bd85afe09a8ae3a6784
+  source_hash: 428825d256c655cec3dee457ac5c7cf8bb7a48f2a3958612b710192925672112
   source_path: gateway/authentication.md
   workflow: 15
 ---
@@ -21,7 +21,7 @@ x-i18n:
 
 CrawClaw 支持 OAuth 和 API 密钥进行模型提供商身份验证。对于常驻网关主机，API 密钥通常是最可预测的选项。当与你的提供商账户模式匹配时，也支持订阅/OAuth 流程。
 
-有关完整的 OAuth 流程和存储布局，请参阅 [/concepts/oauth](/concepts/oauth)。关于基于 SecretRef 的认证（`env`/`file`/`exec` 提供商），请参阅[密钥管理](/gateway/secrets)。关于 `models status --probe` 使用的凭证资格/原因代码规则，请参阅[认证凭证语义](/auth-credential-semantics)。
+有关完整的 OAuth 流程和存储布局，请参阅 [/concepts/oauth](/concepts/oauth)。关于基于 SecretRef 的认证（`env`/`file`/`exec` 提供商），请参阅[密钥管理](/gateway/secrets)。关于 model status surfaces 使用的凭证资格和 reason-code 规则，请参阅[认证凭证语义](/auth-credential-semantics)。
 
 ## 推荐设置（API 密钥，任何提供商）
 
@@ -47,9 +47,18 @@ EOF
 
 然后重启守护进程（或重启 Gateway 进程）并重新检查：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+使用 CrawClaw Desktop 的 model status surface、active chat 中的 `/model status`，或 Gateway
+`usage.status` RPC 确认 provider 对 runtime 可见：
 
-如果你不想自己管理环境变量，onboarding 可以存储供守护进程使用的 API 密钥：CrawClaw Desktop 或本地 Gateway API。
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{ "method": "usage.status", "params": {} }'
+```
+
+如果你不想自己管理环境变量，onboarding 可以存储供 daemon 使用的 API keys。在 CrawClaw
+Desktop 中使用**设置** → **模型与回复** → **添加模型**；Desktop 会先 probe provider，再保存，并将 key 作为 local file SecretRef 存到 desktop runtime config 下。headless hosts 可以通过 `config.patch` patch `models.providers.<provider>.apiKey`，或使用 `env` / `file` / `exec` SecretRef。
 
 有关环境继承的详细信息（`env.shellEnv`、`~/.crawclaw/.env`、systemd/launchd），请参阅[帮助](/help)。
 
@@ -63,11 +72,11 @@ claude setup-token
 
 然后将其粘贴到 CrawClaw：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 CrawClaw Desktop 的**设置** → **模型与回复**中选择 Anthropic setup-token auth path。
 
 如果令牌是在另一台机器上创建的，请手动粘贴：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+对于 headless hosts，更新目标 agent 的 `auth-profiles.json`，写入 Anthropic token profile，并通过 `crawclaw.json` 中的 `auth.profiles` / `auth.order` 路由。参见 [OAuth](/concepts/oauth) 和 [Model failover](/concepts/model-failover)。
 
 如果你看到类似以下 Anthropic 错误：
 
@@ -83,7 +92,7 @@ Anthropic setup-token 支持仅为技术兼容性。Anthropic 过去曾在 Claud
 
 手动令牌输入（任何提供商；写入 `auth-profiles.json` + 更新配置）：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+优先使用 CrawClaw Desktop。自动化时，只通过 `config.patch` 写入 static credential metadata；credential material 应保存在 `auth-profiles.json`、环境变量或 SecretRefs 中。不要把 live tokens 放入共享 docs、scripts 或 repository config。
 
 认证配置文件引用也支持静态凭证：
 
@@ -93,7 +102,7 @@ Anthropic setup-token 支持仅为技术兼容性。Anthropic 过去曾在 Claud
 
 自动化友好检查（过期/缺失时退出 `1`，即将过期时退出 `2`）：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+交互式状态视图使用 `/model status`。自动化场景调用 `usage.status` 并解析返回的 provider snapshots；legacy shell wrappers 仍可将 missing/expired profiles 映射为监控脚本使用的 exit codes。
 
 可选的运维脚本（systemd/Termux）在此处记录：
 [认证监控脚本](/help/scripts#auth-monitoring-scripts)
@@ -102,7 +111,16 @@ Anthropic setup-token 支持仅为技术兼容性。Anthropic 过去曾在 Claud
 
 ## 检查模型身份验证状态
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+CrawClaw Desktop 是常规 status surface。chat 中使用 `/model status` 查看 active model、candidate providers、auth profile、endpoint 和 API mode。外部监控可调用：
+
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{ "method": "models.list", "params": {} }'
+```
+
+如果只需要 configured provider usage/auth windows，而不是完整 model catalog，请使用 `usage.status`。
 
 ## API 密钥轮换行为（网关）
 
@@ -128,13 +146,14 @@ Anthropic setup-token 支持仅为技术兼容性。Anthropic 过去曾在 Claud
 
 使用 `/model`（或 `/model list`）获取紧凑选择器；使用 `/model status` 获取完整视图（候选 + 下一个认证配置文件，以及配置时的提供商端点详情）。
 
-### 按智能体（CLI 覆盖）
+### 按智能体配置覆盖
 
-为智能体设置显式认证配置文件顺序覆盖（存储在该智能体的 `auth-profiles.json` 中）：
+为 provider 设置显式 auth profile order：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 `crawclaw.json` 中设置 `auth.order[provider]`，自动化时通过 `config.patch` 写入。实际 credential values 仍应保存在目标 agent 的 `auth-profiles.json` 或 SecretRefs 中。
 
-使用 `--agent <id>` 定位特定智能体；省略它以使用配置的默认智能体。
+对于 isolated agents，更新该 agent 自己的 `auth-profiles.json`，并让它的 credential store
+与 default agent 分离。
 
 ## 故障排除
 
@@ -142,7 +161,7 @@ Anthropic setup-token 支持仅为技术兼容性。Anthropic 过去曾在 Claud
 
 如果缺少 Anthropic 令牌配置文件，请在**网关主机**上运行 `claude setup-token`，然后重新检查：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+通过 CrawClaw Desktop 粘贴 setup token，或更新目标 agent 的 token profile，并用 `/model status` 或 Gateway `usage.status` RPC 确认。
 
 ### Token 过期/已过期
 

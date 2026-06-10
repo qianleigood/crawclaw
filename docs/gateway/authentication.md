@@ -19,7 +19,7 @@ flows are also supported when they match your provider account model.
 See [/concepts/oauth](/concepts/oauth) for the full OAuth flow and storage
 layout.
 For SecretRef-based auth (`env`/`file`/`exec` providers), see [Secrets Management](/gateway/secrets).
-For credential eligibility/reason-code rules used by `models status --probe`, see
+For credential eligibility and reason-code rules used by model status surfaces, see
 [Auth Credential Semantics](/auth-credential-semantics).
 
 ## Recommended setup (API key, any provider)
@@ -49,10 +49,22 @@ EOF
 
 Then restart the daemon (or restart your Gateway process) and re-check:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use CrawClaw Desktop's model status surface, `/model status` in an active chat, or
+the Gateway `usage.status` RPC to confirm the provider is visible to the runtime:
+
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{ "method": "usage.status", "params": {} }'
+```
 
 If you’d rather not manage env vars yourself, onboarding can store
-API keys for daemon use: CrawClaw Desktop or the local Gateway API.
+API keys for daemon use. In CrawClaw Desktop, use **Settings** → **Models and
+replies** → **Add model**; Desktop probes the provider before saving and stores
+the key as a local file SecretRef under the desktop runtime config. For headless
+hosts, patch `models.providers.<provider>.apiKey` through `config.patch` or use
+an `env` / `file` / `exec` SecretRef.
 
 See [Help](/help) for details on env inheritance (`env.shellEnv`,
 `~/.crawclaw/.env`, systemd/launchd).
@@ -68,11 +80,15 @@ claude setup-token
 
 Then paste it into CrawClaw:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use **Settings** → **Models and replies** in CrawClaw Desktop and choose the
+Anthropic setup-token auth path.
 
 If the token was created on another machine, paste it manually:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+For headless hosts, update the target agent's `auth-profiles.json` with an
+Anthropic token profile and route it through `auth.profiles` / `auth.order` in
+`crawclaw.json`. See [OAuth](/concepts/oauth) and
+[Model failover](/concepts/model-failover).
 
 If you see an Anthropic error like:
 
@@ -90,7 +106,10 @@ the policy risk is acceptable, and verify Anthropic's current terms yourself.
 
 Manual token entry (any provider; writes `auth-profiles.json` + updates config):
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use CrawClaw Desktop when possible. For automation, write only static credential
+metadata through `config.patch`; credential material belongs in
+`auth-profiles.json`, environment variables, or SecretRefs. Do not put live
+tokens into shared docs, scripts, or repository config.
 
 Auth profile refs are also supported for static credentials:
 
@@ -100,7 +119,9 @@ Auth profile refs are also supported for static credentials:
 
 Automation-friendly check (exit `1` when expired/missing, `2` when expiring):
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use `/model status` for an interactive status view. For automation, call
+`usage.status` and parse the returned provider snapshots; legacy shell wrappers
+may still map missing/expired profiles to exit codes for monitoring scripts.
 
 Optional ops scripts (systemd/Termux) are documented here:
 [Auth monitoring scripts](/help/scripts#auth-monitoring-scripts)
@@ -109,7 +130,19 @@ Optional ops scripts (systemd/Termux) are documented here:
 
 ## Checking model auth status
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+CrawClaw Desktop is the normal status surface. In chat, use `/model status` for
+the active model, candidate providers, auth profile, endpoint, and API mode.
+For external monitoring, call:
+
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{ "method": "models.list", "params": {} }'
+```
+
+Use `usage.status` when you specifically need configured provider usage/auth
+windows instead of the full model catalog.
 
 ## API key rotation behavior (gateway)
 
@@ -136,13 +169,16 @@ Use `/model <alias-or-id>@<profileId>` to pin a specific provider credential for
 
 Use `/model` (or `/model list`) for a compact picker; use `/model status` for the full view (candidates + next auth profile, plus provider endpoint details when configured).
 
-### Per-agent (CLI override)
+### Per-agent config override
 
-Set an explicit auth profile order override for an agent (stored in that agent’s `auth-profiles.json`):
+Set an explicit auth profile order for the provider:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Set `auth.order[provider]` in `crawclaw.json` and write it with `config.patch`
+when automating. Keep the actual credential values in the target agent's
+`auth-profiles.json` or SecretRefs.
 
-Use `--agent <id>` to target a specific agent; omit it to use the configured default agent.
+For isolated agents, update that agent's own `auth-profiles.json` and keep its
+credential store separate from the default agent.
 
 ## Troubleshooting
 
@@ -151,7 +187,9 @@ Use `--agent <id>` to target a specific agent; omit it to use the configured def
 If the Anthropic token profile is missing, run `claude setup-token` on the
 **gateway host**, then re-check:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Paste the setup token through CrawClaw Desktop, or update the target agent's
+token profile and confirm with `/model status` or the Gateway `usage.status`
+RPC.
 
 ### Token expiring/expired
 

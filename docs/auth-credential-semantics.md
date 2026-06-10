@@ -12,7 +12,8 @@ This document defines the canonical credential eligibility and resolution semant
 
 - `resolveAuthProfileOrder`
 - `resolveApiKeyForProfile`
-- `models status --probe`
+- `/model status`
+- Gateway `models.list` / `usage.status`
 - `doctor-auth`
 
 The goal is to keep selection-time and runtime behavior aligned.
@@ -42,7 +43,8 @@ Token credentials (`type: "token"`) support inline `token` and/or `tokenRef`.
 
 1. Resolver semantics match eligibility semantics for `expires`.
 2. For eligible profiles, token material may be resolved from inline value or `tokenRef`.
-3. Unresolvable refs produce `unresolved_ref` in `models status --probe` output.
+3. Unresolvable refs produce `unresolved_ref` in model status surfaces and
+   automation diagnostics.
 
 ## OAuth SecretRef Policy Guard
 

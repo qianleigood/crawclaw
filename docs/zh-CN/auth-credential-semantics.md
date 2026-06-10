@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-10T11:18:34Z"
   model: codex
   provider: openai
-  source_hash: df008fbc4fe7fe2075037786da366b87cf5c67aac0fef90d977157e539991920
+  source_hash: 56dad2581160e03b20a48a3947867a6ddaa31ad9b45596e656a00e7558f35f4a
   source_path: auth-credential-semantics.md
   workflow: 15
 ---
@@ -19,7 +19,8 @@ x-i18n:
 
 - `resolveAuthProfileOrder`
 - `resolveApiKeyForProfile`
-- `models status --probe`
+- `/model status`
+- Gateway `models.list` / `usage.status`
 - `doctor-auth`
 
 目标是让 selection-time 和 runtime behavior 保持一致。
@@ -49,7 +50,7 @@ Token credentials（`type: "token"`）支持 inline `token` 和/或 `tokenRef`�
 
 1. Resolver semantics 与 `expires` 的 eligibility semantics 匹配。
 2. 对于 eligible profiles，token material 可以从 inline value 或 `tokenRef` 解析。
-3. 无法解析的 refs 会在 `models status --probe` 输出中产生 `unresolved_ref`。
+3. 无法解析的 refs 会在 model status surfaces 和 automation diagnostics 中产生 `unresolved_ref`。
 
 ## OAuth SecretRef Policy Guard
 
