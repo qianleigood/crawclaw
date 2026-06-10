@@ -272,6 +272,9 @@ read_when:
 
 当前约定的配置项：
 
+- `workflow.n8n.triggerBearerToken`
+  - 必填。CrawClaw 触发 n8n webhook 时使用的共享 bearer token
+  - 可用 `CRAWCLAW_N8N_TRIGGER_BEARER_TOKEN` 提供
 - `workflow.n8n.callbackBaseUrl`
   - n8n 能访问到的 CrawClaw Gateway 外部地址
 - `workflow.n8n.callbackCredentialId`
