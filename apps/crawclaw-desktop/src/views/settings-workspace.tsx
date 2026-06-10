@@ -31,6 +31,7 @@ import type {
   ModelProfileSource,
 } from '../desktop-api'
 import type { ConfirmationRequestInput } from '../ui/confirmation-dialog'
+import { Badge } from '../ui/badge'
 import { AutomationEnvironment } from './automation-environment'
 import { modelSupportsConfigurableThinking } from './model-capabilities'
 import { normalizeReplyMode, replyModeLabel, replyModeOptions } from './reply-mode'
@@ -481,7 +482,7 @@ const settingsCopy = {
         title: '高级',
       },
       automation: {
-        detail: '安装和管理 n8n / ComfyUI 的本机自动化环境。',
+        detail: '安装和管理 n8n / ComfyUI 的本机运行依赖。',
         title: '自动化环境',
       },
       general: {
@@ -617,7 +618,7 @@ const settingsCopy = {
         title: 'Advanced',
       },
       automation: {
-        detail: 'Install and manage the local n8n / ComfyUI automation environments.',
+        detail: 'Install and manage the local n8n / ComfyUI runtime dependencies.',
         title: 'Automation environment',
       },
       general: {
@@ -757,6 +758,7 @@ export function SettingsWorkspace({
   const copy = settingsCopy[language]
   const taskDefaults = preferences.taskDefaults
   const taskReplyMode = normalizeReplyMode(taskDefaults.responseSpeed)
+  const automationEnvironmentStatus = automationEnvironmentInstallLabel(automationWorkspace)
   const taskDefaultsThinkingSupported = modelSupportsConfigurableThinking(
     taskDefaults.selectedModel,
     preferences.modelProfiles,
@@ -971,9 +973,12 @@ export function SettingsWorkspace({
         </section>
 
         <section aria-label={copy.aria.sections.automation} className={getSettingsSectionClass('automation')} data-settings-section="automation" data-testid="settings-section" id="settings-automation">
-          <header className="settings-section__header">
-            <h2>{copy.sections.automation.title}</h2>
-            <p>{copy.sections.automation.detail}</p>
+          <header className="settings-section__header settings-section__header--with-status">
+            <div>
+              <h2>{copy.sections.automation.title}</h2>
+              <p>{copy.sections.automation.detail}</p>
+            </div>
+            <Badge tone="neutral">{automationEnvironmentStatus}</Badge>
           </header>
           <AutomationEnvironment
             automationWorkspace={automationWorkspace}
@@ -1516,6 +1521,16 @@ export function SettingsSidebar({
 
 function identityLabel(value: string) {
   return value
+}
+
+function automationEnvironmentInstallLabel(automationWorkspace: AutomationWorkspaceState) {
+  const managedRuntimes = (automationWorkspace.runtimes ?? []).filter((runtime) =>
+    runtime.id === 'n8n' || runtime.id === 'comfyui'
+  )
+  const installed = managedRuntimes.filter((runtime) =>
+    runtime.status === 'installed' || runtime.status === 'ready' || runtime.status === 'running'
+  ).length
+  return `${installed}/${managedRuntimes.length} 已安装`
 }
 
 function settingValueLabel(language: SettingsLanguage, value: string) {

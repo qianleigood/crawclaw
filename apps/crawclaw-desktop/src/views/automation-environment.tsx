@@ -95,14 +95,6 @@ export function AutomationEnvironment({
 
   return (
     <section className="automation-environment-panel" data-testid="automation-environment-panel">
-      <header className="automation-environment-panel__header">
-        <div>
-          <h3>自动化环境</h3>
-          <p>安装并维护 n8n / ComfyUI 的本机运行环境。</p>
-        </div>
-        <Badge tone="neutral">{environmentStats.installed}/{environmentStats.total} 已安装</Badge>
-      </header>
-
       {managedRuntimes.length === 0 ? (
         <p className="automation-environment-empty">自动化环境清单未返回可安装环境。</p>
       ) : (

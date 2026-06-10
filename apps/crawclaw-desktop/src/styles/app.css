@@ -1118,6 +1118,17 @@
   margin-bottom: 14px;
 }
 
+.settings-section__header--with-status {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.settings-section__header--with-status > div {
+  min-width: 0;
+}
+
 .settings-group {
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
@@ -7363,23 +7374,6 @@
   gap: 16px;
 }
 
-.automation-environment-panel__header {
-  align-items: center;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-}
-
-.automation-environment-panel__header h3,
-.automation-environment-panel__header p {
-  margin: 0;
-}
-
-.automation-environment-panel__header h3 {
-  font-size: 16px;
-}
-
-.automation-environment-panel__header p,
 .automation-environment-empty {
   color: var(--text-secondary);
   font-size: 13px;

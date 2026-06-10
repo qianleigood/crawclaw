@@ -322,6 +322,10 @@ fn rust_runtime_repo_guardrails_keep_automation_environment_in_settings() {
         "Settings workspace should use the product name 自动化环境 instead of Automation Runtime Manager"
     );
     assert!(
+        !settings_source.contains("本机自动化环境"),
+        "Settings automation copy should avoid repeating 自动化环境 in the section detail"
+    );
+    assert!(
         !settings_source.contains("Cron scheduler"),
         "Cron is built in and should not be presented as an installable automation environment"
     );
@@ -352,6 +356,11 @@ fn rust_runtime_repo_guardrails_keep_automation_environment_in_settings() {
             && automation_environment_source.contains("'stop'")
             && automation_environment_source.contains("'refresh'"),
         "Automation environment settings must keep install/start/stop/refresh controls for n8n and ComfyUI"
+    );
+    assert!(
+        !automation_environment_source.contains("automation-environment-panel__header")
+            && !automation_environment_source.contains("<h3>自动化环境</h3>"),
+        "Automation environment should not duplicate the Settings section title"
     );
     assert!(
         !automation_environment_source.contains(".toSorted("),
