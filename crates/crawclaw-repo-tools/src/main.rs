@@ -237,6 +237,10 @@ fn run_docs_core_check_profile(root: &Path) -> Result<(), String> {
         crawclaw_repo_tools::run_docs_i18n_glossary(root, None, None),
     )?;
     run_check_report_step(
+        "docs-i18n-source-hash",
+        crawclaw_repo_tools::run_docs_i18n_source_hash(root),
+    )?;
+    run_check_report_step(
         "docs-link-audit",
         crawclaw_repo_tools::run_docs_link_audit(root),
     )?;

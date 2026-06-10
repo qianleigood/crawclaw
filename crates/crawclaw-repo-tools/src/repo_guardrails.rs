@@ -7,6 +7,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 
 const TS_TEST_SUFFIXES: &[&str] = &[
     ".test.ts",
@@ -365,6 +366,65 @@ pub fn run_docs_i18n_glossary(
     stderr.push_str(&format!(
         "Checked changed English docs relative to {base}.\n"
     ));
+    Ok(CheckReport::fail("", stderr))
+}
+
+pub fn run_docs_i18n_source_hash(root: impl AsRef<Path>) -> Result<CheckReport, String> {
+    let root = normalize_root(root.as_ref());
+    let zh_dir = root.join("docs/zh-CN");
+    if !zh_dir.is_dir() {
+        return Ok(CheckReport::ok(""));
+    }
+
+    let mut mismatches = Vec::new();
+    for rel_path in walk_all_files(&zh_dir, &root)? {
+        if !(rel_path.ends_with(".md") || rel_path.ends_with(".mdx")) {
+            continue;
+        }
+        let content = fs::read_to_string(root.join(&rel_path))
+            .map_err(|error| format!("failed to read {rel_path}: {error}"))?;
+        let Some(metadata) = extract_i18n_source_metadata(&content) else {
+            continue;
+        };
+        if i18n_source_path_escapes_docs(&metadata.source_path) {
+            mismatches.push(format!(
+                "- {rel_path}: source_path {} escapes docs/",
+                metadata.source_path
+            ));
+            continue;
+        }
+        let source_rel_path = normalize_i18n_source_path(&metadata.source_path);
+        let source_display_path = format!("docs/{source_rel_path}");
+        let source_path = root.join(&source_display_path);
+        if !source_path.is_file() {
+            mismatches.push(format!(
+                "- {rel_path}: source file {source_display_path} is missing"
+            ));
+            continue;
+        }
+        let source = fs::read(&source_path)
+            .map_err(|error| format!("failed to read {source_display_path}: {error}"))?;
+        let actual = sha256_hex(&source);
+        if actual != metadata.source_hash {
+            mismatches.push(format!(
+                "- {rel_path}: source_hash {} does not match {source_display_path} ({actual})",
+                metadata.source_hash
+            ));
+        }
+    }
+
+    if mismatches.is_empty() {
+        return Ok(CheckReport::ok(""));
+    }
+
+    let mut stderr = String::from("docs:i18n-source-hash: zh-CN source hash drift detected:\n");
+    for mismatch in mismatches {
+        stderr.push_str(&mismatch);
+        stderr.push('\n');
+    }
+    stderr.push_str(
+        "\nUpdate the translated page or refresh x-i18n.source_hash after syncing it with the English source.\n",
+    );
     Ok(CheckReport::fail("", stderr))
 }
 
@@ -1025,6 +1085,73 @@ fn load_glossary_sources(root: &Path) -> Result<BTreeSet<String>, String> {
         }
     }
     Ok(sources)
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct I18nSourceMetadata {
+    source_hash: String,
+    source_path: String,
+}
+
+fn extract_i18n_source_metadata(text: &str) -> Option<I18nSourceMetadata> {
+    let mut lines = text.lines();
+    if lines.next().map(str::trim) != Some("---") {
+        return None;
+    }
+
+    let mut in_i18n = false;
+    let mut source_hash = None;
+    let mut source_path = None;
+    for line in lines {
+        if line.trim() == "---" {
+            break;
+        }
+        if line.trim() == "x-i18n:" {
+            in_i18n = true;
+            continue;
+        }
+        if in_i18n && !line.starts_with(' ') && !line.trim().is_empty() {
+            in_i18n = false;
+        }
+        if !in_i18n {
+            continue;
+        }
+        let trimmed = line.trim_start();
+        if let Some(value) = trimmed.strip_prefix("source_hash:") {
+            source_hash = Some(unquote_scalar(value));
+        } else if let Some(value) = trimmed.strip_prefix("source_path:") {
+            source_path = Some(unquote_scalar(value));
+        }
+    }
+
+    match (
+        source_hash.filter(|value| !value.trim().is_empty()),
+        source_path.filter(|value| !value.trim().is_empty()),
+    ) {
+        (Some(source_hash), Some(source_path)) => Some(I18nSourceMetadata {
+            source_hash: source_hash.trim().to_string(),
+            source_path: source_path.trim().to_string(),
+        }),
+        _ => None,
+    }
+}
+
+fn normalize_i18n_source_path(path: &str) -> String {
+    let trimmed = path.trim().trim_start_matches('/');
+    let without_docs_prefix = trimmed.strip_prefix("docs/").unwrap_or(trimmed);
+    slash_path(&normalize_path(Path::new(without_docs_prefix)))
+}
+
+fn i18n_source_path_escapes_docs(path: &str) -> bool {
+    let trimmed = path.trim().trim_start_matches('/');
+    let without_docs_prefix = trimmed.strip_prefix("docs/").unwrap_or(trimmed);
+    Path::new(without_docs_prefix)
+        .components()
+        .any(|component| matches!(component, Component::ParentDir))
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(bytes))
 }
 
 fn extract_glossary_terms(file: &str, text: &str) -> BTreeMap<String, GlossaryTermMatch> {
@@ -1985,5 +2112,77 @@ mod tests {
     fn identifies_localized_doc_paths() {
         assert!(is_generated_translated_doc("zh-CN/start/index.md"));
         assert!(!is_generated_translated_doc("start/index.md"));
+    }
+
+    #[test]
+    fn docs_i18n_source_hash_detects_stale_translation_metadata() {
+        let root = unique_test_dir("docs-i18n-source-hash-drift");
+        fs::create_dir_all(root.join("docs/zh-CN/start")).expect("create docs dirs");
+        fs::write(root.join("docs/start.md"), "# Getting started\n").expect("write source doc");
+        fs::write(
+            root.join("docs/zh-CN/start/index.md"),
+            "---\ntitle: 入门\nx-i18n:\n  source_path: start.md\n  source_hash: stale\n---\n# 入门\n",
+        )
+        .expect("write translated doc");
+
+        let report = run_docs_i18n_source_hash(&root).expect("run source hash check");
+
+        let _ = fs::remove_dir_all(&root);
+        assert!(!report.ok);
+        assert!(report.stderr.contains("docs/zh-CN/start/index.md"));
+        assert!(report.stderr.contains("source_hash stale"));
+        assert!(report.stderr.contains("docs/start.md"));
+    }
+
+    #[test]
+    fn docs_i18n_source_hash_accepts_current_translation_metadata() {
+        let root = unique_test_dir("docs-i18n-source-hash-ok");
+        fs::create_dir_all(root.join("docs/zh-CN/start")).expect("create docs dirs");
+        let source = "# Getting started\n";
+        fs::write(root.join("docs/start.md"), source).expect("write source doc");
+        fs::write(
+            root.join("docs/zh-CN/start/index.md"),
+            format!(
+                "---\ntitle: 入门\nx-i18n:\n  source_path: docs/start.md\n  source_hash: {}\n---\n# 入门\n",
+                sha256_hex(source.as_bytes())
+            ),
+        )
+        .expect("write translated doc");
+
+        let report = run_docs_i18n_source_hash(&root).expect("run source hash check");
+
+        let _ = fs::remove_dir_all(&root);
+        assert!(report.ok);
+        assert!(report.stderr.is_empty());
+    }
+
+    #[test]
+    fn docs_i18n_source_hash_rejects_source_paths_outside_docs() {
+        let root = unique_test_dir("docs-i18n-source-hash-escape");
+        fs::create_dir_all(root.join("docs/zh-CN/start")).expect("create docs dirs");
+        fs::write(root.join("start.md"), "# Outside docs\n").expect("write outside doc");
+        fs::write(
+            root.join("docs/zh-CN/start/index.md"),
+            "---\ntitle: 入门\nx-i18n:\n  source_path: ../start.md\n  source_hash: stale\n---\n# 入门\n",
+        )
+        .expect("write translated doc");
+
+        let report = run_docs_i18n_source_hash(&root).expect("run source hash check");
+
+        let _ = fs::remove_dir_all(&root);
+        assert!(!report.ok);
+        assert!(report
+            .stderr
+            .contains("source_path ../start.md escapes docs/"));
+    }
+
+    fn unique_test_dir(name: &str) -> PathBuf {
+        let mut path = std::env::temp_dir();
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time after epoch")
+            .as_nanos();
+        path.push(format!("crawclaw-repo-tools-{name}-{suffix}"));
+        path
     }
 }
