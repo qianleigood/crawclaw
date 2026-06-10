@@ -71,9 +71,10 @@ pub use provider_contract::{
 };
 pub use repo_checks::{collect_ts_loc_offenders, render_docs_list, TsLocOffender};
 pub use repo_guardrails::{
-    run_docs_anchor_audit, run_docs_i18n_glossary, run_docs_i18n_source_hash, run_docs_link_audit,
-    run_no_conflict_markers, run_no_extension_src_imports, run_no_register_http_handler,
-    run_plugin_extension_import_boundary, run_runtime_module_boundaries,
+    run_docs_anchor_audit, run_docs_i18n_glossary, run_docs_i18n_source_hash,
+    run_docs_link_audit, run_docs_localized_source_duplicates, run_no_conflict_markers,
+    run_no_extension_src_imports, run_no_register_http_handler, run_plugin_extension_import_boundary,
+    run_runtime_module_boundaries,
     run_web_fetch_provider_boundaries, run_web_search_provider_boundaries,
     run_webhook_auth_body_order, CheckReport,
 };

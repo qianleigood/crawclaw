@@ -430,6 +430,41 @@ pub fn run_docs_i18n_source_hash(root: impl AsRef<Path>) -> Result<CheckReport, 
     Ok(CheckReport::fail("", stderr))
 }
 
+pub fn run_docs_localized_source_duplicates(root: impl AsRef<Path>) -> Result<CheckReport, String> {
+    let root = normalize_root(root.as_ref());
+    let docs_dir = root.join("docs");
+    if !docs_dir.is_dir() {
+        return Ok(CheckReport::ok(""));
+    }
+
+    let mut duplicates = Vec::new();
+    for rel_path in walk_all_files(&docs_dir, &root)? {
+        let Some(docs_relative) = rel_path.strip_prefix("docs/") else {
+            continue;
+        };
+        if is_generated_translated_doc(docs_relative) {
+            continue;
+        }
+        if is_localized_source_duplicate_name(docs_relative) {
+            duplicates.push(rel_path);
+        }
+    }
+
+    if duplicates.is_empty() {
+        return Ok(CheckReport::ok(""));
+    }
+
+    duplicates.sort();
+    let mut stderr = String::from(
+        "docs:localized-source-duplicates: localized docs must live under docs/<locale>/, not the English source tree:\n",
+    );
+    for duplicate in duplicates {
+        stderr.push_str(&format!("- {duplicate}\n"));
+    }
+    stderr.push_str("Move translated pages under docs/<locale>/ or remove stale duplicates.\n");
+    Ok(CheckReport::fail("", stderr))
+}
+
 pub fn run_docs_link_audit(root: impl AsRef<Path>) -> Result<CheckReport, String> {
     let root = normalize_root(root.as_ref());
     let docs_dir = root.join("docs");
@@ -1748,6 +1783,13 @@ fn is_generated_translated_doc(path: &str) -> bool {
     has_region
 }
 
+fn is_localized_source_duplicate_name(path: &str) -> bool {
+    Path::new(path)
+        .file_name()
+        .and_then(OsStr::to_str)
+        .is_some_and(|file_name| file_name.ends_with("-zh.md") || file_name.ends_with("-zh.mdx"))
+}
+
 fn localized_docs_dirs(root: &Path) -> Result<Vec<PathBuf>, String> {
     let docs_dir = root.join("docs");
     if !docs_dir.is_dir() {
@@ -2223,6 +2265,23 @@ mod tests {
         assert!(report
             .stderr
             .contains("docs/ja-JP/start/getting-started.md"));
+    }
+
+    #[test]
+    fn docs_localized_source_duplicates_rejects_zh_suffix_outside_locale_dirs() {
+        let root = unique_test_dir("docs-localized-source-duplicates");
+        fs::create_dir_all(root.join("docs/debug")).expect("create debug docs dir");
+        fs::create_dir_all(root.join("docs/zh-CN/debug")).expect("create zh docs dir");
+        fs::write(root.join("docs/debug/runtime-zh.md"), "# 运行时\n").expect("write duplicate");
+        fs::write(root.join("docs/zh-CN/debug/runtime-zh.md"), "# 运行时\n")
+            .expect("write generated duplicate");
+
+        let report = run_docs_localized_source_duplicates(&root).expect("run duplicate check");
+
+        let _ = fs::remove_dir_all(&root);
+        assert!(!report.ok);
+        assert!(report.stderr.contains("docs/debug/runtime-zh.md"));
+        assert!(!report.stderr.contains("docs/zh-CN/debug/runtime-zh.md"));
     }
 
     fn unique_test_dir(name: &str) -> PathBuf {

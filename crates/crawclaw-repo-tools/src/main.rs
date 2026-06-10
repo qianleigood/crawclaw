@@ -233,6 +233,10 @@ fn run_rust_core_check_profile(root: &Path) -> Result<(), String> {
 
 fn run_docs_core_check_profile(root: &Path) -> Result<(), String> {
     run_check_report_step(
+        "docs-localized-source-duplicates",
+        crawclaw_repo_tools::run_docs_localized_source_duplicates(root),
+    )?;
+    run_check_report_step(
         "docs-i18n-glossary",
         crawclaw_repo_tools::run_docs_i18n_glossary(root, None, None),
     )?;
