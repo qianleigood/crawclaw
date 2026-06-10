@@ -92,7 +92,32 @@ Prefer `CRAWCLAW_GATEWAY_PASSWORD` over committing a password to disk.
 
 ## Gateway API examples
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Tailscale Serve can satisfy browser client/WebSocket auth with identity headers,
+but HTTP APIs still require Gateway bearer auth. Use the Tailscale HTTPS URL and
+the configured token or password:
+
+```bash
+curl -sS https://<magicdns>/v1/models \
+  -H 'Authorization: Bearer <gateway-token-or-password>'
+```
+
+For Funnel, use the public Funnel URL and the shared password configured in
+`gateway.auth.password` or `CRAWCLAW_GATEWAY_PASSWORD`:
+
+```bash
+curl -sS https://<funnel-host>/tools/invoke \
+  -H 'Authorization: Bearer <gateway-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "tool": "sessions_list",
+    "action": "json",
+    "args": {}
+  }'
+```
+
+Keep `/tools/invoke` and `/v1/*` behind a tailnet or private ingress when
+possible. Bearer credentials on these endpoints represent full operator access
+for the Gateway instance.
 
 ## Notes
 

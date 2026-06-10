@@ -5,10 +5,10 @@ read_when:
 summary: 用于面向浏览器的Gateway访问的集成Tailscale Serve/Funnel
 title: Tailscale
 x-i18n:
-  generated_at: "2026-06-05T14:29:45Z"
+  generated_at: "2026-06-10T20:49:27Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: aeb190f72bd347cc5dfcac39e0f65edc1d6980ec72f2a524c03ffff70fefe7ee
+  source_hash: 0c1a16e85208826febc26095729f727df382d66ef7318865811d3b7170feab77
   source_path: gateway/tailscale.md
   workflow: 15
 ---
@@ -85,7 +85,30 @@ HTTP API 端点（例如 `/v1/*`、`/tools/invoke` 和 `/api/channels/*`）仍�
 
 ## Gateway API 示例
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+Tailscale Serve 可以通过身份 header 满足浏览器客户端/WebSocket 认证，但 HTTP API
+仍然需要 Gateway bearer auth。使用 Tailscale HTTPS URL 和配置的 token 或密码：
+
+```bash
+curl -sS https://<magicdns>/v1/models \
+  -H 'Authorization: Bearer <gateway-token-or-password>'
+```
+
+对于 Funnel，使用公开 Funnel URL 和 `gateway.auth.password` 或
+`CRAWCLAW_GATEWAY_PASSWORD` 中配置的共享密码：
+
+```bash
+curl -sS https://<funnel-host>/tools/invoke \
+  -H 'Authorization: Bearer <gateway-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "tool": "sessions_list",
+    "action": "json",
+    "args": {}
+  }'
+```
+
+尽量把 `/tools/invoke` 和 `/v1/*` 放在 tailnet 或 private ingress 后。这些
+endpoint 的 bearer credentials 代表 Gateway 实例的完整 operator access。
 
 ## 注意事项
 
