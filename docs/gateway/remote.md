@@ -171,9 +171,28 @@ ssh-copy-id -i ~/.ssh/id_rsa <REMOTE_USER>@<REMOTE_IP>
 
 #### Step 3: configure the gateway token
 
-Store the token in config so it persists across restarts:
+Configure the same shared token on the gateway host and on the macOS client.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+On the gateway host, store server auth in `~/.crawclaw/crawclaw.json` or the service environment:
+
+```json5
+{
+  gateway: {
+    auth: {
+      mode: "token",
+      token: "<gateway-token>",
+    },
+  },
+}
+```
+
+On the macOS client, either set `gateway.remote.token` in the client config or export the token into the GUI launch environment before reopening CrawClaw Desktop:
+
+```bash
+launchctl setenv CRAWCLAW_GATEWAY_TOKEN "<gateway-token>"
+```
+
+Do not put the gateway token in the SSH LaunchAgent plist. The LaunchAgent only owns the SSH tunnel; CrawClaw clients supply Gateway auth separately.
 
 #### Step 4: create the LaunchAgent
 

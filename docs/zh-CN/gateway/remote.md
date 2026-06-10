@@ -4,10 +4,10 @@ read_when:
 summary: 使用 SSH 隧道（Gateway WS）和 tailnet 进行远程访问
 title: 远程访问
 x-i18n:
-  generated_at: "2026-06-05T14:29:03Z"
+  generated_at: "2026-06-10T20:35:00Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: dde169ac12992338bf1d4a88def996f9f222cf5210ce0a9d00f7218324cf14ff
+  source_hash: 509d45890480d7594b2a4f39fc9c7b3bb86e76b2887eef3539dfc7cc959bb6c9
   source_path: gateway/remote.md
   workflow: 15
 ---
@@ -173,9 +173,28 @@ ssh-copy-id -i ~/.ssh/id_rsa <REMOTE_USER>@<REMOTE_IP>
 
 #### 步骤 3：配置 gateway token
 
-在配置中存储 token 以便在重启后持久化：
+在 Gateway 主机和 macOS 客户端配置同一个 shared token。
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 Gateway 主机上，把服务端 auth 存到 `~/.crawclaw/crawclaw.json` 或服务环境中：
+
+```json5
+{
+  gateway: {
+    auth: {
+      mode: "token",
+      token: "<gateway-token>",
+    },
+  },
+}
+```
+
+在 macOS 客户端上，可以在客户端配置中设置 `gateway.remote.token`，也可以在重新打开 CrawClaw Desktop 前把 token 导出到 GUI launch 环境：
+
+```bash
+launchctl setenv CRAWCLAW_GATEWAY_TOKEN "<gateway-token>"
+```
+
+不要把 gateway token 写进 SSH LaunchAgent plist。LaunchAgent 只负责 SSH 隧道；CrawClaw 客户端单独提供 Gateway auth。
 
 #### 步骤 4：创建 LaunchAgent
 
