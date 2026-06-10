@@ -107,14 +107,16 @@ Installer flow:
 4. Download the referenced installer script.
 5. Verify checksum, and signature when available.
 6. Execute the script with a constrained environment.
-7. Parse JSON progress and final status.
-8. Record the installed runtime state locally.
+7. Capture stdout/stderr to the runtime install log.
+8. Use the installer exit status and written `runtime.json` as the installed
+   runtime record.
 
 Scripts must be idempotent so a repeated install can safely repair files at the
 script layer, even when the Desktop UI does not expose a separate repair action.
 
-Scripts must not receive, print, or persist secrets. Desktop generates and stores
-n8n credentials and tokens through the local secret surface after installation.
+Scripts must not receive, print, or persist secrets. n8n credential generation
+and workflow config binding are explicit future work, not part of the current
+Automation Environment slice.
 
 The embedded runtime manifest pins the installer script SHA-256. The release
 manifest must declare the same checksum, so a remote manifest and script cannot
@@ -154,15 +156,17 @@ driver, or platform needs a different PyTorch channel.
 
 n8n installation is a managed Node service:
 
-1. Install or reuse the CrawClaw-managed Node runtime.
+1. Install or reuse a compatible local Node/npm runtime.
 2. Install the pinned n8n package into the managed runtime directory.
-3. Create a local n8n data directory.
-4. Generate local credentials and trigger tokens through Desktop/Gateway secret
-   storage.
+3. Create a local n8n data directory through the generated start script.
+4. Write `runtime.json` with the loopback base URL and start script path.
 5. Start n8n on loopback.
-6. Probe the local API.
-7. Write non-secret workflow config so existing workflow methods can publish and
-   run n8n workflows.
+6. Probe the local health endpoint.
+
+Future slices can generate local credentials and write non-secret workflow
+config so workflow methods can publish and run n8n workflows automatically.
+The current slice intentionally stops at install, start, stop, refresh, health,
+and log reporting.
 
 ## UI
 
@@ -189,32 +193,32 @@ The UI must not show raw secret values.
 
 ## State
 
-Suggested local state layout:
+Current local state layout under the Desktop runtime root:
 
 ```text
-~/.crawclaw/runtimes/automation/manifest.cache.json
-~/.crawclaw/runtimes/n8n/
-~/.crawclaw/runtimes/comfyui/<profile>/
-~/.crawclaw/logs/automation-environment/
+automation-assets/n8n/manifest.json
+automation-assets/n8n/install.sh
+automation-assets/comfyui/manifest.json
+automation-assets/comfyui/install.sh
+automation/n8n/runtime.json
+automation/n8n/install.log
+automation/n8n/service.log
+automation/n8n/service.pid
+automation/comfyui/runtime.json
+automation/comfyui/install.log
+automation/comfyui/service.log
+automation/comfyui/service.pid
 ```
 
-Suggested non-secret config:
+`runtime.json` is the current non-secret runtime record:
 
 ```json
 {
-  "automation": {
-    "runtimes": {
-      "n8n": {
-        "mode": "managed",
-        "baseUrl": "http://127.0.0.1:5679"
-      },
-      "comfyui": {
-        "mode": "managed",
-        "profile": "nvidia-cuda",
-        "baseUrl": "http://127.0.0.1:8188"
-      }
-    }
-  }
+  "runtimeId": "comfyui",
+  "computeProfile": "nvidia-cuda",
+  "baseUrl": "http://127.0.0.1:8188",
+  "startScript": "<desktop-runtime-root>/automation/comfyui/start.sh",
+  "installedAt": "2026-06-05T00:00:00Z"
 }
 ```
 
