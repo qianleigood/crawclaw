@@ -1092,7 +1092,7 @@ fn assert_no_legacy_desktop_surface(runtime_root: &Path) -> Result<(), String> {
             })
         {
             return Err(format!(
-                "Legacy Electron Admin Desktop surface remains: package script {script_name}"
+                "Legacy Electron desktop surface remains: package script {script_name}"
             ));
         }
     }
@@ -1105,7 +1105,7 @@ fn assert_no_legacy_desktop_surface(runtime_root: &Path) -> Result<(), String> {
     ] {
         if legacy_path.exists() {
             return Err(format!(
-                "Legacy Electron Admin Desktop surface remains: {}",
+                "Legacy Electron desktop surface remains: {}",
                 legacy_path.display()
             ));
         }
