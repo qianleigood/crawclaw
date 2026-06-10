@@ -80,6 +80,18 @@
     "target": "local loopback"
   },
   {
+    "source": "Automation Environment",
+    "target": "自动化环境"
+  },
+  {
+    "source": "Standing Orders",
+    "target": "常设指令"
+  },
+  {
+    "source": "Standing orders",
+    "target": "常设指令"
+  },
+  {
     "source": "Tailscale",
     "target": "Tailscale"
   },

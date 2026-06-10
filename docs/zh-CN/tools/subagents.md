@@ -6,10 +6,10 @@ read_when:
 summary: Sub-agents：从现有 agent 运行中分离出的独立 agent 运行，完成后将结果汇报给请求方聊天
 title: 子智能体
 x-i18n:
-  generated_at: "2026-06-05T15:04:31Z"
+  generated_at: "2026-06-10T08:20:00Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: d792898d386150b5c9cb12da18a91bab7da83148f8ce247eddc6e988732d522a
+  source_hash: 93a26002076d52ff13ebb0d1980d4c08a9e01e05426338757f86b1a28381b94f
   source_path: tools/subagents.md
   workflow: 15
 ---
@@ -36,8 +36,7 @@ x-i18n:
 - Hindsight 经验召回在子提示词组装期间从配置的相同后端查询；不会按会话 ID 进行分区。
 - 同 agent 派生默认继承调用方工作区。跨 agent 派生则切换到目标 agent 工作区。
 
-派生完成后进行运行时检查时，请使用 CrawClaw Desktop 或本地 Gateway API，
-CrawClaw Desktop 或本地 Gateway API，以及 CrawClaw Desktop 或本地 Gateway API。
+派生完成后进行运行时检查时，请使用 `/subagents info`、`/subagents log`、CrawClaw Desktop 的任务/会话视图，或 `subagents`、`sessions.list`、`sessions.history` 等 Gateway/session surface。
 
 ## 斜杠命令
 
