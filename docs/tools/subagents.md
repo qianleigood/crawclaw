@@ -33,8 +33,9 @@ Sub-agents are isolated, but not in every dimension:
 - Same-agent spawns inherit the caller workspace by default. Cross-agent spawns
   switch to the target agent workspace instead.
 
-For runtime inspection after spawn/completion, use CrawClaw Desktop or the local Gateway API,
-CrawClaw Desktop or the local Gateway API, and CrawClaw Desktop or the local Gateway API.
+For runtime inspection after spawn/completion, use `/subagents info`,
+`/subagents log`, CrawClaw Desktop task/session views, or Gateway/session
+surfaces such as `subagents`, `sessions.list`, and `sessions.history`.
 
 ## Slash command
 
