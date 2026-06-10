@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-05T14:46:38Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 5f6cd16d5f77af48a10f8630d7623de537ab8ced1d888c38ddf098c3462f93de
+  source_hash: d16dd078a1d93c3d7e705c7a776f0f7e905257eeafba09e5f19163105d905cf1
   source_path: reference/api-usage-costs.md
   workflow: 15
 ---
@@ -85,8 +85,8 @@ CrawClaw 可以从以下来源获取凭证：
 
 某些状态命令调用**提供商用量端点**以显示配额窗口或认证健康状况。这些通常是低容量调用，但仍然会访问提供商 API：
 
-- CrawClaw Desktop 或本地 Gateway API
-- CrawClaw Desktop 或本地 Gateway API
+- `usage.status` 通过 CrawClaw Desktop 或本地 Gateway API 报告提供商配额/认证窗口。
+- `usage.cost` 从本地会话 transcript 聚合用量，用于成本摘要。
 
 参见 [Models](/concepts/models)。
 
