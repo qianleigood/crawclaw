@@ -32,8 +32,8 @@ Requirements:
 Install **CrawClaw Desktop** from
 [GitHub Releases](https://github.com/qianleigood/crawclaw/releases). The desktop
 app embeds the Rust Gateway/runtime/native-plugin binaries, initializes
-`~/.crawclaw`, starts the local Gateway, and opens the admin UI against that
-local Gateway.
+`~/.crawclaw`, starts the local Gateway, and opens the Desktop workbench
+against that local Gateway.
 
 Docs:
 

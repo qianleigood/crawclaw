@@ -928,6 +928,20 @@ fn rust_runtime_repo_guardrails_keep_contributing_desktop_frontend_current() {
 }
 
 #[test]
+fn rust_runtime_repo_guardrails_keep_readme_desktop_quick_start_current() {
+    let root = repo_root();
+    let readme = fs::read_to_string(root.join("README.md")).expect("read README");
+    assert!(
+        readme.contains("opens the Desktop workbench"),
+        "README.md quick start must describe the current desktop workbench"
+    );
+    assert!(
+        !readme.contains("admin UI") && !readme.contains("admin console"),
+        "README.md must not use retired admin UI wording"
+    );
+}
+
+#[test]
 fn rust_runtime_repo_guardrails_keep_removed_ts_plugin_control_plane_absent() {
     let root = repo_root();
     let removed = [
