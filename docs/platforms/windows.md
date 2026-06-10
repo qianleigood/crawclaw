@@ -97,12 +97,12 @@ Native Windows can be described as first-class when all of these are true:
   on a clean supported Windows 11 machine.
 - the packaged desktop version check works in a fresh PowerShell session without manually
   repairing PATH.
-- CrawClaw Desktop or the local Gateway API has no blocking errors.
-- CrawClaw Desktop or the local Gateway API completes for a local
-  Gateway setup.
+- CrawClaw Desktop and local Gateway API checks have no blocking errors.
+- Local Gateway setup completes through CrawClaw Desktop or an API-only setup
+  flow.
 - CrawClaw Desktop or the local Gateway API reports a reachable Gateway.
-- CrawClaw Desktop or the local Gateway API
-  completes a first local turn.
+- A first local agent turn completes through CrawClaw Desktop or the local
+  Gateway API.
 - Browser runtime checks either pass or return a clear, actionable repair
   instruction.
 - Provider and channel plugins that declare Windows support install their

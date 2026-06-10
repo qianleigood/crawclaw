@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:41:43Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 47755924ea9ef25deb0aea7eda8a90afd66eb89ac8c903d9eca1b2a675f6004a
+  source_hash: 3b0f08c032590dc9b0f7c303048bc9432d6341ed348aa7c1b5d70295daa3e1f5
   source_path: platforms/windows.md
   workflow: 15
 ---
@@ -92,10 +92,10 @@ pnpm desktop:tauri:release-check
 
 - CrawClaw Desktop 可以在干净的支持的 Windows 11 机器上安装或更新 CrawClaw，而无需手动设置 Node 或 Git。
 - 打包的 desktop 版本检查在新的 PowerShell 会话中正常工作，无需手动修复 PATH。
-- CrawClaw Desktop 或本地 Gateway API 没有阻塞错误。
-- CrawClaw Desktop 或本地 Gateway API 完成本地 Gateway 设置。
+- CrawClaw Desktop 和本地 Gateway API 检查没有阻塞错误。
+- 本地 Gateway 设置通过 CrawClaw Desktop 或纯 API 设置流程完成。
 - CrawClaw Desktop 或本地 Gateway API 报告可达的 Gateway。
-- CrawClaw Desktop 或本地 Gateway API 完成首次本地轮次。
+- 首次本地 agent 轮次通过 CrawClaw Desktop 或本地 Gateway API 完成。
 - 浏览器运行时检查要么通过，要么返回清晰、可操作的修复说明。
 - 声明支持 Windows 的提供商和渠道插件在安装或 postinstall 期间安装其运行时依赖项，而不是在首次用户请求时延迟安装。
 - 从发布的 `latest` 包升级到当前包成功。

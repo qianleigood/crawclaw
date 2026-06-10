@@ -7,7 +7,7 @@ x-i18n:
   generated_at: "2026-06-05T14:03:41Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 78b8fc35c8be4b42cbd262b2eb6ee657060fd6c0a7f3dac5b6650b12386e7c95
+  source_hash: 4d740d85e5acb49d3390827057b1dce31929b8323cf9f8b50732f3863dc07321
   source_path: concepts/agent-loop.md
   workflow: 15
 ---
@@ -83,7 +83,7 @@ CrawClaw 现在还为任务支持的运行暴露了运行时检查接口。单�
 
 今天基于此快照构建的操作界面：
 
-- CrawClaw Desktop 或本地 Gateway API
+- CrawClaw Desktop 运行时诊断界面
 - gateway RPC `agent.inspect`
 
 `agent.inspect` 现在还可以从归档的 `run.lifecycle.*` 事件重建紧凑的生命周期时间线，因此提供商/工具/子智能体/压缩决策可以从一个检查界面读取回来，而无需拼接多个调试日志。
