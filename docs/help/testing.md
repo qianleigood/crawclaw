@@ -27,7 +27,7 @@ Most days:
 - `pnpm test:all`: `pnpm check && pnpm build && pnpm test`.
 - `cargo run -q -p crawclaw-repo-tools -- check --profile rust-core`: Rust guardrails plus workspace tests, used by the Rust CI lane.
 - `cargo run -q -p crawclaw-repo-tools -- check --profile desktop-renderer`: desktop renderer build through the Node/npm adapter.
-- `cargo run -q -p crawclaw-repo-tools -- check --profile docs-core`: docs glossary, internal links, generated baselines, and docs list.
+- `cargo run -q -p crawclaw-repo-tools -- check --profile docs-core`: localized-source duplicate guard, docs glossary, i18n source hashes, internal links, generated baselines, and docs list.
 - `cargo run -q -p crawclaw-repo-tools -- check --profile docs-hosted`: hosted/Mintlify-specific docs anchor checks.
 
 The previous TypeScript test runner and Vitest planner scripts were removed. Do not add new TypeScript test suites unless the project explicitly reopens that surface.

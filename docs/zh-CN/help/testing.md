@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-05-22T04:21:00Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: d47bfc6993912643c53a166653f4c756fbb8566a46ed7cdd16d59fbabd64a5ee
+  source_hash: 15e29ed5cdc105125eef2ae44b07ee5561ef81f4650314cdd4e5b1da879d2ef7
   source_path: help/testing.md
   workflow: 15
 ---
@@ -34,7 +34,7 @@ CrawClaw 正在将 Desktop 应用和原生运行时收敛为产品边界。默�
 - `pnpm test:all`：`pnpm check && pnpm build && pnpm test`。
 - `cargo run -q -p crawclaw-repo-tools -- check --profile rust-core`：Rust guardrails 加工作区测试，供 Rust CI 通道使用。
 - `cargo run -q -p crawclaw-repo-tools -- check --profile desktop-renderer`：通过 Node/npm 适配器进行 Desktop 渲染器构建。
-- `cargo run -q -p crawclaw-repo-tools -- check --profile docs-core`：文档词汇表、内部链接、生成的基线和文档列表。
+- `cargo run -q -p crawclaw-repo-tools -- check --profile docs-core`：本地化源副本防回归、文档词汇表、i18n source hash、内部链接、生成的基线和文档列表。
 - `cargo run -q -p crawclaw-repo-tools -- check --profile docs-hosted`：托管/Mintlify 特定文档锚点检查。
 
 之前的 TypeScript 测试运行器和 Vitest 规划器脚本已被移除。除非项目明确重新开放该层面，否则不要添加新的 TypeScript 测试套件。
