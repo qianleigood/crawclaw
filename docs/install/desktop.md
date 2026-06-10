@@ -26,8 +26,8 @@ The desktop UI talks to `/api/desktop/bootstrap`, `/api/desktop/state`,
 matching mutation routes on the local Rust Gateway. Desktop session APIs such as
 `/api/desktop/sessions/spawn`, `/api/desktop/sessions/send`, and
 `/api/desktop/sessions/yield` are backed by the Rust runtime store and do not
-start the legacy TypeScript Gateway. The old Admin Desktop package is retired;
-new desktop work should target the Tauri app.
+start the legacy TypeScript Gateway. The legacy Electron desktop package is
+retired; new desktop work should target the Tauri app.
 
 CrawClaw Desktop is the supported Apple-platform user entrypoint. Automation and
 integrations use the local Gateway API instead of a public shell command.

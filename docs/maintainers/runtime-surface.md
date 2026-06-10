@@ -61,7 +61,7 @@ these paths:
 - It executes default desktop tools instead of using `crates/crawclaw-runtime` or `crates/crawclaw-native-plugins`.
 - It loads bundled plugin behavior through a Node runner for the default desktop product path.
 - It registers model, speech, web, or media provider behavior outside the Rust provider/native plugin boundary.
-- It exists only to preserve an old Admin Desktop, Electron desktop, public CLI, JavaScript plugin runtime, or QuickJS fallback surface.
+- It exists only to preserve a legacy Electron desktop, public CLI, JavaScript plugin runtime, or QuickJS fallback surface.
 
 When migrating one of these surfaces, prove the Rust path is live first. Then
 delete the obsolete TypeScript or JavaScript implementation and its tests

@@ -961,6 +961,26 @@ fn rust_runtime_repo_guardrails_keep_readme_desktop_quick_start_current() {
 }
 
 #[test]
+fn rust_runtime_repo_guardrails_keep_desktop_docs_off_retired_admin_name() {
+    let root = repo_root();
+    let desktop = fs::read_to_string(root.join("docs/install/desktop.md"))
+        .expect("read desktop install guide");
+    let runtime_surface = fs::read_to_string(root.join("docs/maintainers/runtime-surface.md"))
+        .expect("read runtime surface guide");
+    let combined = format!("{desktop}\n{runtime_surface}");
+    assert!(
+        !combined.contains("Admin Desktop"),
+        "desktop docs should describe retired surfaces without reviving the old Admin Desktop name"
+    );
+    assert!(
+        desktop.contains("legacy Electron desktop package")
+            && desktop.contains("retired; new desktop work should target the Tauri app")
+            && runtime_surface.contains("legacy Electron desktop"),
+        "desktop docs should use neutral legacy Electron desktop wording"
+    );
+}
+
+#[test]
 fn rust_runtime_repo_guardrails_keep_public_plugin_docs_on_plugin_terminology() {
     let root = repo_root();
     let plugin_overview = fs::read_to_string(root.join("docs/tools/plugin.md"))
