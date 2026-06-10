@@ -39,9 +39,13 @@ export function AutomationEnvironment({
   const [pendingRuntimeAction, setPendingRuntimeAction] = useState<string | null>(null)
   const [selectedComputeProfiles, setSelectedComputeProfiles] = useState<Record<string, string>>({})
   const [runtimePytorchIndexUrls, setRuntimePytorchIndexUrls] = useState<Record<string, string>>({})
-  const managedRuntimes = automationWorkspace.runtimes
-    .filter((runtime) => managedRuntimeOrder.includes(runtime.id))
-    .toSorted((left, right) => managedRuntimeOrder.indexOf(left.id) - managedRuntimeOrder.indexOf(right.id))
+  const managedRuntimes = managedRuntimeOrder.reduce<AutomationRuntimeSummary[]>((runtimes, runtimeId) => {
+    const runtime = automationWorkspace.runtimes.find((candidate) => candidate.id === runtimeId)
+    if (runtime) {
+      runtimes.push(runtime)
+    }
+    return runtimes
+  }, [])
   const environmentStats = automationEnvironmentStats(managedRuntimes)
 
   const runRuntimeAction = (runtime: AutomationRuntimeSummary, action: 'install' | 'refresh' | 'start' | 'stop') => {

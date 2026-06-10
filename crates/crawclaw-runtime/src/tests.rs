@@ -344,6 +344,10 @@ fn rust_runtime_repo_guardrails_keep_automation_environment_in_settings() {
             && automation_environment_source.contains("'refresh'"),
         "Automation environment settings must keep install/start/stop/refresh controls for n8n and ComfyUI"
     );
+    assert!(
+        !automation_environment_source.contains(".toSorted("),
+        "Automation environment settings must stay compatible with the desktop WebView runtime"
+    );
 }
 
 #[test]
