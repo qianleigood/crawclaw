@@ -86,7 +86,7 @@ export function AutomationWorkspace({
       <section className="automation-workspace__header">
         <div>
           <h1>自动化工作区</h1>
-          <p>管理本机工作流入口，执行结果会回到当前对话流。</p>
+          <p>执行 ComfyUI、n8n 和 Cron 工作流，运行结果会回到当前对话流。</p>
         </div>
       </section>
 
@@ -138,39 +138,32 @@ export function AutomationWorkspace({
           <div className="automation-execution-board">
             <header className="automation-execution-board__header">
               <div>
-                <h2>{activeTab.title}</h2>
-                <p>{activeTab.runtime.detail}</p>
+                <span className="automation-execution-board__eyebrow">{activeTab.title} 工作台</span>
+                <h2>{automationTabHeading(activeTab.kind)}</h2>
+                <p>{automationTabDescription(activeTab.kind)}</p>
               </div>
               <Badge tone={automationRuntimeTone(activeTab.runtime.status)}>
-                {automationStatusLabel(activeTab.runtime.status)}
+                {automationReadinessLabel(activeTab.runtime.status)}
               </Badge>
             </header>
 
-            <div className="automation-execution-metrics">
-              {activeTab.runtime.baseUrl ? (
-                <div>
-                  <span>Endpoint</span>
-                  <strong>{activeTab.runtime.baseUrl}</strong>
-                </div>
-              ) : null}
-              {activeTab.runtime.healthStatus ? (
-                <div>
-                  <span>Health</span>
-                  <strong>{activeTab.runtime.healthStatus}</strong>
-                </div>
-              ) : null}
-              {activeTab.runtime.processId ? (
-                <div>
-                  <span>PID</span>
-                  <strong>{activeTab.runtime.processId}</strong>
-                </div>
-              ) : null}
-              {activeTab.runtime.metrics.map((metric) => (
-                <div key={`${metric.label}:${metric.value}`}>
-                  <span>{metric.label}</span>
-                  <strong>{metric.value}</strong>
-                </div>
-              ))}
+            <div className="automation-execution-overview">
+              <div>
+                <span>当前执行</span>
+                <strong>{automationSectionItems(activeTab, 'activeRuns').length}</strong>
+              </div>
+              <div>
+                <span>工作流</span>
+                <strong>{automationSectionItems(activeTab, 'workflows').length}</strong>
+              </div>
+              <div>
+                <span>历史</span>
+                <strong>{automationSectionItems(activeTab, 'history').length}</strong>
+              </div>
+              <div>
+                <span>产物</span>
+                <strong>{automationSectionItems(activeTab, 'artifacts').length}</strong>
+              </div>
             </div>
 
             <div className="automation-command-bar">
@@ -212,10 +205,10 @@ export function AutomationWorkspace({
             <div className="automation-section-grid">
               {automationSections.map((section) => (
                 <AutomationSection
-                  errors={activeTab.errors.filter((error) => error.section === section.key)}
+                  errors={(activeTab.errors ?? []).filter((error) => error.section === section.key)}
                   key={section.key}
                   empty={section.empty}
-                  items={activeTab[section.key]}
+                  items={automationSectionItems(activeTab, section.key)}
                   kind={activeTab.kind as AutomationTabKind}
                   onRunAutomation={runAutomation}
                   sectionKey={section.key}
@@ -367,7 +360,7 @@ function AutomationSection({
 }
 
 function normalizedAutomationTabs(automationWorkspace: AutomationWorkspaceState): AutomationTabSummary[] {
-  if (automationWorkspace.tabs.length > 0) {
+  if (automationWorkspace.tabs?.length > 0) {
     return automationWorkspace.tabs
   }
   return [
@@ -375,6 +368,46 @@ function normalizedAutomationTabs(automationWorkspace: AutomationWorkspaceState)
     emptyAutomationTab('n8n', 'n8n'),
     emptyAutomationTab('cron', 'Cron'),
   ]
+}
+
+function automationSectionItems(tab: AutomationTabSummary, sectionKey: AutomationSectionKey) {
+  return tab[sectionKey] ?? []
+}
+
+function automationTabHeading(kind: string) {
+  if (kind === 'comfyui') {
+    return '图像工作流执行'
+  }
+  if (kind === 'n8n') {
+    return '业务工作流执行'
+  }
+  return '定时任务执行'
+}
+
+function automationTabDescription(kind: string) {
+  if (kind === 'comfyui') {
+    return '查看 ComfyUI 工作流、运行队列、历史记录和真实输出文件。'
+  }
+  if (kind === 'n8n') {
+    return '查看 n8n workflow registry、执行记录和可继续操作的运行。'
+  }
+  return '查看内置 Cron job、运行状态、最近日志和手动执行入口。'
+}
+
+function automationReadinessLabel(status: string) {
+  if (status === 'ready' || status === 'installed' || status === 'running') {
+    return '数据可用'
+  }
+  if (status === 'notInstalled') {
+    return '未安装'
+  }
+  if (status === 'unavailable') {
+    return '等待 Gateway'
+  }
+  if (status === 'error' || status === 'failed' || status === 'unhealthy') {
+    return '数据异常'
+  }
+  return automationStatusLabel(status)
 }
 
 function emptyAutomationTab(kind: AutomationTabKind, title: string): AutomationTabSummary {
@@ -399,10 +432,10 @@ function emptyAutomationTab(kind: AutomationTabKind, title: string): AutomationT
 
 function automationWorkspaceSummary(tabs: AutomationTabSummary[]) {
   return tabs.reduce((summary, tab) => ({
-    activeRuns: summary.activeRuns + tab.activeRuns.length,
-    artifacts: summary.artifacts + tab.artifacts.length,
-    history: summary.history + tab.history.length,
-    workflows: summary.workflows + tab.workflows.length,
+    activeRuns: summary.activeRuns + automationSectionItems(tab, 'activeRuns').length,
+    artifacts: summary.artifacts + automationSectionItems(tab, 'artifacts').length,
+    history: summary.history + automationSectionItems(tab, 'history').length,
+    workflows: summary.workflows + automationSectionItems(tab, 'workflows').length,
   }), {
     activeRuns: 0,
     artifacts: 0,

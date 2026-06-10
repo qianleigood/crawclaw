@@ -39,8 +39,9 @@ export function AutomationEnvironment({
   const [pendingRuntimeAction, setPendingRuntimeAction] = useState<string | null>(null)
   const [selectedComputeProfiles, setSelectedComputeProfiles] = useState<Record<string, string>>({})
   const [runtimePytorchIndexUrls, setRuntimePytorchIndexUrls] = useState<Record<string, string>>({})
+  const runtimeSummaries = automationWorkspace.runtimes ?? []
   const managedRuntimes = managedRuntimeOrder.reduce<AutomationRuntimeSummary[]>((runtimes, runtimeId) => {
-    const runtime = automationWorkspace.runtimes.find((candidate) => candidate.id === runtimeId)
+    const runtime = runtimeSummaries.find((candidate) => candidate.id === runtimeId)
     if (runtime) {
       runtimes.push(runtime)
     }
@@ -94,9 +95,9 @@ export function AutomationEnvironment({
       <header className="automation-environment-panel__header">
         <div>
           <h3>自动化环境</h3>
-          <p>安装、启动和检查 n8n / ComfyUI。Cron 是内置能力，不需要安装环境。</p>
+          <p>安装、启动和检查 n8n / ComfyUI，本机内置 Cron 不需要安装。</p>
         </div>
-        <Badge tone="neutral">{managedRuntimes.length} 个环境</Badge>
+        <Badge tone="neutral">{environmentStats.installed}/{environmentStats.total} 已安装</Badge>
       </header>
 
       {managedRuntimes.length === 0 ? (
@@ -105,19 +106,19 @@ export function AutomationEnvironment({
         <div className="automation-environment-layout">
           <div className="automation-environment-overview" data-testid="automation-environment-overview">
             <div>
-              <span>可安装环境</span>
+              <span>安装入口</span>
               <strong>{environmentStats.total}</strong>
               <small>n8n / ComfyUI</small>
             </div>
             <div>
-              <span>已安装</span>
+              <span>已就绪</span>
               <strong>{environmentStats.installed}</strong>
               <small>ready / installed / running</small>
             </div>
             <div>
-              <span>运行中</span>
-              <strong>{environmentStats.running}</strong>
-              <small>本机服务进程</small>
+              <span>内置 Cron</span>
+              <strong>无需安装</strong>
+              <small>在自动化工作区执行和查看</small>
             </div>
           </div>
 
@@ -125,6 +126,7 @@ export function AutomationEnvironment({
             {managedRuntimes.map((runtime) => {
               const selectedComputeProfile = selectedComputeProfiles[runtime.id]
               const pytorchIndexUrl = runtimePytorchIndexUrls[runtime.id]
+              const computeProfiles = runtime.computeProfiles ?? []
               const installDisabledReason = runtimeInstallDisabledReason(
                 runtime,
                 selectedComputeProfile,
@@ -172,7 +174,7 @@ export function AutomationEnvironment({
                         type="button"
                       >
                         <Download aria-hidden="true" size={14} strokeWidth={2} />
-                        安装环境
+                        {pendingRuntimeAction === `${runtime.id}:install` ? '安装中' : '安装环境'}
                       </button>
                     </div>
                   </section>
@@ -214,7 +216,7 @@ export function AutomationEnvironment({
                     ) : null}
                   </dl>
 
-                  {runtime.computeProfiles.length > 0 ? (
+                  {computeProfiles.length > 0 ? (
                     <div className="automation-environment-service__profiles">
                       <div className="automation-environment-service__profiles-header">
                         <strong>显卡与 PyTorch</strong>
@@ -231,7 +233,7 @@ export function AutomationEnvironment({
                           }))}
                         >
                           <option value="">auto</option>
-                          {runtime.computeProfiles.map((profile) => (
+                          {computeProfiles.map((profile) => (
                             <option key={profile.id} value={profile.id}>
                               {profile.id}{profile.experimental ? ' experimental' : ''}
                             </option>
@@ -256,18 +258,23 @@ export function AutomationEnvironment({
                     </div>
                   ) : null}
 
-                  <div className="automation-environment-service__actions">
-                    <button
-                      data-runtime-action="refresh"
-                      data-testid="automation-runtime-action"
-                      disabled={pendingRuntimeAction !== null}
-                      onClick={() => runRuntimeAction(runtime, 'refresh')}
-                      type="button"
-                    >
-                      <RefreshCw aria-hidden="true" size={14} strokeWidth={2} />
-                      刷新
-                    </button>
-                    {runtimeCanStop(runtime) ? (
+                  <section className="automation-environment-run-control" aria-label={`${runtime.name} 运行控制`}>
+                    <div>
+                      <strong>运行控制</strong>
+                      <span>刷新状态、启动服务或停止本机进程。</span>
+                    </div>
+                    <div className="automation-environment-service__actions">
+                      <button
+                        data-runtime-action="refresh"
+                        data-testid="automation-runtime-action"
+                        disabled={pendingRuntimeAction !== null}
+                        onClick={() => runRuntimeAction(runtime, 'refresh')}
+                        type="button"
+                      >
+                        <RefreshCw aria-hidden="true" size={14} strokeWidth={2} />
+                        刷新
+                      </button>
+                      {runtimeCanStop(runtime) ? (
                       <button
                         className="workspace-secondary-button"
                         data-runtime-action="stop"
@@ -279,7 +286,7 @@ export function AutomationEnvironment({
                         <Square aria-hidden="true" size={13} fill="currentColor" strokeWidth={0} />
                         停止
                       </button>
-                    ) : runtimeCanStart(runtime) ? (
+                      ) : runtimeCanStart(runtime) ? (
                       <button
                         className="workspace-primary-button"
                         data-runtime-action="start"
@@ -291,8 +298,9 @@ export function AutomationEnvironment({
                         <Play aria-hidden="true" size={14} fill="currentColor" strokeWidth={0} />
                         启动
                       </button>
-                    ) : null}
-                  </div>
+                      ) : null}
+                    </div>
+                  </section>
                 </article>
               )
             })}

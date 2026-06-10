@@ -7435,10 +7435,12 @@
 }
 
 .automation-environment-services {
+  align-items: start;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .automation-environment-service {
+  align-content: start;
   border: 1px solid var(--border);
   border-radius: 8px;
   display: grid;
@@ -7615,6 +7617,29 @@
   min-width: 0;
 }
 
+.automation-environment-run-control {
+  border-top: 1px solid var(--border-soft);
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.automation-environment-run-control > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.automation-environment-run-control strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.automation-environment-run-control span {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .automation-product {
   display: grid;
   gap: 12px;
@@ -7706,6 +7731,15 @@
   margin: 0;
 }
 
+.automation-execution-board__eyebrow {
+  color: var(--text-tertiary);
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
 .automation-execution-board__header h2 {
   font-size: 17px;
 }
@@ -7716,13 +7750,13 @@
   line-height: 1.45;
 }
 
-.automation-execution-metrics {
+.automation-execution-overview {
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.automation-execution-metrics div {
+.automation-execution-overview div {
   background: var(--surface-muted);
   border: 1px solid var(--border-soft);
   border-radius: 8px;
@@ -7730,14 +7764,14 @@
   padding: 9px 10px;
 }
 
-.automation-execution-metrics span {
+.automation-execution-overview span {
   color: var(--text-tertiary);
   display: block;
   font-size: 11px;
   margin-bottom: 3px;
 }
 
-.automation-execution-metrics strong {
+.automation-execution-overview strong {
   color: var(--text-primary);
   display: block;
   font-size: 12px;
@@ -8052,7 +8086,7 @@
   .automation-environment-overview,
   .automation-environment-install,
   .automation-environment-services,
-  .automation-execution-metrics,
+  .automation-execution-overview,
   .automation-section-grid,
   .automation-workspace__summary,
   .generation-control {
