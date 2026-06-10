@@ -32,13 +32,17 @@ Use this page for day-1 startup and day-2 operations of the local Rust Gateway r
 <Steps>
   <Step title="Start the Gateway">
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open CrawClaw Desktop. The desktop app starts or discovers the bundled Rust
+Gateway and passes the renderer a per-launch local session token. For dev
+shells, start an isolated gateway with the cargo command in
+[Debugging](/help/debugging).
 
   </Step>
 
   <Step title="Verify service health">
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the Desktop status view for the normal operator check. Automation can call
+Gateway RPC method `health`, `status`, or `system.status`.
 
 Healthy baseline: `Runtime: running` and `RPC probe: ok`.
 
@@ -46,7 +50,9 @@ Healthy baseline: `Runtime: running` and `RPC probe: ok`.
 
   <Step title="Validate channel readiness">
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the channel settings panels for interactive setup. Automation should call
+`channels.status` for readiness, `channels.setup.surface` for the setup
+surface, and `channels.config.patch` for scoped config writes.
 
   </Step>
 </Steps>
@@ -98,7 +104,9 @@ All of these run on the main Gateway port and use the same trusted operator auth
 
 ## Operator command set
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Common automation entrypoints are `health` / `system.status`, `config.get`,
+`config.patch`, `channels.status`, `models.list`, `usage.status`,
+`plugins.list`, `tools.catalog`, `memory.status`, and `cron.status`.
 
 ## Remote access
 
@@ -148,7 +156,8 @@ See: [Multiple gateways](/gateway/multiple-gateways).
 
 ### Dev profile quick path
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the isolated dev command from [Debugging](/help/debugging):
+`CRAWCLAW_STATE_DIR="$HOME/.crawclaw-dev" cargo run -q -p crawclaw-gateway -- --bind loopback --port 19001`.
 
 Defaults include isolated state/config and base gateway port `19001`.
 
@@ -175,7 +184,8 @@ See full protocol docs: [Gateway Protocol](/gateway/protocol).
 
 ### Readiness
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Call `status` for the Gateway snapshot, `models.list` for model catalog
+visibility, and `channels.status` for channel/account readiness.
 
 ### Gap recovery
 

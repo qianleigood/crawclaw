@@ -29,13 +29,16 @@ title: "Gateway Runbook"
 <Steps>
   <Step title="Start the Gateway">
 
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+打开 CrawClaw Desktop。desktop app 会启动或发现 bundled Rust Gateway，并把每次启动生成的
+local session token 传给 renderer。dev shell 使用 [Debugging](/help/debugging) 中的隔离
+Gateway cargo 命令。
 
   </Step>
 
   <Step title="Verify service health">
 
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+常规 operator check 使用 Desktop status view。自动化可调用 Gateway RPC method
+`health`、`status` 或 `system.status`。
 
 健康基线：`Runtime: running` 和 `RPC probe: ok`。
 
@@ -43,7 +46,8 @@ title: "Gateway Runbook"
 
   <Step title="Validate channel readiness">
 
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+交互式设置使用 channel settings panels。自动化使用 `channels.status` 检查 readiness，
+`channels.setup.surface` 获取 setup surface，`channels.config.patch` 执行 scoped config writes。
 
   </Step>
 </Steps>
@@ -93,7 +97,9 @@ Planning note:
 
 ## Operator command set
 
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+常用 automation entrypoints 包括 `health` / `system.status`、`config.get`、`config.patch`、
+`channels.status`、`models.list`、`usage.status`、`plugins.list`、`tools.catalog`、
+`memory.status` 和 `cron.status`。
 
 ## Remote access
 
@@ -141,7 +147,8 @@ CRAWCLAW_CONFIG_PATH=~/.crawclaw/b.json CRAWCLAW_STATE_DIR=~/.crawclaw-b <start 
 
 ### Dev profile quick path
 
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+使用 [Debugging](/help/debugging) 中的隔离 dev 命令：
+`CRAWCLAW_STATE_DIR="$HOME/.crawclaw-dev" cargo run -q -p crawclaw-gateway -- --bind loopback --port 19001`。
 
 默认包含隔离的 state/config 和 base gateway port `19001`。
 
@@ -168,7 +175,8 @@ Agent runs 分两阶段：
 
 ### Readiness
 
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+调用 `status` 获取 Gateway snapshot，调用 `models.list` 检查 model catalog 可见性，调用
+`channels.status` 检查 channel/account readiness。
 
 ### Gap recovery
 
