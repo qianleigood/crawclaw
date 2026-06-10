@@ -1,13 +1,13 @@
 ---
 read_when:
-  - 新規ユーザーにCrawClawを紹介するとき
-summary: CrawClawは、あらゆるOSで動作するAIエージェント向けのマルチチャネルgatewayです。
+  - 新規ユーザーに CrawClaw を紹介するとき
+summary: CrawClaw は AI エージェント向けのデスクトップ優先ローカル Gateway です。
 title: CrawClaw
 x-i18n:
-  generated_at: "2026-02-08T17:15:47Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: fc8babf7885ef91d526795051376d928599c4cf8aff75400138a0d7d9fa3b75f
+  generated_at: "2026-06-10T10:02:25Z"
+  model: codex
+  provider: openai
+  source_hash: 58c6b8f2e6dbfa0c4388c7cb016977df0d1c27872d3f3bfb7402894649129136
   source_path: index.md
   workflow: 15
 ---
@@ -29,143 +29,95 @@ x-i18n:
     />
 </p>
 
-> _「EXFOLIATE! EXFOLIATE!」_ — たぶん宇宙ロブスター
-
 <p align="center">
-  <strong>Weixin、Feishu、QQBot、Weixinなどに対応した、あらゆるOS向けのAIエージェントgateway。</strong><br />
-  メッセージを送信すれば、ポケットからエージェントの応答を受け取れます。プラグインでFeishuなどを追加できます。
+  <strong>チャットチャネル、ツール、プラグイン、自動化にまたがる AI エージェント向けのデスクトップ優先ローカル Gateway。</strong><br />
+  デスクトップアプリから CrawClaw を設定、運用します。自動化はローカル Gateway API 経由で実行します。
 </p>
 
 <Columns>
   <Card title="はじめに" href="/start/getting-started" icon="rocket">
     CrawClaw Desktop をインストールし、ローカル Gateway を起動します。
   </Card>
-  <Card title="Desktop 設定" href="/install/desktop" icon="sparkles">
-    desktop UI で models、plugins、logs、diagnostics を設定します。
-  </Card>
-  <Card title="Gateway API" href="/gateway/protocol" icon="terminal">
-    自動化クライアントはローカル Gateway API 経由で接続します。
+  <Card title="Desktop" href="/install/desktop" icon="monitor">
+    デスクトップアプリがバンドル、起動、保存する内容を確認します。
   </Card>
 </Columns>
 
-CrawClawは、単一のGatewayプロセスを通じてチャットアプリ、プラグイン、自動化クライアントをRust agent runtimeに接続します。CrawClawアシスタントを駆動し、ローカルまたはリモートのセットアップをサポートします。
+## CrawClaw とは
+
+CrawClaw は、チャットチャネル、ツール、モデルプロバイダー、セッション、メモリ、プラグインを AI エージェントへ接続する **ローカル優先のデスクトップ Gateway** です。Apple プラットフォームでは、CrawClaw はユーザー CLI ではなくデスクトップアプリです。Gateway API は、自動化と連携のためのローカル control-plane 境界として残ります。
+
+**誰向けですか？** 自分のマシン上で動く個人 AI アシスタントを必要とし、データや runtime state の制御を手放したくない開発者と power user 向けです。
+
+**何が違いますか？**
+
+- **デスクトップ優先**: setup、status、logs、plugins、models、Agent chat を 1 つのアプリが管理します
+- **ローカル Gateway API**: 自動化クライアントは明示的な JSON methods で連携します
+- **マルチチャネル**: 1 つの Gateway が対応チャネルと paired devices を扱えます
+- **Agent-native**: tool use、sessions、memory、multi-agent routing のために設計されています
+- **オープンソース**: MIT licensed、community-driven
 
 ## 仕組み
 
 ```mermaid
 flowchart LR
   A["CrawClaw Desktop"] --> B["Local Gateway API"]
-  C["チャットアプリ + プラグイン"] --> B
+  C["Chat apps + plugins"] --> B
   D["Automation clients"] --> B
   B --> E["Agent runtime"]
   E --> F["Tools, models, memory"]
 ```
 
-Gatewayは、セッション、ルーティング、チャネル接続の信頼できる唯一の情報源です。
+Gateway は、sessions、routing、local runtime state、認証済み control-plane operations の single source of truth です。
 
 ## 主な機能
 
 <Columns>
-  <Card title="マルチチャネルgateway" icon="network">
-    単一のGatewayプロセスでWeixin、Feishu、QQBot、Weixinに対応。
+  <Card title="Desktop workbench" icon="monitor">
+    models、plugins、status、logs、diagnostics、Agent sessions を設定します。
   </Card>
-  <Card title="プラグインチャネル" icon="plug">
-    拡張パッケージでFeishuなどを追加。
+  <Card title="Gateway API" icon="waypoints">
+    自動化と連携にはローカル JSON methods を使います。
   </Card>
-  <Card title="マルチエージェントルーティング" icon="route">
-    エージェント、ワークスペース、送信者ごとに分離されたセッション。
+  <Card title="Multi-agent routing" icon="route">
+    agent、workspace、sender ごとに session を分離します。
   </Card>
-  <Card title="メディアサポート" icon="image">
-    画像、音声、ドキュメントの送受信。
-  </Card>
-  <Card title="Terminal UI" icon="terminal">
-    CrawClaw Desktop で chat、sessions、approvals を操作します。
-  </Card>
-  <Card title="ノード連携" icon="smartphone">
-    ノードとヘッドレスホストをペアリングします。
+  <Card title="Plugin ecosystem" icon="plug">
+    native plugins、tools、channels、providers で CrawClaw を拡張します。
   </Card>
 </Columns>
 
-## クイックスタート
+完全なインストールと開発セットアップが必要ですか？[はじめに](/start/getting-started) を参照してください。
 
-<Steps>
-  <Step title="CrawClawをインストール">
-    [GitHub Releases](https://github.com/qianleigood/crawclaw/releases) から CrawClaw Desktop をインストールします。
-  </Step>
-  <Step title="CrawClaw Desktopを起動">
-    Desktop は `~/.crawclaw` を準備し、embedded Rust runtime を stage し、ローカル Gateway を起動します。
-  </Step>
-  <Step title="モデルを設定してチャットを開始">
-    Desktop Settings で model providers と plugins を設定し、Agent ページでメッセージを送信します。
-  </Step>
-</Steps>
-
-完全なインストールと開発セットアップが必要ですか？[クイックスタート](/start/quickstart)をご覧ください。
-
-## ローカルとリモートアクセス
-
-Gateway起動後は、CrawClaw Desktop、ローカル Gateway API、またはリモートアクセス経路から利用します。
-
-- ローカル: CrawClaw Desktop とローカル Gateway API
-- リモートアクセス: [リモートアクセス](/gateway/remote) および [Tailscale](/gateway/tailscale)
-
-## 設定（オプション）
-
-設定は`~/.crawclaw/crawclaw.json`にあります。
-
-- **何もしなければ**、CrawClawはRust agent runtimeとNativeProvider経路を使用し、送信者ごとのセッションを作成します。
-- 制限を設けたい場合は、`channels.weixin.allowFrom`と（グループの場合）メンションルールから始めてください。
-
-例：
-
-```json5
-{
-  channels: {
-    weixin: {
-      allowFrom: ["+15555550123"],
-      groups: { "*": { requireMention: true } },
-    },
-  },
-  messages: { groupChat: { mentionPatterns: ["@crawclaw"] } },
-}
-```
+<p align="center">
+  <img src="/assets/pixel-crab.svg" alt="CrawClaw" width="220" />
+</p>
 
 ## ここから始める
 
 <Columns>
-  <Card title="ドキュメントハブ" href="/start/hubs" icon="book-open">
+  <Card title="Docs hubs" href="/start/hubs" icon="book-open">
     ユースケース別に整理されたすべてのドキュメントとガイド。
   </Card>
-  <Card title="設定" href="/gateway/configuration" icon="settings">
-    Gatewayのコア設定、トークン、プロバイダー設定。
+  <Card title="Concepts index" href="/concepts" icon="blocks">
+    system model、runtime、memory、models、messaging concepts。
   </Card>
-  <Card title="リモートアクセス" href="/gateway/remote" icon="globe">
-    SSHおよびtailnetアクセスパターン。
+  <Card title="Gateway protocol" href="/gateway/protocol" icon="waypoints">
+    desktop と automation clients 向けのローカル API contract。
   </Card>
-  <Card title="チャネル" href="/channels/index" icon="message-square">
-    Weixin、Feishu、QQBotなどのチャネル固有のセットアップ。
+  <Card title="Reference docs" href="/reference" icon="file-text">
+    testing、release、RPC、migration の安定した reference material。
   </Card>
-  <Card title="ヘルプ" href="/help" icon="life-buoy">
-    一般的な修正とトラブルシューティングのエントリーポイント。
+  <Card title="Configuration" href="/gateway/configuration" icon="settings">
+    Core Gateway settings、tokens、provider config。
   </Card>
-</Columns>
-
-## 詳細
-
-<Columns>
-  <Card title="全機能リスト" href="/concepts/features" icon="list">
-    チャネル、ルーティング、メディア機能の完全な一覧。
+  <Card title="Remote access" href="/gateway/remote" icon="globe">
+    SSH と tailnet access patterns。
   </Card>
-  <Card title="マルチエージェントルーティング" href="/concepts/multi-agent" icon="route">
-    ワークスペースの分離とエージェントごとのセッション。
+  <Card title="Channels" href="/channels" icon="message-square">
+    対応 chat surfaces 向けの channel-specific setup。
   </Card>
-  <Card title="セキュリティ" href="/gateway/security" icon="shield">
-    トークン、許可リスト、安全制御。
-  </Card>
-  <Card title="トラブルシューティング" href="/gateway/troubleshooting" icon="wrench">
-    Gatewayの診断と一般的なエラー。
-  </Card>
-  <Card title="概要とクレジット" href="/reference/credits" icon="info">
-    プロジェクトの起源、貢献者、ライセンス。
+  <Card title="Help" href="/help" icon="life-buoy">
+    よくある修正と troubleshooting entry point。
   </Card>
 </Columns>

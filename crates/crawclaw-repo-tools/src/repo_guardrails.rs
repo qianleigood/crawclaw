@@ -371,45 +371,47 @@ pub fn run_docs_i18n_glossary(
 
 pub fn run_docs_i18n_source_hash(root: impl AsRef<Path>) -> Result<CheckReport, String> {
     let root = normalize_root(root.as_ref());
-    let zh_dir = root.join("docs/zh-CN");
-    if !zh_dir.is_dir() {
+    let localized_dirs = localized_docs_dirs(&root)?;
+    if localized_dirs.is_empty() {
         return Ok(CheckReport::ok(""));
     }
 
     let mut mismatches = Vec::new();
-    for rel_path in walk_all_files(&zh_dir, &root)? {
-        if !(rel_path.ends_with(".md") || rel_path.ends_with(".mdx")) {
-            continue;
-        }
-        let content = fs::read_to_string(root.join(&rel_path))
-            .map_err(|error| format!("failed to read {rel_path}: {error}"))?;
-        let Some(metadata) = extract_i18n_source_metadata(&content) else {
-            continue;
-        };
-        if i18n_source_path_escapes_docs(&metadata.source_path) {
-            mismatches.push(format!(
-                "- {rel_path}: source_path {} escapes docs/",
-                metadata.source_path
-            ));
-            continue;
-        }
-        let source_rel_path = normalize_i18n_source_path(&metadata.source_path);
-        let source_display_path = format!("docs/{source_rel_path}");
-        let source_path = root.join(&source_display_path);
-        if !source_path.is_file() {
-            mismatches.push(format!(
-                "- {rel_path}: source file {source_display_path} is missing"
-            ));
-            continue;
-        }
-        let source = fs::read(&source_path)
-            .map_err(|error| format!("failed to read {source_display_path}: {error}"))?;
-        let actual = sha256_hex(&source);
-        if actual != metadata.source_hash {
-            mismatches.push(format!(
-                "- {rel_path}: source_hash {} does not match {source_display_path} ({actual})",
-                metadata.source_hash
-            ));
+    for localized_dir in localized_dirs {
+        for rel_path in walk_all_files(&localized_dir, &root)? {
+            if !(rel_path.ends_with(".md") || rel_path.ends_with(".mdx")) {
+                continue;
+            }
+            let content = fs::read_to_string(root.join(&rel_path))
+                .map_err(|error| format!("failed to read {rel_path}: {error}"))?;
+            let Some(metadata) = extract_i18n_source_metadata(&content) else {
+                continue;
+            };
+            if i18n_source_path_escapes_docs(&metadata.source_path) {
+                mismatches.push(format!(
+                    "- {rel_path}: source_path {} escapes docs/",
+                    metadata.source_path
+                ));
+                continue;
+            }
+            let source_rel_path = normalize_i18n_source_path(&metadata.source_path);
+            let source_display_path = format!("docs/{source_rel_path}");
+            let source_path = root.join(&source_display_path);
+            if !source_path.is_file() {
+                mismatches.push(format!(
+                    "- {rel_path}: source file {source_display_path} is missing"
+                ));
+                continue;
+            }
+            let source = fs::read(&source_path)
+                .map_err(|error| format!("failed to read {source_display_path}: {error}"))?;
+            let actual = sha256_hex(&source);
+            if actual != metadata.source_hash {
+                mismatches.push(format!(
+                    "- {rel_path}: source_hash {} does not match {source_display_path} ({actual})",
+                    metadata.source_hash
+                ));
+            }
         }
     }
 
@@ -417,7 +419,7 @@ pub fn run_docs_i18n_source_hash(root: impl AsRef<Path>) -> Result<CheckReport, 
         return Ok(CheckReport::ok(""));
     }
 
-    let mut stderr = String::from("docs:i18n-source-hash: zh-CN source hash drift detected:\n");
+    let mut stderr = String::from("docs:i18n-source-hash: localized source hash drift detected:\n");
     for mismatch in mismatches {
         stderr.push_str(&mismatch);
         stderr.push('\n');
@@ -1746,6 +1748,33 @@ fn is_generated_translated_doc(path: &str) -> bool {
     has_region
 }
 
+fn localized_docs_dirs(root: &Path) -> Result<Vec<PathBuf>, String> {
+    let docs_dir = root.join("docs");
+    if !docs_dir.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut dirs = fs::read_dir(&docs_dir)
+        .map_err(|error| format!("failed to read {}: {error}", slash_path(&docs_dir)))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("failed to read {}: {error}", slash_path(&docs_dir)))?
+        .into_iter()
+        .filter_map(|entry| {
+            let path = entry.path();
+            if !path.is_dir() {
+                return None;
+            }
+            let name = entry.file_name().to_string_lossy().to_string();
+            if is_generated_translated_doc(&name) {
+                Some(path)
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+    dirs.sort();
+    Ok(dirs)
+}
+
 fn walk_all_files(dir: &Path, base: &Path) -> Result<Vec<String>, String> {
     let mut out = Vec::new();
     let mut entries = fs::read_dir(dir)
@@ -2174,6 +2203,26 @@ mod tests {
         assert!(report
             .stderr
             .contains("source_path ../start.md escapes docs/"));
+    }
+
+    #[test]
+    fn docs_i18n_source_hash_checks_non_zh_localized_docs() {
+        let root = unique_test_dir("docs-i18n-source-hash-locale");
+        fs::create_dir_all(root.join("docs/ja-JP/start")).expect("create docs dirs");
+        fs::write(root.join("docs/start.md"), "# Getting started\n").expect("write source doc");
+        fs::write(
+            root.join("docs/ja-JP/start/getting-started.md"),
+            "---\ntitle: はじめに\nx-i18n:\n  source_path: start.md\n  source_hash: stale\n---\n# はじめに\n",
+        )
+        .expect("write translated doc");
+
+        let report = run_docs_i18n_source_hash(&root).expect("run source hash check");
+
+        let _ = fs::remove_dir_all(&root);
+        assert!(!report.ok);
+        assert!(report
+            .stderr
+            .contains("docs/ja-JP/start/getting-started.md"));
     }
 
     fn unique_test_dir(name: &str) -> PathBuf {

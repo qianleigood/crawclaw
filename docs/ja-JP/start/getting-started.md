@@ -5,10 +5,10 @@ read_when:
 summary: CrawClaw Desktop をインストールし、ローカル Gateway を起動します。
 title: はじめに
 x-i18n:
-  generated_at: "2026-02-08T17:15:16Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: 27aeeb3d18c495380e94e6b011b0df3def518535c9f1eee504f04871d8a32269
+  generated_at: "2026-06-10T10:02:25Z"
+  model: codex
+  provider: openai
+  source_hash: 869cc3ce9e1ad3af40dfaa5ff90946e214831126d8311d13eeaadeabf1c33e9d
   source_path: start/getting-started.md
   workflow: 15
 ---

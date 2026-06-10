@@ -6,10 +6,10 @@ sidebarTitle: Desktop Onboarding
 summary: Gateway、workspace、channels、models、skills の Desktop onboarding
 title: Desktop Onboarding
 x-i18n:
-  generated_at: "2026-02-08T17:15:18Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: 9a650d46044a930aa4aaec30b35f1273ca3969bf676ab67bf4e1575b5c46db4c
+  generated_at: "2026-06-10T10:02:25Z"
+  model: codex
+  provider: openai
+  source_hash: 8ac7c28017a9c49e6d524facf746bfb34528e8dc44f08cd3b3291036c307657b
   source_path: start/wizard.md
   workflow: 15
 ---
