@@ -48,6 +48,10 @@
     "target": "Gateway 协议"
   },
   {
+    "source": "OpenAI-compatible Chat Completions",
+    "target": "OpenAI 兼容 Chat Completions"
+  },
+  {
     "source": "Gateway troubleshooting",
     "target": "Gateway 故障排除"
   },

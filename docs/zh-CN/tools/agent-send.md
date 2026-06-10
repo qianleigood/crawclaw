@@ -1,60 +1,96 @@
 ---
 read_when:
-  - 你想从脚本或自动化触发 agent run
-  - 你需要把 agent reply 投递回聊天渠道
-summary: 通过 CrawClaw Desktop 或本地 Gateway API 触发 agent turn 并可选投递回复
+  - 你想从脚本触发 agent turn
+  - 你需要 `chat.send` 的请求和响应结构
+summary: 通过 Gateway RPC 或本地 Gateway call helper 运行一个 agent turn
 title: Agent Send
+x-i18n:
+  generated_at: "2026-06-10T20:26:28Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: 64af00b20ede9251e0b9c9523ab86c10476a18009a45b1f39d6595816d7725cc
+  source_path: tools/agent-send.md
+  workflow: 15
 ---
 
 # Agent Send
 
-CrawClaw Desktop 或本地 Gateway API 可以在没有入站聊天消息的情况下运行单个 agent turn。它适用于脚本化 workflow、测试和程序化投递。
+`chat.send` 可以在没有入站聊天消息的情况下运行单个 agent turn。它适用于脚本化 workflow、测试，以及需要复用 Desktop 同一套 Rust-native Gateway agent runtime 的本地自动化。
 
 ## 快速开始
 
 <Steps>
   <Step title="运行一个简单 agent turn">
-    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 自动化执行。
+    使用 `sessionKey` 和 `message` 调用 Gateway RPC `chat.send`。
 
-    请求会通过 Gateway 运行并返回回复。
+    ```bash
+    curl -sS http://127.0.0.1:18789/rpc \
+      -H "Authorization: Bearer $CRAWCLAW_GATEWAY_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "method": "chat.send",
+        "id": "example-1",
+        "params": {
+          "sessionKey": "agent:main:main",
+          "message": "Summarize the current project state"
+        }
+      }'
+    ```
 
   </Step>
 
-  <Step title="指定 agent 或 session">
-    使用 Desktop 或 Gateway API 传入目标 agent id、session id 或投递目标。
+  <Step title="从本地 checkout 运行">
+    Gateway 二进制也提供本地开发 shell 可用的 `call` helper。
+
+    ```bash
+    cargo run -q -p crawclaw-gateway -- call \
+      --method chat.send \
+      --params-json '{"sessionKey":"agent:main:main","message":"hello gateway"}'
+    ```
+
   </Step>
 
-  <Step title="投递回复到渠道">
-    使用 Desktop 或 Gateway API 配置 channel、reply target 和 account 覆盖。
+  <Step title="指定 session 或 agent">
+    使用 `sessionKey` 选择 transcript；需要使用非 `main` 的已配置 agent 时传入 `agentId`。
   </Step>
 </Steps>
 
-## 常用参数
+## 请求
 
-| 参数           | 说明                     |
-| -------------- | ------------------------ |
-| `message`      | 要发送的消息             |
-| `to`           | 用目标派生 session key   |
-| `agent`        | 目标 agent id            |
-| `sessionId`    | 复用已有 session         |
-| `deliver`      | 是否把回复投递到聊天渠道 |
-| `channel`      | 投递渠道                 |
-| `replyTo`      | 投递目标覆盖             |
-| `replyChannel` | 投递渠道覆盖             |
-| `replyAccount` | 投递账号覆盖             |
-| `thinking`     | thinking level           |
-| `verbose`      | verbose level            |
-| `timeout`      | agent timeout            |
+`chat.send` 接受这些常用 params：
 
-## 行为
+| 参数             | 说明                                        |
+| ---------------- | ------------------------------------------- |
+| `sessionKey`     | 必填 transcript/session key。别名：`key`。  |
+| `message`        | 用户文本。别名：`text`、`prompt`。          |
+| `agentId`        | 已配置的 agent id。默认 `main`。            |
+| `idempotencyKey` | 重试时使用的稳定 run id。别名：`runId`。    |
+| `channel`        | 合成 inbound channel 标签。默认 `gateway`。 |
+| `from`           | 合成发送者 id。默认 `user`。                |
+| `to`             | 合成接收者 id。默认 `agent:main`。          |
+| `profile`        | 可选 agent run profile 对象。               |
+| `provider`       | agent runtime 允许时的可选 provider 覆盖。  |
+| `model`          | agent runtime 允许时的可选 model 覆盖。     |
+| `reasoningLevel` | 传入 agent model selection 的可选推理级别。 |
 
-- 默认通过 Gateway 运行。
-- 会话选择由 `to`、`agent` 或 `sessionId` 决定。
-- thinking 和 verbose 会持久化到 session store。
-- 返回值可为普通文本或结构化 payload，具体取决于调用的 Gateway API。
+也可以传完整的 `inbound` envelope 来替代 `message`；当 `inbound.threadId` 缺失时，Gateway 会用 `sessionKey` 补齐。
+
+## 响应
+
+成功调用会返回结构化 Gateway RPC response。常用字段包括：
+
+- `result.status`：turn 完成时为 `completed`。
+- `result.runId`：run id。
+- `result.sessionKey`：写入的 session。
+- `result.message.content`：assistant 回复文本。
+- `result.contextSummary`：context projection 元数据。
+- `result.events`：发出的 agent runtime events。
+
+`chat.send` 返回 assistant message 和 event stream。它本身不会把回复投递到外部渠道；渠道投递使用 `channel.outbound.send` 等 channel outbound RPC。
 
 ## 相关页面
 
-- [Gateway API](/gateway)
-- [Slash commands](/tools/slash-commands)
-- [Multi-Agent Routing](/concepts/multi-agent)
+- [Gateway Protocol](/gateway/protocol)
+- [OpenAI 兼容 Chat Completions](/gateway/openai-http-api)
+- [Sub-agents](/tools/subagents) — 后台 sub-agent spawning
+- [Sessions](/concepts/session) — session key 的工作方式

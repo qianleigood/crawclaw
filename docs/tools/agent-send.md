@@ -1,73 +1,90 @@
 ---
-summary: "Run agent turns from the CLI and optionally deliver replies to channels"
+summary: "Run one agent turn through Gateway RPC or the local gateway call helper"
 read_when:
-  - You want to trigger agent runs from scripts or the command line
-  - You need to deliver agent replies to a chat channel programmatically
+  - You want to trigger an agent turn from scripts
+  - You need the `chat.send` request and response shape
 title: "Agent Send"
 ---
 
 # Agent Send
 
-CrawClaw Desktop or the local Gateway API runs a single agent turn from the command line without needing
-an inbound chat message. Use it for scripted workflows, testing, and
-programmatic delivery.
+`chat.send` runs a single agent turn without needing an inbound chat message. Use it for scripted workflows, tests, and local automation that should use the same Rust-native Gateway agent runtime as Desktop.
 
 ## Quick start
 
 <Steps>
   <Step title="Run a simple agent turn">
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Call Gateway RPC `chat.send` with a `sessionKey` and `message`.
 
-    This sends the message through the Gateway and prints the reply.
+    ```bash
+    curl -sS http://127.0.0.1:18789/rpc \
+      -H "Authorization: Bearer $CRAWCLAW_GATEWAY_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "method": "chat.send",
+        "id": "example-1",
+        "params": {
+          "sessionKey": "agent:main:main",
+          "message": "Summarize the current project state"
+        }
+      }'
+    ```
 
   </Step>
 
-  <Step title="Target a specific agent or session">
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+  <Step title="Run from a local checkout">
+    The gateway binary also has a local `call` helper for development shells.
+
+    ```bash
+    cargo run -q -p crawclaw-gateway -- call \
+      --method chat.send \
+      --params-json '{"sessionKey":"agent:main:main","message":"hello gateway"}'
+    ```
 
   </Step>
 
-  <Step title="Deliver the reply to a channel">
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+  <Step title="Target a session or agent">
+    Set `sessionKey` to choose the transcript and `agentId` when you want a configured agent other than `main`.
 
   </Step>
 </Steps>
 
-## Flags
+## Request
 
-| Flag                          | Description                                                 |
-| ----------------------------- | ----------------------------------------------------------- |
-| `--message \<text\>`          | Message to send (required)                                  |
-| `--to \<dest\>`               | Derive session key from a target (phone, chat id)           |
-| `--agent \<id\>`              | Target a configured agent (uses its `main` session)         |
-| `--session-id \<id\>`         | Reuse an existing session by id                             |
-| `--local`                     | Force local embedded runtime (skip Gateway)                 |
-| `--deliver`                   | Send the reply to a chat channel                            |
-| `--channel \<name\>`          | Delivery channel (weixin, feishu, qqbot, ddingtalk, etc.)   |
-| `--reply-to \<target\>`       | Delivery target override                                    |
-| `--reply-channel \<name\>`    | Delivery channel override                                   |
-| `--reply-account \<id\>`      | Delivery account id override                                |
-| `--thinking \<level\>`        | Set thinking level (off, minimal, low, medium, high, xhigh) |
-| `--verbose \<on\|full\|off\>` | Set verbose level                                           |
-| `--timeout \<seconds\>`       | Override agent timeout                                      |
-| `--json`                      | Output structured JSON                                      |
+`chat.send` accepts these common params:
 
-## Behavior
+| Param            | Description                                                     |
+| ---------------- | --------------------------------------------------------------- |
+| `sessionKey`     | Required transcript/session key. Alias: `key`.                  |
+| `message`        | User text. Aliases: `text`, `prompt`.                           |
+| `agentId`        | Configured agent id. Defaults to `main`.                        |
+| `idempotencyKey` | Stable run id for retries. Alias: `runId`.                      |
+| `channel`        | Synthetic inbound channel label. Defaults to `gateway`.         |
+| `from`           | Synthetic sender id. Defaults to `user`.                        |
+| `to`             | Synthetic receiver id. Defaults to `agent:main`.                |
+| `profile`        | Optional agent run profile object.                              |
+| `provider`       | Optional provider override when the agent runtime permits it.   |
+| `model`          | Optional model override when the agent runtime permits it.      |
+| `reasoningLevel` | Optional reasoning level passed into the agent model selection. |
 
-- By default, the CLI goes **through the Gateway**. Add `--local` to force the
-  embedded runtime on the current machine.
-- If the Gateway is unreachable, the CLI **falls back** to the local embedded run.
-- Session selection: `--to` derives the session key (group/channel targets
-  preserve isolation; direct chats collapse to `main`).
-- Thinking and verbose flags persist into the session store.
-- Output: plain text by default, or `--json` for structured payload + metadata.
+You can also pass a full `inbound` envelope instead of `message`; when `inbound.threadId` is missing, the Gateway fills it from `sessionKey`.
 
-## Examples
+## Response
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Successful calls return a structured Gateway RPC response. The useful fields are:
+
+- `result.status`: `completed` when the turn finishes.
+- `result.runId`: the run id.
+- `result.sessionKey`: the session that was written.
+- `result.message.content`: assistant reply text.
+- `result.contextSummary`: context projection metadata.
+- `result.events`: the emitted agent runtime events.
+
+`chat.send` returns the assistant message and event stream. It does not deliver the reply to an external channel by itself; channel delivery uses channel outbound RPCs such as `channel.outbound.send`.
 
 ## Related
 
-- [Agent Gateway API](/tools/agent-send)
+- [Gateway Protocol](/gateway/protocol)
+- [OpenAI-compatible Chat Completions](/gateway/openai-http-api)
 - [Sub-agents](/tools/subagents) — background sub-agent spawning
 - [Sessions](/concepts/session) — how session keys work
