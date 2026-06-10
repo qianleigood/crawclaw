@@ -14,9 +14,10 @@ CrawClaw should integrate with a local ComfyUI server as a plugin-backed media
 workflow builder. The goal is not to ship a small fixed set of ComfyUI
 templates. The goal is for CrawClaw to inspect the user's actual local ComfyUI
 node surface, plan a graph for an image or video generation request, validate
-that graph against the live node catalog, repair invalid plans when possible,
-compile the validated graph to ComfyUI API-format JSON, run it on the local
-ComfyUI queue, and download generated outputs.
+that graph against the live node catalog, return structured diagnostics when
+the graph cannot be made valid, compile the validated graph to ComfyUI
+API-format JSON, run it on the local ComfyUI queue, and download generated
+outputs.
 
 The first implementation targets local ComfyUI, normally
 `http://127.0.0.1:8188`. ComfyUI Cloud, n8n deployment, and a generic
@@ -43,8 +44,9 @@ first pass.
 
 ## Non-Goals
 
-- Do not install or manage ComfyUI itself.
-- Do not install ComfyUI custom nodes or models.
+- Do not install or manage ComfyUI custom nodes or models.
+- Do not put ComfyUI lifecycle controls in `comfyui_workflow`; Desktop
+  Automation Environment owns installation, start, stop, health, and logs.
 - Do not support ComfyUI Cloud in the first pass.
 - Do not add a second CrawClaw workflow engine.
 - Do not wire this into `workflowize` or n8n in the first pass.
@@ -55,17 +57,17 @@ first pass.
 
 ## Current Project Fit
 
-CrawClaw already has the right extension boundary for this work:
+CrawClaw already has the right native plugin and automation asset boundary for
+this work:
 
-- bundled plugins live under `extensions/`
+- bundled automation assets live under `automation/`
 - non-channel runtime plugins use Rust native descriptors
 - runtime tools and services are Rust-owned
-- plugin-owned dependencies stay in the plugin package
 - core workflow execution is currently centered on n8n and should not be
   expanded for this first ComfyUI pass
 
-The ComfyUI integration lives as a manifest package in `extensions/comfyui`,
-with runtime behavior owned by the Rust native plugin crate.
+The ComfyUI lifecycle manifest lives under `automation/comfyui`, with workflow
+tool behavior owned by the Rust native plugin crate.
 
 The existing workflow subsystem remains a future consumer. Once this plugin can
 create and run real ComfyUI graphs reliably, CrawClaw can later workflowize a
@@ -114,14 +116,14 @@ and a small metadata sidecar so the user can ask to rerun or modify it later.
 
 ### Package
 
-Add a bundled plugin:
+The implementation uses the existing native plugin and automation manifest
+surfaces:
 
-- `extensions/comfyui/package.json`
-- `extensions/comfyui/crawclaw.plugin.json`
+- `automation/comfyui/manifest.json`
 - `crates/crawclaw-native-plugins/src/comfyui.rs`
+- `crates/crawclaw-native-plugins/src/registry.rs`
 
-The plugin id is `comfyui`. The package name should align with repo naming
-rules, for example `@crawclaw/comfyui-plugin`.
+The plugin id is `comfyui`; the optional tool is `comfyui_workflow`.
 
 ### Config
 
@@ -160,24 +162,38 @@ Register one optional tool named `comfyui_workflow`.
 Actions:
 
 - `inspect`
-- `plan`
 - `create`
 - `validate`
-- `repair`
 - `run`
 - `status`
 - `outputs`
+
+Gateway-facing read operations also expose saved workflow, run, and output
+lists through native operations:
+
+- `workflows-list`
+- `workflow-get`
+- `runs-list`
+- `outputs-list`
+
+Do not expose a public `repair` action. Validation diagnostics may include
+`repairHint` strings, but the current runtime has no standalone `repair`
+operation.
 
 The tool can expose a single discriminated parameter shape:
 
 ```ts
 type ComfyUiWorkflowAction =
   | { action: "inspect"; refresh?: boolean }
-  | { action: "plan"; goal: string; mediaKind?: "image" | "video" | "audio" | "auto" }
   | { action: "create"; goal: string; inputs?: Record<string, unknown>; save?: boolean }
-  | { action: "validate"; workflow: unknown }
-  | { action: "repair"; workflow: unknown; diagnostics: unknown[] }
-  | { action: "run"; workflow: unknown; inputs?: Record<string, unknown>; approved?: boolean }
+  | { action: "validate"; workflowId?: string; ir?: unknown }
+  | {
+      action: "run";
+      workflowId?: string;
+      ir?: unknown;
+      waitForCompletion?: boolean;
+      downloadOutputs?: boolean;
+    }
   | { action: "status"; promptId: string }
   | { action: "outputs"; promptId: string; download?: boolean };
 ```
@@ -246,8 +262,9 @@ Each IR node includes:
 - input references to other IR nodes
 - optional candidate alternatives
 
-The IR is the safety boundary. Validation and repair operate on IR before
-compilation.
+The IR is the safety boundary. Validation operates on IR before compilation.
+Diagnostics can carry repair hints, but there is no standalone public repair
+operation.
 
 ### 4. Planner
 
@@ -284,7 +301,7 @@ Responsibilities:
 - verify references point to existing nodes
 - detect obviously incompatible links when input/output type hints are available
 - detect missing model names or unresolved enum choices
-- classify errors as repairable or blocking
+- classify errors as blocking and include repair hints when the user can act
 
 Diagnostics should be structured:
 
@@ -300,21 +317,20 @@ type ComfyGraphDiagnostic = {
 };
 ```
 
-### 6. Repair Loop
+### 6. Diagnostics
 
-`crates/crawclaw-native-plugins/src/comfyui.rs` repair loop
+`crates/crawclaw-native-plugins/src/comfyui.rs` diagnostics
 
 Responsibilities:
 
-- take graph IR and diagnostics
-- search for replacement nodes when a class is missing
-- fill missing required inputs from defaults or user inputs when safe
-- ask for user input when a required model/file choice cannot be inferred
-- stop after `maxPlanRepairAttempts`
+- return structured diagnostics for invalid graph IR
+- include candidate choices when a required model or enum cannot be inferred
+- use `repairHint` only as guidance for the user or planner
+- keep bounded planner attempts through `maxPlanRepairAttempts`
 
-Repair should never silently swap to a semantically unrelated workflow. If the
-user asks for video and no video path can be found, the result should say which
-video nodes or models appear to be missing.
+The planner should never silently swap to a semantically unrelated workflow. If
+the user asks for video and no video path can be found, the result should say
+which video nodes or models appear to be missing.
 
 ### 7. Compiler
 
@@ -368,10 +384,9 @@ The creation loop is:
 1. discover local nodes
 2. plan graph IR
 3. validate graph IR
-4. repair graph IR
-5. validate again
-6. compile to API JSON
-7. optionally run
+4. return diagnostics if validation blocks compilation
+5. compile to API JSON
+6. optionally run
 
 This gives the model room to design custom image and video graphs while keeping
 the runtime path deterministic and testable.
@@ -459,8 +474,8 @@ Common failure modes should produce actionable responses:
   alternatives if any were found.
 - Required model or enum choice is missing: ask the user to choose from the
   available values.
-- Workflow validation fails after repairs: return diagnostics and the last IR
-  draft, but do not submit.
+- Workflow validation fails: return diagnostics and the last IR draft, but do
+  not submit.
 - `/prompt` rejects the workflow: return ComfyUI's validation error and node
   errors.
 - Execution completes with no outputs: return history status and save no empty
@@ -476,7 +491,7 @@ Unit tests:
 - `/object_info` normalization
 - graph IR schema validation
 - validator diagnostics for missing classes and inputs
-- repair loop stopping behavior
+- diagnostics and bounded planner stopping behavior
 - compiler output for a small valid graph
 - output resolver for image, video, audio, and unknown file entries
 - tool action dispatch
