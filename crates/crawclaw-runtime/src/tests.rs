@@ -1055,6 +1055,13 @@ fn rust_runtime_repo_guardrails_keep_repo_structure_on_tracked_extension_layout(
     let root = repo_root();
     let repo_structure = fs::read_to_string(root.join("docs/maintainers/repo-structure.md"))
         .expect("read repo structure guide");
+    assert!(
+        repo_structure.contains("`extensions/` is the bundled plugin ecosystem layer")
+            && !repo_structure.contains("official extension/plugin ecosystem layer")
+            && !repo_structure.contains("tool-oriented extensions")
+            && !repo_structure.contains("extension packages"),
+        "repo structure guide should describe extensions/ as the bundled plugin ecosystem"
+    );
     if !root.join("extensions/shared").exists() {
         assert!(
             !repo_structure.contains("extensions/shared"),

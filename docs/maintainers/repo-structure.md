@@ -53,17 +53,17 @@ Retained maintainer entry points inside `src/`:
 
 ## Capability Ecosystem
 
-`extensions/` is the official extension/plugin ecosystem layer.
+`extensions/` is the bundled plugin ecosystem layer.
 
 It includes multiple kinds of packages:
 
 - channel adapters
 - model/provider adapters
 - browser/runtime helpers
-- tool-oriented extensions
-- shared support packages when they are modeled as extension packages
+- tool-oriented plugins
+- shared support packages when they are modeled as plugin packages
 
-Not every extension is equal in role, but they all belong to the capability layer,
+Not every plugin package is equal in role, but they all belong to the capability layer,
 not the main runtime layer.
 
 `skills-optional/` also belongs to the ecosystem side of the repo. It is a catalog
