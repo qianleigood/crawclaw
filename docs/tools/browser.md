@@ -296,9 +296,9 @@ State and network:
 - Network requests: `{ "action": "network", "pattern": "api" }`
 - Downloads: `{ "action": "download", "filename": "report.pdf" }`
 
-Migration note: old CrawClaw Desktop or the local Gateway API examples have no current standalone
-CLI equivalent. Use the `browser` tool from an agent session or call it through
-the Gateway [Tools Invoke API](/gateway/tools-invoke-http-api).
+Migration note: old standalone browser CLI examples have no current equivalent.
+Use the `browser` tool from an agent session or call it through the Gateway
+[Tools Invoke API](/gateway/tools-invoke-http-api).
 
 Notes:
 
@@ -418,7 +418,8 @@ These are useful for “make the site behave like X” workflows:
 
 ## Security & privacy
 
-- The CrawClaw Desktop or the local Gateway API.
+- Browser automation runs behind the Gateway auth boundary; use CrawClaw Desktop
+  or the local Gateway API for operator control.
 - `browser` tool evaluate actions and `wait` calls with `fn`
   execute arbitrary JavaScript in the page context. Prompt injection can steer
   this. Disable it with `browser.evaluateEnabled=false` if you do not need it.

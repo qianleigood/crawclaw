@@ -120,8 +120,9 @@ See [Hooks](/automation/hooks).
 ### Main-session wakes
 
 Main-session wakes are event-driven turns requested by cron, hooks, background
-task completion, restart recovery, node notifications, or CrawClaw Desktop or the local Gateway API. They preserve main-session context without relying on the legacy
-periodic heartbeat cadence.
+task completion, restart recovery, node notifications, desktop actions, or local
+Gateway API calls. They preserve main-session context without relying on the
+legacy periodic heartbeat cadence.
 
 See [Heartbeat](/gateway/heartbeat) for legacy compatibility notes.
 
