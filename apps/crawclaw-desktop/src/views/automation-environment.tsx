@@ -95,9 +95,9 @@ export function AutomationEnvironment({
       <header className="automation-environment-panel__header">
         <div>
           <h3>自动化环境</h3>
-          <p>安装、启动并维护 n8n / ComfyUI 本机服务。</p>
+          <p>安装并维护 n8n / ComfyUI 的本机运行环境。</p>
         </div>
-        <Badge tone="neutral">{environmentStats.installed}/{environmentStats.total} 就绪</Badge>
+        <Badge tone="neutral">{environmentStats.installed}/{environmentStats.total} 已安装</Badge>
       </header>
 
       {managedRuntimes.length === 0 ? (
@@ -106,14 +106,19 @@ export function AutomationEnvironment({
         <div className="automation-environment-layout">
           <div className="automation-environment-overview" data-testid="automation-environment-overview">
             <div>
-              <span>可安装环境</span>
+              <span>安装环境</span>
               <strong>{environmentStats.total}</strong>
               <small>n8n / ComfyUI</small>
             </div>
             <div>
+              <span>未安装</span>
+              <strong>{environmentStats.notInstalled}</strong>
+              <small>需要先准备依赖</small>
+            </div>
+            <div>
               <span>运行中</span>
               <strong>{environmentStats.running}</strong>
-              <small>本机服务进程</small>
+              <small>可直接执行工作流</small>
             </div>
           </div>
 
@@ -149,63 +154,16 @@ export function AutomationEnvironment({
                     </Badge>
                   </header>
 
-                  <section className="automation-environment-install-center" aria-label={`${runtime.name} 安装环境`}>
-                    <div className="automation-environment-install-center__header">
+                  <div className="automation-environment-flow" aria-label={`${runtime.name} 环境管理`}>
+                    <section className="automation-environment-step">
+                      <div className="automation-environment-step__marker">1</div>
                       <div>
                         <span>安装环境</span>
                         <strong>{runtimeInstallTitle(runtime)}</strong>
-                      </div>
-                      <Badge tone="neutral">{runtimeInstallModeLabel(runtime.install.channel)}</Badge>
-                    </div>
-                    {computeProfiles.length > 0 ? (
-                      <div className="automation-environment-install-options">
-                        <div className="automation-environment-install-options__header">
-                          <strong>显卡与 PyTorch</strong>
-                          <span>{runtime.selectedComputeProfile ? `当前 ${runtime.selectedComputeProfile}` : 'auto'}</span>
-                        </div>
-                        <label>
-                          <span>Profile</span>
-                          <select
-                            disabled={runtime.status === 'running' || pendingRuntimeAction !== null}
-                            value={selectedComputeProfile ?? runtime.selectedComputeProfile ?? ''}
-                            onChange={(event) => setSelectedComputeProfiles((profiles) => ({
-                              ...profiles,
-                              [runtime.id]: event.target.value,
-                            }))}
-                          >
-                            <option value="">auto</option>
-                            {computeProfiles.map((profile) => (
-                              <option key={profile.id} value={profile.id}>
-                                {profile.id}{profile.experimental ? ' experimental' : ''}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        {runtime.id === 'comfyui' ? (
-                          <label>
-                            <span>PyTorch index URL</span>
-                            <input
-                              disabled={runtime.status === 'running' || pendingRuntimeAction !== null}
-                              placeholder={runtimePytorchIndexUrlPlaceholder(runtime, selectedComputeProfile)}
-                              required={runtimeRequiresPytorchIndexUrl(runtime, selectedComputeProfile)}
-                              value={pytorchIndexUrl ?? ''}
-                              onChange={(event) => setRuntimePytorchIndexUrls((urls) => ({
-                                ...urls,
-                                [runtime.id]: event.target.value,
-                              }))}
-                            />
-                          </label>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    <div className="automation-environment-install">
-                      <div className="automation-environment-install__body">
-                        <span>安装来源</span>
-                        <strong>{runtime.install.scriptPolicy}</strong>
-                        <small>{runtime.install.manifestPath}</small>
+                        <small>{runtime.install.scriptPolicy} · {runtimeInstallModeLabel(runtime.install.channel)}</small>
                       </div>
                       <button
-                        className="workspace-primary-button"
+                        className="workspace-primary-button automation-environment-install-button"
                         data-runtime-action="install"
                         data-testid="automation-runtime-action"
                         disabled={pendingRuntimeAction !== null || installDisabledReason !== null}
@@ -216,91 +174,134 @@ export function AutomationEnvironment({
                         <Download aria-hidden="true" size={14} strokeWidth={2} />
                         {pendingRuntimeAction === `${runtime.id}:install` ? '安装中' : '安装环境'}
                       </button>
-                    </div>
-                  </section>
+                    </section>
 
-                  <section className="automation-environment-runtime-state" aria-label={`${runtime.name} 运行状态`}>
-                    <div className="automation-environment-runtime-state__header">
-                      <strong>运行状态</strong>
-                      <span>{runtimeStatusSummary(runtime)}</span>
-                    </div>
-                    <dl className="automation-environment-service__meta">
-                      <div>
-                        <dt>Endpoint</dt>
-                        <dd>{runtime.baseUrl}</dd>
-                      </div>
-                      {runtime.healthUrl ? (
-                        <div>
-                          <dt>Health</dt>
-                          <dd title={runtime.healthUrl}>{runtimeHealthSummary(runtime)}</dd>
+                    {computeProfiles.length > 0 ? (
+                      <section className="automation-environment-step automation-environment-step--config">
+                        <div className="automation-environment-step__marker">2</div>
+                        <div className="automation-environment-config">
+                          <div className="automation-environment-config__header">
+                            <span>显卡与 PyTorch</span>
+                            <strong>{runtimeProfileSummary(runtime, selectedComputeProfile)}</strong>
+                          </div>
+                          <label>
+                            <span>Profile</span>
+                            <select
+                              disabled={runtime.status === 'running' || pendingRuntimeAction !== null}
+                              value={selectedComputeProfile ?? runtime.selectedComputeProfile ?? ''}
+                              onChange={(event) => setSelectedComputeProfiles((profiles) => ({
+                                ...profiles,
+                                [runtime.id]: event.target.value,
+                              }))}
+                            >
+                              <option value="">auto</option>
+                              {computeProfiles.map((profile) => (
+                                <option key={profile.id} value={profile.id}>
+                                  {profile.id}{profile.experimental ? ' experimental' : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          {runtime.id === 'comfyui' && (
+                            <label>
+                              <span>PyTorch index URL</span>
+                              <input
+                                disabled={runtime.status === 'running' || pendingRuntimeAction !== null}
+                                placeholder={runtimePytorchIndexUrlPlaceholder(runtime, selectedComputeProfile)}
+                                required={runtimeRequiresPytorchIndexUrl(runtime, selectedComputeProfile)}
+                                value={pytorchIndexUrl ?? ''}
+                                onChange={(event) => setRuntimePytorchIndexUrls((urls) => ({
+                                  ...urls,
+                                  [runtime.id]: event.target.value,
+                                }))}
+                              />
+                            </label>
+                          )}
                         </div>
-                      ) : null}
-                      <div>
-                        <dt>Runtime</dt>
-                        <dd>{runtime.runtime} · {runtime.service}</dd>
-                      </div>
-                      <div>
-                        <dt>Mode</dt>
-                        <dd>{runtime.mode}</dd>
-                      </div>
-                      {runtime.processId ? (
-                        <div>
-                          <dt>PID</dt>
-                          <dd>{runtime.processId}</dd>
-                        </div>
-                      ) : null}
-                      {runtime.logPath ? (
-                        <div>
-                          <dt>Log</dt>
-                          <dd>{runtime.logPath}</dd>
-                        </div>
-                      ) : null}
-                    </dl>
-                  </section>
+                      </section>
+                    ) : null}
 
-                  <section className="automation-environment-run-control" aria-label={`${runtime.name} 运行控制`}>
+                    <section className="automation-environment-step automation-environment-step--runtime">
+                      <div className="automation-environment-step__marker">{computeProfiles.length > 0 ? '3' : '2'}</div>
+                      <div className="automation-environment-runtime">
+                        <div>
+                          <span>运行控制</span>
+                          <strong>{runtimeStatusSummary(runtime)}</strong>
+                          <small>{runtimeConnectionSummary(runtime)}</small>
+                        </div>
+                        <div className="automation-environment-service__actions">
+                          <button
+                            data-runtime-action="refresh"
+                            data-testid="automation-runtime-action"
+                            disabled={pendingRuntimeAction !== null}
+                            onClick={() => runRuntimeAction(runtime, 'refresh')}
+                            type="button"
+                          >
+                            <RefreshCw aria-hidden="true" size={14} strokeWidth={2} />
+                            刷新
+                          </button>
+                          {runtimeCanStop(runtime) ? (
+                            <button
+                              className="workspace-secondary-button"
+                              data-runtime-action="stop"
+                              data-testid="automation-runtime-action"
+                              disabled={pendingRuntimeAction !== null}
+                              onClick={() => runRuntimeAction(runtime, 'stop')}
+                              type="button"
+                            >
+                              <Square aria-hidden="true" size={13} fill="currentColor" strokeWidth={0} />
+                              停止
+                            </button>
+                          ) : runtimeCanStart(runtime) ? (
+                            <button
+                              className="workspace-primary-button"
+                              data-runtime-action="start"
+                              data-testid="automation-runtime-action"
+                              disabled={pendingRuntimeAction !== null}
+                              onClick={() => runRuntimeAction(runtime, 'start')}
+                              type="button"
+                            >
+                              <Play aria-hidden="true" size={14} fill="currentColor" strokeWidth={0} />
+                              启动
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+
+                  <dl className="automation-environment-service__meta" aria-label={`${runtime.name} 连接信息`}>
                     <div>
-                      <strong>运行控制</strong>
-                      <span>刷新状态、启动服务或停止本机进程。</span>
+                      <dt>Endpoint</dt>
+                      <dd>{runtime.baseUrl}</dd>
                     </div>
-                    <div className="automation-environment-service__actions">
-                      <button
-                        data-runtime-action="refresh"
-                        data-testid="automation-runtime-action"
-                        disabled={pendingRuntimeAction !== null}
-                        onClick={() => runRuntimeAction(runtime, 'refresh')}
-                        type="button"
-                      >
-                        <RefreshCw aria-hidden="true" size={14} strokeWidth={2} />
-                        刷新
-                      </button>
-                      {runtimeCanStop(runtime) ? (
-                      <button
-                        className="workspace-secondary-button"
-                        data-runtime-action="stop"
-                        data-testid="automation-runtime-action"
-                        disabled={pendingRuntimeAction !== null}
-                        onClick={() => runRuntimeAction(runtime, 'stop')}
-                        type="button"
-                      >
-                        <Square aria-hidden="true" size={13} fill="currentColor" strokeWidth={0} />
-                        停止
-                      </button>
-                      ) : runtimeCanStart(runtime) ? (
-                      <button
-                        className="workspace-primary-button"
-                        data-runtime-action="start"
-                        data-testid="automation-runtime-action"
-                        disabled={pendingRuntimeAction !== null}
-                        onClick={() => runRuntimeAction(runtime, 'start')}
-                        type="button"
-                      >
-                        <Play aria-hidden="true" size={14} fill="currentColor" strokeWidth={0} />
-                        启动
-                      </button>
-                      ) : null}
+                    {runtime.healthUrl ? (
+                      <div>
+                        <dt>Health</dt>
+                        <dd title={runtime.healthUrl}>{runtimeHealthSummary(runtime)}</dd>
+                      </div>
+                    ) : null}
+                    <div>
+                      <dt>Runtime</dt>
+                      <dd>{runtime.runtime} · {runtime.service}</dd>
                     </div>
-                  </section>
+                    <div>
+                      <dt>Install</dt>
+                      <dd title={runtime.install.manifestPath}>{runtime.install.manifestPath}</dd>
+                    </div>
+                    {runtime.processId ? (
+                      <div>
+                        <dt>PID</dt>
+                        <dd>{runtime.processId}</dd>
+                      </div>
+                    ) : null}
+                    {runtime.logPath ? (
+                      <div>
+                        <dt>Log</dt>
+                        <dd>{runtime.logPath}</dd>
+                      </div>
+                    ) : null}
+                  </dl>
                 </article>
               )
             })}
@@ -312,8 +313,10 @@ export function AutomationEnvironment({
 }
 
 function automationEnvironmentStats(runtimes: AutomationRuntimeSummary[]) {
+  const installed = runtimes.filter((runtime) => ['installed', 'ready', 'running'].includes(runtime.status)).length
   return {
-    installed: runtimes.filter((runtime) => ['installed', 'ready', 'running'].includes(runtime.status)).length,
+    installed,
+    notInstalled: runtimes.filter((runtime) => runtime.status === 'notInstalled').length,
     running: runtimes.filter((runtime) => runtime.status === 'running').length,
     total: runtimes.length,
   }
@@ -380,6 +383,13 @@ function runtimeHealthSummary(runtime: AutomationRuntimeSummary) {
   return '未检查'
 }
 
+function runtimeConnectionSummary(runtime: AutomationRuntimeSummary) {
+  if (runtime.healthUrl) {
+    return `${runtime.baseUrl} · ${runtimeHealthSummary(runtime)}`
+  }
+  return runtime.baseUrl
+}
+
 function runtimeCanStart(runtime: AutomationRuntimeSummary) {
   return runtime.status === 'installed' || runtime.status === 'stopped'
 }
@@ -392,6 +402,13 @@ function runtimeInstallTitle(runtime: AutomationRuntimeSummary) {
   return runtime.id === 'comfyui'
     ? '安装 ComfyUI 与匹配的 PyTorch'
     : '安装 n8n 本机运行环境'
+}
+
+function runtimeProfileSummary(
+  runtime: AutomationRuntimeSummary,
+  selectedComputeProfile: string | undefined,
+) {
+  return selectedComputeProfile?.trim() || runtime.selectedComputeProfile?.trim() || 'auto'
 }
 
 function runtimeInstallModeLabel(channel: string) {

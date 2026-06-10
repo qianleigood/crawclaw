@@ -7295,6 +7295,7 @@
 .generation-control button,
 .asset-actions button,
 .automation-command-bar button,
+.automation-environment-install-button,
 .automation-environment-service__actions button,
 .automation-tabs button,
 .automation-item__actions button {
@@ -7359,7 +7360,7 @@
 
 .automation-environment-panel {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .automation-environment-panel__header {
@@ -7388,19 +7389,16 @@
   margin: 0;
 }
 
-.automation-environment-layout {
-  display: grid;
-  gap: 14px;
-}
-
-.automation-environment-overview,
+.automation-environment-layout,
 .automation-environment-services {
   display: grid;
   gap: 14px;
 }
 
 .automation-environment-overview {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .automation-environment-overview div {
@@ -7411,7 +7409,9 @@
   padding: 12px;
 }
 
-.automation-environment-overview span {
+.automation-environment-overview span,
+.automation-environment-step > div:not(.automation-environment-step__marker) > span,
+.automation-environment-config__header span {
   color: var(--text-tertiary);
   display: block;
   font-size: 11px;
@@ -7434,17 +7434,13 @@
   margin-top: 3px;
 }
 
-.automation-environment-services {
-  align-items: start;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-}
-
 .automation-environment-service {
   align-content: start;
+  background: var(--surface-strong);
   border: 1px solid var(--border);
   border-radius: 8px;
   display: grid;
-  gap: 16px;
+  gap: 14px;
   min-width: 0;
   padding: 16px;
 }
@@ -7483,147 +7479,123 @@
   width: 32px;
 }
 
-.automation-environment-install-center {
+.automation-environment-flow {
   background: var(--surface-muted);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  display: grid;
-  gap: 12px;
-  padding: 12px;
-}
-
-.automation-environment-install-center__header {
-  align-items: center;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-}
-
-.automation-environment-install-center__header div {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.automation-environment-install-center__header span {
-  color: var(--text-tertiary);
-  font-size: 11px;
-  font-weight: 650;
-  text-transform: uppercase;
-}
-
-.automation-environment-install-center__header strong {
-  color: var(--text-primary);
-  font-size: 14px;
-  line-height: 1.35;
-}
-
-.automation-environment-install {
-  align-items: center;
-  background: var(--surface-strong);
   border: 1px solid var(--border-soft);
   border-radius: 8px;
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  padding: 10px;
+  overflow: hidden;
 }
 
-.automation-environment-install__body {
+.automation-environment-step {
+  align-items: center;
+  border-top: 1px solid var(--border-soft);
   display: grid;
-  gap: 3px;
+  gap: 11px;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
   min-width: 0;
+  padding: 12px;
 }
 
-.automation-environment-install__body span {
-  color: var(--text-tertiary);
-  font-size: 11px;
-  font-weight: 650;
-  text-transform: uppercase;
+.automation-environment-step:first-child {
+  border-top: 0;
 }
 
-.automation-environment-install__body strong {
+.automation-environment-step--config,
+.automation-environment-step--runtime {
+  align-items: start;
+  grid-template-columns: 28px minmax(0, 1fr);
+}
+
+.automation-environment-step__marker {
+  align-items: center;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
+.automation-environment-step strong,
+.automation-environment-config__header strong {
   color: var(--text-primary);
+  display: block;
   font-size: 13px;
   line-height: 1.35;
+  margin-top: 3px;
 }
 
-.automation-environment-install__body small {
+.automation-environment-step small {
   color: var(--text-secondary);
+  display: block;
   font-size: 12px;
+  margin-top: 3px;
   overflow-wrap: anywhere;
 }
 
-.automation-environment-install button {
+.automation-environment-install-button {
   min-height: 34px;
   padding: 0 12px;
   white-space: nowrap;
 }
 
-.automation-environment-install-options {
-  background: var(--surface-strong);
-  border: 1px solid var(--border-soft);
-  border-radius: 8px;
+.automation-environment-config {
   display: grid;
   gap: 10px;
-  padding: 10px;
 }
 
-.automation-environment-install-options__header {
-  align-items: center;
+.automation-environment-config__header {
+  align-items: start;
   display: flex;
-  gap: 10px;
+  gap: 12px;
   justify-content: space-between;
 }
 
-.automation-environment-install-options__header strong {
-  color: var(--text-primary);
-  font-size: 13px;
-}
-
-.automation-environment-install-options__header span {
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.automation-environment-install-options label {
+.automation-environment-config label {
   display: grid;
   gap: 5px;
 }
 
-.automation-environment-install-options label span {
+.automation-environment-config label span {
   color: var(--text-secondary);
   font-size: 11px;
 }
 
-.automation-environment-install-options input,
-.automation-environment-install-options select {
-  min-height: 30px;
-}
-
-.automation-environment-runtime-state {
-  display: grid;
-  gap: 10px;
-}
-
-.automation-environment-runtime-state__header {
-  align-items: center;
-  display: flex;
-  gap: 10px;
-  justify-content: space-between;
-}
-
-.automation-environment-runtime-state__header strong {
+.automation-environment-config input,
+.automation-environment-config select {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   color: var(--text-primary);
-  font-size: 13px;
+  font: inherit;
+  min-height: 32px;
+  min-width: 0;
+  padding: 6px 8px;
+  width: 100%;
 }
 
-.automation-environment-runtime-state__header span {
-  color: var(--text-secondary);
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.automation-environment-runtime {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.automation-environment-runtime > div:first-child {
+  min-width: 0;
+}
+
+.automation-environment-runtime > div:first-child > span {
+  color: var(--text-tertiary);
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
 }
 
 .automation-environment-service__meta {
@@ -7658,29 +7630,6 @@
 .automation-environment-service__actions button {
   flex: 1;
   min-width: 0;
-}
-
-.automation-environment-run-control {
-  border-top: 1px solid var(--border-soft);
-  display: grid;
-  gap: 10px;
-  padding-top: 12px;
-}
-
-.automation-environment-run-control > div:first-child {
-  display: grid;
-  gap: 3px;
-}
-
-.automation-environment-run-control strong {
-  color: var(--text-primary);
-  font-size: 13px;
-}
-
-.automation-environment-run-control span {
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.45;
 }
 
 .automation-product {
