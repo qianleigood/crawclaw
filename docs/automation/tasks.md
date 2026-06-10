@@ -36,7 +36,18 @@ CLI agent commands do.
 
 ## Quick start
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use CrawClaw Desktop for interactive inspection. For automation, call the local
+Gateway RPC endpoint:
+
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H "content-type: application/json" \
+  -H "authorization: Bearer $CRAWCLAW_GATEWAY_TOKEN" \
+  -d '{
+    "method": "agentRuntime.list",
+    "params": { "status": "running", "limit": 20 }
+  }'
+```
 
 ## What creates a task
 
@@ -106,37 +117,85 @@ Control how much you hear about each task:
 
 Change the policy while a task is running:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+There is no task-level RPC for changing notification policy after launch. Task
+notification routing is owned by the run that created the task; set the notify
+policy on the creating surface. `sessions.patch` only changes operator metadata
+or session status.
 
 ## Gateway API reference
 
-### `tasks list`
+The Gateway exposes task-ledger data through `POST /api/gateway/rpc`. Send a
+JSON body with a `method` and `params` object. The current supported methods are
+the Rust Gateway RPC methods below; there is no separate `tasks.*` RPC namespace.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+| Method                 | Purpose                                       | Common params                                            |
+| ---------------------- | --------------------------------------------- | -------------------------------------------------------- |
+| `agentRuntime.summary` | Counts running, waiting, failed, and complete | `category`, `status`, `agent`, `sessionKey`              |
+| `agentRuntime.list`    | Lists task/run rows with a summary            | `limit`, plus the same filters as `summary`              |
+| `agentRuntime.get`     | Fetches one task/run detail                   | `taskId`, `runId`, `sessionKey`, or `key`                |
+| `agentRuntime.cancel`  | Cancels a waiting or running task             | `taskId`, `runId`, `sessionKey`, or `key`                |
+| `agent.inspect`        | Returns run details plus transcript refs      | `runId`, `taskId`, `traceId`, `sessionKey`, `key`        |
+| `agent.wait`           | Returns a status/timing snapshot for a run    | `runId`, `taskId`, `sessionKey`, or `key`                |
+| `sessions.patch`       | Updates session metadata/status               | `key`/`sessionKey`, `label`, `model`, `pinned`, `status` |
+| `sessions.abort`       | Acknowledges a low-level chat abort request   | `key`/`sessionKey`, optional `runId`                     |
 
-Output columns: Task ID, Kind, Status, Delivery, Run ID, Child Session, Summary.
+### List active runs
 
-### `tasks show`
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H "content-type: application/json" \
+  -H "authorization: Bearer $CRAWCLAW_GATEWAY_TOKEN" \
+  -d '{
+    "method": "agentRuntime.list",
+    "params": { "status": "running", "limit": 20 }
+  }'
+```
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+`agentRuntime.list` returns `summary`, `count`, and `runs`. Each run includes
+`taskId`, `category`, `runtime`, `status`, `title`, `sessionKey`,
+`childSessionKey`, timestamps, and error/summary fields when present.
 
-The lookup token accepts a task ID, run ID, or session key. Shows the full record including timing, delivery state, error, and terminal summary.
+### Show one run
 
-### `tasks cancel`
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H "content-type: application/json" \
+  -H "authorization: Bearer $CRAWCLAW_GATEWAY_TOKEN" \
+  -d '{
+    "method": "agentRuntime.get",
+    "params": { "taskId": "task-or-session-key" }
+  }'
+```
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+The lookup token accepts a task ID, run ID, session key, or normalized key. The
+response includes the `run`, `metadata`, and `availableActions` such as
+`openSession` and `cancel`.
 
-For ACP and subagent tasks, this kills the child session. Status transitions to `cancelled` and a delivery notification is sent.
+### Cancel one run
 
-### `tasks notify`
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H "content-type: application/json" \
+  -H "authorization: Bearer $CRAWCLAW_GATEWAY_TOKEN" \
+  -d '{
+    "method": "agentRuntime.cancel",
+    "params": { "taskId": "task-or-session-key" }
+  }'
+```
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+For active ACP and subagent tasks this aborts the backing child work when an
+abort handle is registered, patches the session status to `cancelled`, and emits
+a session change event. If the target is missing or already terminal, the
+response still returns `ok: true` with `cancelled: false` and a `reason`.
 
-### `tasks audit`
+### Inspect or wait
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use `agent.inspect` when you need transcript references and the resolved run
+record. Use `agent.wait` when a caller only needs a status snapshot with
+`startedAt`, `endedAt`, and `error`.
 
-Surfaces operational issues. Findings also appear in CrawClaw Desktop or the local Gateway API when issues are detected.
+Operational issues are derived from the runtime summary/list data and Desktop
+status views. There is no standalone `tasks.audit` RPC method.
 
 | Finding                   | Severity | Trigger                                               |
 | ------------------------- | -------- | ----------------------------------------------------- |

@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-05T14:02:44Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 62231f0cc6818fcd8693feb94838b05d57fed899ee70d38fcc87d695ba562b24
+  source_hash: 18d2d471393ccbb5c56491949c9b038990fa2ef0730efc3ce01082505955294d
   source_path: automation/tasks.md
   workflow: 15
 ---
@@ -40,7 +40,17 @@ ACP 运行、子智能体生成、隔离 cron 作业执行和 CLI 启动的操�
 
 ## 快速开始
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+使用 CrawClaw Desktop 进行交互式检查。自动化调用使用本地 Gateway RPC 端点：
+
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H "content-type: application/json" \
+  -H "authorization: Bearer $CRAWCLAW_GATEWAY_TOKEN" \
+  -d '{
+    "method": "agentRuntime.list",
+    "params": { "status": "running", "limit": 20 }
+  }'
+```
 
 ## 什么会创建任务
 
@@ -110,37 +120,70 @@ stateDiagram-v2
 
 在任务运行期间更改策略：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+当前没有用于启动后修改通知策略的 task 级 RPC。任务通知路由由创建任务的运行拥有；请在创建任务的入口设置通知策略。`sessions.patch` 只修改操作员元数据或会话状态。
 
 ## Gateway API 参考
 
-### `tasks list`
+Gateway 通过 `POST /api/gateway/rpc` 暴露任务账本数据。发送包含 `method` 和 `params` 对象的 JSON body。当前支持的方法是下列 Rust Gateway RPC 方法；没有单独的 `tasks.*` RPC 命名空间。
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+| 方法                   | 用途                                   | 常用参数                                                 |
+| ---------------------- | -------------------------------------- | -------------------------------------------------------- |
+| `agentRuntime.summary` | 统计 running、waiting、failed 和完成数 | `category`、`status`、`agent`、`sessionKey`              |
+| `agentRuntime.list`    | 列出任务/运行行并返回摘要              | `limit`，以及与 `summary` 相同的过滤参数                 |
+| `agentRuntime.get`     | 获取单个任务/运行详情                  | `taskId`、`runId`、`sessionKey` 或 `key`                 |
+| `agentRuntime.cancel`  | 取消等待中或运行中的任务               | `taskId`、`runId`、`sessionKey` 或 `key`                 |
+| `agent.inspect`        | 返回运行详情和 transcript 引用         | `runId`、`taskId`、`traceId`、`sessionKey`、`key`        |
+| `agent.wait`           | 返回运行状态/时间快照                  | `runId`、`taskId`、`sessionKey` 或 `key`                 |
+| `sessions.patch`       | 更新会话元数据/状态                    | `key`/`sessionKey`、`label`、`model`、`pinned`、`status` |
+| `sessions.abort`       | 确认低层聊天 abort 请求                | `key`/`sessionKey`，可选 `runId`                         |
 
-输出列：任务 ID、类型、状态、投递、运行 ID、子会话、摘要。
+### 列出活跃运行
 
-### `tasks show`
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H "content-type: application/json" \
+  -H "authorization: Bearer $CRAWCLAW_GATEWAY_TOKEN" \
+  -d '{
+    "method": "agentRuntime.list",
+    "params": { "status": "running", "limit": 20 }
+  }'
+```
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+`agentRuntime.list` 返回 `summary`、`count` 和 `runs`。每个 run 包含 `taskId`、`category`、`runtime`、`status`、`title`、`sessionKey`、`childSessionKey`、时间戳，以及存在时的 error/summary 字段。
 
-查找令牌接受任务 ID、运行 ID 或会话密钥。显示完整记录，包括时间、投递状态、错误和终态摘要。
+### 查看单个运行
 
-### `tasks cancel`
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H "content-type: application/json" \
+  -H "authorization: Bearer $CRAWCLAW_GATEWAY_TOKEN" \
+  -d '{
+    "method": "agentRuntime.get",
+    "params": { "taskId": "task-or-session-key" }
+  }'
+```
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+查找令牌接受任务 ID、运行 ID、会话 key 或 normalized key。响应包含 `run`、`metadata` 和 `availableActions`，例如 `openSession` 和 `cancel`。
 
-对于 ACP 和子智能体任务，这会终止子会话。状态转换为 `cancelled` 并发送投递通知。
+### 取消单个运行
 
-### `tasks notify`
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H "content-type: application/json" \
+  -H "authorization: Bearer $CRAWCLAW_GATEWAY_TOKEN" \
+  -d '{
+    "method": "agentRuntime.cancel",
+    "params": { "taskId": "task-or-session-key" }
+  }'
+```
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+对于活跃 ACP 和子智能体任务，如果已注册 abort handle，这会终止后备子工作，将会话状态 patch 为 `cancelled`，并发出 session change 事件。如果目标缺失或已经终态，响应仍返回 `ok: true`，并带有 `cancelled: false` 和 `reason`。
 
-### `tasks audit`
+### 检查或等待
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+需要 transcript 引用和解析后的运行记录时使用 `agent.inspect`。调用方只需要包含 `startedAt`、`endedAt` 和 `error` 的状态快照时使用 `agent.wait`。
 
-显示操作问题。发现问题也会在检测到时出现在 CrawClaw Desktop 或本地 Gateway API 中。
+操作问题从 runtime summary/list 数据和 Desktop 状态视图派生。当前没有独立的 `tasks.audit` RPC 方法。
 
 | 发现                      | 严重级别 | 触发条件                               |
 | ------------------------- | -------- | -------------------------------------- |
