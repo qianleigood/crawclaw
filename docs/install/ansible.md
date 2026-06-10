@@ -66,7 +66,14 @@ The Ansible playbook installs and configures:
   </Step>
   <Step title="Connect messaging providers">
     Log in to Weixin, Feishu, community chat, or native channel:
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+
+    - Use CrawClaw Desktop when the host has the desktop app available.
+    - On a headless Ansible host, run setup as the `crawclaw` service user and update
+      `~/.crawclaw/crawclaw.json` through the Gateway `config.patch` RPC or a reviewed config edit.
+    - Store channel credentials in the service user's state directory, not in the Ansible checkout.
+
+    See [Channels](/channels) and [Gateway configuration](/gateway/configuration#config-rpc-programmatic-updates).
+
   </Step>
   <Step title="Verify the installation">
     ```bash

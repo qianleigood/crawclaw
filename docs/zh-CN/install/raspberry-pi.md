@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-10T11:57:53Z"
   model: codex
   provider: openai
-  source_hash: 96a271139b6eef7499560367422970a5eaf6140e13a8aec8367cccbf62e92dda
+  source_hash: 5c132e3875977ebf92d4ac0fe130f130f5b08248c191da1629ade1540a00c7ff
   source_path: install/raspberry-pi.md
   workflow: 15
 ---
@@ -89,7 +89,10 @@ x-i18n:
   </Step>
 
   <Step title="运行 onboarding">
-    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+    CrawClaw Desktop 拥有受支持的交互式 onboarding flow。对于 headless Pi，保持 Gateway
+    绑定到 loopback，从你的 workstation 打开 SSH tunnel，然后使用 Gateway `config.get` /
+    `config.patch`，或 review 后编辑 `~/.crawclaw/crawclaw.json` 来配置 host。
+    startup-bound settings 变化后重启 service。
 
     按 wizard 操作。对于 headless 设备，推荐使用 API keys 而不是 OAuth。Feishu 是最容易开始的 channel。
 

@@ -16,7 +16,7 @@ This guide sets up an Azure Linux VM with the Azure CLI, applies Network Securit
 - Create Azure networking (VNet, subnets, NSG) and compute resources with the Azure CLI
 - Apply Network Security Group rules so VM SSH is allowed only from Azure Bastion
 - Use Azure Bastion for SSH access (no public IP on the VM)
-- Install CrawClaw with the installer script
+- Install the supported CrawClaw Desktop or Gateway runtime for your deployment
 - Verify the Gateway
 
 ## What you need
@@ -262,7 +262,16 @@ This guide sets up an Azure Linux VM with the Azure CLI, applies Network Securit
   <Step title="Verify the Gateway">
     After onboarding completes:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    From the VM shell, confirm the local Gateway answers before exposing it through any remote
+    access path:
+
+    ```bash
+    curl -fsS http://127.0.0.1:18789/health
+    ```
+
+    For automation, call the Gateway `system.health` RPC with your Gateway bearer token. Use
+    CrawClaw Desktop for packaged desktop onboarding; use `config.patch` only after you have a
+    reachable Gateway and a current `config.get` hash.
 
     Most enterprise Azure teams already have GitHub Copilot licenses. If that is your case, we recommend choosing the GitHub Copilot provider in the CrawClaw onboarding wizard. See [GitHub Copilot provider](/providers/github-copilot).
 

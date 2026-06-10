@@ -109,6 +109,8 @@ with email auth.
 
 ## Updating
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Packaged desktop installs update from [GitHub Releases](https://github.com/qianleigood/crawclaw/releases).
+For source-checkout VMs, call the Gateway `update.run` control-plane RPC or update the checkout
+manually, then restart the service that owns the Gateway.
 
 Guide: [Updating](/install/updating)

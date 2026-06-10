@@ -70,7 +70,13 @@ Run CrawClaw Desktop or the local Gateway API via Railway's shell for channel se
 
 Export your configuration and workspace:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Railway hosts do not have a local Desktop data-export button. Use Railway shell or a one-off job to
+archive the mounted volume paths that own state:
+
+```bash
+cd /data
+tar -czf crawclaw-railway-backup.tgz .crawclaw workspace
+```
 
 This creates a portable backup archive you can restore on any CrawClaw host. See [Backup](/install/migrating) for details.
 

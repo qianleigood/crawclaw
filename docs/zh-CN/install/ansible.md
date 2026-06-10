@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-05T14:39:00Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 3c8b2360f3b404579b34cbc6134b08c8a27310d11cf3d7fefd941cee9aed4277
+  source_hash: 785ec689f4886210310bc984315c7ce0049062610cfcc57e83d54a6a2ec2defe
   source_path: install/ansible.md
   workflow: 15
 ---
@@ -73,7 +73,14 @@ Ansible playbook 安装和配置：
   </Step>
   <Step title="连接消息提供商">
     登录 Weixin、Feishu、community chat 或 native channel：
-    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+
+    - host 上有 desktop app 时使用 CrawClaw Desktop。
+    - 在 headless Ansible host 上，以 `crawclaw` service user 身份运行设置，并通过
+      Gateway `config.patch` RPC 或经 review 的 config edit 更新 `~/.crawclaw/crawclaw.json`。
+    - 将 channel credentials 保存在 service user 的 state directory 中，不要放进 Ansible checkout。
+
+    参见 [Channels](/channels) 和 [Gateway configuration](/gateway/configuration#config-rpc-programmatic-updates)。
+
   </Step>
   <Step title="验证安装">
     ```bash

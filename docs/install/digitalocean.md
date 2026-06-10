@@ -53,9 +53,13 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
   </Step>
 
   <Step title="Run onboarding">
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    CrawClaw Desktop owns the supported interactive onboarding flow. For a headless Droplet,
+    open an SSH tunnel to the loopback Gateway and use the Gateway `config.get` and
+    `config.patch` RPCs to configure model providers, channel credentials, and Gateway auth.
+    See [Gateway configuration](/gateway/configuration#config-rpc-programmatic-updates).
 
-    The wizard walks you through model auth, channel setup, gateway token generation, and daemon installation (systemd).
+    Keep credentials in the Droplet user's `~/.crawclaw/` state directory, then restart the
+    service that owns the Gateway so startup-bound settings take effect.
 
   </Step>
 
@@ -101,7 +105,19 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
 
     **Option C: Tailnet bind (no Serve)**
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Set `gateway.bind: "tailnet"` and token auth in `~/.crawclaw/crawclaw.json`, then restart the
+    Gateway service:
+
+    ```json5
+    {
+      gateway: {
+        bind: "tailnet",
+        auth: { mode: "token", token: "replace-me" },
+      },
+    }
+    ```
+
+    See [Tailscale](/gateway/tailscale#tailnet-only-bind-to-tailnet-ip) before using this mode.
 
     Then connect a supported gateway client to `http://<tailscale-ip>:18789` (token required).
 

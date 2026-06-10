@@ -131,7 +131,9 @@ Replace `youruser` with the account you created, and the IP with your VM's IP.
 
 Inside the VM:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Install CrawClaw Desktop from [GitHub Releases](https://github.com/qianleigood/crawclaw/releases),
+or use a source checkout if you are developing CrawClaw itself. The desktop app owns the supported
+local setup flow and starts the embedded Gateway for the VM user.
 
 Follow the onboarding prompts to set up your model provider (Anthropic, OpenAI, etc.).
 
@@ -163,7 +165,9 @@ Add your channels:
 
 Then login to Weixin (scan QR):
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use CrawClaw Desktop in the VM for the interactive channel setup, or update the Weixin channel
+config in `~/.crawclaw/crawclaw.json` and restart the VM Gateway. Keep Weixin and CrawClaw running
+under the same macOS user so the channel session and local webhook can communicate.
 
 ---
 

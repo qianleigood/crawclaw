@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-10T11:57:53Z"
   model: codex
   provider: openai
-  source_hash: 8a4504802f1e78ae57e4fe41606e6accc985a6ffd41dbabd25a766b57e612303
+  source_hash: a054d2ac16b05c399b12b3d5662f4112c0b21516d96b03da56d0fde10fcf6489
   source_path: install/azure.md
   workflow: 15
 ---
@@ -23,7 +23,7 @@ x-i18n:
 - 使用 Azure CLI 创建 Azure networking（VNet、subnets、NSG）和 compute resources
 - 应用 Network Security Group rules，让 VM SSH 只允许来自 Azure Bastion
 - 使用 Azure Bastion 做 SSH access（VM 不暴露 public IP）
-- 使用 installer script 安装 CrawClaw
+- 安装适合你 deployment 的受支持 CrawClaw Desktop 或 Gateway runtime
 - 验证 Gateway
 
 ## 你需要什么
@@ -269,7 +269,15 @@ x-i18n:
   <Step title="验证 Gateway">
     onboarding 完成后：
 
-    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+    从 VM shell 中先确认 local Gateway 有响应，再通过任何 remote access path 暴露：
+
+    ```bash
+    curl -fsS http://127.0.0.1:18789/health
+    ```
+
+    自动化时，使用你的 Gateway bearer token 调用 Gateway `system.health` RPC。packaged
+    desktop onboarding 使用 CrawClaw Desktop；只有在 Gateway 可达且已有当前 `config.get`
+    hash 后，才使用 `config.patch`。
 
     大多数企业 Azure 团队已经有 GitHub Copilot licenses。如果你属于这种情况，建议在 CrawClaw onboarding wizard 中选择 GitHub Copilot provider。参见 [GitHub Copilot provider](/providers/github-copilot)。
 

@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-10T19:08:00Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 4f4506cad56511d4a0a858491133a9a9b752e796a49a053de0430431df73769f
+  source_hash: 99748c27ff45d007e9219671ecfb6956a27d63320cbac53648039739a6e75870
   source_path: install/macos-vm.md
   workflow: 15
 ---
@@ -137,7 +137,9 @@ ssh youruser@192.168.64.X
 
 在 VM 内部：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+从 [GitHub Releases](https://github.com/qianleigood/crawclaw/releases) 安装 CrawClaw Desktop，
+如果你正在开发 CrawClaw 本身，也可以使用 source checkout。desktop app 拥有受支持的
+local setup flow，并为 VM user 启动 embedded Gateway。
 
 按照新手引导提示设置你的模型提供商（Anthropic、OpenAI 等）。
 
@@ -169,7 +171,10 @@ nano ~/.crawclaw/crawclaw.json
 
 然后登录 Weixin（扫描二维码）：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 VM 中使用 CrawClaw Desktop 进行交互式 channel setup，或更新
+`~/.crawclaw/crawclaw.json` 中的 Weixin channel config 后重启 VM Gateway。
+确保 Weixin 和 CrawClaw 在同一个 macOS user 下运行，这样 channel session 和 local
+webhook 才能通信。
 
 ---
 

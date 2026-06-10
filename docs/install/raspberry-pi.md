@@ -82,7 +82,10 @@ Run a persistent, always-on CrawClaw Gateway on a Raspberry Pi. Since the Pi is 
   </Step>
 
   <Step title="Run onboarding">
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    CrawClaw Desktop owns the supported interactive onboarding flow. For a headless Pi, keep the
+    Gateway bound to loopback, open an SSH tunnel from your workstation, and configure the host with
+    Gateway `config.get` / `config.patch` or a reviewed edit to `~/.crawclaw/crawclaw.json`.
+    Restart the service after startup-bound settings change.
 
     Follow the wizard. API keys are recommended over OAuth for headless devices. Feishu is the easiest channel to start with.
 

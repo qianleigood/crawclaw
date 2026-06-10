@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-10T11:57:53Z"
   model: codex
   provider: openai
-  source_hash: 82426d08b01bef2faf01a5c8e3c29b5689e1b2b9c1cb086e01db29d504d2a652
+  source_hash: 16a12f27ef957eab9266712c15477613d4e7405bb78d3997e8d1a494c035f705
   source_path: install/digitalocean.md
   workflow: 15
 ---
@@ -60,9 +60,13 @@ x-i18n:
   </Step>
 
   <Step title="运行 onboarding">
-    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+    CrawClaw Desktop 拥有受支持的交互式 onboarding flow。对于 headless Droplet，
+    先打开到 loopback Gateway 的 SSH tunnel，再使用 Gateway `config.get` 和
+    `config.patch` RPC 配置 model providers、channel credentials 和 Gateway auth。
+    参见 [Gateway configuration](/gateway/configuration#config-rpc-programmatic-updates)。
 
-    wizard 会引导你完成 model auth、channel setup、gateway token generation 和 daemon installation（systemd）。
+    将 credentials 保存在 Droplet 用户的 `~/.crawclaw/` state directory 中，然后重启
+    拥有 Gateway 的 service，让 startup-bound settings 生效。
 
   </Step>
 
@@ -108,7 +112,19 @@ x-i18n:
 
     **选项 C: Tailnet bind，无 Serve**
 
-    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+    在 `~/.crawclaw/crawclaw.json` 中设置 `gateway.bind: "tailnet"` 和 token auth，
+    然后重启 Gateway service：
+
+    ```json5
+    {
+      gateway: {
+        bind: "tailnet",
+        auth: { mode: "token", token: "replace-me" },
+      },
+    }
+    ```
+
+    使用此模式前请先阅读 [Tailscale](/gateway/tailscale#tailnet-only-bind-to-tailnet-ip)。
 
     然后把受支持的 gateway client 连接到 `http://<tailscale-ip>:18789`（需要 token）。
 

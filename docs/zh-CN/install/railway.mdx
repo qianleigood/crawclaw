@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:39:57Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: bf647d82cef0d03991b78b8e92f864a3fb2833e348eb384f9c7e01ea22957a5f
+  source_hash: fcd5c8b6604c1f8fd6bfc89d7e122954a5b103ca71b353930f2e5230371f31ec
   source_path: install/railway.mdx
   workflow: 15
 ---
@@ -77,7 +77,13 @@ Railway 将会：
 
 导出你的配置和工作区：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
+Railway hosts 没有本地 Desktop data-export button。使用 Railway shell 或一次性 job
+归档拥有 state 的 mounted volume paths：
+
+```bash
+cd /data
+tar -czf crawclaw-railway-backup.tgz .crawclaw workspace
+```
 
 这将创建一个可移植的备份压缩包，你可以在任何 CrawClaw 主机上恢复。详情请参阅[备份](/install/migrating)。
 

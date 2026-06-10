@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:39:12Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: f9ff05af433fe6903a944dd798ed8fa7b57d449f8f9eb69dbc015db1b6c5facd
+  source_hash: 4bf45a913b8565ad11e7fc4f00d8284b53459cf4a0ee026275f0fd3586a03b82
   source_path: install/exe-dev.md
   workflow: 15
 ---
@@ -113,6 +113,8 @@ server {
 
 ## 更新
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
+packaged desktop installs 从 [GitHub Releases](https://github.com/qianleigood/crawclaw/releases)
+更新。对于 source-checkout VM，调用 Gateway `update.run` control-plane RPC，或手动更新
+checkout，然后重启拥有 Gateway 的 service。
 
 指南：[更新](/install/updating)
