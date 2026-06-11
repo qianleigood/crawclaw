@@ -23,7 +23,6 @@
     "unicorn/require-post-message-target-origin": "off"
   },
   "ignorePatterns": [
-    "apps/crawclaw-admin/",
     "**/node_modules/**",
     "assets/",
     "dist/",
@@ -35,9 +34,6 @@
     "pnpm-lock.yaml",
     "skills/",
     "skills-optional/",
-    "src/auto-reply/reply/export-html/template.js",
-    "src/canvas-host/a2ui/a2ui.bundle.js",
-    "src/canvas-host/a2ui/generated/",
     "Swabble/",
     "vendor/"
   ]
