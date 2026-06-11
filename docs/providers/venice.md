@@ -57,7 +57,10 @@ export VENICE_API_KEY="vapi_xxxxxxxxxxxx"
 
 **Option B: Interactive Setup (Recommended)**
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **CrawClaw Desktop → Settings → Models and replies → Add model**, choose
+**Venice AI**, paste the API key, then select the default Venice model. Desktop
+probes the Venice catalog before saving and stores credential material as a
+local runtime secret.
 
 This will:
 
@@ -68,11 +71,37 @@ This will:
 
 **Option C: Non-interactive**
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+For headless automation, expose `VENICE_API_KEY` to the Gateway process and use
+the local Gateway API to patch the provider and default model. Fetch the current
+config hash with `config.get`, then call `config.patch` with a merge patch:
+
+```json5
+{
+  method: "config.patch",
+  params: {
+    baseHash: "<hash from config.get>",
+    raw: '{ agents: { defaults: { model: { primary: "venice/kimi-k2-5" } } }, models: { mode: "merge", providers: { venice: { baseUrl: "https://api.venice.ai/api/v1", apiKey: "${VENICE_API_KEY}", api: "openai-completions" } } } }',
+  },
+}
+```
 
 ### 3. Verify Setup
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use CrawClaw Desktop's model status surface or `/model status` in an active
+chat. For automation, call `models.list` to confirm the Venice catalog is
+visible and `usage.status` to confirm the Venice provider is configured:
+
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{ "method": "models.list", "params": {} }'
+
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{ "method": "usage.status", "params": {} }'
+```
 
 ## Model Selection
 
@@ -85,11 +114,23 @@ After setup, CrawClaw shows all available Venice models. Pick based on your need
 
 Change your default model anytime:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the CrawClaw Desktop model picker, or patch
+`agents.defaults.model.primary` through the local Gateway API:
+
+```json5
+{
+  method: "config.patch",
+  params: {
+    baseHash: "<hash from config.get>",
+    raw: '{ agents: { defaults: { model: { primary: "venice/claude-opus-4-6" } } } }',
+  },
+}
+```
 
 List all available models:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Call `models.list` and filter the returned model entries where
+`provider == "venice"`.
 
 ## Configure via CrawClaw Desktop or the local Gateway API
 
@@ -195,7 +236,21 @@ Venice uses a credit-based system. Check [venice.ai/pricing](https://venice.ai/p
 
 ## Usage Examples
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Once configured, select a `venice/...` model in CrawClaw Desktop or set it as
+the agent default:
+
+```json5
+{
+  agents: {
+    defaults: {
+      model: {
+        primary: "venice/kimi-k2-5",
+        fallbacks: ["venice/claude-opus-4-6"],
+      },
+    },
+  },
+}
+```
 
 ## Troubleshooting
 

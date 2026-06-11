@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:46:12Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 8d40ba6d4c197f3a7582d64cd4a88bdada85a7cd55cbdb822a4c21556079b127
+  source_hash: e9c86f41fdc4160159c3efd5f59915ba06111ddcc10f8c210c91d71839ecb961
   source_path: providers/venice.md
   workflow: 15
 ---
@@ -64,7 +64,9 @@ export VENICE_API_KEY="vapi_xxxxxxxxxxxx"
 
 **选项 B：交互式设置（推荐）**
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+打开 **CrawClaw Desktop → Settings → Models and replies → Add model**，选择
+**Venice AI**，粘贴 API key，然后选择默认 Venice 模型。Desktop 会在保存前探测
+Venice 目录，并将凭证材料保存为本地 runtime secret。
 
 这将：
 
@@ -75,11 +77,37 @@ export VENICE_API_KEY="vapi_xxxxxxxxxxxx"
 
 **选项 C：非交互式**
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+对于 headless 自动化，将 `VENICE_API_KEY` 暴露给 Gateway 进程，并使用本地
+Gateway API patch 提供商和默认模型。先用 `config.get` 获取当前 config hash，
+然后用 merge patch 调用 `config.patch`：
+
+```json5
+{
+  method: "config.patch",
+  params: {
+    baseHash: "<hash from config.get>",
+    raw: '{ agents: { defaults: { model: { primary: "venice/kimi-k2-5" } } }, models: { mode: "merge", providers: { venice: { baseUrl: "https://api.venice.ai/api/v1", apiKey: "${VENICE_API_KEY}", api: "openai-completions" } } } }',
+  },
+}
+```
 
 ### 3. 验证设置
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+使用 CrawClaw Desktop 的模型状态界面，或在活动聊天中使用 `/model status`。
+自动化场景下，调用 `models.list` 确认 Venice 目录可见，并调用
+`usage.status` 确认 Venice provider 已配置：
+
+```bash
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{ "method": "models.list", "params": {} }'
+
+curl -sS http://127.0.0.1:18789/api/gateway/rpc \
+  -H 'Authorization: Bearer <gateway-token-or-password>' \
+  -H 'Content-Type: application/json' \
+  -d '{ "method": "usage.status", "params": {} }'
+```
 
 ## 模型选择
 
@@ -92,11 +120,22 @@ export VENICE_API_KEY="vapi_xxxxxxxxxxxx"
 
 随时更改默认模型：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+使用 CrawClaw Desktop 模型选择器，或通过本地 Gateway API patch
+`agents.defaults.model.primary`：
+
+```json5
+{
+  method: "config.patch",
+  params: {
+    baseHash: "<hash from config.get>",
+    raw: '{ agents: { defaults: { model: { primary: "venice/claude-opus-4-6" } } } }',
+  },
+}
+```
 
 列出所有可用模型：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+调用 `models.list`，并筛选返回的模型条目中 `provider == "venice"` 的项。
 
 ## 通过 CrawClaw Desktop 或本地 Gateway API 配置
 
@@ -202,7 +241,21 @@ Venice 使用积分系统。查看 [venice.ai/pricing](https://venice.ai/pricing
 
 ## 使用示例
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+配置完成后，在 CrawClaw Desktop 中选择 `venice/...` 模型，或将其设为 agent
+默认模型：
+
+```json5
+{
+  agents: {
+    defaults: {
+      model: {
+        primary: "venice/kimi-k2-5",
+        fallbacks: ["venice/claude-opus-4-6"],
+      },
+    },
+  },
+}
+```
 
 ## 故障排除
 
