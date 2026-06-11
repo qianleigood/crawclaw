@@ -97,7 +97,7 @@
 
 ## Build, Test, and Development Commands
 
-- Runtime baseline: Node **22+** (keep Node + Bun paths working).
+- Runtime baseline: Node **24.x or 25.x** (keep Node + Bun paths working).
 - Install deps: `pnpm install`
 - If deps are missing (for example `node_modules` missing, `cargo not found`, or `command not found`), run the repo’s package-manager install command (prefer lockfile/README-defined PM), then rerun the exact requested command once. Apply this to test/build/lint/typecheck/dev commands; if retry still fails, report the command and first actionable error.
 - Pre-commit hooks: `prek install`. The hook runs the repo verification flow, including `pnpm check`.

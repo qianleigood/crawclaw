@@ -43,11 +43,11 @@ Desktop 用户不需要全局 `crawclaw` 命令。
 
 ### 需要什么运行时
 
-源码开发需要 Node 22+ 和 pnpm。生产使用以 CrawClaw Desktop 和 Rust runtime 为准；Bun 不推荐作为 Gateway 运行时。
+源码开发需要 Node 24.x 或 Node 25.x 和 pnpm。生产使用以 CrawClaw Desktop 和 Rust runtime 为准；Bun 不推荐作为 Gateway 运行时。
 
 ### 是否支持 Raspberry Pi
 
-支持。建议使用 64-bit OS 和 Node 22+。个人用途通常需要 512MB 到 1GB RAM、1 core 和约 500MB 磁盘；如果还要保留日志、媒体或其他服务，2GB RAM 更稳妥。
+支持。建议使用 64-bit OS 和 Node 24+。个人用途通常需要 512MB 到 1GB RAM、1 core 和约 500MB 磁盘；如果还要保留日志、媒体或其他服务，2GB RAM 更稳妥。
 
 ## Gateway 和远程访问
 
