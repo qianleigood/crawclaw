@@ -8,10 +8,10 @@ read_when:
 
 # Skills 审计
 
-本审计覆盖仓库级 core 和 optional skill 目录，目前共 `56` 个 skill：
+本审计覆盖仓库级 core 和 optional skill 目录，目前共 `53` 个 skill：
 
 - `skills/`：`18` 个 bundled core skills
-- `skills-optional/`：`38` 个 optional skills
+- `skills-optional/`：`35` 个 optional skills
 
 Extension-owned skills 单独在 [Skills catalog](/maintainers/skills-catalog) 中跟踪。
 
@@ -25,7 +25,7 @@ Extension-owned skills 单独在 [Skills catalog](/maintainers/skills-catalog) �
 ## 本轮已修复
 
 - 修正 `taskflow-inbox-triage/SKILL.md` 的 frontmatter，之后该示例 skill 已被删除
-- 给下面两个 skill 补上 `references/` 入口：
+- 给下面的 skill 补上 `references/` 入口：
   - `skills-optional/tikhub/SKILL.md`
 - 将顶层多余 `README.md` 下沉到 `references/README.md`：
   - `skills-optional/feishu-file-sender`
@@ -33,7 +33,7 @@ Extension-owned skills 单独在 [Skills catalog](/maintainers/skills-catalog) �
   - `skills-optional/humanizer-zh`
   - `skills-optional/minimax-pdf`
   - `skills-optional/redbook-skills`
-  - `tavily-web-search-for-crawclaw`
+  - `skills-optional/tavily-web-search-for-crawclaw`
   - `skills-optional/transnetv2-scene-detect`
   - `skills-optional/vercel-react-best-practices`
 

@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-10T10:39:08Z"
   model: codex
   provider: openai
-  source_hash: b5934f6c95f1ca0282654efe09f921040b1ad30a47d60c25050825e8fefe4fe6
+  source_hash: 6d6768d2273bf7df17cb089b55a901053f77f0fd7954b573a3dd35a38b5446c8
   source_path: maintainers/skills-catalog.md
   workflow: 15
 ---
@@ -35,7 +35,7 @@ x-i18n:
 
 - `skills/`：18 个 bundled core skills
 - `skills-optional/`：35 个 optional catalog skills
-- `extensions/` 下 extension-owned surfaces：12 个 skills
+- `extensions/` 下 extension-owned surfaces：2 个 skills
 
 把它们当作不同的分发 surface，而不是三个随机目录。
 
@@ -138,7 +138,7 @@ Extension-local skills 通常位于 `extensions/*/skills/`，也有少数在 ext
 
 当前 extension-scoped set：
 
-- `extensions/lobster`
+- `extensions/acpx/skills/acp-router`
 - `extensions/open-prose/skills/prose`
 
 判断规则：

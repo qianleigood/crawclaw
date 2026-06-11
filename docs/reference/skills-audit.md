@@ -9,10 +9,10 @@ read_when:
 # Skills Audit
 
 This audit covers the repo-level core and optional skill catalogs, currently
-`56` skills total:
+`53` skills total:
 
 - `skills/` for `18` bundled core skills
-- `skills-optional/` for `38` optional skills
+- `skills-optional/` for `35` optional skills
 
 Extension-owned skills are tracked separately in
 [Skills catalog](/maintainers/skills-catalog).
@@ -33,8 +33,9 @@ This audit applies the current `skill-creator` standard:
   - `skills-optional/feishu-file-sender`
   - `skills-optional/feishu-office-toolkit`
   - `skills-optional/humanizer-zh`
+  - `skills-optional/minimax-pdf`
   - `skills-optional/redbook-skills`
-  - `tavily-web-search-for-crawclaw`
+  - `skills-optional/tavily-web-search-for-crawclaw`
   - `skills-optional/transnetv2-scene-detect`
   - `skills-optional/vercel-react-best-practices`
 
@@ -84,6 +85,7 @@ The skill pack is now fully on the thin `SKILL.md` + deeper `references/` patter
 - `jimeng-seedance-web`
 - `video-frames`
 - `bing-search-cn`
+- `scrapling-official`
 - `xhs-auto-import`
 - `ima-skill`
 - `gpt-best-image`

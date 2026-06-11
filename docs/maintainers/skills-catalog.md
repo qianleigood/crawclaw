@@ -30,7 +30,7 @@ The repository currently has three skill surfaces:
 
 - `skills/`: 18 bundled core skills
 - `skills-optional/`: 35 optional catalog skills
-- extension-owned surfaces under `extensions/`: 12 skills
+- extension-owned surfaces under `extensions/`: 2 skills
 
 Treat these as different distribution surfaces, not three random directories.
 
@@ -138,7 +138,7 @@ owning extension instead of copying them into the repo-wide bundled surface.
 
 Current extension-scoped set:
 
-- `extensions/lobster`
+- `extensions/acpx/skills/acp-router`
 - `extensions/open-prose/skills/prose`
 
 Rules of thumb:
