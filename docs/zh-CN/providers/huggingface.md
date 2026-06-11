@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:44:08Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: fa42f46b6d9dae5c46e4648dbcbfc69252b6c190a02625f9315d8caaa0659146
+  source_hash: e7e9656055023e0a03b2930013ce963bf365b8b89806139333c65124e1cea990
   source_path: providers/huggingface.md
   workflow: 15
 ---
@@ -25,9 +25,9 @@ x-i18n:
 ## 快速开始
 
 1. 在 [Hugging Face → Settings → Tokens](https://huggingface.co/settings/tokens/new?ownUserPermissions=inference.serverless.write&tokenType=fineGrained) 创建具有 **Make calls to Inference Providers** 权限的细粒度 token。
-2. 运行新手引导并在提供商下拉列表中选择 **Hugging Face**，然后在提示时输入你的 API key：
-
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+2. 在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+   选择 Hugging Face，并在提示时粘贴 token。连接 probe 通过后，Desktop 会把
+   token 存为本地 file SecretRef。
 
 3. 在 **Default Hugging Face model** 下拉列表中，选择你想要的模型（当你有有效 token 时，列表从 Inference API 加载；否则显示内置列表）。你的选择将保存为默认模型。
 4. 你也可以稍后在配置中设置或更改默认模型：
@@ -44,7 +44,9 @@ x-i18n:
 
 ## 非交互式示例
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 headless hosts 上，将 `HUGGINGFACE_HUB_TOKEN` 或 `HF_TOKEN` 设到 Gateway
+environment，或用 `config.patch` 将 `models.providers.huggingface.apiKey` patch
+为 `env`、`file` 或 `exec` SecretRef。
 
 这会将 `huggingface/deepseek-ai/DeepSeek-R1` 设置为默认模型。
 

@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:45:27Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 7807e6730d8a60cadc0d5bb669704ceaf93a1baa330253a8e00b10bb00328ca0
+  source_hash: 9346dd9c528c43335d8e6c6cb51cfa5f09bd5842ffddd85d20897b8441bade8e
   source_path: providers/together.md
   workflow: 15
 ---
@@ -25,7 +25,9 @@ x-i18n:
 
 1. 设置 API 密钥（推荐：为 Gateway 存储）：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 Together AI，粘贴 API key，并保存 `together/<model>` profile。连接 probe
+通过后，Desktop 会把 key 存为本地 file SecretRef。
 
 2. 设置默认模型：
 
@@ -41,7 +43,9 @@ x-i18n:
 
 ## 非交互式示例
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
+在 headless hosts 上，将 `TOGETHER_API_KEY` 设到 Gateway environment，或用
+`config.patch` 将 `models.providers.together.apiKey` patch 为 `env`、`file`
+或 `exec` SecretRef。
 
 这会将 `together/moonshotai/Kimi-K2.5` 设置为默认模型。
 

@@ -20,7 +20,10 @@ Gemini Grounding.
 
 1. Set the API key:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **Settings → Models and replies → Add model** in CrawClaw Desktop, choose
+Google, paste a Google AI Studio API key, and save a `google/<model>` profile.
+Desktop stores the key as a local file SecretRef after the connection probe
+succeeds.
 
 2. Set a default model:
 
@@ -36,7 +39,10 @@ Use CrawClaw Desktop for interactive setup, or call the local Gateway API for au
 
 ## Non-interactive example
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+For headless hosts, set `GEMINI_API_KEY` or `GOOGLE_API_KEY` in the Gateway
+environment, or patch `models.providers.google.apiKey` to an `env`, `file`, or
+`exec` SecretRef with `config.patch`. Set `agents.defaults.model.primary` to a
+`google/<model>` ref.
 
 ## Capabilities
 

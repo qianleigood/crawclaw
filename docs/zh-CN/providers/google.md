@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-10T11:23:26Z"
   model: codex
   provider: openai
-  source_hash: 479455ae2682eeb7b67638ec1531bf2f96d18a241abccc5669bbab3dab5c62b4
+  source_hash: 704a45f5fcf0f626616bee3be29dcc33e2fcf5dbf0fd879a1d5d8f814748c791
   source_path: providers/google.md
   workflow: 15
 ---
@@ -25,7 +25,9 @@ Google plugin 通过 Google AI Studio 提供 Gemini models，并通过 Gemini Gr
 
 1. 设置 API key：
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 Google，粘贴 Google AI Studio API key，并保存 `google/<model>` profile。
+连接 probe 通过后，Desktop 会把 key 存为本地 file SecretRef。
 
 2. 设置 default model：
 
@@ -41,7 +43,10 @@ Google plugin 通过 Google AI Studio 提供 Gemini models，并通过 Gemini Gr
 
 ## Non-interactive example
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+在 headless hosts 上，将 `GEMINI_API_KEY` 或 `GOOGLE_API_KEY` 设到 Gateway
+environment，或用 `config.patch` 将 `models.providers.google.apiKey` patch 为
+`env`、`file` 或 `exec` SecretRef。将 `agents.defaults.model.primary` 设为
+`google/<model>` ref。
 
 ## Capabilities
 

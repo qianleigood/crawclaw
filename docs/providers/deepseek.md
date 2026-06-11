@@ -18,13 +18,18 @@ read_when:
 
 Set the API key (recommended: store it for the Gateway):
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **Settings → Models and replies → Add model** in CrawClaw Desktop, choose
+DeepSeek, paste your API key, and save a `deepseek/<model>` profile. Desktop
+stores the key as a local file SecretRef after the connection probe succeeds.
 
 This will prompt for your API key and set `deepseek/deepseek-chat` as the default model.
 
 ## Non-interactive example
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+For headless hosts, set `DEEPSEEK_API_KEY` in the Gateway environment or patch
+`models.providers.deepseek.apiKey` to an `env`, `file`, or `exec` SecretRef
+with `config.patch`. Set `agents.defaults.model.primary` to
+`deepseek/deepseek-chat` or `deepseek/deepseek-reasoner`.
 
 ## Environment note
 

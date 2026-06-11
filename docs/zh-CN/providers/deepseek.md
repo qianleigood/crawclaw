@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-10T11:23:26Z"
   model: codex
   provider: openai
-  source_hash: 2028fc46971436f09102245acc8fe0563b2c7b5273de7968f8d91410e5a7abd4
+  source_hash: 4e61adf4fa6ca455ae6fd68c8efd1c7a3128ed3ed52e061529ef845b127cd3d9
   source_path: providers/deepseek.md
   workflow: 15
 ---
@@ -25,13 +25,18 @@ x-i18n:
 
 设置 API key（推荐：为 Gateway 存储）：
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 DeepSeek，粘贴 API key，并保存 `deepseek/<model>` profile。连接 probe
+通过后，Desktop 会把 key 存为本地 file SecretRef。
 
 这会提示你输入 API key，并把 `deepseek/deepseek-chat` 设为 default model。
 
 ## Non-interactive example
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+在 headless hosts 上，将 `DEEPSEEK_API_KEY` 设到 Gateway environment，或用
+`config.patch` 将 `models.providers.deepseek.apiKey` patch 为 `env`、`file`
+或 `exec` SecretRef。将 `agents.defaults.model.primary` 设为
+`deepseek/deepseek-chat` 或 `deepseek/deepseek-reasoner`。
 
 ## Environment note
 

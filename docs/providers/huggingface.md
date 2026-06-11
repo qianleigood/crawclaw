@@ -18,9 +18,9 @@ title: "Hugging Face (Inference)"
 ## Quick start
 
 1. Create a fine-grained token at [Hugging Face → Settings → Tokens](https://huggingface.co/settings/tokens/new?ownUserPermissions=inference.serverless.write&tokenType=fineGrained) with the **Make calls to Inference Providers** permission.
-2. Run onboarding and choose **Hugging Face** in the provider dropdown, then enter your API key when prompted:
-
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+2. Open **Settings → Models and replies → Add model** in CrawClaw Desktop,
+   choose Hugging Face, and paste the token when prompted. Desktop stores the
+   token as a local file SecretRef after the connection probe succeeds.
 
 3. In the **Default Hugging Face model** dropdown, pick the model you want (the list is loaded from the Inference API when you have a valid token; otherwise a built-in list is shown). Your choice is saved as the default model.
 4. You can also set or change the default model later in config:
@@ -37,7 +37,9 @@ Use CrawClaw Desktop for interactive setup, or call the local Gateway API for au
 
 ## Non-interactive example
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+For headless hosts, set `HUGGINGFACE_HUB_TOKEN` or `HF_TOKEN` in the Gateway
+environment, or patch `models.providers.huggingface.apiKey` to an `env`,
+`file`, or `exec` SecretRef with `config.patch`.
 
 This will set `huggingface/deepseek-ai/DeepSeek-R1` as the default model.
 

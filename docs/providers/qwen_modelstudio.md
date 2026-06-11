@@ -21,11 +21,17 @@ and third-party models hosted on the platform. Two billing plans are supported:
 
 ### Standard (pay-as-you-go)
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **Settings → Models and replies → Add model** in CrawClaw Desktop, choose
+Model Studio, then select the Standard China or Standard Global setup option.
+Desktop fills the matching DashScope-compatible base URL, probes the selected
+model, and stores the API key as a local file SecretRef.
 
 ### Coding Plan (subscription)
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the same Desktop flow, but choose Coding Plan China or Coding Plan Global.
+For headless hosts, set `MODELSTUDIO_API_KEY` in the Gateway environment or use
+`config.patch` to write the provider `baseUrl`, model defaults, and a
+SecretRef-backed `models.providers.modelstudio.apiKey`.
 
 After onboarding, set a default model:
 

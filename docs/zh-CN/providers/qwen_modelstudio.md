@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-10T11:23:26Z"
   model: codex
   provider: openai
-  source_hash: 96d45fb15075149e5148c2e14840d98327f7d1e12e3d98d657ad64cd8d2a16cf
+  source_hash: 5d47351d3e7753ac2840eb74b60a482db47c2daac3a1bee2bb87d8c75cc42b4d
   source_path: providers/qwen_modelstudio.md
   workflow: 15
 ---
@@ -26,11 +26,17 @@ Model Studio provider 提供 Alibaba Cloud models 访问能力，包括 Qwen 和
 
 ### Standard（pay-as-you-go）
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 Model Studio，然后选择 Standard China 或 Standard Global setup option。
+Desktop 会填入匹配的 DashScope-compatible base URL，probe 选中的 model，并把 API
+key 存为本地 file SecretRef。
 
 ### Coding Plan（subscription）
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+使用同一个 Desktop flow，但选择 Coding Plan China 或 Coding Plan Global。在
+headless hosts 上，将 `MODELSTUDIO_API_KEY` 设到 Gateway environment，或用
+`config.patch` 写入 provider `baseUrl`、model defaults，以及 SecretRef-backed
+`models.providers.modelstudio.apiKey`。
 
 onboarding 后，设置 default model：
 
