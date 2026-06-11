@@ -11,9 +11,12 @@ title: "Community Plugins"
 Community plugins are third-party packages that extend CrawClaw with new
 channels, tools, providers, or other capabilities. They are built and maintained
 by the community, published on [ClawHub](/tools/clawhub) or npm, and
-installable with a single command.
+installable through CrawClaw Desktop or the local Gateway API.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+In CrawClaw Desktop, open **Plugins → Install plugin** and paste the ClawHub or
+npm package spec. Automation should call `plugins.install` with `raw` set to the
+same spec, then use `plugins.list`, `plugins.update`, or `plugins.uninstall` for
+inventory and lifecycle management.
 
 CrawClaw checks ClawHub first and falls back to npm automatically.
 
@@ -28,7 +31,7 @@ commands for resume, planning, review, model selection, compaction, and more.
 - **npm:** `crawclaw-codex-app-server`
 - **repo:** [github.com/pwrdrvr/crawclaw-codex-app-server](https://github.com/pwrdrvr/crawclaw-codex-app-server)
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Install spec: `crawclaw-codex-app-server`
 
 ### Lossless Claw (LCM)
 
@@ -39,7 +42,7 @@ while reducing token usage.
 - **npm:** `@martian-engineering/lossless-claw`
 - **repo:** [github.com/Martian-Engineering/lossless-claw](https://github.com/Martian-Engineering/lossless-claw)
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Install spec: `@martian-engineering/lossless-claw`
 
 ### Opik
 
@@ -49,7 +52,7 @@ cost, tokens, errors, and more.
 - **npm:** `@opik/opik-crawclaw`
 - **repo:** [github.com/comet-ml/opik-crawclaw](https://github.com/comet-ml/opik-crawclaw)
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Install spec: `@opik/opik-crawclaw`
 
 ### QQbot
 
@@ -60,7 +63,7 @@ and files.
 - **npm:** `@tencent-connect/crawclaw-qqbot`
 - **repo:** [github.com/tencent-connect/crawclaw-qqbot](https://github.com/tencent-connect/crawclaw-qqbot)
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Install spec: `@tencent-connect/crawclaw-qqbot`
 
 ### wecom
 
@@ -72,7 +75,7 @@ formatting, built-in access control, and document/meeting/messaging skills.
 - **npm:** `@wecom/wecom-crawclaw-plugin`
 - **repo:** [github.com/WecomTeam/wecom-crawclaw-plugin](https://github.com/WecomTeam/wecom-crawclaw-plugin)
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Install spec: `@wecom/wecom-crawclaw-plugin`
 
 ## Submit your plugin
 

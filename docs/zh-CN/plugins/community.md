@@ -8,16 +8,16 @@ x-i18n:
   generated_at: "2026-06-10T11:28:57Z"
   model: codex
   provider: openai
-  source_hash: 95a309f28846ed55b1448274ce3a9dbded71f97206b04c15296f439f296f0618
+  source_hash: a360777837a394adc3f434efa0e44e630a127b2a6500e34e3632fbe07726ec90
   source_path: plugins/community.md
   workflow: 15
 ---
 
 # Community Plugins
 
-Community plugins 是 third-party packages，用于通过新的 channels、tools、providers 或其他 capabilities 扩展 CrawClaw。它们由 community 构建和维护，发布在 [ClawHub](/tools/clawhub) 或 npm 上，并可以用单个命令安装。
+Community plugins 是 third-party packages，用于通过新的 channels、tools、providers 或其他 capabilities 扩展 CrawClaw。它们由 community 构建和维护，发布在 [ClawHub](/tools/clawhub) 或 npm 上，并可通过 CrawClaw Desktop 或本地 Gateway API 安装。
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+在 CrawClaw Desktop 中打开 **Plugins → Install plugin**，粘贴 ClawHub 或 npm package spec。自动化应调用 `plugins.install`，将 `raw` 设为相同的 spec，然后用 `plugins.list`、`plugins.update` 或 `plugins.uninstall` 做 inventory 和 lifecycle 管理。
 
 CrawClaw 会优先检查 ClawHub，然后自动 fallback 到 npm。
 
@@ -30,7 +30,7 @@ CrawClaw 会优先检查 ClawHub，然后自动 fallback 到 npm。
 - **npm:** `crawclaw-codex-app-server`
 - **repo:** [github.com/pwrdrvr/crawclaw-codex-app-server](https://github.com/pwrdrvr/crawclaw-codex-app-server)
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+Install spec：`crawclaw-codex-app-server`
 
 ### Lossless Claw (LCM)
 
@@ -39,7 +39,7 @@ CrawClaw 的 Lossless Context Management plugin。基于 DAG 的 conversation su
 - **npm:** `@martian-engineering/lossless-claw`
 - **repo:** [github.com/Martian-Engineering/lossless-claw](https://github.com/Martian-Engineering/lossless-claw)
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+Install spec：`@martian-engineering/lossless-claw`
 
 ### Opik
 
@@ -48,7 +48,7 @@ CrawClaw 的 Lossless Context Management plugin。基于 DAG 的 conversation su
 - **npm:** `@opik/opik-crawclaw`
 - **repo:** [github.com/comet-ml/opik-crawclaw](https://github.com/comet-ml/opik-crawclaw)
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+Install spec：`@opik/opik-crawclaw`
 
 ### QQbot
 
@@ -57,7 +57,7 @@ CrawClaw 的 Lossless Context Management plugin。基于 DAG 的 conversation su
 - **npm:** `@tencent-connect/crawclaw-qqbot`
 - **repo:** [github.com/tencent-connect/crawclaw-qqbot](https://github.com/tencent-connect/crawclaw-qqbot)
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+Install spec：`@tencent-connect/crawclaw-qqbot`
 
 ### wecom
 
@@ -66,7 +66,7 @@ CrawClaw 的 Lossless Context Management plugin。基于 DAG 的 conversation su
 - **npm:** `@wecom/wecom-crawclaw-plugin`
 - **repo:** [github.com/WecomTeam/wecom-crawclaw-plugin](https://github.com/WecomTeam/wecom-crawclaw-plugin)
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+Install spec：`@wecom/wecom-crawclaw-plugin`
 
 ## Submit your plugin
 
