@@ -51,6 +51,7 @@ import {
   setPluginToolEnabled,
   setMemoryFilter as setDesktopMemoryFilter,
   setMemoryQuery as setDesktopMemoryQuery,
+  startAgentGroupRun,
   startAutomationRuntime,
   steerMessage,
   stopAutomationRuntime,
@@ -822,6 +823,7 @@ export default function App() {
         {activeNavId === 'new-chat' ? (
           <ChatWorkspace
             agents={desktopState.agentWorkspace.agents}
+            agentGroups={desktopState.agentGroups}
             conversation={desktopState.conversation}
             modelOptions={modelOptions}
             onAddAttachmentMessage={(input) => void applyDesktopState(() => addAttachmentMessage(input))}
@@ -842,6 +844,9 @@ export default function App() {
               void applyDesktopState(() => sendMessage(message, {
                 agentId: selectedChatAgentId || undefined,
               }))
+            }}
+            onStartAgentGroupRun={(input) => {
+              void applyDesktopState(() => startAgentGroupRun(input))
             }}
             onSteerMessage={(text, mode) => void applyDesktopState(() => steerMessage(text, mode))}
             permissionRequest={desktopState.permissionRequest}

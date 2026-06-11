@@ -200,6 +200,27 @@ const MessageBubble = memo(function MessageBubble({
           </article>
         </>
       )
+    case 'agentGroup':
+      return (
+        <>
+          <MessageAvatar kind="agentGroup" />
+          <article className="chat-message conversation-message conversation-message--agent-group">
+            <header>
+              <Blocks aria-hidden="true" size={15} strokeWidth={2.1} />
+              <strong>{message.title}</strong>
+              <Badge tone={agentGroupStatusTone(message.status)}>{agentGroupStatusLabel(message.status)}</Badge>
+            </header>
+            <p>{message.detail}</p>
+            <div className="agent-group-meta">
+              <span>{message.stage}</span>
+              <span>Lead {message.leadAgentId}</span>
+              {message.activeAgentId ? <span>{message.activeAgentId}</span> : null}
+              <span>{message.memberAgentIds.length} members</span>
+            </div>
+            <small>{message.createdAt}</small>
+          </article>
+        </>
+      )
     case 'attachment':
       return (
         <>
@@ -446,9 +467,10 @@ function shouldShowMessage(message: ConversationMessage, replyMode: ReplyMode): 
 function MessageAvatar({
   kind,
 }: {
-  kind: 'assistant' | 'error' | 'media' | 'permission' | 'skill' | 'status' | 'tool' | 'user' | 'voice' | 'workflow'
+  kind: 'agentGroup' | 'assistant' | 'error' | 'media' | 'permission' | 'skill' | 'status' | 'tool' | 'user' | 'voice' | 'workflow'
 }) {
   const icon = {
+    agentGroup: <Blocks aria-hidden="true" size={14} strokeWidth={2.1} />,
     assistant: <Sparkles aria-hidden="true" size={14} strokeWidth={2.1} />,
     error: <AlertTriangle aria-hidden="true" size={14} strokeWidth={2.1} />,
     media: <ImageIcon aria-hidden="true" size={14} strokeWidth={2.1} />,
@@ -499,6 +521,32 @@ function statusToneLabel(tone: BadgeTone) {
     return '等待'
   }
   return '状态'
+}
+
+function agentGroupStatusLabel(status: string) {
+  if (status === 'completed') {
+    return '完成'
+  }
+  if (status === 'failed') {
+    return '失败'
+  }
+  if (status === 'pending') {
+    return '等待'
+  }
+  return '运行中'
+}
+
+function agentGroupStatusTone(status: string): BadgeTone {
+  if (status === 'completed') {
+    return 'ok'
+  }
+  if (status === 'failed') {
+    return 'danger'
+  }
+  if (status === 'pending') {
+    return 'idle'
+  }
+  return 'neutral'
 }
 
 type AssistantMessageStatus = Extract<ConversationMessage, { kind: 'assistant' }>['status']

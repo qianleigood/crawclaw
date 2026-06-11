@@ -5269,8 +5269,27 @@
 
 .conversation-message--tool,
 .conversation-message--permission,
-.conversation-message--status {
+.conversation-message--status,
+.conversation-message--agent-group {
   background: rgba(255, 255, 255, 0.86);
+}
+
+.agent-group-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.agent-group-meta span {
+  min-height: 20px;
+  border-radius: 999px;
+  background: rgba(60, 60, 67, 0.06);
+  color: var(--text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 12px;
 }
 
 .conversation-message--error {
@@ -6816,6 +6835,42 @@
   gap: 12px;
 }
 
+.chat-mode-toggle {
+  min-height: 32px;
+  border-radius: 999px;
+  background: rgba(60, 60, 67, 0.055);
+  display: inline-grid;
+  grid-template-columns: minmax(76px, auto) minmax(76px, auto);
+  align-items: center;
+  padding: 3px;
+}
+
+.chat-mode-toggle button {
+  min-height: 26px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 9px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.chat-mode-toggle button.is-selected {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text-primary);
+  box-shadow: 0 1px 5px rgba(29, 29, 31, 0.08);
+}
+
+.chat-mode-toggle button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
 .agent-mode-pill,
 .thinking-level-pill,
 .model-pill {
@@ -6953,6 +7008,11 @@
   min-width: 184px;
 }
 
+.selector-menu--members {
+  left: 320px;
+  min-width: 208px;
+}
+
 .selector-menu--thinking {
   left: 172px;
 }
@@ -6991,6 +7051,25 @@
   transform: scale(0.98);
 }
 
+.selector-menu--members button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.member-check {
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--border-soft);
+  border-radius: 5px;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .composer-meta {
   position: relative;
   width: 100%;
@@ -7020,6 +7099,29 @@
 
 .composer-meta__mode[aria-expanded="true"] {
   color: var(--text-primary);
+}
+
+.composer-meta__mode--static:hover {
+  background: transparent;
+  color: var(--text-tertiary);
+}
+
+.composer-send:disabled,
+.composer-voice:disabled {
+  cursor: default;
+  opacity: 0.48;
+  transform: none;
+}
+
+.composer-send:disabled:hover,
+.composer-voice:disabled:hover {
+  background: var(--text-primary);
+  box-shadow: none;
+  transform: none;
+}
+
+.composer-voice:disabled:hover {
+  background: transparent;
 }
 
 .listening-meter {

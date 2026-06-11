@@ -43,6 +43,11 @@ export function createDesktopUnavailableState(detail = '正在连接本机 Gatew
       selectedAgentId: '',
       agents: [],
     },
+    agentGroups: {
+      selectedGroupId: '',
+      groups: [],
+      activeRun: undefined,
+    },
     automationWorkspace: fallbackAutomationWorkspaceState(),
     memoryWorkspace: {
       selectedAgentId: '',

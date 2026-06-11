@@ -35,6 +35,18 @@ fn desktop_api_contract_exposes_structured_conversation_messages() {
 }
 
 #[test]
+fn desktop_api_contract_exposes_agent_group_room_state() {
+    let source = crawclaw_desktop::desktop_contract::desktop_api_contract_source();
+
+    assert!(source.contains("agentGroups: AgentGroupWorkspaceState"));
+    assert!(source.contains("export interface AgentGroupWorkspaceState"));
+    assert!(source.contains("export interface AgentGroupRunState"));
+    assert!(source.contains("export interface AgentGroupMemberRunState"));
+    assert!(source.contains("kind: 'agentGroup'"));
+    assert!(source.contains("roomRunId: string"));
+}
+
+#[test]
 fn desktop_api_contract_conversation_message_wire_shape_is_camel_case() {
     let message = ConversationMessage::ToolResult {
         id: "message-1".to_string(),
@@ -51,6 +63,32 @@ fn desktop_api_contract_conversation_message_wire_shape_is_camel_case() {
     assert_eq!(json["createdAt"], "刚刚");
     assert!(json.get("tool_id").is_none());
     assert!(json.get("created_at").is_none());
+}
+
+#[test]
+fn desktop_api_contract_agent_group_message_wire_shape_is_camel_case() {
+    let message = ConversationMessage::AgentGroup {
+        id: "message-1".to_string(),
+        group_id: "group-1".to_string(),
+        room_run_id: "run-1".to_string(),
+        title: "Group task".to_string(),
+        detail: "Members are running.".to_string(),
+        stage: "memberRunning".to_string(),
+        lead_agent_id: "lead".to_string(),
+        member_agent_ids: vec!["member".to_string()],
+        active_agent_id: Some("member".to_string()),
+        status: "running".to_string(),
+        created_at: "just now".to_string(),
+    };
+
+    let json = serde_json::to_value(message).expect("serialize agent group message");
+    assert_eq!(json["kind"], "agentGroup");
+    assert_eq!(json["groupId"], "group-1");
+    assert_eq!(json["roomRunId"], "run-1");
+    assert_eq!(json["leadAgentId"], "lead");
+    assert_eq!(json["activeAgentId"], "member");
+    assert!(json.get("room_run_id").is_none());
+    assert!(json.get("lead_agent_id").is_none());
 }
 
 #[test]

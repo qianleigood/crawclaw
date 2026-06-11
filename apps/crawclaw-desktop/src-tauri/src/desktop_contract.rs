@@ -82,6 +82,7 @@ export interface DesktopState {
   sidebar: SidebarState
   conversation: ConversationState
   agentWorkspace: AgentWorkspaceState
+  agentGroups: AgentGroupWorkspaceState
   automationWorkspace: AutomationWorkspaceState
   memoryWorkspace: MemoryWorkspaceState
   pluginsWorkspace: PluginsWorkspaceState
@@ -118,6 +119,7 @@ export type ConversationMessage =
   | { kind: 'toolResult'; id: string; toolId: string; title: string; ok: boolean; text: string; createdAt: string }
   | { kind: 'permission'; id: string; requestId: string; title: string; detail: string; status: PermissionStatus; createdAt: string }
   | { kind: 'status'; id: string; title: string; detail: string; tone: BadgeTone; createdAt: string }
+  | { kind: 'agentGroup'; id: string; groupId: string; roomRunId: string; title: string; detail: string; stage: string; leadAgentId: string; memberAgentIds: string[]; activeAgentId?: string; status: string; createdAt: string }
   | { kind: 'attachment'; id: string; title: string; fileName: string; mediaType: string; assetId?: string; sizeBytes?: number; status?: string; errorCode?: string; detail?: string; createdAt: string }
   | { kind: 'media'; id: string; mediaType: string; title: string; items: ConversationMediaItem[]; status?: string; errorCode?: string; createdAt: string }
   | { kind: 'workflow'; id: string; workflowKind: string; title: string; status: string; detail: string; steps: ConversationWorkflowStep[]; workflowId?: string; runId?: string; errorCode?: string; createdAt: string }
@@ -236,6 +238,41 @@ export interface DraftMessage {
 export interface AgentWorkspaceState {
   selectedAgentId: string
   agents: AgentProfile[]
+}
+
+export interface AgentGroupWorkspaceState {
+  selectedGroupId: string
+  groups: AgentGroupRoomSummary[]
+  activeRun?: AgentGroupRunState
+}
+
+export interface AgentGroupRoomSummary {
+  id: string
+  title: string
+  leadAgentId: string
+  memberAgentIds: string[]
+  status: string
+  lastActivityAt: string
+}
+
+export interface AgentGroupRunState {
+  id: string
+  groupId: string
+  threadId: string
+  task: string
+  leadAgentId: string
+  memberRuns: AgentGroupMemberRunState[]
+  status: string
+  createdAt: string
+  completedAt?: string
+}
+
+export interface AgentGroupMemberRunState {
+  agentId: string
+  status: string
+  runId?: string
+  summary?: string
+  errorCode?: string
 }
 
 export interface AgentProfile {
@@ -393,6 +430,14 @@ export interface ArchiveMemoryItemInput {
 export interface SendMessageInput {
   text: string
   agentId?: string
+}
+
+export interface StartAgentGroupRunInput {
+  task: string
+  leadAgentId: string
+  memberAgentIds: string[]
+  maxTurns?: number
+  maxParallelAgents?: number
 }
 
 export type SteerMessageMode = 'restart' | 'followUp'

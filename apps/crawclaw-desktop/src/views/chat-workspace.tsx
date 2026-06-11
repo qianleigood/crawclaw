@@ -28,12 +28,14 @@ import type {
   AddSkillCallMessageInput,
   AddVoiceMessageInput,
   AddWorkflowMessageInput,
+  AgentGroupWorkspaceState,
   AgentProfile,
   ConversationState,
   DesktopIconKey,
   DesktopPreferences,
   PermissionRequest,
   SkillSuggestion,
+  StartAgentGroupRunInput,
 } from '../desktop-api'
 import { markDesktopPerformance } from '../app/performance'
 import { Composer, PermissionModeButton } from '../ui/composer'
@@ -46,6 +48,7 @@ import { normalizeReplyMode } from './reply-mode'
 
 type ChatWorkspaceProps = {
   agents: AgentProfile[]
+  agentGroups: AgentGroupWorkspaceState
   conversation: ConversationState
   modelOptions: string[]
   onAddAttachmentMessage: (input: AddAttachmentMessageInput) => void
@@ -62,6 +65,7 @@ type ChatWorkspaceProps = {
   onRequestConfirmation: (input: ConfirmationRequestInput) => Promise<boolean>
   onSendMessage: (message: string) => void
   onSelectedChatAgentChange: (agentId: string) => void
+  onStartAgentGroupRun: (input: StartAgentGroupRunInput) => void
   onSteerMessage: (text: string, mode: 'restart' | 'followUp') => void
   permissionRequest: PermissionRequest
   preferences: DesktopPreferences
@@ -73,6 +77,7 @@ type ChatWorkspaceProps = {
 
 export function ChatWorkspace({
   agents,
+  agentGroups,
   conversation,
   modelOptions,
   onAddAttachmentMessage,
@@ -89,6 +94,7 @@ export function ChatWorkspace({
   onRequestConfirmation,
   onSendMessage,
   onSelectedChatAgentChange,
+  onStartAgentGroupRun,
   onSteerMessage,
   permissionRequest,
   preferences,
@@ -102,16 +108,26 @@ export function ChatWorkspace({
   const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [isSendAnimating, setIsSendAnimating] = useState(false)
+  const [chatMode, setChatMode] = useState<'single' | 'group'>('single')
+  const [groupLeadAgentId, setGroupLeadAgentId] = useState('')
+  const [groupMemberAgentIds, setGroupMemberAgentIds] = useState<string[]>([])
   const [steerText, setSteerText] = useState('')
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const voiceChunksRef = useRef<Blob[]>([])
   const voiceStartedAtRef = useRef<number>(0)
   const sendAnimationFrameRef = useRef<number | null>(null)
   const sendAnimationTimeoutRef = useRef<number | null>(null)
-  const [selectorOpen, setSelectorOpen] = useState<'agent' | 'thinking' | 'model' | 'permission' | null>(null)
+  const [selectorOpen, setSelectorOpen] = useState<'agent' | 'groupLead' | 'groupMembers' | 'thinking' | 'model' | 'permission' | null>(null)
   const slashCommands = conversation.slashCommands
   const selectedAgent = agents.find((agent) => agent.id === selectedChatAgentId) ?? null
   const isAgentMode = Boolean(selectedAgent)
+  const selectedGroup = agentGroups.groups.find((group) => group.id === agentGroups.selectedGroupId)
+    ?? agentGroups.groups[0]
+    ?? null
+  const groupLeadAgent = agents.find((agent) => agent.id === groupLeadAgentId) ?? null
+  const groupMemberAgents = groupMemberAgentIds
+    .map((agentId) => agents.find((agent) => agent.id === agentId))
+    .filter((agent): agent is AgentProfile => Boolean(agent))
   const skillCommands = selectedAgent
     ? selectedAgent.skills.filter((skill) => skill.enabled).map(agentSkillSuggestion)
     : conversation.skillCommands
@@ -120,6 +136,7 @@ export function ChatWorkspace({
   const hasRunningGeneration = conversation.messages.some((message) => (
     message.kind === 'assistant' && message.status === 'running'
   ))
+  const hasRunningGroup = agentGroups.activeRun?.status === 'running'
   const permissionMode = selectedAgent?.permissionMode ?? preferences.permissionMode
   const selectedModel = selectedAgent?.model ?? preferences.selectedModel
   const selectedThinking = selectedAgent?.thinking ?? preferences.selectedThinking
@@ -203,6 +220,32 @@ export function ChatWorkspace({
     onQueuedInputTextConsumed?.()
   }, [onQueuedInputTextConsumed, queuedInputText])
 
+  useEffect(() => {
+    const fallbackLeadId = selectedGroup?.leadAgentId
+      ?? selectedChatAgentId
+      ?? agents[0]?.id
+      ?? ''
+    const nextLeadId = agents.some((agent) => agent.id === groupLeadAgentId)
+      ? groupLeadAgentId
+      : fallbackLeadId
+    if (nextLeadId !== groupLeadAgentId) {
+      setGroupLeadAgentId(nextLeadId)
+    }
+
+    const defaultMemberIds = selectedGroup?.memberAgentIds
+      ?? agents.filter((agent) => agent.id !== nextLeadId).slice(0, 3).map((agent) => agent.id)
+    const sourceMemberIds = groupMemberAgentIds.length > 0 || chatMode === 'group'
+      ? groupMemberAgentIds
+      : defaultMemberIds
+    const nextMemberIds = sourceMemberIds
+      .filter((agentId) => agentId !== nextLeadId)
+      .filter((agentId) => agents.some((agent) => agent.id === agentId))
+      .slice(0, 3)
+    if (!sameStringArray(groupMemberAgentIds, nextMemberIds)) {
+      setGroupMemberAgentIds(nextMemberIds)
+    }
+  }, [agents, chatMode, groupLeadAgentId, groupMemberAgentIds, selectedChatAgentId, selectedGroup])
+
   const handleMenuKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (event.key === 'Escape') {
       event.preventDefault()
@@ -229,7 +272,7 @@ export function ChatWorkspace({
 
   const submitDraft = () => {
     const message = composerText.trim()
-    if (!message || hasRunningGeneration) {
+    if (!message || hasRunningGeneration || hasRunningGroup) {
       return
     }
 
@@ -249,7 +292,24 @@ export function ChatWorkspace({
         sendAnimationTimeoutRef.current = null
       }, 560)
     })
-    onSendMessage(message)
+    if (chatMode === 'group') {
+      const memberAgentIds = groupMemberAgentIds
+        .filter((agentId) => agentId !== groupLeadAgentId)
+        .filter((agentId) => agents.some((agent) => agent.id === agentId))
+        .slice(0, 3)
+      if (!groupLeadAgentId || memberAgentIds.length === 0) {
+        return
+      }
+      onStartAgentGroupRun({
+        leadAgentId: groupLeadAgentId,
+        maxParallelAgents: 3,
+        maxTurns: 4,
+        memberAgentIds,
+        task: message,
+      })
+    } else {
+      onSendMessage(message)
+    }
     setComposerText('')
     setIsCommandMenuOpen(false)
   }
@@ -641,152 +701,266 @@ export function ChatWorkspace({
                 ))}
               </div>
             ) : null}
-            <button
-              aria-expanded={selectorOpen === 'agent'}
-              aria-haspopup="menu"
-              aria-label={`对话模式 ${selectedAgent?.name ?? '本机默认'}`}
-              className="agent-mode-pill"
-              onClick={() => {
-                setSelectorOpen(selectorOpen === 'agent' ? null : 'agent')
-                setIsAttachmentMenuOpen(false)
-              }}
-              type="button"
-            >
-              <Bot aria-hidden="true" size={14} strokeWidth={2} />
-              <span>{selectedAgent?.name ?? '本机默认'}</span>
-              <ChevronDown aria-hidden="true" size={13} strokeWidth={2} />
-            </button>
-            {selectorOpen === 'agent' ? (
-              <div aria-label="对话模式选择" className="selector-menu selector-menu--agent" onKeyDown={handleMenuKeyDown} role="menu">
+            <div className="chat-mode-toggle" aria-label="对话执行模式">
+              <button
+                className={chatMode === 'single' ? 'is-selected' : ''}
+                onClick={() => {
+                  setChatMode('single')
+                  setSelectorOpen(null)
+                }}
+                type="button"
+              >
+                <Bot aria-hidden="true" size={13} strokeWidth={2} />
+                <span>单 agent</span>
+              </button>
+              <button
+                className={chatMode === 'group' ? 'is-selected' : ''}
+                disabled={agents.length < 2}
+                onClick={() => {
+                  setChatMode('group')
+                  setSelectorOpen(null)
+                }}
+                type="button"
+              >
+                <Blocks aria-hidden="true" size={13} strokeWidth={2} />
+                <span>任务群</span>
+              </button>
+            </div>
+            {chatMode === 'single' ? (
+              <>
                 <button
-                  className={!selectedAgent ? 'is-selected' : ''}
+                  aria-expanded={selectorOpen === 'agent'}
+                  aria-haspopup="menu"
+                  aria-label={`对话模式 ${selectedAgent?.name ?? '本机默认'}`}
+                  className="agent-mode-pill"
                   onClick={() => {
-                    onSelectedChatAgentChange('')
-                    setSelectorOpen(null)
+                    setSelectorOpen(selectorOpen === 'agent' ? null : 'agent')
+                    setIsAttachmentMenuOpen(false)
                   }}
-                  role="menuitem"
                   type="button"
                 >
-                  本机默认
+                  <Bot aria-hidden="true" size={14} strokeWidth={2} />
+                  <span>{selectedAgent?.name ?? '本机默认'}</span>
+                  <ChevronDown aria-hidden="true" size={13} strokeWidth={2} />
                 </button>
-                {agents.map((agent) => (
-                  <button
-                    className={agent.id === selectedAgent?.id ? 'is-selected' : ''}
-                    key={agent.id}
-                    onClick={() => {
-                      onSelectedChatAgentChange(agent.id)
-                      setSelectorOpen(null)
-                    }}
-                    role="menuitem"
-                    type="button"
-                  >
-                    {agent.name}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-            <button
-              aria-expanded={selectorOpen === 'thinking'}
-              aria-haspopup="menu"
-              aria-label={`思考等级 ${selectedThinking}`}
-              className="thinking-level-pill"
-              disabled={!selectedThinkingSupported}
-              onClick={() => {
-                if (!isAgentMode && selectedThinkingSupported) {
-                  setSelectorOpen(selectorOpen === 'thinking' ? null : 'thinking')
-                }
-              }}
-              title={selectedThinkingSupported ? undefined : '当前模型不支持可调思考等级，将按模型默认策略运行'}
-              type="button"
-            >
-              <Brain aria-hidden="true" size={14} strokeWidth={2} />
-              <span>{selectedThinkingSupported ? `思考 ${selectedThinking}` : '思考 默认'}</span>
-              <ChevronDown aria-hidden="true" size={13} strokeWidth={2} />
-            </button>
-            {selectorOpen === 'thinking' && !isAgentMode && selectedThinkingSupported ? (
-              <div aria-label="思考等级选择" className="selector-menu selector-menu--thinking" onKeyDown={handleMenuKeyDown} role="menu">
-                {preferences.thinkingOptions.map((level) => (
-                  <button
-                    className={level === selectedThinking ? 'is-selected' : ''}
-                    key={level}
-                    onClick={() => {
-                      onPreferenceUpdate({ selectedThinking: level })
-                      setSelectorOpen(null)
-                    }}
-                    role="menuitem"
-                    type="button"
-                  >
-                    {level}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-            <button
-              aria-expanded={selectorOpen === 'model'}
-              aria-haspopup="menu"
-              aria-label={`模型 ${selectedModel}`}
-              className="model-pill"
-              onClick={() => {
-                if (!isAgentMode) {
-                  setSelectorOpen(selectorOpen === 'model' ? null : 'model')
-                }
-              }}
-              type="button"
-            >
-              <span>{selectedModel}</span>
-              <ChevronDown aria-hidden="true" size={13} strokeWidth={2} />
-            </button>
-            {selectorOpen === 'model' && !isAgentMode ? (
-              <div aria-label="模型选择" className="selector-menu selector-menu--model" onKeyDown={handleMenuKeyDown} role="menu">
-                {modelOptions.map((model) => (
-                  <button
-                    className={model === selectedModel ? 'is-selected' : ''}
-                    key={model}
-                    onClick={() => {
-                      onPreferenceUpdate({ selectedModel: model })
-                      setSelectorOpen(null)
-                    }}
-                    role="menuitem"
-                    type="button"
-                  >
-                    {model}
-                  </button>
-                ))}
-              </div>
-            ) : null}
+                {selectorOpen === 'agent' ? (
+                  <div aria-label="对话模式选择" className="selector-menu selector-menu--agent" onKeyDown={handleMenuKeyDown} role="menu">
+                    <button
+                      className={!selectedAgent ? 'is-selected' : ''}
+                      onClick={() => {
+                        onSelectedChatAgentChange('')
+                        setSelectorOpen(null)
+                      }}
+                      role="menuitem"
+                      type="button"
+                    >
+                      本机默认
+                    </button>
+                    {agents.map((agent) => (
+                      <button
+                        className={agent.id === selectedAgent?.id ? 'is-selected' : ''}
+                        key={agent.id}
+                        onClick={() => {
+                          onSelectedChatAgentChange(agent.id)
+                          setSelectorOpen(null)
+                        }}
+                        role="menuitem"
+                        type="button"
+                      >
+                        {agent.name}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                <button
+                  aria-expanded={selectorOpen === 'thinking'}
+                  aria-haspopup="menu"
+                  aria-label={`思考等级 ${selectedThinking}`}
+                  className="thinking-level-pill"
+                  disabled={!selectedThinkingSupported}
+                  onClick={() => {
+                    if (!isAgentMode && selectedThinkingSupported) {
+                      setSelectorOpen(selectorOpen === 'thinking' ? null : 'thinking')
+                    }
+                  }}
+                  title={selectedThinkingSupported ? undefined : '当前模型不支持可调思考等级，将按模型默认策略运行'}
+                  type="button"
+                >
+                  <Brain aria-hidden="true" size={14} strokeWidth={2} />
+                  <span>{selectedThinkingSupported ? `思考 ${selectedThinking}` : '思考 默认'}</span>
+                  <ChevronDown aria-hidden="true" size={13} strokeWidth={2} />
+                </button>
+                {selectorOpen === 'thinking' && !isAgentMode && selectedThinkingSupported ? (
+                  <div aria-label="思考等级选择" className="selector-menu selector-menu--thinking" onKeyDown={handleMenuKeyDown} role="menu">
+                    {preferences.thinkingOptions.map((level) => (
+                      <button
+                        className={level === selectedThinking ? 'is-selected' : ''}
+                        key={level}
+                        onClick={() => {
+                          onPreferenceUpdate({ selectedThinking: level })
+                          setSelectorOpen(null)
+                        }}
+                        role="menuitem"
+                        type="button"
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                <button
+                  aria-expanded={selectorOpen === 'model'}
+                  aria-haspopup="menu"
+                  aria-label={`模型 ${selectedModel}`}
+                  className="model-pill"
+                  onClick={() => {
+                    if (!isAgentMode) {
+                      setSelectorOpen(selectorOpen === 'model' ? null : 'model')
+                    }
+                  }}
+                  type="button"
+                >
+                  <span>{selectedModel}</span>
+                  <ChevronDown aria-hidden="true" size={13} strokeWidth={2} />
+                </button>
+                {selectorOpen === 'model' && !isAgentMode ? (
+                  <div aria-label="模型选择" className="selector-menu selector-menu--model" onKeyDown={handleMenuKeyDown} role="menu">
+                    {modelOptions.map((model) => (
+                      <button
+                        className={model === selectedModel ? 'is-selected' : ''}
+                        key={model}
+                        onClick={() => {
+                          onPreferenceUpdate({ selectedModel: model })
+                          setSelectorOpen(null)
+                        }}
+                        role="menuitem"
+                        type="button"
+                      >
+                        {model}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <button
+                  aria-expanded={selectorOpen === 'groupLead'}
+                  aria-haspopup="menu"
+                  aria-label={`Lead agent ${groupLeadAgent?.name ?? '未选择'}`}
+                  className="agent-mode-pill"
+                  onClick={() => {
+                    setSelectorOpen(selectorOpen === 'groupLead' ? null : 'groupLead')
+                    setIsAttachmentMenuOpen(false)
+                  }}
+                  type="button"
+                >
+                  <Bot aria-hidden="true" size={14} strokeWidth={2} />
+                  <span>Lead · {groupLeadAgent?.name ?? '选择'}</span>
+                  <ChevronDown aria-hidden="true" size={13} strokeWidth={2} />
+                </button>
+                {selectorOpen === 'groupLead' ? (
+                  <div aria-label="Lead agent 选择" className="selector-menu selector-menu--agent" onKeyDown={handleMenuKeyDown} role="menu">
+                    {agents.map((agent) => (
+                      <button
+                        className={agent.id === groupLeadAgentId ? 'is-selected' : ''}
+                        key={agent.id}
+                        onClick={() => {
+                          setGroupLeadAgentId(agent.id)
+                          setGroupMemberAgentIds((members) => members.filter((memberId) => memberId !== agent.id))
+                          setSelectorOpen(null)
+                        }}
+                        role="menuitem"
+                        type="button"
+                      >
+                        {agent.name}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                <button
+                  aria-expanded={selectorOpen === 'groupMembers'}
+                  aria-haspopup="menu"
+                  aria-label={`成员 agent ${groupMemberAgents.length} 个`}
+                  className="agent-mode-pill"
+                  onClick={() => {
+                    setSelectorOpen(selectorOpen === 'groupMembers' ? null : 'groupMembers')
+                    setIsAttachmentMenuOpen(false)
+                  }}
+                  type="button"
+                >
+                  <Blocks aria-hidden="true" size={14} strokeWidth={2} />
+                  <span>成员 · {groupMemberAgents.length}</span>
+                  <ChevronDown aria-hidden="true" size={13} strokeWidth={2} />
+                </button>
+                {selectorOpen === 'groupMembers' ? (
+                  <div aria-label="成员 agent 选择" className="selector-menu selector-menu--members" onKeyDown={handleMenuKeyDown} role="menu">
+                    {agents.filter((agent) => agent.id !== groupLeadAgentId).map((agent) => {
+                      const selected = groupMemberAgentIds.includes(agent.id)
+                      return (
+                        <button
+                          className={selected ? 'is-selected' : ''}
+                          key={agent.id}
+                          onClick={() => {
+                            setGroupMemberAgentIds((members) => selected
+                              ? members.filter((memberId) => memberId !== agent.id)
+                              : [...members, agent.id].slice(0, 3))
+                          }}
+                          role="menuitemcheckbox"
+                          type="button"
+                          aria-checked={selected}
+                        >
+                          <span className="member-check" aria-hidden="true">{selected ? '✓' : ''}</span>
+                          {agent.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                ) : null}
+              </>
+            )}
           </>
         }
         onInputChange={updateComposerText}
         onSubmit={submitDraft}
         metaControls={
           <>
-            <PermissionModeButton
-              expanded={selectorOpen === 'permission'}
-              label={permissionMode}
-              onClick={() => {
-                if (!isAgentMode) {
-                  setSelectorOpen(selectorOpen === 'permission' ? null : 'permission')
-                }
-              }}
-            />
-            {selectorOpen === 'permission' && !isAgentMode ? (
-              <div aria-label="权限模式选择" className="selector-menu selector-menu--permission" onKeyDown={handleMenuKeyDown} role="menu">
-                {preferences.permissionModeOptions.map((mode) => (
-                  <button
-                    className={mode === permissionMode ? 'is-selected' : ''}
-                    key={mode}
-                    onClick={() => {
-                      onPreferenceUpdate({ permissionMode: mode })
-                      setSelectorOpen(null)
-                    }}
-                    role="menuitem"
-                    type="button"
-                  >
-                    {mode}
-                  </button>
-                ))}
-              </div>
-            ) : null}
+            {chatMode === 'single' ? (
+              <>
+                <PermissionModeButton
+                  expanded={selectorOpen === 'permission'}
+                  label={permissionMode}
+                  onClick={() => {
+                    if (!isAgentMode) {
+                      setSelectorOpen(selectorOpen === 'permission' ? null : 'permission')
+                    }
+                  }}
+                />
+                {selectorOpen === 'permission' && !isAgentMode ? (
+                  <div aria-label="权限模式选择" className="selector-menu selector-menu--permission" onKeyDown={handleMenuKeyDown} role="menu">
+                    {preferences.permissionModeOptions.map((mode) => (
+                      <button
+                        className={mode === permissionMode ? 'is-selected' : ''}
+                        key={mode}
+                        onClick={() => {
+                          onPreferenceUpdate({ permissionMode: mode })
+                          setSelectorOpen(null)
+                        }}
+                        role="menuitem"
+                        type="button"
+                      >
+                        {mode}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <span className="composer-meta__mode composer-meta__mode--static">
+                <ShieldCheck aria-hidden="true" size={14} strokeWidth={2} />
+                <span>按 agent 权限</span>
+              </span>
+            )}
           </>
         }
         placeholder="告诉 CrawClaw 要做什么..."
@@ -803,6 +977,7 @@ export function ChatWorkspace({
               className={isListening ? 'composer-voice is-listening' : 'composer-voice'}
               icon={Mic}
               label={isListening ? '停止收声' : '语音输入'}
+              disabled={hasRunningGroup}
               onClick={toggleVoiceInput}
             />
             {hasRunningGeneration ? (
@@ -817,6 +992,7 @@ export function ChatWorkspace({
             <IconButton
               className={isSendAnimating ? 'composer-send is-sending' : 'composer-send'}
               data-testid="composer-send"
+              disabled={hasRunningGroup || !composerText.trim() || (chatMode === 'group' && (!groupLeadAgentId || groupMemberAgents.length === 0))}
               icon={ArrowUp}
               label="发送"
               onClick={submitDraft}
@@ -850,6 +1026,10 @@ function agentSkillSuggestion(skill: AgentProfile['skills'][number]): SkillSugge
     label: skill.name,
     mention,
   }
+}
+
+function sameStringArray(left: string[], right: string[]) {
+  return left.length === right.length && left.every((value, index) => value === right[index])
 }
 
 async function pickDesktopFile(accept: string, onFile: (file: File) => Promise<void>) {

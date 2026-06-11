@@ -473,6 +473,7 @@ pub(super) async fn apply_native_operation(
                 let mut desktop_state = state.desktop_state.write().await;
                 desktop_state.agent_workspace.selected_agent_id = id;
                 desktop_state.agent_workspace.agents.push(agent);
+                sync_agent_group_workspace(&mut desktop_state);
             }
             emit_state_changed(state).await
         }
@@ -509,6 +510,7 @@ pub(super) async fn apply_native_operation(
                 {
                     *agent = updated_agent;
                 }
+                sync_agent_group_workspace(&mut desktop_state);
             }
             emit_state_changed(state).await
         }
@@ -1474,7 +1476,7 @@ fn update_assistant_generation_message(
     }
 }
 
-fn conversation_messages_for_loop_events(
+pub(super) fn conversation_messages_for_loop_events(
     loop_events: &[AgentLoopEvent],
 ) -> Vec<ConversationMessage> {
     let mut messages = Vec::new();
@@ -1677,7 +1679,7 @@ pub(super) async fn append_and_persist_conversation_message_with_emit(
     }
 }
 
-fn conversation_message_title(message: &ConversationMessage) -> String {
+pub(super) fn conversation_message_title(message: &ConversationMessage) -> String {
     match message {
         ConversationMessage::User { text, .. } | ConversationMessage::Assistant { text, .. } => {
             text.clone()
@@ -1686,6 +1688,7 @@ fn conversation_message_title(message: &ConversationMessage) -> String {
         | ConversationMessage::ToolResult { title, .. }
         | ConversationMessage::Permission { title, .. }
         | ConversationMessage::Status { title, .. }
+        | ConversationMessage::AgentGroup { title, .. }
         | ConversationMessage::Attachment { title, .. }
         | ConversationMessage::Media { title, .. }
         | ConversationMessage::Workflow { title, .. }
@@ -1695,7 +1698,7 @@ fn conversation_message_title(message: &ConversationMessage) -> String {
     }
 }
 
-fn conversation_message_content(message: &ConversationMessage) -> String {
+pub(super) fn conversation_message_content(message: &ConversationMessage) -> String {
     match message {
         ConversationMessage::User { text, .. } | ConversationMessage::Assistant { text, .. } => {
             text.clone()
@@ -1703,6 +1706,7 @@ fn conversation_message_content(message: &ConversationMessage) -> String {
         ConversationMessage::ToolResult { text, .. } => text.clone(),
         ConversationMessage::Permission { detail, .. }
         | ConversationMessage::Status { detail, .. }
+        | ConversationMessage::AgentGroup { detail, .. }
         | ConversationMessage::Workflow { detail, .. }
         | ConversationMessage::Error { detail, .. } => detail.clone(),
         ConversationMessage::Attachment {
@@ -2424,7 +2428,7 @@ fn model_selection_from_preferences(preferences: &DesktopPreferences) -> AgentMo
     }
 }
 
-fn model_selection_from_agent(agent: &AgentProfile) -> AgentModelSelection {
+pub(super) fn model_selection_from_agent(agent: &AgentProfile) -> AgentModelSelection {
     let selected_model = agent.model.trim();
     let (provider, model) = selected_model
         .split_once('/')
@@ -2438,7 +2442,7 @@ fn model_selection_from_agent(agent: &AgentProfile) -> AgentModelSelection {
     }
 }
 
-fn tool_selection_from_agent(agent: &AgentProfile) -> AgentRuntimeToolSelection {
+pub(super) fn tool_selection_from_agent(agent: &AgentProfile) -> AgentRuntimeToolSelection {
     let tool_ids = agent
         .tools
         .iter()
@@ -2454,7 +2458,7 @@ fn tool_selection_from_agent(agent: &AgentProfile) -> AgentRuntimeToolSelection 
     }
 }
 
-fn system_prompt_from_agent(agent: &AgentProfile) -> String {
+pub(super) fn system_prompt_from_agent(agent: &AgentProfile) -> String {
     let mut sections = vec![
         "# 智能体上下文".to_string(),
         format!("名称: {}", agent.name),

@@ -58,6 +58,7 @@ use crate::models::{
 use crate::runtime_engine::RuntimeLayout;
 
 mod desktop_agent_model;
+mod desktop_agent_group_routes;
 mod desktop_agent_routes;
 mod desktop_automation_routes;
 mod desktop_automation_summary;
@@ -75,6 +76,7 @@ pub mod desktop_settings_effects;
 use self::desktop_agent_model::{
     agent_channels_from_input, agent_profile, retain_rust_native_agent_channels,
 };
+use self::desktop_agent_group_routes::{start_agent_group_run, sync_agent_group_workspace};
 use self::desktop_agent_routes::{
     select_agent, settings_clear_cache, settings_delete_local_data, settings_diagnostics,
     settings_export_data, settings_reset_state, update_preferences,
@@ -273,6 +275,7 @@ async fn build_state(
         &memory_store_root,
     );
     merge_persisted_agents(&mut desktop_state, &agent_store);
+    sync_agent_group_workspace(&mut desktop_state);
     merge_persisted_memory_items(&mut desktop_state, &memory_store);
     merge_persisted_preferences(&mut desktop_state, &preferences_store);
     sync_privacy_defaults_from_runtime_root(
@@ -504,7 +507,7 @@ async fn request_runtime_permission(
     }
 }
 
-fn desktop_permission_policy(
+pub(in crate::gateway::desktop_api) fn desktop_permission_policy(
     state: &GatewayState,
     permission_mode: &str,
     confirmations: &ConfirmationDefaults,
@@ -2591,6 +2594,7 @@ fn router(state: GatewayState) -> Router {
         .route("/api/desktop/sessions/send", post(send_session))
         .route("/api/desktop/sessions/yield", post(yield_session))
         .route("/api/desktop/subagents", get(list_subagents))
+        .route("/api/desktop/agent-groups/runs", post(start_agent_group_run))
         .route("/api/desktop/navigation/select", post(select_nav))
         .route("/api/desktop/threads/select", post(select_thread))
         .route("/api/desktop/messages", post(send_message))
@@ -3052,7 +3056,10 @@ fn preferences_store_status(
     StatusCode::INTERNAL_SERVER_ERROR
 }
 
-fn session_store_status(state: &GatewayState, error: DesktopSessionStoreError) -> StatusCode {
+pub(in crate::gateway::desktop_api) fn session_store_status(
+    state: &GatewayState,
+    error: DesktopSessionStoreError,
+) -> StatusCode {
     let _ = state.events.send(DesktopEvent::OperationFailed {
         code: "session_store_failed".to_string(),
         message: error.to_string(),
@@ -3070,7 +3077,7 @@ fn plugin_host_status(state: &GatewayState, error: PluginHostError) -> StatusCod
     StatusCode::INTERNAL_SERVER_ERROR
 }
 
-fn emit_operation_failed(
+pub(in crate::gateway::desktop_api) fn emit_operation_failed(
     state: &GatewayState,
     code: impl Into<String>,
     message: impl Into<String>,

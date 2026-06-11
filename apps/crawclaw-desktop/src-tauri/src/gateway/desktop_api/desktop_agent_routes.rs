@@ -27,8 +27,9 @@ use super::{
     append_and_persist_conversation_message, authorize_headers, conversation_status_message,
     emit_state_changed, merge_persisted_agents, merge_persisted_memory_items,
     normalize_task_defaults, persist_desktop_preferences,
-    sync_preference_aliases_from_task_defaults, sync_privacy_defaults_from_runtime_root,
-    sync_task_defaults_from_preference_aliases, GatewayState,
+    sync_agent_group_workspace, sync_preference_aliases_from_task_defaults,
+    sync_privacy_defaults_from_runtime_root, sync_task_defaults_from_preference_aliases,
+    GatewayState,
 };
 
 #[derive(Deserialize)]
@@ -875,6 +876,7 @@ pub(super) async fn select_agent(
             .any(|agent| agent.id == agent_id)
         {
             desktop_state.agent_workspace.selected_agent_id = agent_id.clone();
+            sync_agent_group_workspace(&mut desktop_state);
         }
     }
     emit_state_changed(&state).await

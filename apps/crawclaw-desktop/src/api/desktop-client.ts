@@ -24,6 +24,7 @@ import type {
   RuntimeStatus,
   SearchSuggestion,
   SendMessageInput,
+  StartAgentGroupRunInput,
   UpdateAgentInput,
   UpdateMemoryItemPatch,
 } from '../generated/desktop-api-contract.generated'
@@ -187,6 +188,13 @@ export async function sendMessage(text: string, options: { agentId?: string } = 
   }
   return mutateDesktopState('/api/desktop/messages', {
     body,
+    method: 'POST',
+  })
+}
+
+export async function startAgentGroupRun(input: StartAgentGroupRunInput): Promise<DesktopState> {
+  return mutateDesktopState('/api/desktop/agent-groups/runs', {
+    body: input,
     method: 'POST',
   })
 }

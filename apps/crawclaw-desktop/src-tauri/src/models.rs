@@ -102,6 +102,7 @@ pub struct DesktopState {
     pub sidebar: SidebarState,
     pub conversation: ConversationState,
     pub agent_workspace: AgentWorkspaceState,
+    pub agent_groups: AgentGroupWorkspaceState,
     pub automation_workspace: AutomationWorkspaceState,
     pub memory_workspace: MemoryWorkspaceState,
     pub plugins_workspace: PluginsWorkspaceState,
@@ -189,6 +190,20 @@ pub enum ConversationMessage {
         title: String,
         detail: String,
         tone: String,
+        created_at: String,
+    },
+    AgentGroup {
+        id: String,
+        group_id: String,
+        room_run_id: String,
+        title: String,
+        detail: String,
+        stage: String,
+        lead_agent_id: String,
+        member_agent_ids: Vec<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        active_agent_id: Option<String>,
+        status: String,
         created_at: String,
     },
     Attachment {
@@ -416,6 +431,54 @@ pub struct DraftMessage {
 pub struct AgentWorkspaceState {
     pub selected_agent_id: String,
     pub agents: Vec<AgentProfile>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentGroupWorkspaceState {
+    pub selected_group_id: String,
+    pub groups: Vec<AgentGroupRoomSummary>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active_run: Option<AgentGroupRunState>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentGroupRoomSummary {
+    pub id: String,
+    pub title: String,
+    pub lead_agent_id: String,
+    pub member_agent_ids: Vec<String>,
+    pub status: String,
+    pub last_activity_at: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentGroupRunState {
+    pub id: String,
+    pub group_id: String,
+    pub thread_id: String,
+    pub task: String,
+    pub lead_agent_id: String,
+    pub member_runs: Vec<AgentGroupMemberRunState>,
+    pub status: String,
+    pub created_at: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentGroupMemberRunState {
+    pub agent_id: String,
+    pub status: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub run_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

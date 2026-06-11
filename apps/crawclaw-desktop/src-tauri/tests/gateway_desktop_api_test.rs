@@ -141,6 +141,98 @@ async fn gateway_mutations_require_session_header() {
 
 #[cfg(unix)]
 #[tokio::test]
+async fn gateway_agent_group_room_rejects_unknown_members() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-agent-group-reject",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let lead_id = create_desktop_agent(server.addr, "Lead").await;
+    let body = serde_json::json!({
+        "task": "Plan the rollout",
+        "leadAgentId": lead_id,
+        "memberAgentIds": ["missing-member"]
+    })
+    .to_string();
+    let (status, _) = post_desktop_json(server.addr, "/api/desktop/agent-groups/runs", &body).await;
+
+    assert_eq!(status, 404);
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_agent_group_room_start_creates_room_thread() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-agent-group-start",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let lead_id = create_desktop_agent(server.addr, "Lead").await;
+    let member_id = create_desktop_agent(server.addr, "Reviewer").await;
+    let body = serde_json::json!({
+        "task": "Plan the rollout",
+        "leadAgentId": lead_id,
+        "memberAgentIds": [member_id],
+        "maxTurns": 4,
+        "maxParallelAgents": 3
+    })
+    .to_string();
+    let (status, body) = post_desktop_json(server.addr, "/api/desktop/agent-groups/runs", &body).await;
+
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("agent group state json");
+    let thread_id = json["agentGroups"]["activeRun"]["threadId"]
+        .as_str()
+        .expect("group thread id");
+    assert!(thread_id.starts_with("group-"));
+    assert_eq!(json["agentGroups"]["activeRun"]["status"], "running");
+    assert!(json["sidebar"]["threads"]
+        .as_array()
+        .expect("threads")
+        .iter()
+        .any(|thread| thread["id"] == thread_id && thread["active"] == true));
+    let agent_group_message = json["conversation"]["messages"]
+        .as_array()
+        .expect("messages")
+        .iter()
+        .find(|message| message["kind"] == "agentGroup")
+        .expect("agent group message");
+    assert!(agent_group_message["roomRunId"]
+        .as_str()
+        .expect("room run id")
+        .starts_with("group-run-"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
 async fn gateway_bootstrap_exposes_core_skills_without_optional_skills() {
     let runtime_layout = create_runtime_fixture(
         "desktop-core-skills-bootstrap",
@@ -6406,6 +6498,21 @@ async fn post_desktop_json(addr: SocketAddr, path: &str, body: &str) -> (u16, St
         ),
     )
     .await
+}
+
+async fn create_desktop_agent(addr: SocketAddr, name: &str) -> String {
+    let body = serde_json::json!({
+        "name": name,
+        "role": "Test agent"
+    })
+    .to_string();
+    let (status, body) = post_desktop_json(addr, "/api/desktop/agents", &body).await;
+    assert_eq!(status, 200);
+    let json: serde_json::Value = serde_json::from_str(&body).expect("agent state json");
+    json["agentWorkspace"]["selectedAgentId"]
+        .as_str()
+        .expect("selected agent id")
+        .to_string()
 }
 
 async fn get_desktop_state(addr: SocketAddr) -> serde_json::Value {

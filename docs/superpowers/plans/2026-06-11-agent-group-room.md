@@ -26,8 +26,8 @@
 
 **Changes:**
 
-- [ ] Add `pub agent_groups: AgentGroupWorkspaceState` to `DesktopState` immediately after `agent_workspace` so desktop agent features stay grouped.
-- [ ] Add these serializable model types with `#[serde(rename_all = "camelCase")]`:
+- [x] Add `pub agent_groups: AgentGroupWorkspaceState` to `DesktopState` immediately after `agent_workspace` so desktop agent features stay grouped.
+- [x] Add these serializable model types with `#[serde(rename_all = "camelCase")]`:
 
 ```rust
 pub struct AgentGroupWorkspaceState {
@@ -66,11 +66,11 @@ pub struct AgentGroupMemberRunState {
 }
 ```
 
-- [ ] Add a `ConversationMessage::AgentGroup` variant with fields `id`, `group_id`, `room_run_id`, `title`, `detail`, `stage`, `lead_agent_id`, `member_agent_ids`, `active_agent_id: Option<String>`, `status`, and `created_at`.
-- [ ] Initialize `agent_groups` in `initial_desktop_state` with no groups and no active run.
-- [ ] Update the generated TypeScript contract source in `desktop_contract.rs`, regenerate `desktop-api-contract.generated.ts`, and add the matching fallback object in `desktop-initial-state.ts`.
-- [ ] Re-export the new generated types from `desktop-api.ts` only through the existing generated contract export pattern.
-- [ ] Add contract tests:
+- [x] Add a `ConversationMessage::AgentGroup` variant with fields `id`, `group_id`, `room_run_id`, `title`, `detail`, `stage`, `lead_agent_id`, `member_agent_ids`, `active_agent_id: Option<String>`, `status`, and `created_at`.
+- [x] Initialize `agent_groups` in `initial_desktop_state` with no groups and no active run.
+- [x] Update the generated TypeScript contract source in `desktop_contract.rs`, regenerate `desktop-api-contract.generated.ts`, and add the matching fallback object in `desktop-initial-state.ts`.
+- [x] Re-export the new generated types from `desktop-api.ts` only through the existing generated contract export pattern.
+- [x] Add contract tests:
   - `desktop_api_contract_exposes_agent_group_room_state`
   - extend `desktop_api_contract_conversation_message_wire_shape_is_camel_case` or add a new test proving `roomRunId` and `leadAgentId` serialize in camelCase.
 
@@ -93,8 +93,8 @@ cargo test --manifest-path apps/crawclaw-desktop/src-tauri/Cargo.toml desktop_ap
 
 **Changes:**
 
-- [ ] Add `mod desktop_agent_group_routes;` next to the other desktop API submodules.
-- [ ] Add `StartAgentGroupRunRequest`:
+- [x] Add `mod desktop_agent_group_routes;` next to the other desktop API submodules.
+- [x] Add `StartAgentGroupRunRequest`:
 
 ```rust
 #[derive(Clone, Debug, Deserialize)]
@@ -108,8 +108,8 @@ pub(super) struct StartAgentGroupRunRequest {
 }
 ```
 
-- [ ] Add `ValidatedAgentGroupRun` with resolved lead and member `AgentDefinition` values plus normalized `max_turns` and `max_parallel_agents`.
-- [ ] Implement `validate_agent_group_run_request(request, agents)`:
+- [x] Add `ValidatedAgentGroupRun` with resolved lead and member `AgentDefinition` values plus normalized `max_turns` and `max_parallel_agents`.
+- [x] Implement `validate_agent_group_run_request(request, agents)`:
   - `task.trim()` must be non-empty.
   - `lead_agent_id` must match an existing agent.
   - `member_agent_ids` must contain at least one existing agent.
@@ -117,14 +117,14 @@ pub(super) struct StartAgentGroupRunRequest {
   - `member_agent_ids` must not contain the lead agent.
   - `max_turns` defaults to `4` and accepts only `1..=12`.
   - `max_parallel_agents` defaults to `3` and accepts only `1..=3`.
-- [ ] Return `(StatusCode, ConversationMessage)` for validation failures so the route can both respond and record a user-visible error.
-- [ ] Add a workspace sync helper that creates one suggested group when at least two desktop agents exist:
+- [x] Return `(StatusCode, ConversationMessage)` for validation failures so the route can both respond and record a user-visible error.
+- [x] Add a workspace sync helper that creates one suggested group when at least two desktop agents exist:
   - group id: `default-supervised-room`
   - title: `任务群`
   - lead agent: currently selected agent when present, otherwise the first agent
   - members: all other agents, capped to three
-- [ ] Call the sync helper after `merge_persisted_agents` so bootstrap and state refresh have stable group defaults.
-- [ ] Add unit tests inside `desktop_agent_group_routes.rs` for duplicate members, missing lead, lead included as member, and default group derivation.
+- [x] Call the sync helper after `merge_persisted_agents` so bootstrap and state refresh have stable group defaults.
+- [x] Add unit tests inside `desktop_agent_group_routes.rs` for duplicate members, missing lead, lead included as member, and default group derivation.
 
 **Verify:**
 
@@ -145,8 +145,8 @@ cargo test --manifest-path apps/crawclaw-desktop/src-tauri/Cargo.toml desktop_ag
 
 **Changes:**
 
-- [ ] Register `POST /api/desktop/agent-groups/runs` in the Desktop API router with the same session-token middleware behavior as other mutation routes.
-- [ ] In the route handler:
+- [x] Register `POST /api/desktop/agent-groups/runs` in the Desktop API router with the same session-token middleware behavior as other mutation routes.
+- [x] In the route handler:
   - read the current `agent_workspace.agents`,
   - validate with `validate_agent_group_run_request`,
   - create `room_run_id = "group-run-" + Uuid::new_v4().simple()`,
@@ -157,11 +157,11 @@ cargo test --manifest-path apps/crawclaw-desktop/src-tauri/Cargo.toml desktop_ag
   - write one user message and one `agentGroup` status message through `append_and_persist_conversation_message_with_emit`,
   - set `agent_groups.active_run.status = "running"`,
   - return the updated `DesktopState`.
-- [ ] Update `conversation_message_title` and `conversation_message_content` in `desktop_native_operations.rs` so `agentGroup` messages persist with useful labels and text.
-- [ ] Add gateway tests:
+- [x] Update `conversation_message_title` and `conversation_message_content` in `desktop_native_operations.rs` so `agentGroup` messages persist with useful labels and text.
+- [x] Add gateway tests:
   - `gateway_agent_group_room_rejects_unknown_members`
   - `gateway_agent_group_room_start_creates_room_thread`
-- [ ] The start test should assert the response contains `agentGroups.activeRun.threadId`, the active thread id starts with `group-`, and the conversation contains an `agentGroup` message with `roomRunId`.
+- [x] The start test should assert the response contains `agentGroups.activeRun.threadId`, the active thread id starts with `group-`, and the conversation contains an `agentGroup` message with `roomRunId`.
 
 **Verify:**
 
@@ -183,21 +183,21 @@ cargo test --manifest-path apps/crawclaw-desktop/src-tauri/Cargo.toml gateway_ag
 
 **Changes:**
 
-- [ ] Spawn one background task from the start route after the synchronous state update succeeds.
-- [ ] Run member turns sequentially in v1 for deterministic transcript ordering. Enforce `max_parallel_agents` as a member-count cap in validation for this slice.
-- [ ] For each member:
+- [x] Spawn one background task from the start route after the synchronous state update succeeds.
+- [x] Run member turns sequentially in v1 for deterministic transcript ordering. Enforce `max_parallel_agents` as a member-count cap in validation for this slice.
+- [x] For each member:
   - update `agent_groups.active_run.member_runs[n].status` to `running`,
   - append an `agentGroup` message with `stage = "memberRunning"` and `activeAgentId`,
-  - call `AgentRuntime::run_turn` with the member agent id, member model selection, member tool selection, member system prompt, and a room-scoped `session_key`,
+  - call `AgentRuntime::send_message_with_options` with the member agent id, member model selection, member tool selection, member system prompt, permission requester, and a room-scoped `session_key`,
   - append loop events through `conversation_messages_for_loop_events`,
   - store `assistant_text` as the member summary,
   - set status to `completed` or `failed`.
-- [ ] Make the existing helper functions in `desktop_native_operations.rs` visible to the sibling module when needed:
+- [x] Make the existing helper functions in `desktop_native_operations.rs` visible to the sibling module when needed:
   - `model_selection_from_agent`
   - `tool_selection_from_agent`
   - `system_prompt_from_agent`
   - `conversation_messages_for_loop_events`
-- [ ] Build member prompts with this structure:
+- [x] Build member prompts with this structure:
 
 ```text
 You are participating in a CrawClaw supervised agent group room.
@@ -210,10 +210,10 @@ Task:
 Return the contribution that the lead agent should consider. Do not address the user directly unless the task asks for a draft user-facing answer.
 ```
 
-- [ ] After member turns finish, call `AgentRuntime::run_turn` for the lead agent with a lead prompt containing the original task and one fenced section per member output.
-- [ ] Append the lead answer as a normal `ConversationMessage::Assistant` with `run_id = room_run_id` so the existing chat surface and session persistence keep working.
-- [ ] Mark `agent_groups.active_run.status` as `completed` only after the lead answer is persisted. Mark it `failed` when the lead turn fails.
-- [ ] Add tests for pure prompt builders and state reducers:
+- [x] After member turns finish, call `AgentRuntime::send_message_with_options` for the lead agent with a lead prompt containing the original task and one fenced section per member output.
+- [x] Append the lead answer as a normal `ConversationMessage::Assistant` with `run_id = room_run_id` so the existing chat surface and session persistence keep working.
+- [x] Mark `agent_groups.active_run.status` as `completed` only after the lead answer is persisted. Mark it `failed` when the lead turn fails.
+- [x] Add tests for pure prompt builders and state reducers:
   - `agent_group_member_prompt_contains_task_and_role`
   - `agent_group_lead_prompt_contains_member_outputs`
   - `agent_group_state_marks_failed_member_without_stopping_room`
@@ -237,24 +237,24 @@ cargo test --manifest-path apps/crawclaw-desktop/src-tauri/Cargo.toml agent_grou
 - `apps/crawclaw-desktop/src/App.tsx`
 - `apps/crawclaw-desktop/src/views/chat-workspace.tsx`
 - `apps/crawclaw-desktop/src/views/conversation-messages.tsx`
-- `apps/crawclaw-desktop/src/styles.css`
+- `apps/crawclaw-desktop/src/styles/app.css`
 
 **Changes:**
 
-- [ ] Add `startAgentGroupRun(input)` to `desktop-client.ts` using `postDesktopState('/api/desktop/agent-groups/runs', input)`.
-- [ ] Export the request function from `desktop-api.ts`.
-- [ ] Pass `agentGroups` and `onStartAgentGroupRun` from `App.tsx` into `ChatWorkspace`.
-- [ ] In `ChatWorkspace`, add a compact mode switch near the existing send controls:
+- [x] Add `startAgentGroupRun(input)` to `desktop-client.ts` using `postDesktopState('/api/desktop/agent-groups/runs', input)`.
+- [x] Export the request function from `desktop-api.ts`.
+- [x] Pass `agentGroups` and `onStartAgentGroupRun` from `App.tsx` into `ChatWorkspace`.
+- [x] In `ChatWorkspace`, add a compact mode switch near the existing send controls:
   - `单 agent`
   - `任务群`
-- [ ] In `任务群` mode, show:
+- [x] In `任务群` mode, show:
   - lead agent select,
   - member agent checklist,
   - disabled submit state when fewer than two agents exist or no member is selected.
-- [ ] Reuse the current chat draft text as the group task. Do not add a second task text area.
-- [ ] Render `ConversationMessage.kind === 'agentGroup'` in `conversation-messages.tsx` as a compact system event with lead/member labels and status.
-- [ ] Keep the default mode as `单 agent` to avoid changing existing chat behavior.
-- [ ] Add CSS with stable dimensions for the mode switch and member checklist so the composer height does not jump while toggling checkboxes.
+- [x] Reuse the current chat draft text as the group task. Do not add a second task text area.
+- [x] Render `ConversationMessage.kind === 'agentGroup'` in `conversation-messages.tsx` as a compact system event with lead/member labels and status.
+- [x] Keep the default mode as `单 agent` to avoid changing existing chat behavior.
+- [x] Add CSS with stable dimensions for the mode switch and member checklist so the composer height does not jump while toggling checkboxes.
 
 **Verify:**
 
@@ -275,37 +275,33 @@ pnpm check
 
 **Changes:**
 
-- [ ] Run the desktop contract generator after Rust model changes:
+- [x] Synchronize the generated Desktop API contract after Rust model changes and verify it with the contract check:
 
 ```bash
 cargo run --manifest-path apps/crawclaw-desktop/src-tauri/Cargo.toml -- emit-desktop-api-contract --output apps/crawclaw-desktop/src/generated/desktop-api-contract.generated.ts
 ```
 
-- [ ] Run the contract check:
+- [x] Run the contract check:
 
 ```bash
 cargo test --manifest-path apps/crawclaw-desktop/src-tauri/Cargo.toml desktop_api_contract_generated_types_are_current
 ```
 
-- [ ] Run the focused Rust tests added above.
-- [ ] Run the local dev gate:
+- [x] Run the focused Rust tests added above.
+- [x] Run the local dev gate:
 
 ```bash
 pnpm check
 ```
 
-- [ ] Run the hard build gate because this changes Desktop API, generated frontend contract, and UI code:
+- [x] Run the hard build gate because this changes Desktop API, generated frontend contract, and UI code:
 
 ```bash
 pnpm build
 ```
 
-- [ ] Review `git diff --check`.
-- [ ] Commit only the files touched for this feature with:
-
-```bash
-scripts/committer "Desktop: add agent group rooms" <changed feature files>
-```
+- [x] Review `git diff --check`.
+- [x] Do not commit in this pass because the confirmed scope is implementation and verification, not commit/push.
 
 **Verify:**
 
