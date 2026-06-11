@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-10T11:23:26Z"
   model: codex
   provider: openai
-  source_hash: 90ccd2914fe0d51241783437b59270c940513787f93c50ff9ccf8013061e8162
+  source_hash: 0c5f600494c1bd902c1ee748368970772f15d0d7c4cea3ad9df402867fd94c0b
   source_path: providers/chutes.md
   workflow: 15
 ---
@@ -26,15 +26,28 @@ Chutes 通过 OpenAI-compatible endpoint 提供 hosted open-source models。Craw
 
 通过 CrawClaw Desktop 或本地 Gateway API 设置 Chutes API key：
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+打开 **CrawClaw Desktop → Settings → Models and replies → Add model**，选择
+**Chutes**，粘贴 API key，并选择默认模型。
 
 Non-interactive setup：
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+将 `CHUTES_API_KEY` 暴露给 Gateway 进程。对于 headless config 写入，调用
+`config.patch` 设置 Chutes provider 和默认模型：
+
+```json5
+{
+  method: "config.patch",
+  params: {
+    baseHash: "<hash from config.get>",
+    raw: '{ agents: { defaults: { model: { primary: "chutes/zai-org/GLM-4.7-TEE" } } }, models: { mode: "merge", providers: { chutes: { baseUrl: "https://llm.chutes.ai/v1", apiKey: "${CHUTES_API_KEY}", api: "openai-completions" } } } }',
+  },
+}
+```
 
 如果 onboarding 还没有设置 default model，再设置默认模型：
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+使用 Desktop 模型选择器，或将 `agents.defaults.model.primary` patch 到一个
+`chutes/...` model ref。
 
 ## API key setup
 
@@ -46,7 +59,9 @@ export CHUTES_API_KEY="chutes_..."
 
 也可以通过 onboarding 存储：
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+使用 Desktop **Add model** flow 将 key 保存为本地 runtime secret。对于 headless
+hosts，优先使用环境变量、file SecretRef，或指向 SecretRef 的 `config.patch`
+metadata。
 
 如果 Gateway 作为 daemon 运行，确保 key 对该 process 可用，例如通过 `~/.crawclaw/.env` 或 `env.shellEnv`。
 
@@ -82,7 +97,7 @@ bundled plugin 会注册 live Chutes catalog 和这些 convenience aliases：
 
 ## Verify
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+使用 CrawClaw Desktop 的模型状态界面，或在 chat 中使用 `/model status`。自动化场景下，调用 `models.list` 确认 Chutes models 可见，并调用 `usage.status` 确认 provider 已配置。
 
 ## Troubleshooting
 

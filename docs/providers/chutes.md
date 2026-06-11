@@ -20,15 +20,28 @@ CrawClaw ships a bundled `chutes` provider plugin with API key auth.
 
 Set a Chutes API key through CrawClaw Desktop or the local Gateway API:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **CrawClaw Desktop → Settings → Models and replies → Add model**, choose
+**Chutes**, paste the API key, and select a default model.
 
 For non-interactive setup:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Expose `CHUTES_API_KEY` to the Gateway process. For headless config writes, call
+`config.patch` with the Chutes provider and default model:
+
+```json5
+{
+  method: "config.patch",
+  params: {
+    baseHash: "<hash from config.get>",
+    raw: '{ agents: { defaults: { model: { primary: "chutes/zai-org/GLM-4.7-TEE" } } }, models: { mode: "merge", providers: { chutes: { baseUrl: "https://llm.chutes.ai/v1", apiKey: "${CHUTES_API_KEY}", api: "openai-completions" } } } }',
+  },
+}
+```
 
 Then set a default model if onboarding did not already do it:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the Desktop model picker, or patch `agents.defaults.model.primary` to a
+`chutes/...` model ref.
 
 ## API key setup
 
@@ -40,7 +53,9 @@ export CHUTES_API_KEY="chutes_..."
 
 Or store it with onboarding:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the Desktop **Add model** flow to save the key as a local runtime secret.
+For headless hosts, prefer an environment variable, file SecretRef, or
+`config.patch` metadata that points at a SecretRef.
 
 If the Gateway runs as a daemon, make sure the key is available to that process,
 for example through `~/.crawclaw/.env` or `env.shellEnv`.
@@ -77,7 +92,9 @@ You can also use any catalog model directly as `chutes/<model-id>`.
 
 ## Verify
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use CrawClaw Desktop's model status surface or `/model status` in chat. For
+automation, call `models.list` to confirm Chutes models are visible and
+`usage.status` to confirm the provider is configured.
 
 ## Troubleshooting
 

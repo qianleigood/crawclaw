@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:45:10Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: b318dcfa892c929de65ac9f026e53144eac162b3e2e4704a70374a16f369917a
+  source_hash: 143d3e0616eb430a2355568fff078dfc756592beece6bd76e1255a64c908588c
   source_path: providers/ollama.md
   workflow: 15
 ---
@@ -27,7 +27,8 @@ Ollama 是一个本地 LLM 运行时，可让你轻松在本地机器上运行�
 
 设置 Ollama 最快的方式是通过新手引导：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+打开 **CrawClaw Desktop → Settings → Models and replies → Add model**，选择
+**Ollama**，然后输入 Ollama base URL 和 mode。
 
 从提供商列表中选择 **Ollama**。新手引导将：
 
@@ -39,11 +40,24 @@ Ollama 是一个本地 LLM 运行时，可让你轻松在本地机器上运行�
 
 也支持非交互式模式：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+对于自动化，将 `OLLAMA_API_KEY` 暴露给 Gateway 进程。当你没有定义显式
+`models.providers.ollama` 条目时，任何非空值都会让 CrawClaw opt in 到 Ollama
+discovery。
 
 可选指定自定义 base URL 或模型：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+使用 `config.patch` 设置 `models.providers.ollama.baseUrl` 和
+`agents.defaults.model.primary`：
+
+```json5
+{
+  method: "config.patch",
+  params: {
+    baseHash: "<hash from config.get>",
+    raw: '{ agents: { defaults: { model: { primary: "ollama/glm-4.7-flash" } } }, models: { mode: "merge", providers: { ollama: { baseUrl: "http://127.0.0.1:11434", apiKey: "${OLLAMA_API_KEY}" } } } }',
+  },
+}
+```
 
 ### 手动设置
 
@@ -67,7 +81,8 @@ ollama signin
 
 4. 运行新手引导并选择 `Ollama`：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+使用 CrawClaw Desktop 的 **Add model** flow 并选择 `Ollama`，或应用上面相同形状的
+`config.patch`。
 
 - `Local`：仅本地模型
 - `Cloud + Local`：本地模型加上云端模型
@@ -89,7 +104,8 @@ export OLLAMA_API_KEY="ollama-local"
 
 6. 检查或切换模型：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+使用 CrawClaw Desktop 模型选择器，或调用 `models.list` 检查 Ollama entries，并用
+`config.patch` 更新 `agents.defaults.model.primary`。
 
 7. 或在配置中设置默认值：
 

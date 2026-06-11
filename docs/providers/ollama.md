@@ -20,7 +20,8 @@ Ollama is a local LLM runtime that makes it easy to run open-source models on yo
 
 The fastest way to set up Ollama is through onboarding:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **CrawClaw Desktop → Settings → Models and replies → Add model**, choose
+**Ollama**, then enter the Ollama base URL and mode.
 
 Select **Ollama** from the provider list. Onboarding will:
 
@@ -32,11 +33,24 @@ Select **Ollama** from the provider list. Onboarding will:
 
 Non-interactive mode is also supported:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+For automation, expose `OLLAMA_API_KEY` to the Gateway process. Any non-empty
+value opts CrawClaw into Ollama discovery when you do not define an explicit
+`models.providers.ollama` entry.
 
 Optionally specify a custom base URL or model:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use `config.patch` to set `models.providers.ollama.baseUrl` and
+`agents.defaults.model.primary`:
+
+```json5
+{
+  method: "config.patch",
+  params: {
+    baseHash: "<hash from config.get>",
+    raw: '{ agents: { defaults: { model: { primary: "ollama/glm-4.7-flash" } } }, models: { mode: "merge", providers: { ollama: { baseUrl: "http://127.0.0.1:11434", apiKey: "${OLLAMA_API_KEY}" } } } }',
+  },
+}
+```
 
 ### Manual setup
 
@@ -60,7 +74,8 @@ ollama signin
 
 4. Run onboarding and choose `Ollama`:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use CrawClaw Desktop's **Add model** flow and choose `Ollama`, or apply the
+same `config.patch` shape shown above.
 
 - `Local`: local models only
 - `Cloud + Local`: local models plus cloud models
@@ -82,7 +97,8 @@ Or configure the provider through CrawClaw Desktop or the local Gateway API.
 
 6. Inspect or switch models:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the CrawClaw Desktop model picker, or call `models.list` to inspect Ollama
+entries and `config.patch` to update `agents.defaults.model.primary`.
 
 7. Or set the default in config:
 
