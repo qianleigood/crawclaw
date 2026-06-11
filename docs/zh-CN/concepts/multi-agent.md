@@ -7,7 +7,7 @@ x-i18n:
   generated_at: "2026-06-05T14:14:18Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: b786f876e97700a926668bcd61cbe79f77c5c41a4d8a8879eed3fcfb93cf0446
+  source_hash: 0ea83aec246393a77ad922e4cca66d1d68aaa37a9536d8e85bf7648f3ddd77ac
   source_path: concepts/multi-agent.md
   workflow: 15
 ---
@@ -59,11 +59,13 @@ Gateway 网关可以托管**一个智能体**（默认）或**多个智能体**�
 
 使用智能体向导添加新的隔离智能体：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+可用时使用 CrawClaw Desktop 的 agent settings。自动化场景下，先创建 workspace
+文件，调用 `config.patch` 添加 `agents.list[]` 条目，然后在同一个 patch 或后续
+patch 中添加匹配的 `bindings[]` 路由。
 
 然后添加 `bindings`（或让向导完成）来路由入站消息。
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化验证。
+调用 `status` 查看 Gateway snapshot，调用 `channels.status` 查看 account readiness。在发送真实流量前，确认每个目标 `agentId`、channel `accountId` 和 binding 都可见。
 
 ## 快速开始
 
@@ -72,7 +74,7 @@ Gateway 网关可以托管**一个智能体**（默认）或**多个智能体**�
 
 使用向导或手动创建工作空间：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+为每个 agent 创建一个目录，添加该 agent 的 `SOUL.md` 和 `AGENTS.md`，然后通过 Desktop settings 或 `config.patch` 设置 `agents.list[].workspace` 和可选的 `agents.list[].agentDir`。
 
 每个智能体获得自己的工作空间，包含 `SOUL.md`、`AGENTS.md` 和可选的 `USER.md`，以及专用的 `agentDir` 和会话存储，位于 `~/.crawclaw/agents/<agentId>` 下。
 
@@ -86,7 +88,9 @@ Gateway 网关可以托管**一个智能体**（默认）或**多个智能体**�
 - 飞书：通过 BotFather 为每个智能体创建一个机器人，复制每个令牌。
 - Weixin：为每个账户关联一个手机号码。
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+交互式设置使用 channel settings panels。自动化应在可用时使用
+`channels.config.patch` 写入 account blocks，或用 `config.patch` 做完整 config
+级别变更。
 
 参见渠道指南：[QQBot](/channels/index)、[飞书](/channels/index)、[Weixin](/channels/index)。
 
@@ -100,7 +104,9 @@ Gateway 网关可以托管**一个智能体**（默认）或**多个智能体**�
 
   <Step title="重启并验证">
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+添加 agents、accounts 或 bindings 后重启 Gateway。然后调用 `status` 和
+`channels.status`；如需验证 model/auth 隔离，也要从每个 agent context 检查
+`models.list` 或 `usage.status`。
 
   </Step>
 </Steps>
@@ -294,7 +300,9 @@ Gateway 网关可以托管**一个智能体**（默认）或**多个智能体**�
 
 在启动网关之前关联每个账户：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 Gateway host 上使用 Weixin channel settings panel 关联每个账户。Headless
+automation 可以用 `channels.status` 检查 readiness，但初次 QR/session 关联仍需要
+该 channel 的常规交互登录流程。
 
 `~/.crawclaw/crawclaw.json`（JSON5）：
 

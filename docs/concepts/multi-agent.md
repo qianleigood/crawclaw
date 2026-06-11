@@ -56,13 +56,18 @@ If you do nothing, CrawClaw runs a single agent:
 
 Use the agent wizard to add a new isolated agent:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use CrawClaw Desktop's agent settings when available. For automation, create
+the workspace files first, call `config.patch` to add an `agents.list[]` entry,
+then add the matching `bindings[]` routes in the same patch or a follow-up
+patch.
 
 Then add `bindings` (or let the wizard do it) to route inbound messages.
 
 Verify with:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Call `status` for the Gateway snapshot and `channels.status` for account
+readiness. Confirm each intended `agentId`, channel `accountId`, and binding is
+visible before sending live traffic.
 
 ## Quick start
 
@@ -71,7 +76,9 @@ Use CrawClaw Desktop for interactive setup, or call the local Gateway API for au
 
 Use the wizard or create workspaces manually:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Create one directory per agent, add the agent's `SOUL.md` and `AGENTS.md`, then
+set `agents.list[].workspace` and optional `agents.list[].agentDir` through
+Desktop settings or `config.patch`.
 
 Each agent gets its own workspace with `SOUL.md`, `AGENTS.md`, and optional `USER.md`, plus a dedicated `agentDir` and session store under `~/.crawclaw/agents/<agentId>`.
 
@@ -85,7 +92,9 @@ Create one account per agent on your preferred channels:
 - Feishu: one bot per agent via BotFather, copy each token.
 - Weixin: link each phone number per account.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the channel settings panels for interactive setup. Automation should write
+account blocks with `channels.config.patch` when available, or `config.patch`
+for full config-level changes.
 
 See channel guides: [QQBot](/channels/index), [Feishu](/channels/index), [Weixin](/channels/index).
 
@@ -99,7 +108,9 @@ Add agents under `agents.list`, channel accounts under `channels.<channel>.accou
 
   <Step title="Restart and verify">
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Restart the Gateway after adding agents, accounts, or bindings. Then call
+`status` and `channels.status`; for model/auth isolation, also check
+`models.list` or `usage.status` from each agent context.
 
   </Step>
 </Steps>
@@ -298,7 +309,9 @@ Notes:
 
 Link each account before starting the gateway:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the Weixin channel settings panel on the Gateway host to link each account.
+Headless automation can inspect readiness with `channels.status`, but initial
+QR/session linking still requires the channel's normal interactive login flow.
 
 `~/.crawclaw/crawclaw.json` (JSON5):
 
