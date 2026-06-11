@@ -8,31 +8,28 @@ title: "Doctor"
 
 # Doctor
 
-CrawClaw Desktop 或 local Gateway API 是 CrawClaw 的修复 + 迁移工具。它会修复过时的配置/状态，检查健康状况，并提供可操作的修复步骤。
+Doctor 是 CrawClaw 的修复和迁移入口。CrawClaw Desktop 负责交互式流程；Gateway API 暴露
+read-only 状态面和 automation 可以安全组合的 scoped config writes。
 
 ## 快速开始
 
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+需要 guided checks、安全修复提示、日志和重启帮助时，打开 CrawClaw Desktop diagnostics。
 
 ### 无头/自动化
 
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+先从 read-only Gateway RPC 开始：`status`、`config.get`、`doctor.memory.status`、
+`memory.status`、`channels.status` 和 `logs.tail`。
 
-无需提示接受默认值（包括适用时的重启/服务修复步骤）。
+scoped repair writes 使用 `config.patch` 和 `channels.config.patch`。如果变更受启动绑定，
+请从 CrawClaw Desktop 或 host supervisor 重启 local Gateway。
 
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+只有当具体检查明确指出目标 setting 或 file 时，才应用 recommended repairs。自动化场景避免 broad
+config rewrites。
 
-无需提示应用推荐的修复（安全时进行修复 + 重启）。
-
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
-
-也应用激进修复（覆盖自定义 runtime config）。
-
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
+激进修复可能覆盖 custom runtime config；除非已有 fresh backup 且 operator 明确批准，否则保留在
+CrawClaw Desktop 的交互式流程中执行。
 
 检测到时自动运行遗留状态迁移。
-
-使用 CrawClaw Desktop 进行交互式设置，或通过本地 Gateway API 自动化。
 
 如果旧安装留下启动项，请手动检查 legacy startup entries。
 
@@ -81,7 +78,8 @@ cat ~/.crawclaw/crawclaw.json
 
 ### 2）遗留配置键迁移
 
-当配置包含已弃用的键时，其他命令会拒绝运行并要求你使用 CrawClaw Desktop 或 local Gateway API。
+当配置包含已弃用的键时，其他命令会拒绝运行，并要求你打开 CrawClaw Desktop diagnostics
+或使用 scoped Gateway RPC writes 修复配置。
 
 Doctor 将：
 
@@ -90,7 +88,8 @@ Doctor 将：
 - 使用更新后的 schema 重写 `~/.crawclaw/crawclaw.json`。
 
 Gateway 网关在检测到遗留配置格式时也会在启动时自动运行 doctor 迁移，因此过时的配置无需手动干预即可修复。
-Cron job store migrations 由 CrawClaw Desktop 或 local Gateway API 处理。
+Cron job store migrations 由 runtime migration path 处理；用 `cron.status`、`cron.list`
+和 `cron.runs` 检查 runtime state。
 
 当前迁移：
 
@@ -141,7 +140,7 @@ Doctor 可以将旧的磁盘布局迁移到当前结构：
   - 从遗留的 `~/.crawclaw/credentials/*.json`（除 `oauth.json` 外）
   - 到 `~/.crawclaw/credentials/weixin/<accountId>/...`（默认账户 id：`default`）
 
-这些迁移是尽力而为且幂等的；当 doctor 将任何遗留文件夹作为备份保留时会发出警告。Gateway/CLI 也会在启动时自动迁移 legacy sessions + agent dir，因此 history/auth/models 会落到 per-agent path，无需手动运行 doctor。Weixin 认证有意仅通过 CrawClaw Desktop 或 local Gateway API 迁移。
+这些迁移是尽力而为且幂等的；当 doctor 将任何遗留文件夹作为备份保留时会发出警告。Gateway/CLI 也会在启动时自动迁移 legacy sessions + agent dir，因此 history/auth/models 会落到 per-agent path，无需手动运行 doctor。Weixin 认证有意仅通过交互式 repair flow 迁移。
 
 ### 3a）Legacy cron store migrations
 
@@ -194,11 +193,11 @@ Doctor 还会报告由于以下原因暂时不可用的认证配置文件：
 
 ### 8）Legacy startup cleanup hints
 
-Doctor 关注 desktop-owned local Gateway runtime。如果旧 OS supervisor entries 仍存在，应手动移除，确保 desktop app 和 local Gateway API 是唯一默认 startup path。
+Doctor 关注 desktop-owned local Gateway runtime。如果旧 OS supervisor entries 仍存在，应手动移除，确保 desktop app 仍是默认 local startup path。
 
 ### 9）Startup channel checks
 
-当 Feishu channel account 存在 pending/actionable legacy state migration 时，doctor（在 `--fix` / `--repair` mode 下）会创建 pre-migration snapshot，然后运行 best-effort migration steps：legacy Feishu state migration 和 legacy encrypted-state preparation。这两个步骤都是 non-fatal；错误会被记录，startup 继续。在 read-only mode（CrawClaw Desktop 或 local Gateway API without `--fix`）下会完全跳过此检查。
+当 Feishu channel account 存在 pending/actionable legacy state migration 时，doctor（在 `--fix` / `--repair` mode 下）会创建 pre-migration snapshot，然后运行 best-effort migration steps：legacy Feishu state migration 和 legacy encrypted-state preparation。这两个步骤都是 non-fatal；错误会被记录，startup 继续。在 read-only mode 下会完全跳过此检查。
 
 ### 9）安全警告
 
@@ -230,7 +229,7 @@ Doctor 检查当前 shell（zsh、bash、fish 或 PowerShell）是否已安装 t
 - 如果 completion 已在 profile 中配置但 cache file 缺失，doctor 会自动 regenerate cache。
 - 如果完全没有配置 completion，doctor 会提示安装（仅 interactive mode；`--non-interactive` 下跳过）。
 
-手动 regenerate cache 时，使用 CrawClaw Desktop 或 local Gateway API 的 repair surface。
+手动 regenerate cache 时，使用 Desktop repair surface，或从 host shell profile 手动重新生成 completion cache。
 
 ### 12）Gateway auth checks（local token）
 
@@ -238,13 +237,13 @@ Doctor 检查 local gateway token auth readiness。
 
 - 如果 token mode 需要 token 但没有 token source，doctor 会提供生成 token。
 - 如果 `gateway.auth.token` 由 SecretRef 管理但当前不可用，doctor 会警告，且不会用 plaintext 覆盖它。
-- CrawClaw Desktop 或 local Gateway API 只在没有配置 token SecretRef 时强制生成。
+- 交互式 repair flow 只在没有配置 token SecretRef 时强制生成。
 
 ### 12b）Read-only SecretRef-aware repairs
 
 部分 repair flows 需要检查已配置 credentials，同时不能削弱 runtime fail-fast 行为。
 
-- CrawClaw Desktop 或 local Gateway API 现在使用与 status-family commands 相同的 read-only SecretRef summary model 来做 targeted config repairs。
+- Doctor 使用与 status-family commands 相同的 read-only SecretRef summary model 来做 targeted config repairs。
 - 示例：Feishu `allowFrom` / `groupAllowFrom` `@username` repair 会在可用时尝试使用已配置 bot credentials。
 - 如果 Feishu bot token 通过 SecretRef 配置但在当前 command path 中不可用，doctor 会报告 credential configured-but-unavailable，并跳过 auto-resolution，而不是 crash 或误报 token missing。
 

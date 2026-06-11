@@ -8,30 +8,32 @@ title: "Doctor"
 
 # Doctor
 
-CrawClaw Desktop or the local Gateway API is the repair + migration tool for CrawClaw. It fixes stale
-config/state, checks health, and provides actionable repair steps.
+Doctor is CrawClaw's repair and migration surface. CrawClaw Desktop owns the
+interactive flow; the Gateway API exposes the read-only status surfaces and
+scoped config writes that automation can compose safely.
 
 ## Quick start
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open CrawClaw Desktop diagnostics when you want guided checks, safe repair
+prompts, logs, and restart help.
 
 ### Headless / automation
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Start with read-only Gateway RPC calls: `status`, `config.get`,
+`doctor.memory.status`, `memory.status`, `channels.status`, and `logs.tail`.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use `config.patch` and `channels.config.patch` for scoped repair writes. Restart
+the local Gateway from CrawClaw Desktop or the host supervisor when a change is
+startup-bound.
 
-Apply recommended repairs without prompting (repairs + restarts where safe).
+Apply recommended repairs only when the specific check names the target setting
+or file. Avoid broad config rewrites for automation.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
-
-Apply aggressive repairs too (overwrites custom runtime config).
-
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Aggressive repairs can overwrite custom runtime config; keep them interactive
+through CrawClaw Desktop unless you have a fresh backup and an explicit operator
+approval.
 
 Legacy state migrations run automatically when detected.
-
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
 
 Review legacy startup entries manually if an older install left one behind.
 
@@ -84,7 +86,8 @@ schema.
 ### 2) Legacy config key migrations
 
 When the config contains deprecated keys, other commands refuse to run and ask
-you to run CrawClaw Desktop or the local Gateway API.
+you to open CrawClaw Desktop diagnostics or repair the config with scoped
+Gateway RPC writes.
 
 Doctor will:
 
@@ -94,7 +97,8 @@ Doctor will:
 
 The Gateway also auto-runs doctor migrations on startup when it detects a
 legacy config format, so stale configs are repaired without manual intervention.
-Cron job store migrations are handled by CrawClaw Desktop or the local Gateway API.
+Cron job store migrations are handled by the runtime migration path; inspect
+runtime state with `cron.status`, `cron.list`, and `cron.runs`.
 
 Current migrations:
 
@@ -150,7 +154,7 @@ These migrations are best-effort and idempotent; doctor will emit warnings when
 it leaves any legacy folders behind as backups. The Gateway/CLI also auto-migrates
 the legacy sessions + agent dir on startup so history/auth/models land in the
 per-agent path without a manual doctor run. Weixin auth is intentionally only
-migrated via CrawClaw Desktop or the local Gateway API.
+migrated by the interactive repair flow.
 
 ### 3a) Legacy cron store migrations
 
@@ -234,8 +238,8 @@ that can be detected without mutating the runtime.
 ### 8) Legacy startup cleanup hints
 
 Doctor focuses on the desktop-owned local Gateway runtime. Older OS supervisor
-entries should be removed manually if they still exist, so the desktop app and
-local Gateway API remain the only default startup path.
+entries should be removed manually if they still exist, so the desktop app
+remains the default local startup path.
 
 ### 9) Startup channel checks
 
@@ -243,8 +247,7 @@ When a Feishu channel account has a pending or actionable legacy state migration
 doctor (in `--fix` / `--repair` mode) creates a pre-migration snapshot and then
 runs the best-effort migration steps: legacy Feishu state migration and legacy
 encrypted-state preparation. Both steps are non-fatal; errors are logged and
-startup continues. In read-only mode (CrawClaw Desktop or the local Gateway API without `--fix`) this check
-is skipped entirely.
+startup continues. In read-only mode this check is skipped entirely.
 
 ### 9) Security warnings
 
@@ -293,8 +296,8 @@ Doctor checks whether tab completion is installed for the current shell
 - If no completion is configured at all, doctor prompts to install it
   (interactive mode only; skipped with `--non-interactive`).
 
-Use CrawClaw Desktop or the local Gateway API repair surface to regenerate the
-cache manually.
+Use the Desktop repair surface, or regenerate the completion cache from the host
+shell profile manually.
 
 ### 12) Gateway auth checks (local token)
 
@@ -302,13 +305,13 @@ Doctor checks local gateway token auth readiness.
 
 - If token mode needs a token and no token source exists, doctor offers to generate one.
 - If `gateway.auth.token` is SecretRef-managed but unavailable, doctor warns and does not overwrite it with plaintext.
-- CrawClaw Desktop or the local Gateway API forces generation only when no token SecretRef is configured.
+- The interactive repair flow forces generation only when no token SecretRef is configured.
 
 ### 12b) Read-only SecretRef-aware repairs
 
 Some repair flows need to inspect configured credentials without weakening runtime fail-fast behavior.
 
-- CrawClaw Desktop or the local Gateway API now uses the same read-only SecretRef summary model as status-family commands for targeted config repairs.
+- Doctor uses the same read-only SecretRef summary model as status-family commands for targeted config repairs.
 - Example: Feishu `allowFrom` / `groupAllowFrom` `@username` repair tries to use configured bot credentials when available.
 - If the Feishu bot token is configured via SecretRef but unavailable in the current command path, doctor reports that the credential is configured-but-unavailable and skips auto-resolution instead of crashing or misreporting the token as missing.
 
