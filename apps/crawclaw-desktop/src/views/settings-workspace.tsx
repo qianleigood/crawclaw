@@ -480,10 +480,6 @@ const settingsCopy = {
         detail: '只保留诊断入口和状态表达，不进入普通工作流。',
         title: '高级',
       },
-      automation: {
-        detail: '安装和管理 n8n / ComfyUI 的本机运行依赖。',
-        title: '自动化环境',
-      },
       general: {
         detail: '控制桌面应用的基础使用习惯。',
         title: '常规',
@@ -615,10 +611,6 @@ const settingsCopy = {
       advanced: {
         detail: 'Keep diagnostics and runtime state separate from everyday workflows.',
         title: 'Advanced',
-      },
-      automation: {
-        detail: 'Install and manage the local n8n / ComfyUI runtime dependencies.',
-        title: 'Automation environment',
       },
       general: {
         detail: 'Control basic desktop app behavior.',
