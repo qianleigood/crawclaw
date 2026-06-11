@@ -65,15 +65,22 @@ Decide for yourself whether to use subscription auth, and verify Anthropic's cur
 
 Run `claude setup-token` on any machine, then paste it into CrawClaw:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **CrawClaw Desktop → Settings → Models and replies → Add model**, choose
+**Anthropic token (paste setup-token)**, and save the token for the target
+agent profile.
 
 If you generated the token elsewhere, paste it manually:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Copy the setup-token to the Gateway host and paste it into the same Desktop
+setup-token flow. For headless hosts, write the target agent's
+`auth-profiles.json` and route it through `auth.profiles` / `auth.order`; do
+not put live setup-tokens in `crawclaw.json`.
 
 Verify:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use CrawClaw Desktop's model status surface or `/model status` in chat. For
+automation, call `usage.status` to confirm the provider/auth snapshot and
+`models.list` to confirm the selected Anthropic model is visible.
 
 ## Auth exchange patterns
 
@@ -119,7 +126,10 @@ Two patterns:
 
 If you want “personal” and “work” to never interact, use isolated agents (separate sessions + credentials + workspace):
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Create separate `agents.list[]` entries with distinct `workspace` and
+`agentDir` values, then apply them through CrawClaw Desktop settings or
+`config.patch`. Verify routing with `status` and channel readiness with
+`channels.status`.
 
 Then configure auth per-agent (wizard) and route chats to the right agent.
 
