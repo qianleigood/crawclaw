@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-10T11:18:34Z"
   model: codex
   provider: openai
-  source_hash: 269dfdc3d2addaa337c75610842e806f347642caeadf68b8f2d2491ec5c32fe4
+  source_hash: cffa41b2559e37dce0b947267af6b5958b99ca69a7a0ee922a3657d91be550a3
   source_path: platforms/macos.md
   workflow: 15
 ---
@@ -46,21 +46,30 @@ macOS matrix 使用两种 support states：
 
 验证安装：
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+打开 CrawClaw Desktop，并确认 Gateway 状态健康。自动化客户端可以通过
+desktop-managed loopback Gateway 调用本地 Gateway API 的 `health` 或
+`status` 方法来验证同一个安装。
 
 引导式 setup：
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+使用 CrawClaw Desktop settings 管理 models、plugins、channels、automation
+environment 和 launch-at-login controls。脚本化 setup 应通过 typed Gateway
+RPC patch 同一份状态，例如 `config.patch`、`models.list`、`usage.status`、
+`channels.status` 和 `channels.config.patch`。
 
 ## Gateway references
 
 在 foreground 运行 Gateway：
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+启动 CrawClaw Desktop 并保持 app 运行；Desktop 在 macOS 上拥有本地 Gateway
+lifecycle。Protocol clients 应连接到 loopback Gateway，并使用 `status` 确认
+active process，而不是启动第二个 ad-hoc Gateway。
 
 安装 managed startup：
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+在 CrawClaw Desktop settings 中启用 launch at login。调试启动时，用
+`launchctl print gui/$UID | grep crawclaw` 检查 per-user launchd 状态，然后
+通过 Desktop 重启 app-managed Gateway。
 
 macOS managed startup 使用 per-user LaunchAgent。它不是会在任何 user 登录前运行的 system daemon。
 

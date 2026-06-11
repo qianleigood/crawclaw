@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:41:10Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 13e1d090c9a7269aa746b73b182dfe3c6b5ce1b8cc8f36474dd0c828f322d0ef
+  source_hash: 88b0229f38fecfb0f2234cc7768c8c6ff45e6e4bfcb4affeaec3862090093256
   source_path: platforms/digitalocean.md
   workflow: 15
 ---
@@ -83,7 +83,11 @@ apt install -y nodejs
 
 ## 4) 运行新手引导
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+当你通过 SSH 或 Tailscale 将本地 Desktop 与 droplet 配对时，使用 CrawClaw
+Desktop。在 headless droplet 上，直接调用 Gateway API：用 `status` 或
+`health` 检查 readiness，用 `config.patch` 做 scoped config writes，用
+`models.list` 和 `usage.status` 查看 model/provider 状态，用 `channels.status`
+或 `channels.config.patch` 检查和修改 channel readiness/config。
 
 向导将引导你完成：
 
@@ -134,7 +138,9 @@ tailscale up
 
 **选项 C：Tailnet 绑定（无 Serve）**
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+通过 `config.patch` 或经 review 的 `~/.crawclaw/crawclaw.json` 修改，把
+`gateway.bind` 设为 `"tailnet"`，并启用 token 或 password auth，然后重启
+user service。打开远程客户端前，用 `status` 验证新的 bind mode。
 
 打开：`http://<tailscale-ip>:18789`（需要令牌）。
 
@@ -142,11 +148,15 @@ tailscale up
 
 ### Feishu
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 CrawClaw Desktop channel settings 中配置 Feishu account，或在 droplet 上用
+`channels.config.patch` patch channel block。依赖生产消息投递前，用
+`channels.status` 验证 readiness。
 
 ### Weixin
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 gateway host 上通过正常 interactive session flow 关联 Weixin。自动化可以用
+`channels.status` 检查 readiness，并 patch non-secret channel config，但不能独立完成
+QR/session login。
 
 有关其他提供商，请参阅 [Channels](/channels)。
 

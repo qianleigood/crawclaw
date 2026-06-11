@@ -76,7 +76,11 @@ Then use CrawClaw Desktop or the local Gateway API to verify the Gateway status.
 
 ## 4) Run Onboarding
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use CrawClaw Desktop when you are pairing a local Desktop with the droplet
+through SSH or Tailscale. On a headless droplet, call the Gateway API directly:
+use `status` or `health` for readiness, `config.patch` for scoped config
+writes, `models.list` and `usage.status` for model/provider state, and
+`channels.status` or `channels.config.patch` for channel readiness and config.
 
 The wizard will walk you through:
 
@@ -127,7 +131,10 @@ Notes:
 
 **Option C: Tailnet bind (no Serve)**
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Set `gateway.bind: "tailnet"` with token or password auth through
+`config.patch` or a reviewed edit to `~/.crawclaw/crawclaw.json`, then restart
+the user service. Verify the new bind mode with `status` before opening remote
+clients.
 
 Open: `http://<tailscale-ip>:18789` (token required).
 
@@ -135,11 +142,15 @@ Open: `http://<tailscale-ip>:18789` (token required).
 
 ### Feishu
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Configure the Feishu account in CrawClaw Desktop channel settings, or patch the
+channel block with `channels.config.patch` on the droplet. Verify readiness
+with `channels.status` before relying on production message delivery.
 
 ### Weixin
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Link Weixin on the gateway host with the normal interactive session flow.
+Automation can inspect readiness with `channels.status` and patch non-secret
+channel config, but it cannot complete the QR/session login on its own.
 
 See [Channels](/channels) for other providers.
 

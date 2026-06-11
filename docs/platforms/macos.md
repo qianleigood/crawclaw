@@ -46,21 +46,31 @@ Install CrawClaw Desktop from [GitHub Releases](https://github.com/qianleigood/c
 
 Verify the install:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open CrawClaw Desktop and confirm the Gateway status is healthy. Automation
+clients can verify the same install by calling the local Gateway API `health`
+or `status` methods on the desktop-managed loopback Gateway.
 
 For guided setup:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use CrawClaw Desktop settings for models, plugins, channels, automation
+environment, and launch-at-login controls. Scripted setup should patch the
+same state through typed Gateway RPCs such as `config.patch`, `models.list`,
+`usage.status`, `channels.status`, and `channels.config.patch`.
 
 ## Gateway references
 
 Run the Gateway in the foreground:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Start CrawClaw Desktop and keep the app running; Desktop owns the local Gateway
+lifecycle on macOS. Protocol clients should connect to the loopback Gateway and
+use `status` to confirm the active process instead of starting a second
+ad-hoc Gateway.
 
 Install managed startup:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Enable launch at login from CrawClaw Desktop settings. When debugging startup,
+inspect the per-user launchd state with `launchctl print gui/$UID | grep crawclaw`,
+then use Desktop to restart the app-managed Gateway.
 
 macOS managed startup uses a per-user LaunchAgent. It is not a system daemon
 that runs before any user logs in.
