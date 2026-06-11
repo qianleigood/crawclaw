@@ -14,31 +14,36 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 
 1. **Quick status (first check)**
 
-   Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+   Use CrawClaw Desktop's status view first. For automation, call Gateway RPC
+   `status`, then `models.list` and `channels.status` when the Gateway is reachable.
 
    Fast local summary: OS + update, Gateway runtime reachability, agents/sessions, provider config + runtime issues (when gateway is reachable).
 
 2. **Pasteable report (safe to share)**
 
-   Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+   Use the Desktop diagnostics report when you need something shareable. For
+   automation, collect `status`, `config.get`, and `logs.tail`; redact secrets
+   before sharing.
 
    Read-only diagnosis with log tail (tokens redacted).
 
 3. **Gateway runtime + port state**
 
-   Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+   Check the Desktop runtime card. Automation can call `health` or `status`
+   against the exact Gateway URL and token/password the client is using.
 
    Shows local runtime vs RPC reachability, the probe target URL, and which config is active.
 
 4. **Deep probes**
 
-   Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+   For automation, combine `status`, `models.list`, `usage.status`, and
+   `channels.status` before moving into provider or channel-specific checks.
 
    Runs gateway health checks + provider probes (requires a reachable gateway). See [Health](/gateway/health).
 
 5. **Tail the latest log**
 
-   Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+   Use the Desktop log view when available. Automation should call `logs.tail`.
 
    If RPC is down, fall back to:
 
@@ -50,13 +55,15 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 
 6. **Run the doctor (repairs)**
 
-   Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+   Use Desktop repair/doctor controls for interactive repair. Automation should
+   inspect `doctor.memory.status`, `config.get`, and targeted `config.patch`
+   changes instead of broad config rewrites.
 
    Repairs/migrates config/state + runs health checks. See [Doctor](/gateway/doctor).
 
 7. **Gateway snapshot**
 
-   Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+   Call Gateway RPC `status` for the runtime snapshot.
 
    Asks the running gateway for a full snapshot (WS-only). See [Health](/gateway/health).
 
@@ -85,13 +92,14 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 
     Start with these commands (share outputs when asking for help):
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Start with the Desktop status and diagnostics views. For automation, gather
+    `status`, `models.list`, `channels.status`, and `logs.tail`.
 
     What they do:
 
-    - CrawClaw Desktop or the local Gateway API: quick snapshot of gateway/agent health + basic config.
-    - CrawClaw Desktop or the local Gateway API: checks provider auth + model availability.
-    - CrawClaw Desktop or the local Gateway API: validates and repairs common config/state issues.
+    - `status`: quick snapshot of gateway/agent health + basic config.
+    - `models.list` / `usage.status`: provider auth + model availability.
+    - Desktop repair controls or scoped `config.patch`: targeted config/state repair.
 
     Other useful checks are available from CrawClaw Desktop diagnostics or the local Gateway API.
 
@@ -127,12 +135,12 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 
     - Open a supported gateway client against `http://127.0.0.1:18789/`.
     - If it asks for auth, use the token from `gateway.auth.token` (or `CRAWCLAW_GATEWAY_TOKEN`).
-    - Retrieve it from the gateway host: CrawClaw Desktop or the local Gateway API (or generate one: CrawClaw Desktop or the local Gateway API).
+    - Retrieve or generate it from Desktop Gateway settings, or inspect/update it with `config.get` / `config.patch`.
 
     **Not on localhost:**
 
-    - **Tailscale Serve** (recommended): keep bind loopback, run CrawClaw Desktop or the local Gateway API, open `https://<magicdns>/`. If `gateway.auth.allowTailscale` is `true`, identity headers satisfy browser client/WebSocket auth (no token, assumes trusted gateway host); HTTP APIs still require token/password.
-    - **Tailnet bind**: run CrawClaw Desktop or the local Gateway API, then connect a client to `http://<tailscale-ip>:18789/`.
+    - **Tailscale Serve** (recommended): keep bind loopback, configure Tailscale Serve on the Gateway host, open `https://<magicdns>/`. If `gateway.auth.allowTailscale` is `true`, identity headers satisfy browser client/WebSocket auth (no token, assumes trusted gateway host); HTTP APIs still require token/password.
+    - **Tailnet bind**: configure `gateway.bind` and auth explicitly, then connect a client to `http://<tailscale-ip>:18789/`.
     - **SSH tunnel**: `ssh -N -L 18789:127.0.0.1:18789 user@host` then connect a client to `http://127.0.0.1:18789/`.
 
     See [Remote access](/gateway/remote) for bind modes and auth details.
@@ -192,15 +200,18 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 
     1. Restart the Gateway:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Restart the local runtime from CrawClaw Desktop. If you run a manual dev
+    gateway, stop that process and restart it from the same checkout.
 
     2. Check status + auth:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use `/model status` in chat, or call Gateway RPC `status`, `models.list`,
+    and `usage.status`.
 
     3. If it still hangs, run:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Collect `logs.tail` and the Desktop diagnostics report, then compare the
+    Gateway URL and auth token/password used by the UI.
 
     If the Gateway is remote, ensure the tunnel/Tailscale connection is up and that the UI
     is pointed at the right Gateway. See [Remote access](/gateway/remote).
@@ -287,7 +298,8 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 
     1. **Dev channel (git checkout):**
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Pull the `main` branch in your source checkout, run the repo build, then
+    start CrawClaw Desktop from that checkout.
 
     This switches to the `main` branch and updates from source.
 
@@ -430,7 +442,8 @@ Use CrawClaw Desktop to restart the local Gateway, or restart the Gateway proces
 
     If you must automate from an agent:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Run the update from an explicit source checkout or package manager command,
+    expect the Gateway to restart, then verify with `status`.
 
     Docs: [Update](/install/updating), [Updating](/install/updating).
 
@@ -585,7 +598,7 @@ for usage/billing and raise limits as needed.
 
     Safer (no third-party bot):
 
-    - DM your bot, then run CrawClaw Desktop or the local Gateway API and read `from.id`.
+    - DM your bot, then use Desktop channel logs or `logs.tail` and read `from.id`.
 
     Official Bot API:
 
@@ -652,7 +665,8 @@ Start CrawClaw Desktop from that checkout, or run the local Gateway API target f
 
     From git to npm:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Install the current packaged Desktop release, start it, then use Desktop
+    diagnostics or `status` to confirm it is using the expected state directory.
 
     Doctor still checks config and state after the move; remove any old startup entries manually if they predate the desktop runtime.
 
@@ -869,7 +883,8 @@ Start CrawClaw Desktop from that checkout, or run the local Gateway API target f
 
     Debug:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use the Automation page for interactive state. Automation should call
+    `cron.status`, `cron.list`, `cron.runs`, and `logs.tail`.
 
     Docs: [Cron jobs](/automation/cron-jobs), [Automation & Tasks](/automation).
 
@@ -879,7 +894,8 @@ Start CrawClaw Desktop from that checkout, or run the local Gateway API target f
     Use native CrawClaw Desktop or the local Gateway API commands or drop skills into your workspace. The macOS Skills UI isn't available on Linux.
     Browse skills at [https://clawhub.com](https://clawhub.com).
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Automation should call `skills.status` first, then `skills.install` for a
+    specific skill package or local path.
 
     Install the separate `clawhub` CLI only if you want to publish or sync your own skills.
 
@@ -949,7 +965,8 @@ Start CrawClaw Desktop from that checkout, or run the local Gateway API target f
 
     Install skills:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use Desktop Skills settings interactively. Automation should call
+    `skills.status` and `skills.install`.
 
     Native installs land in the active workspace `skills/` directory. For shared skills across agents, place them in `~/.crawclaw/skills/<name>/SKILL.md`. Some skills expect binaries installed via Homebrew; on Linux that means Linuxbrew (see the Homebrew Linux FAQ entry above). See [Skills](/tools/skills) and [ClawHub](/tools/clawhub).
 
@@ -1286,7 +1303,7 @@ Start CrawClaw Desktop from that checkout, or run the local Gateway API target f
     Recover:
 
     - Restore from backup (git or a copied `~/.crawclaw/crawclaw.json`).
-    - If you have no backup, re-run CrawClaw Desktop or the local Gateway API and reconfigure channels/models.
+    - If you have no backup, reopen Desktop onboarding/settings and reconfigure channels/models; use `config.patch` for smaller repairs.
     - If this was unexpected, file a bug and include your last known config or any backup.
     - A local coding agent can often reconstruct a working config from logs or history.
 
@@ -1374,7 +1391,9 @@ Start CrawClaw Desktop from that checkout, or run the local Gateway API target f
 
     Example pattern (run from a machine that can reach the target Gateway):
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Call Gateway RPC `chat.send` on the target Gateway with a dedicated
+    `sessionKey`, or use the local gateway `call` helper shown in
+    [Agent Send](/tools/agent-send).
 
     Tip: add a guardrail so the two bots do not loop endlessly (mention-only, channel
     allowlists, or a "do not reply to bot messages" rule).
@@ -1436,7 +1455,8 @@ Start CrawClaw Desktop from that checkout, or run the local Gateway API target f
 
     If you want browser-facing access without SSH, use Tailscale Serve on the VPS:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Keep the Gateway bound to loopback, configure Tailscale Serve on the VPS,
+    then verify the exposed URL with `health` or `status`.
 
     This keeps the gateway bound to loopback and exposes HTTPS via Tailscale. See [Tailscale](/gateway/tailscale).
 
@@ -1452,7 +1472,8 @@ Start CrawClaw Desktop from that checkout, or run the local Gateway API target f
        It can tunnel the Gateway port and connect to the Gateway.
     3. **Approve the device** on the gateway:
 
-       Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+       Approve the device from CrawClaw Desktop on the Gateway host. Automation
+       should inspect channel/device pairing state before changing allowlists.
 
     Docs: [Gateway protocol](/gateway/protocol), [Discovery](/gateway/discovery), [Remote gateway](/gateway/remote).
 
@@ -1508,7 +1529,7 @@ Start CrawClaw Desktop from that checkout, or run the local Gateway API target f
 
   </Accordion>
 
-  <Accordion title='I set COPILOT_GITHUB_TOKEN, but models status shows "Shell env: off." Why?'>
+  <Accordion title='I set COPILOT_GITHUB_TOKEN, but /model status shows "Shell env: off." Why?'>
     CrawClaw Desktop or the local Gateway API reports whether **shell env import** is enabled. "Shell env: off"
     does **not** mean your env vars are missing - it just means CrawClaw won't load
     your login shell automatically.
@@ -1527,7 +1548,8 @@ Start CrawClaw Desktop from that checkout, or run the local Gateway API target f
 
     Then restart the gateway and recheck:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Restart from CrawClaw Desktop or your host supervisor, then recheck
+    `/model status`, `models.list`, and `usage.status`.
 
     Copilot tokens are read from `COPILOT_GITHUB_TOKEN` (also `GH_TOKEN` / `GITHUB_TOKEN`).
     See [/concepts/model-providers](/concepts/model-providers) and [/environment](/help/environment).
@@ -1588,21 +1610,22 @@ Start CrawClaw Desktop from that checkout, or run the local Gateway API target f
   <Accordion title="How do I completely reset CrawClaw but keep it installed?">
     Use the reset command:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use the Desktop reset/onboarding flow for interactive reset.
 
     Non-interactive full reset:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Stop the Gateway, move or delete the selected state directory, then restart
+    Desktop against the intended profile.
 
     Then re-run setup:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Complete Desktop onboarding again and verify with `status`.
 
     Notes:
 
     - Onboarding also offers **Reset** if it sees an existing config. See [Desktop onboarding](/start/wizard).
     - If you used profiles (`--profile` / `CRAWCLAW_PROFILE`), reset each state dir (defaults are `~/.crawclaw-<profile>`).
-    - Dev reset: CrawClaw Desktop or the local Gateway API (dev-only; wipes dev config + credentials + sessions + workspace).
+    - Dev reset: stop the dev Gateway, remove the dev state directory, then restart from the same checkout (dev-only; wipes dev config + credentials + sessions + workspace).
 
   </Accordion>
 
@@ -1677,14 +1700,15 @@ Start CrawClaw Desktop from that checkout, or run the local Gateway API target f
   <Accordion title="How do I get the JID of a Weixin group?">
     Option 1 (fastest): tail logs and send a test message in the group:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use Desktop logs or call `logs.tail`, then send a test message in the group.
 
     Look for `chatId` (or `from`) ending in `@g.us`, like:
     `1234567890-1234567890@g.us`.
 
     Option 2 (if already configured/allowlisted): list groups from config:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use channel config in Desktop, or call `channels.config.get` for the Weixin
+    account.
 
     Docs: [Weixin](/channels/index), [Directory](/channels/pairing), [Logs](/gateway/logging).
 
@@ -1780,12 +1804,12 @@ Start CrawClaw Desktop from that checkout, or run the local Gateway API target f
     Safe options:
 
     - `/model` in chat (quick, per-session)
-    - CrawClaw Desktop or the local Gateway API (updates just model config)
-    - CrawClaw Desktop or the local Gateway API (interactive)
+    - Desktop model settings or scoped `config.patch` for model config
+    - Desktop model picker for interactive selection
     - edit `agents.defaults.model` in `~/.crawclaw/crawclaw.json`
 
     Avoid `config.apply` with a partial object unless you intend to replace the whole config.
-    If you did overwrite config, restore from backup or re-run CrawClaw Desktop or the local Gateway API to repair.
+    If you did overwrite config, restore from backup or repair the smallest needed fields with Desktop settings or `config.patch`.
 
     Docs: [Models](/concepts/models), [Configure](/gateway/configuration), [Config](/gateway/configuration), [Doctor](/gateway/doctor).
 
@@ -1906,7 +1930,7 @@ Start CrawClaw Desktop from that checkout, or run the local Gateway API target f
        `minimax/MiniMax-M2.7-highspeed`.
     4. Run:
 
-       Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+       Use `/model list` or `/model status` in chat, or call `models.list`.
 
        and pick from the list (or `/model list` in chat).
 
@@ -2078,7 +2102,8 @@ Start CrawClaw Desktop from that checkout, or run the local Gateway API target f
       - Put `ANTHROPIC_API_KEY` in `~/.crawclaw/.env` on the **gateway host**.
       - Clear any pinned order that forces a missing profile:
 
-        Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+        Update the model auth order from Desktop settings, or use scoped
+        `config.patch` for `auth.order`.
 
     - **Confirm you're running commands on the gateway host**
       - In remote mode, auth profiles live on the gateway machine, not your laptop.
@@ -2126,9 +2151,9 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
   <Accordion title="Can I control which auth profile is tried first?">
     Yes. Config supports optional metadata for profiles and an ordering per provider (`auth.order.<provider>`). This does **not** store secrets; it maps IDs to provider/mode and sets rotation order.
 
-    CrawClaw may temporarily skip a profile if it's in a short **cooldown** (rate limits/timeouts/auth failures) or a longer **disabled** state (billing/insufficient credits). To inspect this, run CrawClaw Desktop or the local Gateway API and check `auth.unusableProfiles`. Tuning: `auth.cooldowns.billingBackoffHours*`.
+    CrawClaw may temporarily skip a profile if it's in a short **cooldown** (rate limits/timeouts/auth failures) or a longer **disabled** state (billing/insufficient credits). To inspect this, use `/model status` or `usage.status` and check `auth.unusableProfiles`. Tuning: `auth.cooldowns.billingBackoffHours*`.
 
-    You can also set a **per-agent** order override (stored in that agent's `auth-profiles.json`) from CrawClaw Desktop or the local Gateway API.
+    You can also set a **per-agent** order override in that agent's `auth-profiles.json`; use Desktop model settings or scoped `config.patch` for config-side ordering.
 
   </Accordion>
 
@@ -2173,7 +2198,8 @@ Because process state and API reachability are different checks. The RPC probe c
 
     Fix:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Open Desktop diagnostics and confirm the active config/state directory, or
+    call `config.get` against the running Gateway.
 
     Run that from the same `--profile` / environment you want the service to use.
 
@@ -2306,7 +2332,7 @@ Because process state and API reachability are different checks. The RPC probe c
 
     Fastest log tail:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use Desktop logs, or call `logs.tail`.
 
     Gateway runtime logs:
 
@@ -2340,11 +2366,12 @@ Run the Gateway from the same source checkout or package install you used to sta
   <Accordion title="The Gateway is up but replies never arrive. What should I check?">
     Start with a quick health sweep:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use Desktop status first. Automation should call `status`, `models.list`,
+    `usage.status`, and `channels.status`.
 
     Common causes:
 
-    - Model auth not loaded on the **gateway host** (check `models status`).
+    - Model auth not loaded on the **gateway host** (check `/model status` or `models.list`).
     - Channel pairing/allowlist blocking replies (check channel config + logs).
     - The Gateway client is using the wrong token.
 
@@ -2365,7 +2392,7 @@ Run the Gateway from the same source checkout or package install you used to sta
 
     Then tail logs:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use Desktop logs, or call `logs.tail`.
 
     Docs: [Remote access](/gateway/remote), [Troubleshooting](/gateway/troubleshooting).
 
@@ -2374,7 +2401,7 @@ Run the Gateway from the same source checkout or package install you used to sta
   <Accordion title="Feishu setMyCommands fails. What should I check?">
     Start with logs and channel status:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use Desktop logs/channel status, or call `logs.tail` and `channels.status`.
 
     Then match the error:
 
@@ -2390,9 +2417,9 @@ Run the Gateway from the same source checkout or package install you used to sta
   <Accordion title="Desktop client shows no output. What should I check?">
     First confirm the Gateway is reachable and the agent can run:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use Desktop status, or call `status` and run a small `chat.send` probe.
 
-    Use CrawClaw Desktop or the local Gateway API to see the current state. If you expect replies in a chat
+    Use Desktop status or Gateway RPC `status` to see the current state. If you expect replies in a chat
     channel, make sure delivery is enabled (`/deliver on`).
 
     Docs: [Slash commands](/tools/slash-commands).
@@ -2402,14 +2429,15 @@ Run the Gateway from the same source checkout or package install you used to sta
   <Accordion title="How do I completely stop then start the Gateway?">
     If you installed the service:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use CrawClaw Desktop runtime controls or the OS supervisor for that service.
 
     This stops/starts the **supervised service** (launchd on macOS, systemd on Linux).
     Use this when the Gateway runs in the background as a daemon.
 
     If you're running in the foreground, stop with Ctrl-C, then:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Restart the same foreground command or start CrawClaw Desktop from the same
+    profile/state directory.
 
     Docs: [Gateway runbook](/gateway).
 
@@ -2513,7 +2541,8 @@ Run the Gateway from the same source checkout or package install you used to sta
 
     Check pending requests:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use Desktop pairing views, or call `channels.status` and inspect pending
+    pairing/account state.
 
     If you want immediate access, allowlist your sender id or set `dmPolicy: "open"`
     for that account.
@@ -2525,11 +2554,12 @@ Run the Gateway from the same source checkout or package install you used to sta
 
     Approve pairing with:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use Desktop pairing approval controls on the Gateway host.
 
     List pending requests:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use Desktop pairing views, or call `channels.status` for the affected
+    account.
 
     Wizard phone number prompt: it's used to set your **allowlist/owner** so your own DMs are permitted. It's not used for auto-sending. If you run on your personal Weixin number, use that number and enable `channels.weixin.selfChatMode`.
 
