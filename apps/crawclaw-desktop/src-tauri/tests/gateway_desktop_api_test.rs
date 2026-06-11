@@ -214,9 +214,9 @@ esac
         .expect("group thread id");
     assert!(thread_id.starts_with("group-"));
     assert_eq!(json["agentGroups"]["activeRun"]["status"], "running");
-    assert!(json["sidebar"]["threads"]
+    assert!(json["sidebar"]["discussionThreads"]
         .as_array()
-        .expect("threads")
+        .expect("discussion threads")
         .iter()
         .any(|thread| thread["id"] == thread_id && thread["active"] == true));
     let agent_group_message = json["conversation"]["messages"]

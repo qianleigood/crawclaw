@@ -1188,6 +1188,7 @@ fn apply_session_records(desktop_state: &mut DesktopState, sessions: Vec<Desktop
     }
     desktop_state.sidebar.pinned_threads.clear();
     desktop_state.sidebar.threads.clear();
+    desktop_state.sidebar.discussion_threads.clear();
     let mut active_session = None;
     for session in sessions {
         let active = session.active && active_session.is_none();
@@ -1200,6 +1201,8 @@ fn apply_session_records(desktop_state: &mut DesktopState, sessions: Vec<Desktop
         };
         if session.pinned {
             desktop_state.sidebar.pinned_threads.push(thread);
+        } else if is_agent_group_session(&session) {
+            desktop_state.sidebar.discussion_threads.push(thread);
         } else {
             desktop_state.sidebar.threads.push(thread);
         }
@@ -1212,6 +1215,10 @@ fn apply_session_records(desktop_state: &mut DesktopState, sessions: Vec<Desktop
     } else {
         clear_active_thread_conversation(desktop_state);
     }
+}
+
+fn is_agent_group_session(session: &DesktopSessionRecord) -> bool {
+    session.thread_id.starts_with("group-")
 }
 
 fn apply_session_conversation(
@@ -1558,6 +1565,28 @@ mod tests {
                 ..
             }) if request_id == "permission-1"
         ));
+    }
+
+    #[test]
+    fn apply_session_records_restores_group_sessions_as_discussions() {
+        let mut state = initial_desktop_state(&ready_runtime_status());
+
+        apply_session_records(
+            &mut state,
+            vec![DesktopSessionRecord {
+                thread_id: "group-123".to_string(),
+                title: "任务群".to_string(),
+                pinned: false,
+                active: true,
+                messages: Vec::new(),
+                result_items: Vec::new(),
+            }],
+        );
+
+        assert!(state.sidebar.threads.is_empty());
+        assert_eq!(state.sidebar.discussion_threads.len(), 1);
+        assert_eq!(state.sidebar.discussion_threads[0].id, "group-123");
+        assert!(state.sidebar.discussion_threads[0].active);
     }
 
     #[tokio::test]

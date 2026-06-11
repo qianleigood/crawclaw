@@ -139,7 +139,7 @@ pub(super) async fn start_agent_group_run(
         for thread in desktop_state.sidebar.discussion_threads.iter_mut() {
             thread.active = false;
         }
-        desktop_state.sidebar.threads.insert(
+        desktop_state.sidebar.discussion_threads.insert(
             0,
             SidebarThread {
                 id: thread_id.clone(),
@@ -857,7 +857,10 @@ mod tests {
     use super::*;
     use crate::gateway::desktop_state::initial_desktop_state;
     use crate::models::{RuntimeCompatStatus, RuntimeStatus, RuntimeStatusValue};
-    use crawclaw_runtime::AgentRuntimeToolSelection;
+    use axum::extract::State;
+    use axum::http::HeaderMap;
+    use axum::Json;
+    use crawclaw_runtime::{AgentRuntimeToolSelection, RuntimeLayout};
 
     #[test]
     fn desktop_agent_group_routes_reject_duplicate_members() {
@@ -935,6 +938,51 @@ mod tests {
             state.agent_groups.groups[0].member_agent_ids,
             vec!["member-a".to_string(), "member-b".to_string()]
         );
+    }
+
+    #[tokio::test]
+    async fn desktop_agent_group_routes_place_group_threads_in_discussions() {
+        let state = super::super::build_state(
+            "CrawClaw Desktop".to_string(),
+            "test".to_string(),
+            "http://127.0.0.1:1".to_string(),
+            "session".to_string(),
+            test_runtime_layout("agent-group-discussion-thread"),
+        )
+        .await;
+        {
+            let mut desktop_state = state.desktop_state.write().await;
+            desktop_state.agent_workspace.selected_agent_id = "lead".to_string();
+            desktop_state.agent_workspace.agents = vec![
+                test_agent("lead", "Lead"),
+                test_agent("member", "Member"),
+            ];
+            sync_agent_group_workspace(&mut desktop_state);
+        }
+        let mut headers = HeaderMap::new();
+        headers.insert("x-crawclaw-desktop-session", "session".parse().unwrap());
+
+        let Json(desktop_state) = start_agent_group_run(
+            State(state),
+            headers,
+            Json(StartAgentGroupRunRequest {
+                task: "Draft rollout".to_string(),
+                lead_agent_id: "lead".to_string(),
+                member_agent_ids: vec!["member".to_string()],
+                max_turns: Some(1),
+                max_parallel_agents: Some(1),
+            }),
+        )
+        .await
+        .expect("start group run");
+
+        assert!(desktop_state.sidebar.threads.is_empty());
+        assert_eq!(desktop_state.sidebar.discussion_threads.len(), 1);
+        assert_eq!(
+            desktop_state.sidebar.discussion_threads[0].id,
+            desktop_state.agent_groups.active_run.expect("active run").thread_id
+        );
+        assert!(desktop_state.sidebar.discussion_threads[0].active);
     }
 
     #[test]
@@ -1017,5 +1065,16 @@ mod tests {
             tool_selection_from_agent(&agent),
             AgentRuntimeToolSelection::AllowList(_)
         ));
+    }
+
+    fn test_runtime_layout(name: &str) -> RuntimeLayout {
+        let runtime_root =
+            std::env::temp_dir().join(format!("crawclaw-desktop-{name}-{}", Uuid::new_v4()));
+        RuntimeLayout {
+            binary_path: runtime_root.join("bin").join("crawclaw-runtime"),
+            channel_manifest_path: runtime_root.join("channels").join("manifest.json"),
+            manifest_path: runtime_root.join("runtimes").join("manifest.json"),
+            runtime_root,
+        }
     }
 }
