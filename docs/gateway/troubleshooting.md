@@ -15,7 +15,9 @@ Start at [/help/troubleshooting](/help/troubleshooting) if you want the fast tri
 
 Run these first, in this order:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use CrawClaw Desktop's status surfaces first. For automation, call Gateway RPC
+methods `health` or `status`, then `channels.status`, and use `logs.tail` when
+you need recent runtime logs.
 
 Expected healthy signals:
 
@@ -28,7 +30,9 @@ Expected healthy signals:
 Use this when logs/errors include:
 `HTTP 429: rate_limit_error: Extra usage is required for long context requests`.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use `/model status` in chat or CrawClaw Desktop's model status surface. For
+automation, call `models.list` to inspect the selected provider/model and
+`usage.status` to inspect provider auth/usage windows.
 
 Look for:
 
@@ -52,7 +56,9 @@ Related:
 
 If channels are up but nothing answers, check routing and policy before reconnecting anything.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use CrawClaw Desktop's channel status and pairing views. For automation, call
+`channels.status` for channel/account health, `message.policy` for policy
+evaluation, and `logs.tail` for recent drops.
 
 Look for:
 
@@ -76,7 +82,9 @@ Related:
 
 When a browser-facing client will not connect, validate URL, auth mode, and secure context assumptions.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Check the Desktop Gateway target and auth status. Automation should probe the
+same URL with Gateway RPC `health` or `status`, using the token/password the
+client is configured to send.
 
 Look for:
 
@@ -94,7 +102,7 @@ Use `error.details.code` from the failed `connect` response to pick the next act
 
 | Detail code           | Meaning                                        | Recommended action                                                                 |
 | --------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `AUTH_TOKEN_MISSING`  | Client did not send a required shared token.   | Set the client token to match CrawClaw Desktop or the local Gateway API and retry. |
+| `AUTH_TOKEN_MISSING`  | Client did not send a required shared token.   | Set the client token to match the Desktop Gateway auth token/password and retry.   |
 | `AUTH_TOKEN_MISMATCH` | Shared token did not match gateway auth token. | Check the current Gateway auth details in this table and refresh the client token. |
 
 Related:
@@ -108,7 +116,9 @@ Related:
 
 Use this when the local Gateway process does not stay up or the API is not reachable.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Start or restart the local runtime from CrawClaw Desktop. Automation can call
+`health` or `status` once the Gateway is reachable; config repairs should go
+through `config.patch`.
 
 Look for:
 
@@ -116,7 +126,7 @@ Look for:
 
 Common signatures:
 
-- `Gateway start blocked: set gateway.mode=local` → local gateway mode is not enabled. Fix: set `gateway.mode="local"` in your config (or run CrawClaw Desktop or the local Gateway API).
+- `Gateway start blocked: set gateway.mode=local` → local gateway mode is not enabled. Fix: set `gateway.mode="local"` through CrawClaw Desktop or `config.patch`.
 - `refusing to bind gateway ... without auth` → non-loopback bind without token/password.
 - `another gateway instance is already listening` / `EADDRINUSE` → port conflict.
 
@@ -130,7 +140,9 @@ Related:
 
 If channel state is connected but message flow is dead, focus on policy, permissions, and channel specific delivery rules.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the channel settings panel for interactive checks. Automation should call
+`channels.status`, then `channels.setup.surface` or `channels.config.get` for
+the affected channel.
 
 Look for:
 
@@ -154,7 +166,8 @@ Related:
 If cron or a queued main-session wake did not run or did not deliver, verify
 scheduler state first, then delivery target.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the Automation page for interactive cron state. Automation should call
+`cron.status`, `cron.list`, and `cron.runs` before inspecting delivery logs.
 
 Look for:
 
@@ -179,7 +192,9 @@ Related:
 
 Use this when browser tool actions fail even though the gateway itself is healthy.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the Desktop tool/runtime status when running interactively. Automation should
+call `tools.catalog` to confirm the browser tool is exposed, then invoke the
+browser tool through `/tools/invoke` or `tools.invoke`.
 
 From the current agent or Gateway `/tools/invoke` path, check the browser tool
 directly:
@@ -201,7 +216,7 @@ Look for:
 Common signatures:
 
 - Agent reports browser tool missing / unavailable → native tool catalog is not exposing `browser`.
-- `agent-browser runtime is not installed` → run CrawClaw Desktop or the local Gateway API.
+- `agent-browser runtime is not installed` → install or repair the browser runtime from CrawClaw Desktop.
 - `browser.executablePath not found` → configured path is invalid.
 
 Related:
@@ -215,7 +230,9 @@ Most post-upgrade breakage is config drift or stricter defaults now being enforc
 
 ### 1) Auth and URL override behavior changed
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use Desktop settings to confirm the active Gateway target. Automation should
+call `config.get` for configured mode/URL settings and probe `health` or
+`status` against the exact target URL.
 
 What to check:
 
@@ -229,7 +246,9 @@ Common signatures:
 
 ### 2) Bind and auth guardrails are stricter
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use Desktop Gateway settings for interactive repair. Automation should inspect
+`gateway.bind` and `gateway.auth.*` with `config.get`, then apply scoped fixes
+with `config.patch`.
 
 What to check:
 
@@ -243,7 +262,9 @@ Common signatures:
 
 ### 3) Pairing or identity policy changed
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use Desktop pairing views for approval decisions. Automation should inspect
+`channels.status` and channel config before changing policy with
+`channels.config.patch`.
 
 What to check:
 
@@ -251,7 +272,8 @@ What to check:
 
 If the service config and runtime still disagree after checks, reinstall service metadata from the same profile/state directory:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use CrawClaw Desktop to reinstall service metadata from the same profile/state
+directory, then re-check `status` and `channels.status`.
 
 Related:
 

@@ -14,7 +14,9 @@ If you only have 2 minutes, use this page as a triage front door.
 
 Run this exact ladder in order:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use CrawClaw Desktop's status surfaces first. For automation, call Gateway RPC
+methods `health` or `status`, then `channels.status`, `models.list`, and
+`logs.tail` as needed.
 
 Good output in one line:
 
@@ -41,7 +43,8 @@ Fix in the plugin package:
 
 1. Remove the legacy JavaScript extension entry.
 2. Rebuild the plugin as a Rust native plugin descriptor.
-3. Republish the plugin and run CrawClaw Desktop or the local Gateway API again.
+3. Republish the plugin, reinstall it from CrawClaw Desktop, then confirm it
+   appears in `plugins.list`.
 
 Example:
 
@@ -84,13 +87,14 @@ flowchart TD
 
 <AccordionGroup>
   <Accordion title="No replies">
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use Desktop channel status and pairing views first. Automation should call
+    `channels.status`, `message.policy`, and `logs.tail`.
 
     Good output looks like:
 
     - `Runtime: running`
     - `RPC probe: ok`
-    - Your channel shows connected/ready in `channels status --probe`
+    - Your channel appears connected/ready in `channels.status`
     - Sender appears approved (or DM policy is open/allowlist)
 
     Common log signatures:
@@ -108,7 +112,8 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Browser client will not connect">
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Check the Desktop Gateway target and auth status. Automation should probe
+    the same URL with Gateway RPC `health` or `status`.
 
     Good output looks like:
 
@@ -129,7 +134,9 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Gateway will not start or service installed but not running">
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Start or restart the local runtime from CrawClaw Desktop. Automation can
+    call `health` or `status` after the Gateway is reachable, and use
+    `config.patch` for scoped config repairs.
 
     Good output looks like:
 
@@ -152,7 +159,9 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Channel connects but messages do not flow">
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use the channel settings panel for interactive checks. Automation should
+    call `channels.status`, then inspect the affected channel with
+    `channels.setup.surface` or `channels.config.get`.
 
     Good output looks like:
 
@@ -174,13 +183,14 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Cron or main-session wake did not fire or deliver">
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use the Automation page for interactive cron state. Automation should call
+    `cron.status`, `cron.list`, and `cron.runs`.
 
     Good output looks like:
 
     - `cron.status` shows enabled with a next wake.
     - `cron runs` shows recent `ok` entries.
-    - Queued main-session wake events are visible through CrawClaw Desktop or the local Gateway API.
+    - Queued main-session wake events are visible in the Automation page or cron run history.
 
     Common log signatures:
 
@@ -197,7 +207,9 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Exec suddenly asks for approval">
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Check Desktop permission settings first. Automation should inspect the
+    effective exec policy with `tools.effective` and apply scoped config changes
+    with `config.patch`.
 
     What changed:
 
@@ -209,7 +221,8 @@ flowchart TD
 
     Restore current default no-approval behavior:
 
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    In Desktop, restore the default permission profile. For automation, patch
+    `tools.exec.security` and `tools.exec.ask` only for the intended profile.
 
     Safer alternatives:
 
@@ -230,7 +243,9 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Browser tool fails">
-    Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+    Use Desktop tool/runtime status when running interactively. Automation should
+    call `tools.catalog`, then invoke the browser tool through `/tools/invoke`
+    or `tools.invoke`.
 
     From the current agent or Gateway `/tools/invoke` path, run the `browser` tool
     with `{ "action": "status", "profile": "crawclaw" }`.

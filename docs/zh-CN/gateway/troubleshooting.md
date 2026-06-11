@@ -1,14 +1,14 @@
 ---
 read_when:
-  - "]]故障排除中心指向此处以进行更深入的诊断"
-  - "]]你需要基于症状的稳定操作手册章节，包含精确命令"
-summary: "]]针对网关、渠道、自动化和浏览器的深度故障排除操作手册"
-title: "]]故障排除"
+  - 故障排除中心指向此处以进行更深入的诊断
+  - 你需要基于症状的稳定操作手册章节，包含精确命令
+summary: 针对网关、渠道、自动化和浏览器的深度故障排除操作手册
+title: 故障排除
 x-i18n:
   generated_at: "2026-06-05T15:07:30Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: b42569a32d587111654d24a3ae3bb17401460f4945b243fed4cdfd27a00d5661
+  source_hash: d6464845d9e147d8e2dfe3f6b047e25d7d6162cca73ea69f126016d908068c1e
   source_path: gateway/troubleshooting.md
   workflow: 15
 ---
@@ -22,7 +22,8 @@ x-i18n:
 
 按以下顺序首先运行这些命令：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+先使用 CrawClaw Desktop 的状态界面。自动化场景调用 Gateway RPC method `health` 或
+`status`，再调用 `channels.status`，需要最近运行日志时使用 `logs.tail`。
 
 预期的健康信号：
 
@@ -35,7 +36,8 @@ x-i18n:
 当日志/错误包含以下内容时使用：
 `HTTP 429: rate_limit_error: Extra usage is required for long context requests`。
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 chat 中使用 `/model status`，或使用 CrawClaw Desktop 的 model status surface。自动化场景调用
+`models.list` 查看所选 provider/model，并调用 `usage.status` 查看 provider auth/usage windows。
 
 查找：
 
@@ -59,7 +61,8 @@ x-i18n:
 
 如果渠道正常运行但无响应，请在重新连接任何内容之前检查路由和策略。
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+使用 CrawClaw Desktop 的 channel status 和 pairing 视图。自动化场景调用 `channels.status`
+检查 channel/account health，调用 `message.policy` 做策略评估，并用 `logs.tail` 查看最近 drops。
 
 查找：
 
@@ -83,7 +86,8 @@ x-i18n:
 
 当面向浏览器的客户端无法连接时，验证 URL、认证模式和 secure context 假设。
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+检查 Desktop Gateway target 和 auth status。自动化场景应使用客户端配置发送的 token/password，
+对同一 URL 探测 Gateway RPC `health` 或 `status`。
 
 查找：
 
@@ -101,7 +105,7 @@ x-i18n:
 
 | 详情代码              | 含义                           | 推荐操作                                                               |
 | --------------------- | ------------------------------ | ---------------------------------------------------------------------- |
-| `AUTH_TOKEN_MISSING`  | 客户端未发送所需的共享令牌。   | 将客户端令牌设置为匹配 CrawClaw Desktop 或本地 Gateway API，然后重试。 |
+| `AUTH_TOKEN_MISSING`  | 客户端未发送所需的共享令牌。   | 将客户端令牌设置为匹配 Desktop Gateway auth token/password，然后重试。 |
 | `AUTH_TOKEN_MISMATCH` | 共享令牌与网关认证令牌不匹配。 | 检查此表中的当前 Gateway 认证详情并刷新客户端令牌。                    |
 
 相关：
@@ -115,7 +119,8 @@ x-i18n:
 
 当本地 Gateway 进程无法保持运行或 API 无法访问时使用。
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+从 CrawClaw Desktop 启动或重启 local runtime。Gateway 可达后，自动化可调用 `health` 或
+`status`；配置修复应通过 `config.patch` 完成。
 
 查找：
 
@@ -123,7 +128,7 @@ x-i18n:
 
 常见特征：
 
-- `Gateway start blocked: set gateway.mode=local` → 本地网关模式未启用。修复：在配置中设置 `gateway.mode="local"`（或运行 CrawClaw Desktop 或本地 Gateway API）。
+- `Gateway start blocked: set gateway.mode=local` → 本地网关模式未启用。修复：通过 CrawClaw Desktop 或 `config.patch` 设置 `gateway.mode="local"`。
 - `refusing to bind gateway ... without auth` → 非 local loopback 绑定需要令牌/密码。
 - `another gateway instance is already listening` / `EADDRINUSE` → 端口冲突。
 
@@ -137,7 +142,8 @@ x-i18n:
 
 如果渠道状态已连接但消息流中断，专注于策略、权限和特定渠道的传递规则。
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+交互式检查使用 channel settings panel。自动化应调用 `channels.status`，然后针对受影响 channel
+调用 `channels.setup.surface` 或 `channels.config.get`。
 
 查找：
 
@@ -160,7 +166,8 @@ x-i18n:
 
 如果 cron 或排队的 主会话唤醒未运行或未传递，首先验证调度器状态，然后检查传递目标。
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+交互式 cron 状态使用 Automation 页面。自动化应先调用 `cron.status`、`cron.list` 和
+`cron.runs`，再检查投递日志。
 
 查找：
 
@@ -185,7 +192,8 @@ x-i18n:
 
 当浏览器工具操作失败但网关本身健康时使用。
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+交互式运行时使用 Desktop tool/runtime status。自动化应调用 `tools.catalog` 确认 browser tool
+已暴露，然后通过 `/tools/invoke` 或 `tools.invoke` 调用 browser tool。
 
 从当前智能体或 Gateway `/tools/invoke` 路径直接检查浏览器工具：
 
@@ -206,7 +214,7 @@ x-i18n:
 常见特征：
 
 - 智能体报告浏览器工具缺失/不可用 → 本机工具目录未暴露 `browser`。
-- `agent-browser runtime is not installed` → 运行 CrawClaw Desktop 或本地 Gateway API。
+- `agent-browser runtime is not installed` → 从 CrawClaw Desktop 安装或修复 browser runtime。
 - `browser.executablePath not found` → 配置的路径无效。
 
 相关：
@@ -220,7 +228,8 @@ x-i18n:
 
 ### 1) 认证和 URL 覆盖行为已更改
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+使用 Desktop settings 确认 active Gateway target。自动化应调用 `config.get` 查看配置的
+mode/URL settings，并对精确目标 URL 探测 `health` 或 `status`。
 
 检查项：
 
@@ -234,7 +243,8 @@ x-i18n:
 
 ### 2) 绑定和认证护栏更严格
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+交互式修复使用 Desktop Gateway settings。自动化应通过 `config.get` 检查 `gateway.bind` 和
+`gateway.auth.*`，再通过 `config.patch` 应用 scoped fixes。
 
 检查项：
 
@@ -248,7 +258,8 @@ x-i18n:
 
 ### 3) 配对或身份策略已更改
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+审批决策使用 Desktop pairing views。自动化应先检查 `channels.status` 和 channel config，再用
+`channels.config.patch` 修改策略。
 
 检查项：
 
@@ -256,7 +267,8 @@ x-i18n:
 
 如果检查后服务配置和运行时仍然不一致，从相同的配置文件/状态目录重新安装服务元数据：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+使用 CrawClaw Desktop 从相同 profile/state directory 重新安装 service metadata，然后重新检查
+`status` 和 `channels.status`。
 
 相关：
 

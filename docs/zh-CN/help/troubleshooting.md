@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:39:02Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: e5c2abd8a71f251de73c32d8ca976b3766912d0a6ab3878cbd70b0d8e69d00a1
+  source_hash: e7c3e5318349dd7903e854a778af70ad37e442ed2216239e0693f1692f63e471
   source_path: help/troubleshooting.md
   workflow: 15
 ---
@@ -21,7 +21,8 @@ x-i18n:
 
 按顺序执行以下检查清单：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+先使用 CrawClaw Desktop 的状态界面。自动化场景调用 Gateway RPC method `health` 或
+`status`，再按需调用 `channels.status`、`models.list` 和 `logs.tail`。
 
 良好输出的判断标准：
 
@@ -47,7 +48,7 @@ x-i18n:
 
 1. 移除遗留的 JavaScript 扩展条目。
 2. 将插件重新构建为 Rust 原生插件描述符。
-3. 重新发布插件，并再次运行 CrawClaw Desktop 或本地 Gateway API。
+3. 重新发布插件，从 CrawClaw Desktop 重新安装，然后确认它出现在 `plugins.list` 中。
 
 示例：
 
@@ -90,13 +91,14 @@ flowchart TD
 
 <AccordionGroup>
   <Accordion title="无回复">
-    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+    先使用 Desktop channel status 和 pairing 视图。自动化应调用 `channels.status`、
+    `message.policy` 和 `logs.tail`。
 
     良好输出的判断标准：
 
     - `Runtime: running`
     - `RPC probe: ok`
-    - 你的渠道在 `channels status --probe` 中显示已连接/就绪
+    - 你的渠道在 `channels.status` 中显示已连接/就绪
     - 发送者显示已批准（或私信策略为开放/允许列表）
 
     常见日志特征：
@@ -114,7 +116,8 @@ flowchart TD
   </Accordion>
 
   <Accordion title="浏览器客户端无法连接">
-    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+    检查 Desktop Gateway target 和 auth status。自动化应对同一 URL 探测 Gateway RPC
+    `health` 或 `status`。
 
     良好输出的判断标准：
 
@@ -135,7 +138,8 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Gateway 网关无法启动或服务已安装但未运行">
-    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+    从 CrawClaw Desktop 启动或重启 local runtime。Gateway 可达后，自动化可调用 `health`
+    或 `status`，并使用 `config.patch` 做 scoped config repairs。
 
     良好输出的判断标准：
 
@@ -158,7 +162,8 @@ flowchart TD
   </Accordion>
 
   <Accordion title="渠道已连接但消息未流动">
-    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+    交互式检查使用 channel settings panel。自动化应调用 `channels.status`，然后通过
+    `channels.setup.surface` 或 `channels.config.get` 检查受影响 channel。
 
     良好输出的判断标准：
 
@@ -180,13 +185,14 @@ flowchart TD
   </Accordion>
 
   <Accordion title="定时任务或主会话唤醒未触发或未送达">
-    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+    交互式 cron 状态使用 Automation 页面。自动化应调用 `cron.status`、`cron.list` 和
+    `cron.runs`。
 
     良好输出的判断标准：
 
     - `cron.status` 显示已启用且有下次唤醒时间。
     - `cron runs` 显示最近的 `ok` 条目。
-    - 通过 CrawClaw Desktop 或本地 Gateway API 可以看到排队的主会话唤醒事件。
+    - 可在 Automation 页面或 cron run history 中看到排队的主会话唤醒事件。
 
     常见日志特征：
 
@@ -203,7 +209,8 @@ flowchart TD
   </Accordion>
 
   <Accordion title="Exec 突然请求审批">
-    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+    先检查 Desktop permission settings。自动化应通过 `tools.effective` 检查有效 exec policy，
+    并通过 `config.patch` 应用 scoped config changes。
 
     发生了什么变化：
 
@@ -215,7 +222,8 @@ flowchart TD
 
     恢复当前默认的无审批行为：
 
-    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+    在 Desktop 中恢复默认 permission profile。自动化只针对目标 profile patch
+    `tools.exec.security` 和 `tools.exec.ask`。
 
     更安全的替代方案：
 
@@ -236,7 +244,8 @@ flowchart TD
   </Accordion>
 
   <Accordion title="浏览器工具失败">
-    使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+    交互式运行时使用 Desktop tool/runtime status。自动化应调用 `tools.catalog`，然后通过
+    `/tools/invoke` 或 `tools.invoke` 调用 browser tool。
 
     从当前智能体或 Gateway `/tools/invoke` 路径，使用 `{ "action": "status", "profile": "crawclaw" }` 运行 `browser` 工具。
 
