@@ -58,13 +58,19 @@ In JSON mode, Gateway log streaming emits `type`-tagged objects:
 
 If the Gateway is unreachable, the CLI prints a short hint to run:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Start CrawClaw Desktop or the host supervisor that owns the Gateway process,
+then retry `status` followed by `logs.tail`. If the process is not listening,
+check the host terminal or service manager logs first; `logs.tail` only works
+after the Gateway RPC endpoint is reachable.
 
 ### Channel-only logs
 
 To filter channel activity (Weixin/Feishu/etc), use:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+CrawClaw Desktop channel diagnostics, or call `logs.tail` and filter returned
+entries by the channel subsystem (`gateway/channels/...`) or the channel id
+shown in the log message. Pair this with `channels.status` when you need the
+current adapter state.
 
 ## Log formats
 

@@ -127,7 +127,10 @@ The hackable install gives you direct access to logs and code — useful for deb
 
 ## 7) Run Onboarding
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+From your laptop, connect to the Pi Gateway through Tailscale, SSH forwarding,
+or the configured Gateway URL, then run the same onboarding choices in CrawClaw
+Desktop. On a headless Pi, use `config.patch` for scoped settings and verify
+with `status`, `channels.status`, and `logs.tail` before enabling the daemon.
 
 Follow the wizard:
 

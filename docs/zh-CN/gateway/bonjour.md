@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:15:57Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: ef44cb48d3ad90b70f27bf21271556acd28e3ad839049ad9101896ae02035a6c
+  source_hash: fecbe59f7fe704bde732689be4be87dc6cfd1a41dce80509a03b76cc3799b28b
   source_path: gateway/bonjour.md
   workflow: 15
 ---
@@ -40,9 +40,9 @@ CrawClaw 支持任何发现域；`crawclaw.internal.` 只是一个示例。当�
 
 ### 一次性 DNS 服务器设置（网关主机）
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+通过 Desktop config 或 `config.patch` 设置 `discovery.wideArea.enabled=true`；如果不使用默认 domain，也设置 `discovery.wideArea.domain`。Gateway 会把 DNS-SD zone 写到 `~/.crawclaw/dns/`；在 gateway host 上运行 CoreDNS 或其他 DNS server，并将其指向该 zone。
 
-这会安装 CoreDNS 并配置它：
+将 DNS server 配置为：
 
 - 仅在网关的 Tailscale 接口上监听端口 53
 - 从 `~/.crawclaw/dns/<domain>.db` 提供你选择的域（例如：`crawclaw.internal.`）

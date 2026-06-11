@@ -32,7 +32,11 @@ See also: [Formal Verification (Security Models)](/security/formal-verification)
 
 Run this regularly (especially after changing config or exposing network surfaces):
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open CrawClaw Desktop diagnostics for the guided security pass. Headless
+automation should start with read-only Gateway RPC calls (`status`,
+`config.get`, `channels.status`, `message.policy`, and `logs.tail`) and compare
+the live config against the checks below before applying scoped repairs with
+`config.patch` or `channels.config.patch`.
 
 It flags common footguns (Gateway auth exposure, browser control exposure, elevated allowlists, filesystem permissions, permissive exec approvals, and open-channel tool exposure).
 

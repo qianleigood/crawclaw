@@ -431,7 +431,12 @@ Other notes:
 
 Default operator flow:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+1. Run `secrets audit` to find plaintext values, unresolved refs, and legacy
+   residues.
+2. Run `secrets configure` to create or review a SecretRef migration plan.
+3. Run `secrets apply --dry-run <plan.json>` and inspect the target paths.
+4. Run `secrets apply <plan.json>` only after the dry run matches the intended
+   files.
 
 ### `secrets audit`
 
@@ -484,7 +489,9 @@ Helpful modes:
 
 Apply a saved plan:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Run `secrets apply --dry-run <plan.json>` first, then `secrets apply
+<plan.json>` after review. If the plan contains exec SecretRefs or exec
+providers, pass `--allow-exec` to both the dry run and the write command.
 
 Exec note:
 

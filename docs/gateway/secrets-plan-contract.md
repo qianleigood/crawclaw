@@ -94,9 +94,13 @@ No writes are committed for an invalid plan.
 
 ## Operator checks
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use Desktop Secret Audit for the guided path. In automation, run the same
+operator flow as the CLI surfaces: build or review a `secrets configure` plan,
+validate it with `secrets apply --dry-run`, then apply only after the target
+paths match the supported shapes in this contract.
 
-If apply fails with an invalid target path message, regenerate the plan with CrawClaw Desktop or the local Gateway API or fix the target path to a supported shape above.
+If apply fails with an invalid target path message, rerun Desktop Secret Audit
+or `secrets configure`, or fix the target path to a supported shape above.
 
 ## Related docs
 

@@ -524,7 +524,10 @@ Notes:
 
 ## Gateway API examples
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+For interactive setup, use CrawClaw Desktop -> Settings -> Models -> Add model.
+Automation should write provider config with `config.patch`, use SecretRefs for
+API keys, then verify with `models.list`, `usage.status`, and a small test agent
+turn before making the provider a default or fallback.
 
 See also: [/gateway/configuration](/gateway/configuration) for full configuration examples.
 

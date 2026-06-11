@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-10T11:33:25Z"
   model: codex
   provider: openai
-  source_hash: f3a096710856da30859be687fe2bc36c7ea1988e0d6ed0a03ac3d00f13cc8c02
+  source_hash: 58ac14a826cfb06c7218689891a4a25c746a057b573e4b2bcf77a7d01378c1b7
   source_path: plugins/sdk-setup.md
   workflow: 15
 ---
@@ -137,17 +137,17 @@ Channel-specific TypeScript setup helpers 已移除。未来的 channel plugins 
 
 **External plugins:** 发布到 [ClawHub](/tools/clawhub) 或 npm，然后安装：
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+打开 CrawClaw Desktop -> Plugins -> Install plugin，粘贴 ClawHub 或 npm package spec。自动化应调用 Gateway RPC `plugins.install`，将 `raw` 设为同一个 spec，然后用 `plugins.list`、`plugins.update` 或 `plugins.uninstall` 做 inventory 和 lifecycle 管理。
 
 CrawClaw 会先尝试 ClawHub，然后自动 fallback 到 npm。你也可以强制指定 source：
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+使用 `clawhub:<pkg>` 指定 ClawHub package，使用 `clawhubSpec` 做 ClawHub-only 自动化，使用 `spec`/`npmSpec` 做 npm resolution，或在 `raw` 中传入本地目录/archive path 作为 local source。npm install 需要记录 resolved version 时，添加 `pin: true`。
 
 **In-repo plugins:** 放在 bundled plugin workspace tree 下，build 时会自动发现。
 
 **Users can browse and install:**
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+CrawClaw Desktop 会在 Plugins view 中展示 installed、bundled 和 marketplace-backed plugins。Headless clients 应调用 `plugins.list` 展示 inventory，并用 `plugins.install` 执行安装；chat-native environments 可以启用 `commands.plugins` 并使用 `/plugin install <spec>`。
 
 <Info>
   对于 npm-sourced installs，CrawClaw Desktop 或本地 Gateway API 会运行

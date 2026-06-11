@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-10T12:15:35Z"
   model: codex
   provider: openai
-  source_hash: 44d861ccbda069aaec33f6f3d2d317a04c5f09f5cca980f4c6e52dde1aead211
+  source_hash: f4bc91c1646274c492e2452afd0ac5e897e46c15ddbdf3a3b1600d10c8ddf290
   source_path: gateway/secrets-plan-contract.md
   workflow: 15
 ---
@@ -101,9 +101,9 @@ Invalid plan 不会 commit 任何 writes。
 
 ## Operator checks
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+使用 Desktop Secret Audit 走 guided path。自动化场景中，按 CLI surface 的同一 operator flow 执行：创建或 review 一个 `secrets configure` plan，用 `secrets apply --dry-run` 验证，然后只有当 target paths 与本 contract 中的 supported shapes 匹配时才 apply。
 
-如果 apply 因 invalid target path message 失败，请用 CrawClaw Desktop 或本地 Gateway API 重新生成 plan，或把 target path 修正为上面的 supported shape。
+如果 apply 因 invalid target path message 失败，请重新运行 Desktop Secret Audit 或 `secrets configure`，或把 target path 修正为上面的 supported shape。
 
 ## Related docs
 

@@ -139,19 +139,28 @@ plugins should use the Rust-native channel plugin contract.
 
 **External plugins:** publish to [ClawHub](/tools/clawhub) or npm, then install:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open CrawClaw Desktop -> Plugins -> Install plugin and paste the ClawHub or npm
+package spec. Automation should call Gateway RPC `plugins.install` with `raw`
+set to the same spec, then use `plugins.list`, `plugins.update`, or
+`plugins.uninstall` for inventory and lifecycle management.
 
 CrawClaw tries ClawHub first and falls back to npm automatically. You can also
 force a specific source:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use `clawhub:<pkg>` for an explicit ClawHub package, `clawhubSpec` for
+ClawHub-only automation, `spec`/`npmSpec` for npm resolution, or a local
+directory/archive path in `raw` for a local source. Add `pin: true` when an npm
+install should record the resolved version.
 
 **In-repo plugins:** place under the bundled plugin workspace tree and they are automatically
 discovered during build.
 
 **Users can browse and install:**
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+CrawClaw Desktop shows installed, bundled, and marketplace-backed plugins in the
+Plugins view. Headless clients should call `plugins.list` to show inventory and
+`plugins.install` for installs; chat-native environments can enable
+`commands.plugins` and use `/plugin install <spec>`.
 
 <Info>
   For npm-sourced installs, CrawClaw Desktop or the local Gateway API runs

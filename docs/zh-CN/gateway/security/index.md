@@ -7,7 +7,7 @@ x-i18n:
   generated_at: "2026-06-10T18:21:14Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: dfebb198d2fbff1cc838b437aa6fc7b27da653a0a50a91f829b49b0355f05566
+  source_hash: 87a2b2fc13ef8b6918b82fcf8d977f934b722a353ea46ec4b88d5a419ca8ab49
   source_path: gateway/security/index.md
   workflow: 15
 ---
@@ -39,7 +39,7 @@ CrawClaw 安全指南假设采用**个人助理**部署：一个受信任的操�
 
 定期运行此检查（特别是在更改配置或暴露网络接口后）：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+打开 CrawClaw Desktop diagnostics 运行 guided security pass。Headless automation 应先调用 read-only Gateway RPC：`status`、`config.get`、`channels.status`、`message.policy` 和 `logs.tail`，并按下列 checks 对比 live config；需要修复时再用 `config.patch` 或 `channels.config.patch` 做 scoped repairs。
 
 它会标记常见的坑（Gateway 凭证暴露、浏览器控制暴露、升高的允许列表、文件系统权限、宽松的执行审批和开放渠道工具暴露）。
 

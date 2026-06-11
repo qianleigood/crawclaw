@@ -48,7 +48,10 @@ Honcho registers tools that the agent can use during conversation:
 
 Install the plugin and run setup:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Install or enable the Honcho plugin from CrawClaw Desktop -> Plugins. Headless
+automation should call `plugins.install` with the Honcho package spec, confirm
+with `plugins.list`, then write Honcho API or self-hosted settings under the
+plugin config using `config.patch` and SecretRef-backed credentials.
 
 The setup command prompts for your API credentials, writes the config, and
 optionally migrates existing workspace memory files.
@@ -120,7 +123,11 @@ the plugin service.
 
 ## Desktop and Gateway API actions
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+- Install or enable the Honcho plugin.
+- Store credentials as SecretRefs rather than plaintext plugin config.
+- Choose managed API or self-hosted mode in the plugin config.
+- Verify the plugin is enabled with `plugins.list` before relying on Honcho
+  tools in agent turns.
 
 ## Further reading
 

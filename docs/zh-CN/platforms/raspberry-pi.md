@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-05T14:41:54Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: f50759a7faa04d47671d5687366ca3c09a2d4db89b7018caed95960d7e013dd2
+  source_hash: 5c8317dc7860c5af1cdb8a1bc8eb347b0cb7da8d0706034f1601deaa3a2cf343
   source_path: platforms/raspberry-pi.md
   workflow: 15
 ---
@@ -134,7 +134,7 @@ npm link
 
 ## 7) 运行新手引导
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
+从你的 laptop 通过 Tailscale、SSH forwarding 或已配置的 Gateway URL 连接到 Pi Gateway，然后在 CrawClaw Desktop 中执行相同的 onboarding choices。在 headless Pi 上，使用 `config.patch` 做 scoped settings，并先用 `status`、`channels.status` 和 `logs.tail` 验证，再启用 daemon。
 
 按照向导操作：
 

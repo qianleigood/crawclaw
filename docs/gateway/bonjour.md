@@ -40,9 +40,12 @@ Current node clients browse both `local.` and your configured wide‑area domain
 
 ### One-time DNS server setup (gateway host)
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Set `discovery.wideArea.enabled=true` and, when you are not using the default
+domain, set `discovery.wideArea.domain` with Desktop config or `config.patch`.
+The Gateway writes the DNS-SD zone under `~/.crawclaw/dns/`; run CoreDNS or
+another DNS server on the gateway host and point it at that zone.
 
-This installs CoreDNS and configures it to:
+Configure the DNS server to:
 
 - listen on port 53 only on the gateway’s Tailscale interfaces
 - serve your chosen domain (example: `crawclaw.internal.`) from `~/.crawclaw/dns/<domain>.db`

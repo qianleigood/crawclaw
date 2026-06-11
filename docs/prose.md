@@ -23,11 +23,15 @@ Official site: [https://www.prose.md](https://www.prose.md)
 
 Bundled plugins are disabled by default. Enable OpenProse:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open CrawClaw Desktop -> Plugins, enable `OpenProse`, and confirm the plugin is
+listed as enabled. Automation can call Gateway RPC `plugins.enable` with
+`{ "id": "open-prose" }`, then confirm with `plugins.list`.
 
 Restart the Gateway after enabling the plugin.
 
-Dev/local checkout: CrawClaw Desktop or the local Gateway API
+Dev/local checkout: use `plugins.install` with `raw` pointing at the local
+plugin directory or `crawclaw.plugin.json`, then confirm the install record with
+`plugins.list`.
 
 Related docs: [Plugins](/tools/plugin), [Plugin manifest](/plugins/manifest), [Skills](/tools/skills).
 

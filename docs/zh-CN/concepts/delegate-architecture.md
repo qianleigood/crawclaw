@@ -7,7 +7,7 @@ x-i18n:
   generated_at: "2026-06-10T10:45:58Z"
   model: codex
   provider: openai
-  source_hash: 6aec890ede6c9e31aaff70c887f630ffbae028def3442e620ddf335c15f5ff23
+  source_hash: dc50fb66cca4b77394805ca70fa24c6dc09af731b1c208bdf8183a0a53b49b34
   source_path: concepts/delegate-architecture.md
   workflow: 15
 ---
@@ -141,7 +141,7 @@ delegate 按 schedule **autonomously** 运行，在不逐项请求人类批准�
 
 使用 multi-agent wizard 为 delegate 创建 isolated agent：
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+在 CrawClaw Desktop 中创建名为 `delegate` 的新 agent，选择 dedicated workspace，并在 identity-provider access scoped 之前保持初始 tool profile 为 read-only。Headless setups 应通过 `config.patch` 添加一个包含唯一 `id`、`workspace` 和 `agentDir` 的 `agents.list[]` entry，然后在绑定 channels 前用 `config.get` 验证 effective routing。
 
 这会创建：
 

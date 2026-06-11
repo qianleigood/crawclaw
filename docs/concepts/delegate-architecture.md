@@ -134,7 +134,11 @@ With hardening in place, proceed to grant the delegate its identity and permissi
 
 Use the multi-agent wizard to create an isolated agent for the delegate:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+In CrawClaw Desktop, create a new agent named `delegate`, choose a dedicated
+workspace, and keep the initial tool profile read-only until identity-provider
+access is scoped. Headless setups should add an `agents.list[]` entry with a
+unique `id`, `workspace`, and `agentDir` through `config.patch`, then verify the
+effective routing with `config.get` before binding channels.
 
 This creates:
 

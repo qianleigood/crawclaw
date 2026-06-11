@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-05T14:42:30Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: be3236049d5d06ecd39ce8106e27df564607041fed94fdbfc9cfb4e499437d37
+  source_hash: 992b9aa6046bfce1149d2ebc92c6e759aeaf330126555164adbd088c91eb2e7b
   source_path: prose.md
   workflow: 15
 ---
@@ -30,11 +30,11 @@ OpenProse 是一种可移植的、优先使用 Markdown 的工作流格式，用
 
 捆绑插件默认禁用。启用 OpenProse：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
+打开 CrawClaw Desktop -> Plugins，启用 `OpenProse`，并确认该 plugin 显示为 enabled。自动化可以调用 Gateway RPC `plugins.enable`，参数为 `{ "id": "open-prose" }`，然后用 `plugins.list` 确认。
 
 启用插件后重启 Gateway。
 
-开发/本地检出：CrawClaw Desktop 或本地 Gateway API
+开发/本地检出：使用 `plugins.install`，将 `raw` 指向本地 plugin 目录或 `crawclaw.plugin.json`，然后用 `plugins.list` 确认 install record。
 
 相关文档：[插件](/tools/plugin)、[插件清单](/plugins/manifest)、[Skills](/tools/skills)。
 

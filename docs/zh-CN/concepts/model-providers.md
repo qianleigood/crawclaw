@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:14:52Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 16d155cbab2a7eb0fc8429e213a44ecf8ae30c72ebb1c6bfff435a3a30b0f4bf
+  source_hash: 91db316970364c78be95f57be09eb1d1e9026e23a58bae51720d1ec8cd9d2c8e
   source_path: concepts/model-providers.md
   workflow: 15
 ---
@@ -494,7 +494,7 @@ export SGLANG_API_KEY="sglang-local"
 
 ## Gateway API 示例
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+交互式设置使用 CrawClaw Desktop -> Settings -> Models -> Add model。自动化应通过 `config.patch` 写入 provider config，API keys 使用 SecretRefs，然后用 `models.list`、`usage.status` 和一个小的 test agent turn 验证，再把 provider 设为 default 或 fallback。
 
 另请参见：[/gateway/configuration](/gateway/configuration) 了解完整配置示例。
 

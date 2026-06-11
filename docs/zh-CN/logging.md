@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-05T14:40:50Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 57798e779b0c24c6899e74a21ae86c2574d2ca7fbe851f139c2b9bcd636c93cd
+  source_hash: 383456f97af2edde9fa177e7a591048d10a155c43623ace75b45e0b0b3c024c6
   source_path: logging.md
   workflow: 15
 ---
@@ -64,13 +64,13 @@ CrawClaw 在两个位置记录日志：
 
 如果 Gateway 无法访问，CLI 会打印简短提示：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
+启动 CrawClaw Desktop 或管理 Gateway 进程的主机 supervisor，然后先重试 `status`，再调用 `logs.tail`。如果进程没有监听，先检查主机终端或 service manager 日志；只有 Gateway RPC endpoint 可访问后，`logs.tail` 才能工作。
 
 ### 仅渠道日志
 
 要过滤渠道活动（Weixin/Feishu 等），请使用：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
+CrawClaw Desktop 的 channel diagnostics，或调用 `logs.tail` 并按 channel subsystem（`gateway/channels/...`）或日志消息中的 channel id 过滤返回 entries。需要当前 adapter 状态时，同时调用 `channels.status`。
 
 ## 日志格式
 

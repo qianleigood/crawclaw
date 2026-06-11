@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-10T10:45:58Z"
   model: codex
   provider: openai
-  source_hash: 8edf1faf5dcb5430f09353c1d0599a7948c7e520616cd3e522713f72751b8b6a
+  source_hash: b0855000b993556bddbd60e1de86b6588fe84dd06a9be282db56c7f9c01e3314
   source_path: concepts/memory-honcho.md
   workflow: 15
 ---
@@ -48,7 +48,7 @@ Honcho 注册 agent 可在 conversation 中使用的 tools：
 
 安装 plugin 并运行 setup：
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+从 CrawClaw Desktop -> Plugins 安装或启用 Honcho plugin。Headless automation 应调用 `plugins.install` 并传入 Honcho package spec，用 `plugins.list` 确认，然后通过 `config.patch` 将 Honcho API 或 self-hosted settings 写到 plugin config，并使用 SecretRef-backed credentials。
 
 setup command 会提示输入 API credentials、写入 config，并可选择迁移现有 workspace memory files。
 
@@ -111,7 +111,10 @@ Honcho 和 builtin memory system 可以一起工作：builtin memory 让 local p
 
 ## Desktop 和 Gateway API actions
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+- 安装或启用 Honcho plugin。
+- 将 credentials 存为 SecretRefs，而不是 plaintext plugin config。
+- 在 plugin config 中选择 managed API 或 self-hosted mode。
+- 在 agent turns 依赖 Honcho tools 之前，用 `plugins.list` 确认 plugin 已启用。
 
 ## 延伸阅读
 
