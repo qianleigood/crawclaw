@@ -24,7 +24,16 @@ bundled `xiaomi` provider with that key.
 
 ## Desktop setup
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **Settings → Models and replies → Add model** in CrawClaw Desktop, choose
+Xiaomi MiMo, and select either the pay-as-you-go API key setup or the Token Plan
+setup. Token Plan requires the OpenAI-compatible base URL from the subscription
+page. Desktop stores the key as a local file SecretRef after the connection
+probe succeeds.
+
+For headless hosts, set `XIAOMI_API_KEY` in the Gateway environment or patch
+`models.providers.xiaomi.apiKey` to an `env`, `file`, or `exec` SecretRef with
+`config.patch`. Patch `models.providers.xiaomi.baseUrl` as well when using a
+Token Plan endpoint.
 
 ## Config snippet
 

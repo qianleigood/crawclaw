@@ -34,7 +34,14 @@ supported token environment variables before starting the desktop app or gateway
 
 ## Set a default model
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **Settings → Models and replies → Add model** in CrawClaw Desktop, choose
+GitHub Copilot, and save a `github-copilot/<model>` profile. Desktop can store
+the token as a local file SecretRef, or you can start the Gateway with
+`COPILOT_GITHUB_TOKEN`, `GH_TOKEN`, or `GITHUB_TOKEN` already set.
+
+For headless hosts, patch `agents.defaults.model.primary` with `config.patch`
+after the token environment variable or SecretRef is available to the Gateway
+process.
 
 ### Config snippet
 

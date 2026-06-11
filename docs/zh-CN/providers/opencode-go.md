@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:44:43Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: f6d25f73d8922573c90860152d0dc17784190dcd6a5863c4c0c3d67ae0f67b93
+  source_hash: 4bc895ff0b90a90fe3ad70b681b2fb8fb584475394dd8c78c452e85fe870508e
   source_path: providers/opencode-go.md
   workflow: 15
 ---
@@ -25,7 +25,13 @@ OpenCode Go 是 [OpenCode](/providers/opencode) 中的 Go 目录。它使用与 
 
 ## Desktop 设置
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 OpenCode Go，粘贴 shared OpenCode API key，并保存 `opencode-go/<model>`
+profile。连接 probe 通过后，Desktop 会把 key 存为本地 file SecretRef。
+
+在 headless hosts 上，设置 `OPENCODE_API_KEY` 或 `OPENCODE_ZEN_API_KEY`，或用
+`config.patch` 将 `models.providers.opencode-go.apiKey` patch 为 `env`、`file`
+或 `exec` SecretRef。
 
 ## 配置片段
 

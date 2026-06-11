@@ -21,11 +21,17 @@ as one OpenCode setup.
 
 ### Zen catalog
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **Settings → Models and replies → Add model** in CrawClaw Desktop, choose
+OpenCode, paste the shared OpenCode API key, and save an `opencode/<model>`
+profile. Desktop stores the key as a local file SecretRef after the connection
+probe succeeds.
 
 ### Go catalog
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the same Desktop setup, but choose OpenCode Go or select an
+`opencode-go/<model>` profile. For headless hosts, set `OPENCODE_API_KEY` or
+`OPENCODE_ZEN_API_KEY`, or patch both OpenCode provider API keys to an `env`,
+`file`, or `exec` SecretRef with `config.patch`.
 
 ## Config snippet
 

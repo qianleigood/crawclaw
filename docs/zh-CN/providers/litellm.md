@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:44:13Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 1afbe2099935034f2b9648e2419f864d93a942524733260236c4f4a8d17235f9
+  source_hash: 1ba47261b8900ad6e2ce9097ed71a6865ad09aff0472aaade0013615e6b8b9bb
   source_path: providers/litellm.md
   workflow: 15
 ---
@@ -29,7 +29,14 @@ x-i18n:
 
 ### 通过入门引导
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 LiteLLM，输入 LiteLLM proxy base URL，如果你的 proxy 需要认证则粘贴 LiteLLM
+virtual key，并保存 `litellm/<model>` profile。
+
+在 headless hosts 上，将 `LITELLM_API_KEY` 设到 Gateway environment，或用
+`config.patch` 将 `models.providers.litellm.apiKey` patch 为 `env`、`file` 或
+`exec` SecretRef。如果不是 `http://localhost:4000/v1`，也要 patch
+`models.providers.litellm.baseUrl` 为你的 proxy URL。
 
 ### 手动设置
 

@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:45:00Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: cbc9821c6a254dce1e4954b5788e4d0dd52d9b72af936567fce3337ecd61e742
+  source_hash: 913d27ed6b50babb4693a40b7eab315a9707aab7fa20f1c480c940f3af6c9e85
   source_path: providers/openai.md
   workflow: 15
 ---
@@ -24,7 +24,13 @@ OpenAI 为 GPT 模型提供开发者 API。CrawClaw 捆绑的 OpenAI 设置使�
 
 ### Desktop 设置
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 OpenAI，粘贴 OpenAI API key，并保存 `openai/<model>` profile。连接 probe
+通过后，Desktop 会把 key 存为本地 file SecretRef。
+
+在 headless hosts 上，将 `OPENAI_API_KEY` 设到 Gateway environment，或用
+`config.patch` 将 `models.providers.openai.apiKey` patch 为 `env`、`file` 或
+`exec` SecretRef。
 
 ### 配置片段
 

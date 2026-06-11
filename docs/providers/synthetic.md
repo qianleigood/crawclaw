@@ -14,9 +14,14 @@ Synthetic exposes Anthropic-compatible endpoints. CrawClaw registers it as the
 ## Quick setup
 
 1. Set `SYNTHETIC_API_KEY` (or run the wizard below).
-2. Run onboarding:
+2. Open **Settings → Models and replies → Add model** in CrawClaw Desktop,
+   choose Synthetic, paste the API key, and save a `synthetic/<model>` profile.
+   Desktop stores the key as a local file SecretRef after the connection probe
+   succeeds.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+For headless hosts, set `SYNTHETIC_API_KEY` in the Gateway environment or patch
+`models.providers.synthetic.apiKey` to an `env`, `file`, or `exec` SecretRef
+with `config.patch`.
 
 The default model is set to:
 

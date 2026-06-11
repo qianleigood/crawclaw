@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:45:25Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: f06b48226dc03b3bcefaada98b5f13ab50876f34e795c65a9aca8c7d2f3b35bc
+  source_hash: 3b9afdec22f7d811f4cd642538c3e6a1c14cc2392da9b1908dc3c62ee2e255b6
   source_path: providers/sglang.md
   workflow: 15
 ---
@@ -34,9 +34,10 @@ CrawClaw 可以使用 `openai-completions` API 连接到 SGLang。
 export SGLANG_API_KEY="sglang-local"
 ```
 
-3. 运行新手引导并选择 `SGLang`，或直接设置模型：
-
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+3. 在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+   选择 SGLang，确认 base URL，并保存 discovered 或 explicit `sglang/<model>`
+   profile。在 headless hosts 上，如果需要 non-default base URL 或固定 model
+   catalog，设置 `SGLANG_API_KEY` 并用 `config.patch`。
 
 ```json5
 {

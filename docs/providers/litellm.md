@@ -22,7 +22,14 @@ read_when:
 
 ### Via onboarding
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **Settings → Models and replies → Add model** in CrawClaw Desktop, choose
+LiteLLM, enter your LiteLLM proxy base URL, paste a LiteLLM virtual key if your
+proxy requires one, and save a `litellm/<model>` profile.
+
+For headless hosts, set `LITELLM_API_KEY` in the Gateway environment or patch
+`models.providers.litellm.apiKey` to an `env`, `file`, or `exec` SecretRef with
+`config.patch`. Patch `models.providers.litellm.baseUrl` to your proxy URL when
+it is not `http://localhost:4000/v1`.
 
 ### Manual setup
 

@@ -30,9 +30,10 @@ Your base URL should expose `/v1` endpoints (for example `/v1/models`,
 export SGLANG_API_KEY="sglang-local"
 ```
 
-3. Run onboarding and choose `SGLang`, or set a model directly:
-
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+3. In CrawClaw Desktop, open **Settings → Models and replies → Add model**,
+   choose SGLang, confirm the base URL, and save the discovered or explicit
+   `sglang/<model>` profile. For headless hosts, set `SGLANG_API_KEY` and use
+   `config.patch` if you need a non-default base URL or a pinned model catalog.
 
 ```json5
 {

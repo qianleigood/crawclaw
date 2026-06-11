@@ -20,7 +20,14 @@ provider id `opencode-go` so upstream per-model routing stays correct.
 
 ## Desktop setup
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **Settings → Models and replies → Add model** in CrawClaw Desktop, choose
+OpenCode Go, paste the shared OpenCode API key, and save an
+`opencode-go/<model>` profile. Desktop stores the key as a local file SecretRef
+after the connection probe succeeds.
+
+For headless hosts, set `OPENCODE_API_KEY` or `OPENCODE_ZEN_API_KEY`, or patch
+`models.providers.opencode-go.apiKey` to an `env`, `file`, or `exec` SecretRef
+with `config.patch`.
 
 ## Config snippet
 

@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:45:27Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 5dc77e01a40e70e84d1b56ab3d9f8ff4265f674e7e2de71945350a3d87a545ec
+  source_hash: b866e06ed2d49b272c45119a97224a7a0f888adbbe51104dc6244b00afef2b65
   source_path: providers/synthetic.md
   workflow: 15
 ---
@@ -20,9 +20,13 @@ Synthetic 暴露了 Anthropic 兼容端点。CrawClaw 将其注册为 `synthetic
 ## 快速设置
 
 1. 设置 `SYNTHETIC_API_KEY`（或运行以下向导）。
-2. 运行入门引导：
+2. 在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+   选择 Synthetic，粘贴 API key，并保存 `synthetic/<model>` profile。连接 probe
+   通过后，Desktop 会把 key 存为本地 file SecretRef。
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 headless hosts 上，将 `SYNTHETIC_API_KEY` 设到 Gateway environment，或用
+`config.patch` 将 `models.providers.synthetic.apiKey` patch 为 `env`、`file` 或
+`exec` SecretRef。
 
 默认模型设置为：
 

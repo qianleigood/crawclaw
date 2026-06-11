@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:43:42Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 1a5573378a959b7972b0fac04e5cb47c0c6313bf4619d1f3e190173315bf5099
+  source_hash: 1f1371c9f82f612590a5cf707ccdc9cf3c50d61f7b68e1c5435f5fbfbec86650
   source_path: providers/kilocode.md
   workflow: 15
 ---
@@ -25,7 +25,13 @@ Kilo Gateway 提供了一个**统一 API**，通过单一端点和 API 密钥将
 
 ## Desktop 设置
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 Kilo Code，粘贴 Kilo Gateway API key，并保存 `kilocode/<model>` profile。
+连接 probe 通过后，Desktop 会把 key 存为本地 file SecretRef。
+
+在 headless hosts 上，将 `KILOCODE_API_KEY` 设到 Gateway environment，或用
+`config.patch` 将 `models.providers.kilocode.apiKey` patch 为 `env`、`file` 或
+`exec` SecretRef。
 
 或设置环境变量：
 

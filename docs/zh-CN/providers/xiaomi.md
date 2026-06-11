@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:45:48Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: fff8a2ef06efb16c5a960da10176a9442bbfdb862916eefad7973abea0a46b8b
+  source_hash: 80f61fed82698512464b60539868193caf8fd9d16ee0c79c711bfb250a8c5165
   source_path: providers/xiaomi.md
   workflow: 15
 ---
@@ -29,7 +29,15 @@ Xiaomi MiMo 是 **MiMo** 模型的 API 平台。CrawClaw 使用小米 OpenAI 兼
 
 ## Desktop 设置
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 Xiaomi MiMo，然后选择 pay-as-you-go API key setup 或 Token Plan setup。
+Token Plan 需要 subscription 页面上的 OpenAI-compatible base URL。连接 probe
+通过后，Desktop 会把 key 存为本地 file SecretRef。
+
+在 headless hosts 上，将 `XIAOMI_API_KEY` 设到 Gateway environment，或用
+`config.patch` 将 `models.providers.xiaomi.apiKey` patch 为 `env`、`file` 或
+`exec` SecretRef。使用 Token Plan endpoint 时，也要 patch
+`models.providers.xiaomi.baseUrl`。
 
 ## 配置片段
 

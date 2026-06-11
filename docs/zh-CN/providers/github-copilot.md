@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:43:25Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 4d59b224ca93795970f6d1adc666efcbc867a6ed9a5c92980bd969c6d6d76492
+  source_hash: 55701297fd97b892c1ece435495ff1b7922bb85d6a6766e935abd57349d4df6f
   source_path: providers/github-copilot.md
   workflow: 15
 ---
@@ -33,7 +33,13 @@ GitHub Copilot 是 GitHub 的 AI 编程助手。它为你的 GitHub 账户和计
 
 ## 设置默认模型
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 GitHub Copilot，并保存 `github-copilot/<model>` profile。Desktop 可以把 token
+存为本地 file SecretRef；也可以在启动 Gateway 前设置 `COPILOT_GITHUB_TOKEN`、
+`GH_TOKEN` 或 `GITHUB_TOKEN`。
+
+在 headless hosts 上，确保 token environment variable 或 SecretRef 对 Gateway
+process 可用后，用 `config.patch` patch `agents.defaults.model.primary`。
 
 ### 配置片段
 

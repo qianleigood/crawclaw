@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:45:10Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: aab5219f9a5a2e524e1e2abd19a94f8f3a814004a416e505c58669d05314fcfd
+  source_hash: aa997efa6e680974ec0e6bf53abd2a99535b11e3c3705078aa956832dc0bb07b
   source_path: providers/qianfan.md
   workflow: 15
 ---
@@ -32,7 +32,13 @@ Qianfan 是百度的大模型 MaaS 平台，提供**统一 API**，通过单一�
 
 ## Desktop 设置
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 Qianfan，粘贴 Qianfan API key，并保存 `qianfan/<model>` profile。连接
+probe 通过后，Desktop 会把 key 存为本地 file SecretRef。
+
+在 headless hosts 上，将 `QIANFAN_API_KEY` 设到 Gateway environment，或用
+`config.patch` 将 `models.providers.qianfan.apiKey` patch 为 `env`、`file` 或
+`exec` SecretRef。
 
 ## 相关文档
 

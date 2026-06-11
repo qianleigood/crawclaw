@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:45:01Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: c9543f001264ef344202ec4dc8ffd699f480940fcfa9de2e7bc5a6ef6f9fb22a
+  source_hash: 0f4fc9cae4185fb1590a03cf2c10c2e100a61e9d70b33a0411dc3500db5cb050
   source_path: providers/opencode.md
   workflow: 15
 ---
@@ -26,11 +26,16 @@ OpenCode 在 CrawClaw 中暴露两个托管目录：
 
 ### Zen 目录
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 OpenCode，粘贴 shared OpenCode API key，并保存 `opencode/<model>` profile。
+连接 probe 通过后，Desktop 会把 key 存为本地 file SecretRef。
 
 ### Go 目录
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+使用同一个 Desktop setup，但选择 OpenCode Go 或选择 `opencode-go/<model>` profile。
+在 headless hosts 上，设置 `OPENCODE_API_KEY` 或 `OPENCODE_ZEN_API_KEY`，或用
+`config.patch` 将两个 OpenCode provider API keys patch 为 `env`、`file` 或
+`exec` SecretRef。
 
 ## 配置片段
 
