@@ -21,7 +21,11 @@ For Anthropic models, use your Anthropic API key.
 
 1. Set the provider API key and Gateway details:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **Settings → Models and replies → Add model** in CrawClaw Desktop, choose
+Cloudflare AI Gateway, paste the upstream provider API key, and replace the
+base URL placeholders with your Cloudflare account ID and AI Gateway ID.
+Desktop stores the key as a local file SecretRef after the connection probe
+succeeds.
 
 2. Set a default model:
 
@@ -37,7 +41,12 @@ Use CrawClaw Desktop for interactive setup, or call the local Gateway API for au
 
 ## Non-interactive example
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+For headless hosts, set `CLOUDFLARE_AI_GATEWAY_API_KEY` in the Gateway
+environment or patch `models.providers.cloudflare-ai-gateway.apiKey` to an
+`env`, `file`, or `exec` SecretRef with `config.patch`. Also patch
+`models.providers.cloudflare-ai-gateway.baseUrl` to the concrete
+`https://gateway.ai.cloudflare.com/v1/<account_id>/<gateway_id>/anthropic`
+endpoint.
 
 ## Authenticated gateways
 

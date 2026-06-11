@@ -20,7 +20,10 @@ The [Vercel AI Gateway](https://vercel.com/ai-gateway) provides a unified API to
 
 1. Set the API key (recommended: store it for the Gateway):
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **Settings → Models and replies → Add model** in CrawClaw Desktop, choose
+Vercel AI Gateway, paste your `AI_GATEWAY_API_KEY`, and save a
+`vercel-ai-gateway/<provider>/<model>` profile. Desktop stores the key as a
+local file SecretRef after the connection probe succeeds.
 
 2. Set a default model:
 
@@ -36,7 +39,9 @@ Use CrawClaw Desktop for interactive setup, or call the local Gateway API for au
 
 ## Non-interactive example
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+For headless hosts, set `AI_GATEWAY_API_KEY` in the Gateway environment or
+patch `models.providers.vercel-ai-gateway.apiKey` to an `env`, `file`, or
+`exec` SecretRef with `config.patch`.
 
 ## Environment note
 

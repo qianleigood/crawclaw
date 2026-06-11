@@ -22,11 +22,12 @@ CrawClaw's MiniMax provider defaults to **MiniMax M2.7**.
 
 **Best for:** hosted MiniMax with Anthropic-compatible API.
 
-Configure in CrawClaw Desktop or through the local Gateway API:
+Configure in CrawClaw Desktop:
 
-- Open model/auth settings
-- Select **Model/auth**
-- Choose a **MiniMax** auth option
+- Open **Settings → Models and replies → Add model**
+- Choose **MiniMax**
+- Select the Global or CN API key setup option
+- Pick the default `minimax/<model>` profile after the connection probe passes
 
 ```json5
 {
@@ -92,10 +93,15 @@ Example below uses Opus as a concrete primary; swap to your preferred latest-gen
 
 Use the interactive config wizard to set MiniMax without editing JSON:
 
-1. Run CrawClaw Desktop or the local Gateway API.
-2. Select **Model/auth**.
-3. Choose a **MiniMax** auth option.
+1. Open CrawClaw Desktop.
+2. Go to **Settings → Models and replies → Add model**.
+3. Choose MiniMax, then select the Global or CN setup option.
 4. Pick your default model when prompted.
+
+For headless hosts, set `MINIMAX_API_KEY` in the Gateway environment or patch
+`models.providers.minimax.apiKey` to an `env`, `file`, or `exec` SecretRef with
+`config.patch`. Set `models.providers.minimax.baseUrl` to the Global or CN
+Anthropic-compatible endpoint.
 
 ## Configuration options
 
@@ -137,4 +143,6 @@ Make sure the model id is **case‑sensitive**:
 
 Then recheck with:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use CrawClaw Desktop's model status view, or call `models.list` and
+`usage.status` on the local Gateway API. Confirm that `minimax/MiniMax-M2.7`
+appears in the model catalog and that the MiniMax provider has an auth source.

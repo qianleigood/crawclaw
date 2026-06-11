@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-10T11:23:26Z"
   model: codex
   provider: openai
-  source_hash: 0da153ff799ac07dcbb9e07c7e0c05e1961881c45ec74b52f532c4e496cefe60
+  source_hash: e47e894a3eead794ca7a02c4121d77747b9c6fe29893be952f37b07f46624347
   source_path: providers/volcengine.md
   workflow: 15
 ---
@@ -25,7 +25,10 @@ Volcengine provider 提供对 Doubao models 和 Volcano Engine 上托管的 thir
 
 1. 设置 API key：
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 Volcengine，粘贴 Volcano Engine API key，并保存 general
+`volcengine/<model>` profile 或 coding `volcengine-plan/<model>` profile。连接
+probe 通过后，Desktop 会把 key 存为本地 file SecretRef。
 
 2. 设置 default model：
 
@@ -41,7 +44,10 @@ Volcengine provider 提供对 Doubao models 和 Volcano Engine 上托管的 thir
 
 ## Non-interactive example
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
+在 headless hosts 上，将 `VOLCANO_ENGINE_API_KEY` 设到 Gateway environment，或用
+`config.patch` 将 Volcengine provider API key patch 为 `env`、`file` 或 `exec`
+SecretRef。将 `agents.defaults.model.primary` 设为 `volcengine/<model>` 或
+`volcengine-plan/<model>`。
 
 ## Providers and endpoints
 

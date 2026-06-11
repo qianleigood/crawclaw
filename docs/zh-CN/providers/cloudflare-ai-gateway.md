@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:43:17Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 968aff65a09e2862b466d3546991fd52c231c48586eccff6b26dac48669207ef
+  source_hash: e55484c3ab8e755913421e7d91613a8266e6d09b5974cc1c083c4c90f63b6283
   source_path: providers/cloudflare-ai-gateway.md
   workflow: 15
 ---
@@ -28,7 +28,10 @@ Cloudflare AI Gateway 位于提供商 API 之前，让你添加分析、缓存�
 
 1. 设置提供商 API 密钥和 Gateway 详情：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 Cloudflare AI Gateway，粘贴 upstream provider API key，并用你的 Cloudflare
+account ID 和 AI Gateway ID 替换 base URL placeholders。连接 probe 通过后，
+Desktop 会把 key 存为本地 file SecretRef。
 
 2. 设置默认模型：
 
@@ -44,7 +47,11 @@ Cloudflare AI Gateway 位于提供商 API 之前，让你添加分析、缓存�
 
 ## 非交互式示例
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 headless hosts 上，将 `CLOUDFLARE_AI_GATEWAY_API_KEY` 设到 Gateway
+environment，或用 `config.patch` 将
+`models.providers.cloudflare-ai-gateway.apiKey` patch 为 `env`、`file` 或 `exec`
+SecretRef。同时将 `models.providers.cloudflare-ai-gateway.baseUrl` patch 为具体的
+`https://gateway.ai.cloudflare.com/v1/<account_id>/<gateway_id>/anthropic` endpoint。
 
 ## 认证 Gateway
 

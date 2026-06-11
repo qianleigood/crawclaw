@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:44:08Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 2b4ccb88a58fdeb08f4c6d36513b127848a68c518c387bc8edb15f338fbe0248
+  source_hash: c8a290e7ad354caf12ed4d7f91ab5dfdfdba2634970ccbf7bbdd4bf7767f7658
   source_path: providers/minimax.md
   workflow: 15
 ---
@@ -29,11 +29,12 @@ CrawClaw 的 MiniMax 提供商默认使用 **MiniMax M2.7**。
 
 **最适合：** 使用 Anthropic 兼容 API 的托管 MiniMax。
 
-通过 CrawClaw Desktop 或本地 Gateway API 进行配置：
+在 CrawClaw Desktop 中配置：
 
-- 打开模型/认证设置
-- 选择 **Model/auth**
-- 选择 **MiniMax** 认证选项
+- 打开 **Settings → Models and replies → Add model**
+- 选择 **MiniMax**
+- 选择 Global 或 CN API key setup option
+- 连接 probe 通过后，选择 default `minimax/<model>` profile
 
 ```json5
 {
@@ -99,10 +100,15 @@ CrawClaw 的 MiniMax 提供商默认使用 **MiniMax M2.7**。
 
 使用交互式配置向导无需编辑 JSON 即可设置 MiniMax：
 
-1. 运行 CrawClaw Desktop 或本地 Gateway API。
-2. 选择 **Model/auth**。
-3. 选择 **MiniMax** 认证选项。
+1. 打开 CrawClaw Desktop。
+2. 进入 **Settings → Models and replies → Add model**。
+3. 选择 MiniMax，然后选择 Global 或 CN setup option。
 4. 出现提示时选择你的默认模型。
+
+在 headless hosts 上，将 `MINIMAX_API_KEY` 设到 Gateway environment，或用
+`config.patch` 将 `models.providers.minimax.apiKey` patch 为 `env`、`file` 或
+`exec` SecretRef。将 `models.providers.minimax.baseUrl` 设置为 Global 或 CN
+Anthropic-compatible endpoint。
 
 ## 配置选项
 
@@ -142,4 +148,6 @@ CrawClaw 的 MiniMax 提供商默认使用 **MiniMax M2.7**。
 
 然后重新检查：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
+使用 CrawClaw Desktop 的 model status view，或调用本地 Gateway API 的
+`models.list` 和 `usage.status`。确认 model catalog 中出现
+`minimax/MiniMax-M2.7`，并且 MiniMax provider 有 auth source。

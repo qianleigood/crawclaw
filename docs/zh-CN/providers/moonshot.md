@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-05T14:44:34Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: e7b49fb70b9ad63fb5bffb82854f776e8f92e07bb89bfbb436a52653da91688f
+  source_hash: 1750fb3eb92c2272a6a0a69f03b0e5553a1aa2c302295b6a449125c091fa8b91
   source_path: providers/moonshot.md
   workflow: 15
 ---
@@ -30,11 +30,15 @@ Moonshot 提供具有 OpenAI 兼容端点的 Kimi API。配置提供商并将默
 
 [//]: # "moonshot-kimi-k2-ids:end"
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 Moonshot / Kimi，然后选择 `.ai` 或 `.cn` setup option。Desktop 会填入匹配的
+base URL，probe 选中的 Kimi model，并把 API key 存为本地 file SecretRef。
 
 Kimi Coding：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+当 provider list 中包含 Kimi Coding 时，使用同一个 Desktop add-model flow；或者在
+headless host 上用 `KIMI_API_KEY` 和 `config.patch` 配置。Moonshot API keys 和
+Kimi Coding keys 要分开保存。
 
 注意：Moonshot 和 Kimi Coding 是独立的提供商。密钥不可互换，端点不同，模型引用不同（Moonshot 使用 `moonshot/...`，Kimi Coding 使用 `kimi-coding/...`）。
 

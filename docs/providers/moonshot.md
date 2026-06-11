@@ -25,11 +25,16 @@ Current Kimi K2 model IDs:
 
 [//]: # "moonshot-kimi-k2-ids:end"
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **Settings → Models and replies → Add model** in CrawClaw Desktop, choose
+Moonshot / Kimi, then choose the `.ai` or `.cn` setup option. Desktop fills the
+matching base URL, probes the selected Kimi model, and stores the API key as a
+local file SecretRef.
 
 Kimi Coding:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the same Desktop add-model flow when the provider list includes Kimi
+Coding, or configure it on a headless host with `KIMI_API_KEY` and
+`config.patch`. Keep Moonshot API keys and Kimi Coding keys separate.
 
 Note: Moonshot and Kimi Coding are separate providers. Keys are not interchangeable, endpoints differ, and model refs differ (Moonshot uses `moonshot/...`, Kimi Coding uses `kimi-coding/...`).
 

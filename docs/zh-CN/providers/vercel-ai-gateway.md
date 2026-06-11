@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:45:40Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 8efbccc025b5c651a3eb514a3980443de61d838cfcfe22253fac266cb163c53d
+  source_hash: 8ea5ce60ce0b3cfaeaac15d8ded3b42ca19db84520b51f58afb8fa378aa4488c
   source_path: providers/vercel-ai-gateway.md
   workflow: 15
 ---
@@ -26,7 +26,10 @@ x-i18n:
 
 1. 设置 API 密钥（推荐：将其存储到 Gateway）：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 Vercel AI Gateway，粘贴 `AI_GATEWAY_API_KEY`，并保存
+`vercel-ai-gateway/<provider>/<model>` profile。连接 probe 通过后，Desktop 会把 key
+存为本地 file SecretRef。
 
 2. 设置默认模型：
 
@@ -42,7 +45,9 @@ x-i18n:
 
 ## 非交互式示例
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 headless hosts 上，将 `AI_GATEWAY_API_KEY` 设到 Gateway environment，或用
+`config.patch` 将 `models.providers.vercel-ai-gateway.apiKey` patch 为 `env`、
+`file` 或 `exec` SecretRef。
 
 ## 环境注意事项
 
