@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-10T17:47:05Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 09bba7541aa8894c4a4e554efcb7182d6de7e9a79250f545d05e327c48429886
+  source_hash: 79ad29f2e6b04a278c07ff5adcb9c4744c97174b87e4db42381df828c87c90dd
   source_path: maintainers/repo-structure.md
   workflow: 15
 ---
@@ -23,10 +23,14 @@ x-i18n:
 - `apps/crawclaw-desktop/` 是桌面应用程序
 - `src/` 是保留的非运行时元数据、生成的 JSON 和本地边界注释
 - `extensions/` 是捆绑的插件元数据生态系统
+- `skills/` 是捆绑的核心 skill surface
 - `automation/` 包含用于 n8n 和 ComfyUI 的托管本地运行时安装资源
-- `packages/` 是保留的工作区支持包插槽，不是运行时核心
+- `packages/` 是带有边界 README 的保留工作区支持包插槽
 - `docs/` 同时包含产品文档和维护者设计材料
-- `scripts/` 和 `.github/` 是交付层
+- `scripts/`、`git-hooks/` 和 `.github/` 是交付层
+- `assets/` 包含 packaging 和 product image assets
+- `deploy/` 包含 Hindsight stack 等 deployment sidecars
+- `patches/` 为已批准的 dependency patch metadata 保留
 - `test-fixtures/` 是共享的测试 fixture 数据
 - `dist/` 是构建输出，不是源代码
 - `skills-optional/` 是可选的技能目录，不是运行时核心代码
@@ -40,9 +44,11 @@ x-i18n:
 主要领域：
 
 - `crates/crawclaw-gateway`：控制平面、凭证、协议和 Gateway 网关服务
+- `crates/crawclaw-core`：共享的可序列化核心数据结构
 - `crates/crawclaw-runtime`：智能体循环、记忆、定时任务、运行时工具、原生插件注册接线、运行时布局和运行时状态
 - `crates/crawclaw-repo-tools`：构建、发布、文档检查、生成的基线、仓库护栏、GitHub 辅助工具和 Node/npm 工具适配器
 - `crates/crawclaw-native-plugins`：原生插件描述符和操作
+- `crates/crawclaw-plugin-host`：desktop-facing plugin host helpers 和 plugin read-model adapters
 - `crates/crawclaw-providers`：提供商目录、凭证/设置元数据、模型标准化、请求构建和响应/流解析
 - `crates/crawclaw-plugin-sdk`：公共 Rust 插件 SDK
 - `crates/crawclaw-channels`：原生渠道契约、能力描述符和桌面渠道配置目录
@@ -70,13 +76,17 @@ x-i18n:
 
 并非每个插件包在角色上都是相同的，但它们都属于能力层，而不是主运行时层。
 
+`skills/` 是捆绑的核心 skill surface。广泛适用、默认体验需要的 skills 放在这里。
+
 `skills-optional/` 也属于仓库的生态系统侧。它是可选技能和配方目录，不是核心运行时树。
 
 `automation/` 也是生态系统相邻的。它包含用于 n8n 和 ComfyUI 等托管本地运行时的发布清单支持安装脚本和校验和。运行时控制仍然位于 Rust 和桌面应用中；这些文件是环境资产，不是独立的工作流引擎。
 
+`assets/` 是 product 和 packaging media，例如 app icons、placeholder avatars 和 DMG backgrounds。生成的 docs imagery 应留在 `docs/assets/` 下。
+
 ## 支持包
 
-`packages/` 是有意保留的，但目前应该保持空置状态，仅供边界注释使用。新支持包不应默认添加。首先决定代码是否属于：
+`packages/` 是有意保留的，目前只包含边界 README。新支持包不应默认添加。首先决定代码是否属于：
 
 - `crates/` 用于运行时核心或 Rust 仓库工具
 - `extensions/` 用于插件生态系统
@@ -102,8 +112,10 @@ x-i18n:
 这些路径构成构建/发布/交付系统：
 
 - `scripts/`
+- `git-hooks/`
 - `.github/`
 - `package.json` 中的发布元数据
+- `patches/` 中已批准的 dependency patch metadata
 
 该层在操作上至关重要，但它与运行时架构不是同一回事。
 
@@ -117,6 +129,8 @@ x-i18n:
 - `desktop-renderer dev|build|tauri-dev|tauri-build`
 
 Node/npm 仍然存在，用于桌面渲染器、文档托管工具和 npm pack/publish 边界。当存在 Rust 编排路径时，应通过 repo-tools 适配器调用它们。
+
+`deploy/` 是 operational sidecar material。它可以包含 Hindsight 等相邻服务的 deployment manifests 和 scripts，但不应成为 `crates/` 内 runtime behavior 的 source of truth。
 
 ## 测试基础设施
 

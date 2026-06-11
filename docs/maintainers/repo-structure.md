@@ -17,10 +17,14 @@ The short version:
 - `apps/crawclaw-desktop/` is the desktop application
 - `src/` is retained non-runtime metadata, generated JSON, and local boundary notes
 - `extensions/` is the bundled plugin metadata ecosystem
+- `skills/` is the bundled core skill surface
 - `automation/` contains managed local runtime install assets for n8n and ComfyUI
-- `packages/` is a reserved workspace support package slot, not runtime core
+- `packages/` is a reserved workspace support package slot with a boundary README
 - `docs/` contains both product docs and maintainer-facing design material
-- `scripts/` and `.github/` are the delivery layer
+- `scripts/`, `git-hooks/`, and `.github/` are the delivery layer
+- `assets/` contains packaging and product image assets
+- `deploy/` contains deployment sidecars such as the Hindsight stack
+- `patches/` is reserved for approved dependency patch metadata
 - `test-fixtures/` is shared test fixture data
 - `dist/` is build output, not source
 - `skills-optional/` is an optional skill catalog, not runtime core code
@@ -34,9 +38,11 @@ The main product runtime lives under Rust crates.
 Primary domains:
 
 - `crates/crawclaw-gateway`: control plane, auth, protocol, and Gateway services
+- `crates/crawclaw-core`: shared serializable core data structures
 - `crates/crawclaw-runtime`: agent loop, memory, cron, runtime tools, native plugin registry wiring, runtime layout, and runtime status
 - `crates/crawclaw-repo-tools`: build, release, docs checks, generated baselines, repo guardrails, GitHub helpers, and Node/npm tooling adapters
 - `crates/crawclaw-native-plugins`: native plugin descriptors and operations
+- `crates/crawclaw-plugin-host`: desktop-facing plugin host helpers and plugin read-model adapters
 - `crates/crawclaw-providers`: provider catalog, auth/setup metadata, model normalization, request building, and response/stream parsing
 - `crates/crawclaw-plugin-sdk`: public Rust plugin SDK
 - `crates/crawclaw-channels`: native channel contracts, capability descriptors, and desktop channel configuration catalog
@@ -66,6 +72,8 @@ It includes multiple kinds of packages:
 Not every plugin package is equal in role, but they all belong to the capability layer,
 not the main runtime layer.
 
+`skills/` is the bundled core skill surface. Keep broad, default-on skills there.
+
 `skills-optional/` also belongs to the ecosystem side of the repo. It is a catalog
 of optional skills and recipes, not a core runtime tree.
 
@@ -74,10 +82,13 @@ install scripts and checksums for managed local runtimes such as n8n and
 ComfyUI. Runtime control still lives in Rust and the desktop app; these files are
 environment assets, not a separate workflow engine.
 
+`assets/` is product and packaging media such as app icons, placeholder avatars,
+and DMG backgrounds. Keep generated docs imagery under `docs/assets/` instead.
+
 ## Support Packages
 
-`packages/` is intentionally reserved but currently should stay empty except
-for its boundary note. New support packages should not be added by default.
+`packages/` is intentionally reserved and currently contains only its boundary
+README. New support packages should not be added by default.
 First decide whether the code belongs under:
 
 - `crates/` for runtime core or Rust repo tooling
@@ -105,8 +116,10 @@ This file lives under `docs/maintainers/` specifically to make that split more e
 These paths form the build/release/delivery system:
 
 - `scripts/`
+- `git-hooks/`
 - `.github/`
 - release metadata in `package.json`
+- approved dependency patch metadata in `patches/`
 
 This layer is operationally critical, but it is not the same thing as the
 runtime architecture.
@@ -127,6 +140,10 @@ canonical implementation now lives behind repo-tools profiles:
 Node/npm still exist for the desktop renderer, docs hosted tooling, and npm
 pack/publish boundaries. They should be called through the repo-tools adapter
 when a Rust orchestration path exists.
+
+`deploy/` is operational sidecar material. It can contain deployment manifests
+and scripts for adjacent services such as Hindsight, but it should not become
+the source of truth for runtime behavior inside `crates/`.
 
 ## Test Infrastructure
 
