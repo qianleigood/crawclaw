@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:45:48Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 358a0532160fd347dd870c7d094f7329f87e4f660a959521f82f7fdd772f524b
+  source_hash: edd66c5ecfeb1a23b70ecf7689166dba1cd2532433318fbcedf35347dca4c996
   source_path: providers/zai.md
   workflow: 15
 ---
@@ -19,7 +19,13 @@ Z.AI 是 **GLM** 模型的 API 平台。它为 GLM 提供 REST API 并使用 API
 
 ## Desktop 设置
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 Z.AI，粘贴 Z.AI API key，并保存 `zai/<model>` profile。连接 probe 通过后，
+Desktop 会把 key 存为本地 file SecretRef。
+
+在 headless hosts 上，将 `ZAI_API_KEY` 设到 Gateway environment，或用
+`config.patch` 将 `models.providers.zai.apiKey` patch 为 `env`、`file` 或
+`exec` SecretRef。
 
 ## 配置片段
 

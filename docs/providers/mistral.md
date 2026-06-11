@@ -13,7 +13,14 @@ audio transcription via Voxtral in media understanding.
 
 ## Desktop setup
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **Settings → Models and replies → Add model** in CrawClaw Desktop, choose
+Mistral, paste your Mistral API key, and save a `mistral/<model>` profile.
+Desktop stores the key as a local file SecretRef after the connection probe
+succeeds.
+
+For headless hosts, set `MISTRAL_API_KEY` in the Gateway environment or patch
+`models.providers.mistral.apiKey` to an `env`, `file`, or `exec` SecretRef with
+`config.patch`.
 
 ## Config snippet (LLM provider)
 

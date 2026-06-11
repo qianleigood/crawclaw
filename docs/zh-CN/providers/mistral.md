@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:44:16Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 66afa57748b1a4d19ee9baa33253fbab2c4b516419d0ed2899df521b1a192b1f
+  source_hash: c326e7ce2ee5e8f7cbe3352224c046e8ef53a66bce419649f5d1429c516d2b0d
   source_path: providers/mistral.md
   workflow: 15
 ---
@@ -19,7 +19,13 @@ CrawClaw 支持 Mistral 用于文本/图像模型路由（`mistral/...`）以及
 
 ## Desktop 设置
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 Mistral，粘贴 Mistral API key，并保存 `mistral/<model>` profile。连接
+probe 通过后，Desktop 会把 key 存为本地 file SecretRef。
+
+在 headless hosts 上，将 `MISTRAL_API_KEY` 设到 Gateway environment，或用
+`config.patch` 将 `models.providers.mistral.apiKey` patch 为 `env`、`file` 或
+`exec` SecretRef。
 
 ## 配置片段（LLM 提供商）
 

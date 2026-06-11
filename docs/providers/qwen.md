@@ -22,6 +22,9 @@ background.
 Use [Model Studio](/providers/qwen_modelstudio) for officially supported access to
 Qwen models (Qwen 3.5 Plus, GLM-4.7, Kimi K2.5, and more).
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+In CrawClaw Desktop, open **Settings → Models and replies → Add model**, choose
+Model Studio, and save the Qwen model profile with your Alibaba Cloud API key.
+For headless hosts, follow the Model Studio guide and use `config.patch` with a
+SecretRef-backed API key.
 
 See [Model Studio](/providers/qwen_modelstudio) for full setup details.

@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-10T11:23:26Z"
   model: codex
   provider: openai
-  source_hash: 12d3efbaa068b4fa24d2f28db9d4d759ab3aabce521f1140457cc1a9f4292bce
+  source_hash: 6dee7bb804d909616555968e37bd4a67fff99270ac4ff58e5d3fa49df6ab2526
   source_path: providers/xai.md
   workflow: 15
 ---
@@ -20,11 +20,14 @@ CrawClaw 内置 `xai` provider plugin，用于 Grok models。
 ## Setup
 
 1. 在 xAI console 中创建 API key。
-2. 设置 `XAI_API_KEY`，或运行：
+2. 在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+   选择 xAI，粘贴 API key，并保存 Grok model profile。连接 probe 通过后，
+   Desktop 会把 key 存为本地 file SecretRef，并写入 provider/model config。
+3. 在 headless hosts 上，将 `XAI_API_KEY` 设到 Gateway environment，或用
+   `config.patch` 将 `models.providers.xai.apiKey` patch 为 `env`、`file` 或
+   `exec` SecretRef。
 
-使用 CrawClaw Desktop 进行交互式 setup，或调用本地 Gateway API 做自动化。
-
-3. 选择一个 model，例如：
+4. 选择一个 model，例如：
 
 ```json5
 {

@@ -13,7 +13,14 @@ models are accessed via the `zai` provider and model IDs like `zai/glm-5`.
 
 ## Desktop setup
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Use the Z.AI provider setup in CrawClaw Desktop: open **Settings → Models and
+replies → Add model**, choose Z.AI, paste the API key, and save the desired
+`zai/glm-*` model profile. Desktop stores the key as a local file SecretRef
+after the connection probe succeeds.
+
+For headless hosts, set `ZAI_API_KEY` in the Gateway environment or patch
+`models.providers.zai.apiKey` to an `env`, `file`, or `exec` SecretRef with
+`config.patch`.
 
 ## Config snippet
 

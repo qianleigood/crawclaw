@@ -14,7 +14,13 @@ with a Z.AI API key.
 
 ## Desktop setup
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **Settings → Models and replies → Add model** in CrawClaw Desktop, choose
+Z.AI, paste your Z.AI API key, and save a `zai/<model>` profile. Desktop stores
+the key as a local file SecretRef after the connection probe succeeds.
+
+For headless hosts, set `ZAI_API_KEY` in the Gateway environment or patch
+`models.providers.zai.apiKey` to an `env`, `file`, or `exec` SecretRef with
+`config.patch`.
 
 ## Config snippet
 

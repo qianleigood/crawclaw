@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:45:07Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: c937670cf0e583d2c36b23dd0ffeead8582a6f8cefdfa761da53a7faa9a31938
+  source_hash: 62614814f636c4e418a7d6babb7708c5ad58f71588df86f3b808ed06a4df0124
   source_path: providers/openrouter.md
   workflow: 15
 ---
@@ -19,7 +19,14 @@ OpenRouter 提供了一个**统一 API**，通过单一端点和 API 密钥将�
 
 ## Desktop 设置
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，
+选择 OpenRouter，粘贴 OpenRouter API key，并选择
+`openrouter/<provider>/<model>` model ref。连接 probe 通过后，Desktop 会把
+key 存为本地 file SecretRef。
+
+在 headless hosts 上，将 `OPENROUTER_API_KEY` 设到 Gateway environment，或用
+`config.patch` 将 `models.providers.openrouter.apiKey` patch 为 `env`、`file`
+或 `exec` SecretRef。
 
 ## 配置片段
 

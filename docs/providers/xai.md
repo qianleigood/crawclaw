@@ -13,11 +13,15 @@ CrawClaw ships a bundled `xai` provider plugin for Grok models.
 ## Setup
 
 1. Create an API key in the xAI console.
-2. Set `XAI_API_KEY`, or run:
+2. In CrawClaw Desktop, open **Settings → Models and replies → Add model**,
+   choose xAI, paste the API key, and save a Grok model profile. Desktop stores
+   the key as a local file SecretRef and writes the provider/model config after
+   the probe passes.
+3. On headless hosts, set `XAI_API_KEY` in the Gateway environment or patch
+   `models.providers.xai.apiKey` to an `env`, `file`, or `exec` SecretRef with
+   `config.patch`.
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
-
-3. Pick a model such as:
+4. Pick a model such as:
 
 ```json5
 {

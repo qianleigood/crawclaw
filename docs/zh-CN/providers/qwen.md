@@ -8,7 +8,7 @@ x-i18n:
   generated_at: "2026-06-05T14:45:15Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 1d7ad6dfe2ce83c1597be31027c9f7c8c4abdb54fae13d92ee56cfab14c2ee78
+  source_hash: a6c8b99d07ddb4998af22ff4cd10169f24d41a53d65ec74c39628ac7a1ba8d04
   source_path: providers/qwen.md
   workflow: 15
 ---
@@ -27,6 +27,9 @@ x-i18n:
 
 使用 [Model Studio](/providers/qwen_modelstudio) 获取对 Qwen 模型（Qwen 3.5 Plus、GLM-4.7、Kimi K2.5 等）的官方支持访问。
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 实现自动化。
+在 CrawClaw Desktop 中打开 **Settings → Models and replies → Add model**，选择
+Model Studio，并用你的 Alibaba Cloud API key 保存 Qwen model profile。在
+headless hosts 上，按 Model Studio guide 操作，并配合 SecretRef-backed API key
+使用 `config.patch`。
 
 有关完整设置详情，请参阅 [Model Studio](/providers/qwen_modelstudio)。
