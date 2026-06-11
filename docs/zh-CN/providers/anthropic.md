@@ -9,7 +9,7 @@ x-i18n:
   generated_at: "2026-06-05T14:43:05Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: e2e3f63004b902e747036937b574deff61c62bd8bfd36f681b81b318080e00a3
+  source_hash: e0a17d050999489cff0883ee9a3afded16b699f003e8f1d3b50233c2a1b84f8c
   source_path: providers/anthropic.md
   workflow: 15
 ---
@@ -25,7 +25,10 @@ Anthropic 构建了 **Claude** 模型系列并通过 API 提供访问。在 Craw
 
 ### Desktop 设置
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+打开 **CrawClaw Desktop → Settings → Models and replies → Add model**，选择
+**Anthropic API key**，粘贴 key，并选择默认 Claude 模型。对于 headless hosts，将
+`ANTHROPIC_API_KEY` 暴露给 Gateway 进程，或通过 SecretRef 引用它，而不是把 raw
+key 存在共享 config 中。
 
 ### Claude CLI 配置片段
 
@@ -193,15 +196,20 @@ claude setup-token
 
 将令牌粘贴到 CrawClaw（向导：**Anthropic token（粘贴 setup-token）**），或在 Gateway 主机上运行：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+尽量在 Gateway host 上运行 `claude setup-token`，然后把 token 粘贴到目标 agent 的
+Desktop **Anthropic token (paste setup-token)** flow。
 
 如果你在不同的机器上生成了令牌，请粘贴它：
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+把 setup-token 复制到 Gateway host，并粘贴到同一个 Desktop setup-token flow。对于
+headless hosts，配置目标 agent 的 `auth-profiles.json`，并通过 `auth.profiles` /
+`auth.order` 路由；不要把 live setup-tokens 放进 `crawclaw.json`。
 
 ### Desktop 设置（setup-token）
 
-使用 CrawClaw Desktop 进行交互式设置，或调用本地 Gateway API 进行自动化。
+打开 **CrawClaw Desktop → Settings → Models and replies → Add model**，选择
+**Anthropic token (paste setup-token)**，粘贴 setup-token，并保存到目标 agent
+profile。
 
 ### 配置片段（setup-token）
 

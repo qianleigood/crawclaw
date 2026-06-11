@@ -19,7 +19,10 @@ Create your API key in the Anthropic Console.
 
 ### Desktop setup
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **CrawClaw Desktop → Settings → Models and replies → Add model**, choose
+**Anthropic API key**, paste the key, and select the default Claude model. For
+headless hosts, expose `ANTHROPIC_API_KEY` to the Gateway process or reference
+it through a SecretRef instead of storing the raw key in shared config.
 
 ### Claude CLI config snippet
 
@@ -197,15 +200,22 @@ claude setup-token
 
 Paste the token into CrawClaw (wizard: **Anthropic token (paste setup-token)**), or run it on the gateway host:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Run `claude setup-token` on the Gateway host when possible, then paste the token
+into the Desktop **Anthropic token (paste setup-token)** flow for the target
+agent.
 
 If you generated the token on a different machine, paste it:
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Copy the setup-token to the Gateway host and paste it into the same Desktop
+setup-token flow. For headless hosts, configure the target agent's
+`auth-profiles.json` and route it with `auth.profiles` / `auth.order`; do not
+put live setup-tokens in `crawclaw.json`.
 
 ### Desktop setup (setup-token)
 
-Use CrawClaw Desktop for interactive setup, or call the local Gateway API for automation.
+Open **CrawClaw Desktop → Settings → Models and replies → Add model**, choose
+**Anthropic token (paste setup-token)**, paste the setup-token, and save it for
+the target agent profile.
 
 ### Config snippet (setup-token)
 
