@@ -73,6 +73,9 @@ jobs:
           ref: refs/tags/${{ inputs.tag }}
           fetch-depth: 0
 
+      - name: Setup Linux desktop dependencies
+        uses: ./.github/actions/setup-linux-desktop-deps
+
       - name: Setup Node environment
         uses: ./.github/actions/setup-node-env
         with:
@@ -216,6 +219,9 @@ jobs:
         with:
           ref: refs/tags/${{ inputs.tag }}
           fetch-depth: 0
+
+      - name: Setup Linux desktop dependencies
+        uses: ./.github/actions/setup-linux-desktop-deps
 
       - name: Setup Node environment
         uses: ./.github/actions/setup-node-env
