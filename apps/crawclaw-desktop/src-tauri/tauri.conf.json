@@ -30,7 +30,7 @@
   "bundle": {
     "active": true,
     "targets": ["dmg", "app", "nsis", "appimage"],
-    "icon": ["icons/icon.png"],
+    "icon": ["icons/icon.png", "icons/icon.ico"],
     "macOS": {
       "exceptionDomain": "localhost"
     },
