@@ -36,6 +36,7 @@
     "skills/",
     "skills-optional/",
     "Swabble/",
+    "target/",
     "vendor/"
   ]
 }
