@@ -478,30 +478,51 @@ fn stage_hindsight_embed_runtime(
     fs::create_dir_all(&paths.runtime_dir)
         .map_err(|error| format!("failed to create {}: {error}", paths.runtime_dir.display()))?;
 
-    let source = if let Some(explicit_binary) = envs
+    let (runtime, source) = if let Some(explicit_binary) = envs
         .get("CRAWCLAW_HINDSIGHT_EMBED_BIN")
         .map(|value| value.trim())
         .filter(|value| !value.is_empty())
     {
         copy_file(Path::new(explicit_binary), &paths.binary_path)?;
         set_executable(&paths.binary_path)?;
-        json!({
-            "source": "env",
-            "env": "CRAWCLAW_HINDSIGHT_EMBED_BIN",
-            "path": explicit_binary,
-        })
+        (
+            "rust-native-binary",
+            json!({
+                "source": "env",
+                "env": "CRAWCLAW_HINDSIGHT_EMBED_BIN",
+                "path": explicit_binary,
+            }),
+        )
     } else {
-        let asset = hindsight_embed_release_asset(&platform, &arch)?;
-        download_hindsight_embed_asset(&paths.binary_path, &asset, envs)?;
-        json!({
-            "source": "github-release",
-            "sourceRepo": HINDSIGHT_SOURCE_REPO,
-            "version": HINDSIGHT_EMBED_VERSION,
-            "releaseTag": format!("v{HINDSIGHT_EMBED_VERSION}"),
-            "assetName": asset.asset_name,
-            "downloadUrl": hindsight_embed_download_url(asset.asset_name),
-            "sha256": asset.sha256,
-        })
+        match hindsight_embed_release_asset(&platform, &arch) {
+            Ok(asset) => {
+                download_hindsight_embed_asset(&paths.binary_path, &asset, envs)?;
+                (
+                    "rust-native-binary",
+                    json!({
+                        "source": "github-release",
+                        "sourceRepo": HINDSIGHT_SOURCE_REPO,
+                        "version": HINDSIGHT_EMBED_VERSION,
+                        "releaseTag": format!("v{HINDSIGHT_EMBED_VERSION}"),
+                        "assetName": asset.asset_name,
+                        "downloadUrl": hindsight_embed_download_url(asset.asset_name),
+                        "sha256": asset.sha256,
+                    }),
+                )
+            }
+            Err(error) if is_unsupported_hindsight_embed_platform(&platform, &error) => (
+                "unavailable",
+                json!({
+                    "source": "unavailable",
+                    "sourceRepo": HINDSIGHT_SOURCE_REPO,
+                    "version": HINDSIGHT_EMBED_VERSION,
+                    "releaseTag": format!("v{HINDSIGHT_EMBED_VERSION}"),
+                    "reason": "hindsight_embed_unsupported_platform",
+                    "detail": error,
+                }),
+            ),
+            Err(error) => return Err(error),
+        }
     };
 
     let binary_name = paths
@@ -514,18 +535,20 @@ fn stage_hindsight_embed_runtime(
         &json!({
             "id": "hindsight",
             "provider": "hindsight",
-            "runtime": "rust-native-binary",
+            "runtime": runtime,
             "version": HINDSIGHT_EMBED_VERSION,
             "platform": platform,
             "arch": arch,
             "binaryName": binary_name,
             "binaryPath": relative_slash_path(runtime_root, &paths.binary_path),
+            "status": if runtime == "unavailable" { "unavailable" } else { "ready" },
+            "reason": if runtime == "unavailable" { Value::String("hindsight_embed_unsupported_platform".to_string()) } else { Value::Null },
         }),
     )?;
     write_json_file(
         &paths.source_lock_path,
         &json!({
-            "runtime": "rust-native-binary",
+            "runtime": runtime,
             "platform": platform,
             "arch": arch,
             "binaryName": binary_name,
@@ -859,10 +882,6 @@ fn assert_agent_browser_runtime_tree(runtime_root: &Path, label: &str) -> Result
 
 fn assert_hindsight_embed_runtime_tree(runtime_root: &Path, label: &str) -> Result<(), String> {
     let paths = resolve_hindsight_embed_runtime_paths(runtime_root, &current_platform());
-    assert_executable_file(
-        &paths.binary_path,
-        &format!("{label} Hindsight embed sidecar"),
-    )?;
     assert_file(
         &paths.manifest_path,
         &format!("{label} Hindsight runtime manifest"),
@@ -876,6 +895,41 @@ fn assert_hindsight_embed_runtime_tree(runtime_root: &Path, label: &str) -> Resu
         manifest.get("provider"),
         "hindsight",
         &format!("{label} Hindsight manifest provider"),
+    )?;
+    if manifest.get("runtime").and_then(Value::as_str) == Some("unavailable") {
+        assert_json_string_eq(
+            manifest.get("status"),
+            "unavailable",
+            &format!("{label} Hindsight manifest status"),
+        )?;
+        assert_json_string_eq(
+            manifest.get("reason"),
+            "hindsight_embed_unsupported_platform",
+            &format!("{label} Hindsight manifest reason"),
+        )?;
+        let source_lock = read_json(&paths.source_lock_path)?;
+        assert_json_string_eq(
+            source_lock.get("runtime"),
+            "unavailable",
+            &format!("{label} Hindsight source lock runtime"),
+        )?;
+        if let Some(source) = source_lock.get("source").and_then(Value::as_object) {
+            assert_json_string_eq(
+                source.get("source"),
+                "unavailable",
+                &format!("{label} Hindsight source lock source"),
+            )?;
+            assert_json_string_eq(
+                source.get("reason"),
+                "hindsight_embed_unsupported_platform",
+                &format!("{label} Hindsight source lock reason"),
+            )?;
+        }
+        return Ok(());
+    }
+    assert_executable_file(
+        &paths.binary_path,
+        &format!("{label} Hindsight embed sidecar"),
     )?;
     assert_json_string_eq(
         manifest.get("runtime"),
@@ -1397,6 +1451,10 @@ fn hindsight_embed_release_asset(
     }
 }
 
+fn is_unsupported_hindsight_embed_platform(platform: &str, error: &str) -> bool {
+    matches!(platform, "windows") && error.starts_with("Unsupported Hindsight embed platform:")
+}
+
 fn hindsight_embed_download_url(asset_name: &str) -> String {
     format!("{HINDSIGHT_SOURCE_REPO}/releases/download/v{HINDSIGHT_EMBED_VERSION}/{asset_name}")
 }
@@ -1619,6 +1677,10 @@ fn set_executable(path: &Path) -> Result<(), String> {
         fs::set_permissions(path, permissions)
             .map_err(|error| format!("failed to chmod {}: {error}", path.display()))?;
     }
+    #[cfg(not(unix))]
+    {
+        let _ = path;
+    }
     Ok(())
 }
 
@@ -1791,5 +1853,9 @@ mod tests {
             hindsight_embed_download_url(asset.asset_name),
             "https://github.com/vectorize-io/hindsight/releases/download/v0.7.0/hindsight-linux-amd64"
         );
+
+        let error =
+            hindsight_embed_release_asset("windows", "x86_64").expect_err("no Windows binary");
+        assert!(is_unsupported_hindsight_embed_platform("windows", &error));
     }
 }
