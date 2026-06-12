@@ -1,0 +1,217 @@
+name: Desktop Release Assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build desktop assets for, for example v2026.6.12
+        required: true
+        type: string
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ format('{0}-{1}', github.workflow, github.event_name == 'release' && github.event.release.tag_name || inputs.tag) }}
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  NODE_VERSION: "24.x"
+  PNPM_VERSION: "10.23.0"
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - name: Resolve release tag
+        id: release
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]{4}\.[1-9][0-9]*\.[1-9][0-9]*((-beta\.[1-9][0-9]*)|(-[1-9][0-9]*))?$ ]]; then
+            echo "Invalid release tag format: $RELEASE_TAG" >&2
+            exit 1
+          fi
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout tag
+        uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ steps.release.outputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Validate package version
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          package_version="$(node -p "require('./package.json').version")"
+          desktop_version="$(node -p "require('./apps/crawclaw-desktop/package.json').version")"
+          if [[ "$package_version" != "$RELEASE_VERSION" ]]; then
+            echo "package.json version $package_version does not match $RELEASE_VERSION" >&2
+            exit 1
+          fi
+          if [[ "$desktop_version" != "$RELEASE_VERSION" ]]; then
+            echo "desktop package version $desktop_version does not match $RELEASE_VERSION" >&2
+            exit 1
+          fi
+
+  build:
+    needs: [validate]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x64
+            os: ubuntu-24.04
+            bundles: appimage
+          - platform: windows-x64
+            os: windows-2025
+            bundles: nsis
+          - platform: macos
+            os: macos-latest
+            bundles: dmg app
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ needs.validate.outputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: Setup Linux desktop dependencies
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/setup-linux-desktop-deps
+
+      - name: Try to exclude workspace from Windows Defender
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cmd = Get-Command Add-MpPreference -ErrorAction SilentlyContinue
+          if (-not $cmd) {
+            Write-Host "Add-MpPreference not available, skipping Defender exclusions."
+            exit 0
+          }
+
+          try {
+            Add-MpPreference -ExclusionPath "$env:GITHUB_WORKSPACE" -ErrorAction Stop
+            Add-MpPreference -ExclusionProcess "node.exe" -ErrorAction Stop
+            Write-Host "Defender exclusions applied."
+          } catch {
+            Write-Warning "Failed to apply Defender exclusions, continuing. $($_.Exception.Message)"
+          }
+
+      - name: Setup Node environment
+        uses: ./.github/actions/setup-node-env
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          pnpm-version: ${{ env.PNPM_VERSION }}
+          install-bun: "false"
+          use-sticky-disk: "false"
+
+      - name: Stage desktop runtime
+        run: cargo run --quiet --release -p crawclaw-repo-tools -- desktop-stage --root .
+
+      - name: Build desktop bundles
+        working-directory: apps/crawclaw-desktop
+        env:
+          CI: "true"
+        run: pnpm tauri build --ci --bundles ${{ matrix.bundles }}
+
+      - name: Verify desktop bundle inputs
+        run: cargo run --quiet --release -p crawclaw-repo-tools -- desktop-check --root .
+
+      - name: Stage release assets
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+          RELEASE_PLATFORM: ${{ matrix.platform }}
+        run: |
+          set -euo pipefail
+          asset_dir="release-assets/$RELEASE_PLATFORM"
+          mkdir -p "$asset_dir"
+
+          case "$RUNNER_OS" in
+            Linux)
+              cp target/release/bundle/appimage/*.AppImage "$asset_dir/"
+              ;;
+            Windows)
+              cp target/release/bundle/nsis/*.exe "$asset_dir/"
+              ;;
+            macOS)
+              cp target/release/bundle/dmg/*.dmg "$asset_dir/"
+              app_path="target/release/bundle/macos/CrawClaw Desktop.app"
+              if [[ -d "$app_path" ]]; then
+                ditto -c -k --sequesterRsrc --keepParent "$app_path" "$asset_dir/CrawClaw-Desktop-$RELEASE_VERSION-macos-app.zip"
+              fi
+              ;;
+            *)
+              echo "Unsupported runner OS: $RUNNER_OS" >&2
+              exit 1
+              ;;
+          esac
+
+          if ! find "$asset_dir" -type f -maxdepth 1 -print -quit | grep -q .; then
+            echo "No release assets were staged for $RELEASE_PLATFORM." >&2
+            exit 1
+          fi
+          find "$asset_dir" -type f -maxdepth 1 -print
+
+      - name: Upload desktop release artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: desktop-release-${{ matrix.platform }}
+          path: release-assets/${{ matrix.platform }}/*
+          if-no-files-found: error
+
+  publish:
+    needs: [validate, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Download desktop release artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: desktop-release-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Upload assets to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.validate.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          mapfile -d '' assets < <(find release-assets -type f -print0 | sort -z)
+          if [[ "${#assets[@]}" -eq 0 ]]; then
+            echo "No release assets downloaded." >&2
+            exit 1
+          fi
+
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --verify-tag \
+              --title "CrawClaw $RELEASE_VERSION" \
+              --notes "CrawClaw $RELEASE_VERSION desktop release assets."
+          fi
+
+          gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber

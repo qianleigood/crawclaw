@@ -1,6 +1,6 @@
 [package]
 name = "crawclaw-desktop"
-version = "2026.5.3"
+version = "2026.6.12"
 description = "CrawClaw Tauri desktop application"
 authors = ["CrawClaw"]
 license = "MIT"

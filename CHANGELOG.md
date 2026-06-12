@@ -18,6 +18,7 @@ Docs: https://docs.crawclaw.ai
 - Dependencies/Agents: bump embedded Pi SDK packages to `0.70.0`, picking up Fireworks/model catalog updates, source-ordered parallel tool-result transcripts, and tool-result terminate hints.
 - Plugins/TuriX CUA: add an optional owner-gated `turix_desktop_run` tool for approved local macOS desktop automation through a TuriX-CUA checkout, with default reasoning-tag cleanup for structured TuriX model outputs.
 - Agents/runtime: make NativeProvider the desktop model runtime, including native tool-loop events, permission prompts, hook decisions, provider tool-call replay, and removal of the `pi-agent-rust` runtime dependency.
+- Desktop/release: publish macOS, Windows, and Linux desktop installers to GitHub Releases for tagged CrawClaw versions.
 
 ### Fixes
 
