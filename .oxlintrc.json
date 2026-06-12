@@ -24,6 +24,7 @@
   },
   "ignorePatterns": [
     "**/node_modules/**",
+    "apps/crawclaw-desktop/dist/",
     "assets/",
     "dist/",
     "dist-runtime/",
