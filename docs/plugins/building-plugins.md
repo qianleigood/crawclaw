@@ -21,7 +21,7 @@ falls back to npm automatically.
 
 ## Prerequisites
 
-- Node >= 22 and a package manager (npm or pnpm)
+- Node 24.x or 25.x and a package manager (npm or pnpm)
 - Familiarity with Rust native descriptors and JSON manifests
 - For in-repo plugins: repository cloned and `pnpm install` done
 

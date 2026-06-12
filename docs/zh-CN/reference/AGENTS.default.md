@@ -5,10 +5,10 @@ read_when:
 summary: CrawClaw 个人助手设置的默认智能体说明和 Skills 清单
 title: 默认 AGENTS.md
 x-i18n:
-  generated_at: "2026-06-05T14:46:18Z"
+  generated_at: "2026-06-12T06:12:22Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 1bb35b70aa7b21351dfcb9c4b576f869421d57a237795aaf4e46191a2bbffe34
+  source_hash: c0accfc71e0ec28aef7eeb3223339b9f2e194958da66ffb8b8201cc63bf2cc71
   source_path: reference/AGENTS.default.md
   workflow: 15
 ---
@@ -86,13 +86,13 @@ cp docs/reference/AGENTS.default.md ~/.crawclaw/workspace/AGENTS.md
 
 ## 备份提示（推荐）
 
-如果你将此工作区视为 Clawd 的"记忆"，请将其设为 git 仓库（最好为私有），以便 `AGENTS.md` 和你的记忆文件得到备份。
+如果你将此目录视为 CrawClaw 工作区记忆，请将其设为 git 仓库（最好为私有），以便 `AGENTS.md` 和你的记忆文件得到备份。
 
 ```bash
 cd ~/.crawclaw/workspace
 git init
 git add AGENTS.md
-git commit -m "Add Clawd workspace"
+git commit -m "Add CrawClaw workspace"
 # 可选：添加私有远程并推送
 ```
 

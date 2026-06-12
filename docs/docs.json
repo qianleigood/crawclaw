@@ -64,6 +64,18 @@
       "destination": "/install/raspberry-pi"
     },
     {
+      "source": "/zh-CN/platforms/oracle",
+      "destination": "/zh-CN/install/oracle"
+    },
+    {
+      "source": "/zh-CN/platforms/digitalocean",
+      "destination": "/zh-CN/install/digitalocean"
+    },
+    {
+      "source": "/zh-CN/platforms/raspberry-pi",
+      "destination": "/zh-CN/install/raspberry-pi"
+    },
+    {
       "source": "/plugins/building-extensions",
       "destination": "/plugins/building-plugins"
     },
@@ -1129,6 +1141,10 @@
                 "pages": ["reference/index", "reference/credits"]
               },
               {
+                "group": "Migration and compatibility",
+                "pages": ["reference/open-source-release-checklist", "reference/support-matrix"]
+              },
+              {
                 "group": "Release policy",
                 "pages": ["reference/RELEASING", "reference/test"]
               }
@@ -1213,7 +1229,7 @@
             "groups": [
               {
                 "group": "安装概览",
-                "pages": ["zh-CN/install/index"]
+                "pages": ["zh-CN/install/index", "zh-CN/install/desktop", "zh-CN/install/node"]
               },
               {
                 "group": "安装方式",
@@ -1230,11 +1246,15 @@
               {
                 "group": "托管与部署",
                 "pages": [
+                  "zh-CN/install/azure",
+                  "zh-CN/install/digitalocean",
+                  "zh-CN/install/exe-dev",
                   "zh-CN/vps",
                   "zh-CN/install/macos-vm",
-                  "zh-CN/install/exe-dev",
+                  "zh-CN/install/northflank",
+                  "zh-CN/install/oracle",
                   "zh-CN/install/railway",
-                  "zh-CN/install/northflank"
+                  "zh-CN/install/raspberry-pi"
                 ]
               }
             ]
@@ -1406,10 +1426,8 @@
                 "pages": [
                   "zh-CN/platforms/index",
                   "zh-CN/platforms/linux",
-                  "zh-CN/platforms/windows",
-                  "zh-CN/platforms/digitalocean",
-                  "zh-CN/platforms/oracle",
-                  "zh-CN/platforms/raspberry-pi"
+                  "zh-CN/platforms/macos",
+                  "zh-CN/platforms/windows"
                 ]
               }
             ]
@@ -1502,9 +1520,15 @@
               {
                 "group": "技术参考",
                 "pages": [
+                  "zh-CN/reference/rust-agent-runtime",
+                  "zh-CN/reference/n8n-workflow-architecture",
                   "zh-CN/reference/token-use",
+                  "zh-CN/reference/secretref-credential-surface",
+                  "zh-CN/reference/prompt-caching",
                   "zh-CN/reference/api-usage-costs",
                   "zh-CN/reference/transcript-hygiene",
+                  "zh-CN/reference/memory-config",
+                  "zh-CN/reference/skills-audit",
                   "zh-CN/date-time"
                 ]
               },
@@ -1520,7 +1544,14 @@
               },
               {
                 "group": "项目",
-                "pages": ["zh-CN/reference/credits"]
+                "pages": ["zh-CN/reference/index", "zh-CN/reference/credits"]
+              },
+              {
+                "group": "迁移与兼容性",
+                "pages": [
+                  "zh-CN/reference/open-source-release-checklist",
+                  "zh-CN/reference/support-matrix"
+                ]
               },
               {
                 "group": "发布策略",

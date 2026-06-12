@@ -23,8 +23,8 @@ type AutomationWorkspaceProps = {
   onRequestConfirmation: (input: ConfirmationRequestInput) => Promise<boolean>
 }
 
-type AutomationKind = 'comfyui' | 'n8n' | 'schedule'
 type AutomationTabKind = 'comfyui' | 'n8n' | 'cron'
+type AutomationActionKind = AutomationTabKind
 type AutomationSectionKey = 'activeRuns' | 'workflows' | 'history' | 'artifacts'
 
 const automationSections: Array<{
@@ -53,7 +53,7 @@ export function AutomationWorkspace({
   const summary = automationWorkspaceSummary(automationTabs)
 
   const runAutomation = (
-    kind: AutomationKind,
+    kind: AutomationActionKind,
     action: string,
     inputOverride: Record<string, unknown> = {},
   ) => {
@@ -186,7 +186,7 @@ export function AutomationWorkspace({
                 </label>
               ) : null}
               <button
-                onClick={() => runAutomation(tabWorkflowKind(activeTab.kind), defaultStatusAction(activeTab.kind))}
+                onClick={() => runAutomation(tabAutomationKind(activeTab.kind), defaultStatusAction(activeTab.kind))}
                 type="button"
               >
                 <RefreshCw aria-hidden="true" size={14} strokeWidth={2} />
@@ -194,7 +194,7 @@ export function AutomationWorkspace({
               </button>
               <button
                 className="workspace-primary-button"
-                onClick={() => runAutomation(tabWorkflowKind(activeTab.kind), defaultCreateAction(activeTab.kind))}
+                onClick={() => runAutomation(tabAutomationKind(activeTab.kind), defaultCreateAction(activeTab.kind))}
                 type="button"
               >
                 <Play aria-hidden="true" size={14} fill="currentColor" strokeWidth={0} />
@@ -225,7 +225,7 @@ export function AutomationWorkspace({
 }
 
 function createWorkflowMessage(
-  kind: AutomationKind,
+  kind: AutomationActionKind,
   action: string,
   values: {
     comfyBaseUrl: string
@@ -295,7 +295,7 @@ type AutomationSectionProps = {
   errors: Array<{ detail: string; section: string }>
   items: AutomationWorkspaceItem[]
   kind: AutomationTabKind
-  onRunAutomation: (kind: AutomationKind, action: string, inputOverride?: Record<string, unknown>) => void
+  onRunAutomation: (kind: AutomationActionKind, action: string, inputOverride?: Record<string, unknown>) => void
   sectionKey: AutomationSectionKey
   title: string
   values: {
@@ -339,7 +339,7 @@ function AutomationSection({
                   <button
                     className={action.primary ? 'workspace-primary-button' : undefined}
                     key={action.action}
-                    onClick={() => onRunAutomation(tabWorkflowKind(kind), action.action, action.input)}
+                    onClick={() => onRunAutomation(tabAutomationKind(kind), action.action, action.input)}
                     type="button"
                   >
                     {action.icon === 'download'
@@ -444,8 +444,8 @@ function automationWorkspaceSummary(tabs: AutomationTabSummary[]) {
   })
 }
 
-function tabWorkflowKind(kind: string): AutomationKind {
-  return kind === 'cron' ? 'schedule' : kind === 'n8n' ? 'n8n' : 'comfyui'
+function tabAutomationKind(kind: string): AutomationActionKind {
+  return kind === 'cron' ? 'cron' : kind === 'n8n' ? 'n8n' : 'comfyui'
 }
 
 function defaultStatusAction(kind: string) {
@@ -547,7 +547,7 @@ function automationItemMeta(item: AutomationWorkspaceItem) {
   ].filter(Boolean).join(' · ')
 }
 
-function isHighRiskAutomationAction(kind: AutomationKind, action: string) {
+function isHighRiskAutomationAction(kind: AutomationActionKind, action: string) {
   if (kind === 'comfyui') {
     return action === 'run'
   }

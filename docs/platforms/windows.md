@@ -86,7 +86,7 @@ Full native validation still requires a Windows VM or host:
 
 ```bash
 pnpm desktop:tauri:release-check
-pnpm desktop:tauri:release-check
+pnpm desktop:e2e:smoke
 ```
 
 ## First-class acceptance criteria

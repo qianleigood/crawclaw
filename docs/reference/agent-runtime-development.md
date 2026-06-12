@@ -13,10 +13,11 @@ agent runtime.
 
 ## Type Checking and Linting
 
+- Local check: `pnpm check`
 - Type check and build: `pnpm build`
-- Lint: `pnpm lint`
+- Oxlint only: `pnpm lint`
 - Format check: `pnpm format`
-- Full gate before pushing: `pnpm lint && pnpm build && pnpm test`
+- Full gate before pushing: `pnpm check && pnpm build && pnpm test`
 
 ## Running Agent Runtime Tests
 

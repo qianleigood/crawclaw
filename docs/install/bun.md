@@ -41,7 +41,7 @@ Bun is an optional local runtime for running TypeScript directly (`bun run ...`,
 
 Bun blocks dependency lifecycle scripts unless explicitly trusted. For this repo, the commonly blocked scripts are not required:
 
-- `@whiskeysockets/baileys` `preinstall` -- checks Node major >= 20 (CrawClaw uses Node 24.x)
+- `@whiskeysockets/baileys` `preinstall` -- checks Node major >= 20 (CrawClaw uses Node 24.x or 25.x)
 - `protobufjs` `postinstall` -- emits warnings about incompatible version schemes (no build artifacts)
 
 If you hit a runtime issue that requires these scripts, trust them explicitly:

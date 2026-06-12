@@ -911,18 +911,26 @@ async fn rust_gateway_special_agent_run_uses_native_agent_runtime() {
         run["result"]["payloads"][0]["text"],
         "reviewed by rust special agent"
     );
-    let mut event = Value::Null;
-    for _ in 0..8 {
-        let candidate = tokio::time::timeout(Duration::from_secs(2), events.recv())
-            .await
-            .expect("special agent event")
-            .expect("special agent event payload");
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+    let mut observed_events = Vec::new();
+    let mut special_agent_event = None;
+    while tokio::time::Instant::now() < deadline {
+        let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+        let candidate = match tokio::time::timeout(remaining, events.recv()).await {
+            Ok(Ok(candidate)) => candidate,
+            Ok(Err(tokio::sync::broadcast::error::RecvError::Lagged(_))) => continue,
+            Ok(Err(error)) => panic!("special agent event stream closed: {error}"),
+            Err(_) => break,
+        };
+        observed_events.push(candidate["type"].clone());
         if candidate["type"] == "special_agents.result" {
-            event = candidate;
+            special_agent_event = Some(candidate);
             break;
         }
     }
-    assert_eq!(event["type"], "special_agents.result");
+    let event = special_agent_event.unwrap_or_else(|| {
+        panic!("expected special_agents.result event, observed {observed_events:?}")
+    });
     assert_eq!(event["payload"]["kind"], "review-spec");
     assert_eq!(
         event["payload"]["result"]["assistantText"],

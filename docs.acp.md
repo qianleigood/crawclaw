@@ -235,7 +235,7 @@ updates. Terminal Gateway states map to ACP `done` with stop reasons:
 ## Testing
 
 - Runtime coverage lives in the Rust workspace test gate.
-- Full gate: `pnpm build && pnpm check && pnpm test`.
+- Full gate: `pnpm check && pnpm build && pnpm test`.
 
 ## Related Docs
 

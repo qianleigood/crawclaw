@@ -92,7 +92,7 @@ Full VM validation remains separate:
 
 ```bash
 pnpm desktop:tauri:release-check
-pnpm desktop:tauri:release-check
+pnpm desktop:e2e:smoke
 ```
 
 ## Current boundaries

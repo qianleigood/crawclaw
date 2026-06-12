@@ -15,7 +15,7 @@ CrawClaw is converging on the desktop app and native runtime as the product boun
 
 Most days:
 
-- Full local gate: `pnpm build && pnpm check && pnpm test`
+- Full local gate: `pnpm check && pnpm build && pnpm test`
 - Test-only gate: `pnpm test`
 - Focused crate debugging: `cargo test -p crawclaw-runtime <filter>`
 

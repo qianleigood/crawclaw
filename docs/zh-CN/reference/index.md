@@ -15,7 +15,6 @@ title: 参考文档
 - [测试](/reference/test)
 - [发布策略](/reference/RELEASING)
 - [RPC](/reference/rpc)
-- [Wizard 参考](/reference/wizard)
 - [致谢](/reference/credits)
 
 ## 运行时与会话
@@ -23,13 +22,21 @@ title: 参考文档
 - [会话管理与压缩](/reference/session-management-compaction)
 - [Transcript Hygiene](/reference/transcript-hygiene)
 - [Token 使用](/reference/token-use)
+- [Prompt Caching](/reference/prompt-caching)
+- [Memory Config](/reference/memory-config)
+
+## 迁移与兼容性
+
+- [Open Source Release Checklist](/reference/open-source-release-checklist)
+- [Support Matrix](/reference/support-matrix)
+
+## 产品与平台参考
+
+- [API 使用成本](/reference/api-usage-costs)
+- [n8n 工作流架构](/reference/n8n-workflow-architecture)
+- [SecretRef credential surface](/reference/secretref-credential-surface)
 - [Skills 审计](/reference/skills-audit)
 - [默认 AGENTS](/reference/AGENTS.default)
-
-## 迁移与平台参考
-
-- [n8n 工作流架构](/reference/n8n-workflow-architecture)
-- [API 使用成本](/reference/api-usage-costs)
 
 ## 使用方式
 

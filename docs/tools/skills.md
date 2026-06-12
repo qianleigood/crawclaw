@@ -57,7 +57,7 @@ tool surface those skills teach.
 ## ClawHub (install + sync)
 
 ClawHub is the public skills registry for CrawClaw. Browse at
-[https://clawhub.com](https://clawhub.com). Use native CrawClaw Desktop or the local Gateway API
+[https://clawhub.ai](https://clawhub.ai). Use native CrawClaw Desktop or the local Gateway API
 commands to discover/install/update skills, or the separate `clawhub` CLI when
 you need publish/sync workflows.
 Full guide: [ClawHub](/tools/clawhub).
@@ -342,7 +342,7 @@ See [Skills config](/tools/skills-config) for the full configuration schema.
 
 ## Looking for more skills?
 
-Browse [https://clawhub.com](https://clawhub.com).
+Browse [https://clawhub.ai](https://clawhub.ai).
 
 ---
 

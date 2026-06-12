@@ -1,6 +1,6 @@
 # Contributing to CrawClaw
 
-Welcome to the lobster tank! 🦀
+Welcome to CrawClaw.
 
 ## Quick Links
 
@@ -17,7 +17,7 @@ Welcome to the lobster tank! 🦀
 - **Peter Steinberger** - Benevolent Dictator
   - GitHub: [@steipete](https://github.com/steipete) · X: [@steipete](https://x.com/steipete)
 
-- **Shadow** - Discord subsystem, Discord admin, Clawhub, all community moderation
+- **Shadow** - Discord subsystem, Discord admin, ClawHub, all community moderation
   - GitHub: [@thewilloftheshadow](https://github.com/thewilloftheshadow) · X: [@4shadowed](https://x.com/4shadowed)
 
 - **Vignesh** - Memory, formal modeling, IRC, and Lobster
@@ -91,7 +91,7 @@ Welcome to the lobster tank! 🦀
 ## Before You PR
 
 - Test locally with your CrawClaw instance
-- Run tests: `pnpm build && pnpm check && pnpm test`
+- Run tests: `pnpm check && pnpm build && pnpm test`
 - For extension/plugin changes, keep production imports behind the owning plugin barrel, Rust SDK, or reviewed private helper seam.
 - If you changed shared plugin, channel, or runtime behavior, run the full local gate before asking for review.
 - If you have access to Codex, run `codex review --base origin/main` locally before opening or updating your PR. Treat this as the current highest standard of AI review, even if GitHub Codex review also runs.

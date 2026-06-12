@@ -5,10 +5,10 @@ read_when:
 summary: 由 CrawClaw 驱动的社区项目和集成
 title: 展示
 x-i18n:
-  generated_at: "2026-06-05T14:49:49Z"
+  generated_at: "2026-06-12T06:01:40Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: e333274b9844df25fbd89424ce42265ac8a74e25f253070f33641eff9ca20d57
+  source_hash: 8bd6578b9620ccf7c03d8d1665af8041a4b85d7283f0178d6163de06df20aa9d
   source_path: start/showcase.md
   workflow: 15
 ---
@@ -18,7 +18,7 @@ x-i18n:
 来自社区的真实项目。看看人们用 CrawClaw 构建了什么。
 
 <Info>
-**想被展示？** 在 QQBot [#self-promotion](https://qqbot.gg/clawd) 或 [在 X 上 @crawclaw](https://x.com/crawclaw) 分享你的项目。
+**想被展示？** 在 [Discord](https://discord.gg/qkhbAGHRBT) 或 [在 X 上 @crawclaw](https://x.com/crawclaw) 分享你的项目。
 </Info>
 
 ## 🎥 CrawClaw 实战演示
@@ -133,7 +133,7 @@ OpenCode 完成更改 → 打开 PR → CrawClaw 审核 diff 并回复轻微建�
   <img src="/assets/showcase/papla-tts.jpg" alt="Feishu voice note output from TTS" />
 </Card>
 
-<Card title="CodexMonitor" icon="eye" href="https://clawhub.com/odrobnik/codexmonitor">
+<Card title="CodexMonitor" icon="eye" href="https://clawhub.ai/odrobnik/codexmonitor">
   **@odrobnik** • `devtools` `codex` `brew`
 
 Homebrew 安装的辅助工具，用于列出/检查/监视本地 OpenAI Codex 会话（CLI + VS Code）。
@@ -141,7 +141,7 @@ Homebrew 安装的辅助工具，用于列出/检查/监视本地 OpenAI Codex �
   <img src="/assets/showcase/codexmonitor.png" alt="CodexMonitor on ClawHub" />
 </Card>
 
-<Card title="Bambu 3D 打印机控制" icon="print" href="https://clawhub.com/tobiasbischoff/bambu-cli">
+<Card title="Bambu 3D 打印机控制" icon="print" href="https://clawhub.ai/tobiasbischoff/bambu-cli">
   **@tobiasbischoff** • `hardware` `3d-printing` `skill`
 
 控制和排除 BambuLab 打印机的故障：状态、任务、相机、AMS、校准等。
@@ -149,7 +149,7 @@ Homebrew 安装的辅助工具，用于列出/检查/监视本地 OpenAI Codex �
   <img src="/assets/showcase/bambu-cli.png" alt="Bambu CLI skill on ClawHub" />
 </Card>
 
-<Card title="维也纳交通（Wiener Linien）" icon="train" href="https://clawhub.com/hjanuschka/wienerlinien">
+<Card title="维也纳交通（Wiener Linien）" icon="train" href="https://clawhub.ai/hjanuschka/wienerlinien">
   **@hjanuschka** • `travel` `transport` `skill`
 
 维也纳公共交通的实时发车、 disruption、电梯状态和路线规划。
@@ -163,7 +163,7 @@ Homebrew 安装的辅助工具，用于列出/检查/监视本地 OpenAI Codex �
 通过 ParentPay 自动化英国学校餐食预订。使用鼠标坐标进行可靠的表格单元格点击。
 </Card>
 
-<Card title="R2 上传（发送我的文件）" icon="cloud-arrow-up" href="https://clawhub.com/skills/r2-upload">
+<Card title="R2 上传（发送我的文件）" icon="cloud-arrow-up" href="https://clawhub.ai/skills/r2-upload">
   **@julianengel** • `files` `r2` `presigned-urls`
 
 上传到 Cloudflare R2/S3 并生成安全预签名下载链接。非常适合远程 CrawClaw 实例。
@@ -315,7 +315,7 @@ CrawClaw 连接到 Jira，然后动态生成一个新的 Skill（在 ClawHub 上
   Vapi 语音助手 ↔ CrawClaw HTTP 桥接。与你的智能体进行近乎实时的电话通话。
 </Card>
 
-<Card title="OpenRouter 转录" icon="microphone" href="https://clawhub.com/obviyus/openrouter-transcribe">
+<Card title="OpenRouter 转录" icon="microphone" href="https://clawhub.ai/obviyus/openrouter-transcribe">
   **@obviyus** • `transcription` `multilingual` `skill`
 
 通过 OpenRouter（Gemini 等）进行多语言音频转录。在 ClawHub 上可用。
@@ -333,7 +333,7 @@ CrawClaw 连接到 Jira，然后动态生成一个新的 Skill（在 ClawHub 上
   在 Home Assistant OS 上运行 CrawClaw Gateway，支持 SSH 隧道和持久状态。
 </Card>
 
-<Card title="Home Assistant Skill" icon="toggle-on" href="https://clawhub.com/skills/homeassistant">
+<Card title="Home Assistant Skill" icon="toggle-on" href="https://clawhub.ai/skills/homeassistant">
   **ClawHub** • `homeassistant` `skill` `automation`
   
   通过自然语言控制和自动化 Home Assistant 设备。
@@ -345,7 +345,7 @@ CrawClaw 连接到 Jira，然后动态生成一个新的 Skill（在 ClawHub 上
   包含所有依赖的 Nix 化 CrawClaw 配置，用于可复现的部署。
 </Card>
 
-<Card title="CalDAV 日历" icon="calendar" href="https://clawhub.com/skills/caldav-calendar">
+<Card title="CalDAV 日历" icon="calendar" href="https://clawhub.ai/skills/caldav-calendar">
   **ClawHub** • `calendar` `caldav` `skill`
   
   使用 khal/vdirsyncer 的日历 Skill。自托管日历集成。
@@ -395,7 +395,7 @@ CrawClaw 连接到 Jira，然后动态生成一个新的 Skill（在 ClawHub 上
 
 <Steps>
   <Step title="分享它">
-    在 QQBot [#self-promotion](https://qqbot.gg/clawd) 或 [发推 @crawclaw](https://x.com/crawclaw) 上发布
+    在 [Discord](https://discord.gg/qkhbAGHRBT) 或 [发推 @crawclaw](https://x.com/crawclaw) 上发布
   </Step>
   <Step title="包含详情">
     告诉我们它的功能，附上仓库/演示链接，如果有截图也分享

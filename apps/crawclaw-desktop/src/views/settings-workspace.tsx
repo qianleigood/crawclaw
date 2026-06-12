@@ -481,7 +481,7 @@ const settingsCopy = {
         title: '高级',
       },
       automation: {
-        detail: '安装并维护 n8n / ComfyUI 的本机运行环境。',
+        detail: '安装并维护 n8n / ComfyUI。',
         title: '自动化环境',
       },
       general: {
@@ -617,7 +617,7 @@ const settingsCopy = {
         title: 'Advanced',
       },
       automation: {
-        detail: 'Install and maintain the local n8n / ComfyUI runtime environments.',
+        detail: 'Install and maintain n8n / ComfyUI.',
         title: 'Automation environment',
       },
       general: {

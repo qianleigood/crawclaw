@@ -41,5 +41,5 @@ pnpm desktop:tauri:dev
 ## Runtime prerequisites
 
 - **Desktop users:** use the packaged app; the desktop bundle includes the CrawClaw Gateway/runtime/native-plugin binaries.
-- **Contributors:** use Node 24+ for repository tooling and Rust for the Gateway/runtime crates.
+- **Contributors:** use Node 24.x or 25.x for repository tooling and Rust for the Gateway/runtime crates.
 - **Automation clients:** target the local Gateway API exposed by the desktop-managed Gateway.

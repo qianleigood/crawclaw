@@ -7,10 +7,10 @@ read_when:
   - 你需要 plugin development quick-start
   - 你正在为 CrawClaw 添加新的 channel、provider、tool 或其他 capability
 x-i18n:
-  generated_at: "2026-06-10T11:33:25Z"
+  generated_at: "2026-06-11T13:00:43Z"
   model: codex
   provider: openai
-  source_hash: 5ecebe5bc7141415057e4a9ddbe8ac475517f8b5ed948cd5ceb18da7eba4c048
+  source_hash: 8f63935deef3f8f8c443e6a083c9c211ea90f11498e35a811ca6822a46b654af
   source_path: plugins/building-plugins.md
   workflow: 15
 ---
@@ -23,7 +23,7 @@ Plugins 通过 declarative metadata 和 configuration 扩展 CrawClaw，用于 R
 
 ## Prerequisites
 
-- Node >= 22 和 package manager（npm 或 pnpm）
+- Node 24.x 或 Node 25.x 和 package manager（npm 或 pnpm）
 - 熟悉 Rust native descriptors 和 JSON manifests
 - 对于 in-repo plugins：已 clone repository，并完成 `pnpm install`
 

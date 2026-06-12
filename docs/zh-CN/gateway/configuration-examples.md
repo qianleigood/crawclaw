@@ -6,10 +6,10 @@ read_when:
 summary: 常见 CrawClaw 配置的 Schema 精确配置示例
 title: 配置示例
 x-i18n:
-  generated_at: "2026-06-10T20:16:06Z"
+  generated_at: "2026-06-11T14:20:09Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: daf584914d2be9c00b2e0e1c420706e3dd59d24a738c0289bd953d8a02f92d34
+  source_hash: 19f43293143c15dca2a9b31675f2250eba77196ab0ad4c779b46d380d99953e1
   source_path: gateway/configuration-examples.md
   workflow: 15
 ---
@@ -36,9 +36,9 @@ x-i18n:
 ```json5
 {
   identity: {
-    name: "Clawd",
+    name: "CrawClaw",
     theme: "helpful assistant",
-    emoji: "🦀",
+    emoji: "C",
   },
   agent: {
     workspace: "~/.crawclaw/workspace",

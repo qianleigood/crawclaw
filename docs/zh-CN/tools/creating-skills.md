@@ -5,10 +5,10 @@ read_when:
 summary: 使用 SKILL.md 构建并测试自定义工作区 Skills
 title: 创建 Skills
 x-i18n:
-  generated_at: "2026-06-10T19:33:13Z"
+  generated_at: "2026-06-11T14:43:12Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 37d532ddc004e51086b4ceec6e61753ae4a26fd90eae375d7287d75efaf9ff52
+  source_hash: 61c6c9d4480dc66aa22cbeee501c3d9c442e8494bed836f41f912333cf03b3fa
   source_path: tools/creating-skills.md
   workflow: 15
 ---
@@ -99,7 +99,7 @@ YAML frontmatter 支持以下字段：
 - **保持简洁** — 指示模型 _要做什么_，而不是如何成为一个 AI
 - **安全第一** — 如果你的 Skill 使用 `exec`，确保提示不允许来自不可信输入的任意命令注入
 - **本地测试** — 分享前使用 CrawClaw Desktop 或本地 Gateway API 测试
-- **使用 ClawHub** — 在 [ClawHub](https://clawhub.com) 浏览和贡献 Skills
+- **使用 ClawHub** — 在 [ClawHub](https://clawhub.ai) 浏览和贡献 Skills
 
 ## Skills 存放位置
 

@@ -6,10 +6,10 @@ read_when:
   - 查找 Apple-local capability boundaries
 title: "macOS"
 x-i18n:
-  generated_at: "2026-06-10T11:18:34Z"
+  generated_at: "2026-06-12T07:14:37Z"
   model: codex
   provider: openai
-  source_hash: cffa41b2559e37dce0b947267af6b5958b99ca69a7a0ee922a3657d91be550a3
+  source_hash: 0fa47b4855a7c14b14ae9cca88e82f58032dc18c8690411d6ad61c1f57e8b667
   source_path: platforms/macos.md
   workflow: 15
 ---
@@ -87,7 +87,7 @@ pnpm desktop:tauri:release-check
 
 ```bash
 pnpm desktop:tauri:release-check
-pnpm desktop:tauri:release-check
+pnpm desktop:e2e:smoke
 ```
 
 ## Current boundaries

@@ -1277,7 +1277,7 @@ See [Subagents](/tools/subagents) for precedence details.
 ```json5
 {
   messages: {
-    responsePrefix: "🦀", // or "auto"
+    responsePrefix: "CrawClaw:", // or "auto"
     ackReaction: "👀",
     ackReactionScope: "group-mentions", // group-mentions | group-all | direct | all
     removeAckAfterReply: false,

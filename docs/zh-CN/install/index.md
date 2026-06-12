@@ -6,10 +6,10 @@ read_when:
 summary: 安装 CrawClaw Desktop 并了解本地 Gateway 运行时
 title: 安装
 x-i18n:
-  generated_at: "2026-06-05T14:39:15Z"
+  generated_at: "2026-06-11T13:03:44Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: a29ce2d34fc6f0fbb46af673846e22838f3c78eafc7b58100bad9acb371cb6c9
+  source_hash: af686650aa480466498a0e2c0094982061cfdacf250cad91b9cbacb0260deb2a
   source_path: install/index.md
   workflow: 15
 ---
@@ -47,5 +47,5 @@ pnpm desktop:tauri:dev
 ## 运行时前置条件
 
 - **Desktop 用户：**使用打包的应用；桌面捆绑包含 CrawClaw Gateway/运行时/native-plugin 二进制文件。
-- **贡献者：**使用 Node 24+ 进行仓库工具操作，使用 Rust 进行 Gateway/运行时 crates 开发。
+- **贡献者：**使用 Node 24.x 或 Node 25.x 进行仓库工具操作，使用 Rust 进行 Gateway/运行时 crates 开发。
 - **自动化客户端：**以桌面管理的 Gateway 暴露的本地 Gateway API 为目标。

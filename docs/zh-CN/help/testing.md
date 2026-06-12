@@ -6,10 +6,10 @@ read_when:
 summary: 测试工具包：原生 Rust 工作区检查和本地门控命令
 title: 测试
 x-i18n:
-  generated_at: "2026-05-22T04:21:00Z"
+  generated_at: "2026-06-11T12:58:21Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 15e29ed5cdc105125eef2ae44b07ee5561ef81f4650314cdd4e5b1da879d2ef7
+  source_hash: 1eb3884f252d0dd1e967920b097663281dc545aef557289898d20fd155ceccde
   source_path: help/testing.md
   workflow: 15
 ---
@@ -22,7 +22,7 @@ CrawClaw 正在将 Desktop 应用和原生运行时收敛为产品边界。默�
 
 日常使用：
 
-- 完整本地门控：`pnpm build && pnpm check && pnpm test`
+- 完整本地门控：`pnpm check && pnpm build && pnpm test`
 - 仅测试门控：`pnpm test`
 - 针对 crate 调试：`cargo test -p crawclaw-runtime <filter>`
 

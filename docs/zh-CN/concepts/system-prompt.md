@@ -5,10 +5,10 @@ read_when:
 summary: CrawClaw 系统提示包含的内容及其组装方式
 title: 系统提示
 x-i18n:
-  generated_at: "2026-06-05T14:04:30Z"
+  generated_at: "2026-06-11T14:43:12Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: b10522229e4a28981226076ee56aa3f20e4069e50ad94dc6b6c88f77951c59b1
+  source_hash: 672f239d284f8b029fbda98caa09db3e7dc6ca558f3961b80c84b5b6533d13a5
   source_path: concepts/system-prompt.md
   workflow: 15
 ---
@@ -99,4 +99,4 @@ CrawClaw 在动态系统上下文之前渲染稳定的系统提示部分。这�
 
 ## 文档
 
-当可用时，系统提示包含一个**文档**部分，指向本地 CrawClaw 文档目录（仓库工作区中的 `docs/` 或捆绑的 npm 包文档），还注明了公共镜像、源仓库、社区 community chat 和 ClawHub（[https://clawhub.com](https://clawhub.com)）用于 Skills 发现。提示指示模型首先咨询本地文档以了解 CrawClaw 行为、命令、配置或架构，并在可能时运行 CrawClaw Desktop 或本地 Gateway API 本身（仅在缺乏访问权限时才询问用户）。
+当可用时，系统提示包含一个**文档**部分，指向本地 CrawClaw 文档目录（仓库工作区中的 `docs/` 或捆绑的 npm 包文档），还注明了公共镜像、源仓库、社区 community chat 和 ClawHub（[https://clawhub.ai](https://clawhub.ai)）用于 Skills 发现。提示指示模型首先咨询本地文档以了解 CrawClaw 行为、命令、配置或架构，并在可能时运行 CrawClaw Desktop 或本地 Gateway API 本身（仅在缺乏访问权限时才询问用户）。

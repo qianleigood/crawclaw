@@ -169,7 +169,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   </Accordion>
 
   <Accordion title="What runtime do I need?">
-    Node **>= 22** is required. `pnpm` is recommended. Bun is **not recommended** for the Gateway.
+    Repository development requires Node **24.x or 25.x**. `pnpm` is recommended. Bun is **not recommended** for the Gateway.
   </Accordion>
 
   <Accordion title="Does it run on Raspberry Pi?">
@@ -184,7 +184,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   <Accordion title="Any tips for Raspberry Pi installs?">
     Short version: it works, but expect rough edges.
 
-    - Use a **64-bit** OS and keep Node >= 22.
+    - Use a **64-bit** OS and keep Node 24.x or 25.x.
     - Prefer the **hackable (git) install** so you can see logs and update fast.
     - Start without channels/skills, then add them one by one.
     - If you hit weird binary issues, it is usually an **ARM compatibility** problem.
@@ -892,7 +892,7 @@ Start CrawClaw Desktop from that checkout, or run the local Gateway API target f
 
   <Accordion title="How do I install skills on Linux?">
     Use native CrawClaw Desktop or the local Gateway API commands or drop skills into your workspace. The macOS Skills UI isn't available on Linux.
-    Browse skills at [https://clawhub.com](https://clawhub.com).
+    Browse skills at [https://clawhub.ai](https://clawhub.ai).
 
     Automation should call `skills.status` first, then `skills.install` for a
     specific skill package or local path.
@@ -2673,5 +2673,5 @@ stop do not do anything
 
 ---
 
-Still stuck? Ask in [QQBot](https://qqbot.com/invite/clawd) or open a [GitHub discussion](https://github.com/qianleigood/crawclaw/discussions).
+Still stuck? Ask in [Discord](https://discord.gg/qkhbAGHRBT) or open a [GitHub discussion](https://github.com/qianleigood/crawclaw/discussions).
 ````

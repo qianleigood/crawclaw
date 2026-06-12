@@ -5,10 +5,10 @@ read_when:
 summary: Skills：托管与工作区、门控规则以及配置/环境变量连接
 title: Skills
 x-i18n:
-  generated_at: "2026-06-05T14:53:54Z"
+  generated_at: "2026-06-11T14:43:12Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 175533b8a3b8847537d35035116d53b18256c3bf76ff9019ae454c328b6e60a8
+  source_hash: 3173acc1fdc879eb226ab29515b4d2405494249be8bf4883d36b33c7f5b7c6c5
   source_path: tools/skills.md
   workflow: 15
 ---
@@ -51,7 +51,7 @@ CrawClaw 从以下来源加载 skills：
 
 ## ClawHub（安装 + 同步）
 
-ClawHub 是 CrawClaw 的公共 skills 注册中心。访问 [https://clawhub.com](https://clawhub.com)。使用原生 CrawClaw Desktop 或本地 Gateway API 命令来发现/安装/更新 skills，或在需要发布/同步工作流时使用独立的 `clawhub` CLI。
+ClawHub 是 CrawClaw 的公共 skills 注册中心。访问 [https://clawhub.ai](https://clawhub.ai)。使用原生 CrawClaw Desktop 或本地 Gateway API 命令来发现/安装/更新 skills，或在需要发布/同步工作流时使用独立的 `clawhub` CLI。
 完整指南：[ClawHub](/tools/clawhub)。
 
 常见流程：
@@ -313,7 +313,7 @@ CrawClaw 作为安装的一部分（npm 包或 CrawClaw.app）提供一组基线
 
 ## 寻找更多 skills？
 
-浏览 [https://clawhub.com](https://clawhub.com)。
+浏览 [https://clawhub.ai](https://clawhub.ai)。
 
 ---
 

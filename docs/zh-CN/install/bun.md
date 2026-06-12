@@ -5,10 +5,10 @@ read_when:
 summary: Bun 工作流（实验性）：安装和与 pnpm 的对比
 title: Bun（实验性）
 x-i18n:
-  generated_at: "2026-05-19T00:51:32Z"
+  generated_at: "2026-06-11T13:05:01Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: a24131920e6ac0cd0c61699993657bd353e6a9c7e9d0e2fd1a8621d40f619499
+  source_hash: d491fa8c762a129506a82644f94d9f3a11e1031f5188dc988e37f6e10273e942
   source_path: install/bun.md
   workflow: 15
 ---
@@ -48,7 +48,7 @@ Bun 是一个可选的本地运行时，用于直接运行 TypeScript（`bun run
 
 Bun 默认会阻止依赖的生命周期脚本，除非明确信任。对于此仓库，常见的被阻止脚本不是必需的：
 
-- `@whiskeysockets/baileys` `preinstall` -- 检查 Node major >= 20（CrawClaw 使用 Node 24.x）
+- `@whiskeysockets/baileys` `preinstall` -- 检查 Node major >= 20（CrawClaw 使用 Node 24.x 或 25.x）
 - `protobufjs` `postinstall` -- 发出关于不兼容版本方案的警告（无构建产物）
 
 如果你遇到需要这些脚本的运行时问题，请显式信任它们：

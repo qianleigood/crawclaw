@@ -244,15 +244,14 @@ CrawClaw's local Gateway HTTP endpoints are intended for **local use only**.
 
 ### Node.js Version
 
-CrawClaw requires **Node.js 22.12.0 or later** (LTS). This version includes important security patches:
-
-- CVE-2025-59466: async_hooks DoS vulnerability
-- CVE-2026-21636: Permission model bypass vulnerability
+CrawClaw requires **Node.js 24.x or 25.x**. This matches the root `package.json`
+engine range (`>=24.0.0 <26`). Use the latest patch release in the selected
+major line so Node.js, npm, V8, and bundled networking libraries stay current.
 
 Verify your Node.js version:
 
 ```bash
-node --version  # Should be v22.12.0 or later
+node --version  # Should be v24.x or v25.x
 ```
 
 ## Security Scanning

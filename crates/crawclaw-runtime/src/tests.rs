@@ -300,8 +300,8 @@ fn rust_runtime_repo_guardrails_keep_automation_environment_in_settings() {
         fs::read_to_string(&settings_view_path).expect("read settings workspace view");
     let automation_environment_path =
         root.join("apps/crawclaw-desktop/src/views/automation-environment.tsx");
-    let automation_environment_source = fs::read_to_string(&automation_environment_path)
-        .expect("read automation environment view");
+    let automation_environment_source =
+        fs::read_to_string(&automation_environment_path).expect("read automation environment view");
 
     assert!(
         !automation_source.contains("Automation Runtime Manager")
@@ -325,6 +325,18 @@ fn rust_runtime_repo_guardrails_keep_automation_environment_in_settings() {
         !settings_source.contains("本机自动化环境"),
         "Settings automation copy should avoid repeating 自动化环境 in the section detail"
     );
+    let settings_automation_start = settings_source
+        .find("id=\"settings-automation\"")
+        .expect("settings automation section should exist");
+    let settings_model_start = settings_source
+        .find("id=\"settings-model\"")
+        .expect("settings model section should exist");
+    let settings_automation_section =
+        &settings_source[settings_automation_start..settings_model_start];
+    assert!(
+        !settings_automation_section.contains("settings-section__header"),
+        "Settings automation should not render a duplicate section header above the environment panel"
+    );
     assert!(
         !settings_source.contains("Cron scheduler"),
         "Cron is built in and should not be presented as an installable automation environment"
@@ -336,6 +348,12 @@ fn rust_runtime_repo_guardrails_keep_automation_environment_in_settings() {
             && automation_source.contains("automation-section-grid")
             && automation_source.contains("automation-workspace__summary"),
         "Automation workspace should use the execution-board layout with command controls and four sections"
+    );
+    assert!(
+        automation_source.contains("type AutomationActionKind = AutomationTabKind")
+            && automation_source.contains("workflowKind: 'schedule'")
+            && !automation_source.contains("type AutomationKind = 'comfyui' | 'n8n' | 'schedule'"),
+        "Automation workspace should use Cron-aligned internal action kinds while preserving the schedule workflow bubble contract"
     );
     assert!(
         automation_environment_source.contains("automation-environment-services")
@@ -913,8 +931,11 @@ fn rust_runtime_repo_guardrails_keep_legacy_agents_redirect_absent() {
 #[test]
 fn rust_runtime_repo_guardrails_keep_contributing_desktop_frontend_current() {
     let root = repo_root();
-    let contributing = fs::read_to_string(root.join("CONTRIBUTING.md"))
-        .expect("read contributing guide");
+    let contributing =
+        fs::read_to_string(root.join("CONTRIBUTING.md")).expect("read contributing guide");
+    let agent_runtime_development =
+        fs::read_to_string(root.join("docs/reference/agent-runtime-development.md"))
+            .expect("read agent runtime development guide");
     assert!(
         contributing.contains("apps/crawclaw-desktop")
             && contributing.contains("CrawClaw Desktop Frontend"),
@@ -924,6 +945,12 @@ fn rust_runtime_repo_guardrails_keep_contributing_desktop_frontend_current() {
         !contributing.contains("apps/crawclaw-admin")
             && !contributing.contains("CrawClaw Admin Frontend"),
         "CONTRIBUTING.md must not direct contributors to the removed admin frontend"
+    );
+    assert!(
+        agent_runtime_development.contains("- Local check: `pnpm check`")
+            && agent_runtime_development
+                .contains("- Full gate before pushing: `pnpm check && pnpm build && pnpm test`"),
+        "Agent runtime development docs must lead with the current local check and full gate"
     );
 }
 
@@ -961,13 +988,237 @@ fn rust_runtime_repo_guardrails_keep_readme_desktop_quick_start_current() {
 }
 
 #[test]
+fn rust_runtime_repo_guardrails_keep_node_baseline_current() {
+    let root = repo_root();
+    let package_json =
+        fs::read_to_string(root.join("package.json")).expect("read root package.json");
+    let package: serde_json::Value =
+        serde_json::from_str(&package_json).expect("parse root package.json");
+    assert_eq!(
+        package
+            .get("engines")
+            .and_then(|engines| engines.get("node"))
+            .and_then(serde_json::Value::as_str),
+        Some(">=24.0.0 <26"),
+        "Root package.json should define the current Node baseline"
+    );
+
+    for relative in [
+        "AGENTS.md",
+        "SECURITY.md",
+        "docs/start/setup.md",
+        "docs/help/faq.md",
+        "docs/install/index.md",
+        "docs/install/node.md",
+        "docs/plugins/building-plugins.md",
+    ] {
+        let source = fs::read_to_string(root.join(relative)).expect("read Node baseline doc");
+        assert!(
+            source.contains("Node") && source.contains("24.x") && source.contains("25.x"),
+            "{relative} should document the current Node 24.x / 25.x baseline"
+        );
+        assert!(
+            !source.contains("Node 22"),
+            "{relative} must not document the retired Node 22 repo baseline"
+        );
+    }
+}
+
+#[test]
+fn rust_runtime_repo_guardrails_keep_old_openclaw_name_historical_only() {
+    let root = repo_root();
+    let allowed_paths = [
+        "docs/debug/hindsight-best-practices.md",
+        "docs/debug/memory-architecture-redesign.md",
+        "docs/reference/open-source-release-checklist.md",
+        "docs/zh-CN/debug/hindsight-best-practices.md",
+        "docs/zh-CN/debug/memory-architecture-redesign.md",
+        "docs/zh-CN/reference/open-source-release-checklist.md",
+    ];
+    let mut hits = Vec::new();
+
+    for relative in tracked_files(&root) {
+        if relative == "crates/crawclaw-runtime/src/tests.rs"
+            || relative == "docs/.i18n/zh-CN.tm.jsonl"
+        {
+            continue;
+        }
+        let path = root.join(&relative);
+        let Ok(source) = fs::read_to_string(&path) else {
+            continue;
+        };
+        if source.contains("OpenClaw") || source.contains("openclaw") {
+            hits.push(relative);
+        }
+    }
+
+    let unexpected = hits
+        .into_iter()
+        .filter(|relative| !allowed_paths.contains(&relative.as_str()))
+        .collect::<Vec<_>>();
+    assert!(
+        unexpected.is_empty(),
+        "old OpenClaw/openclaw naming should only appear in historical debug notes or release-audit checklist entries: {unexpected:?}"
+    );
+}
+
+#[test]
+fn rust_runtime_repo_guardrails_keep_public_docs_on_current_branding() {
+    let root = repo_root();
+    let contributing =
+        fs::read_to_string(root.join("CONTRIBUTING.md")).expect("read contributing guide");
+    let config_examples = fs::read_to_string(root.join("docs/gateway/configuration-examples.md"))
+        .expect("read configuration examples");
+    let zh_config_examples =
+        fs::read_to_string(root.join("docs/zh-CN/gateway/configuration-examples.md"))
+            .expect("read zh-CN configuration examples");
+    let config_reference = fs::read_to_string(root.join("docs/gateway/configuration-reference.md"))
+        .expect("read configuration reference");
+    let zh_config_reference =
+        fs::read_to_string(root.join("docs/zh-CN/gateway/configuration-reference.md"))
+            .expect("read zh-CN configuration reference");
+    let default_agents = fs::read_to_string(root.join("docs/reference/AGENTS.default.md"))
+        .expect("read default AGENTS reference");
+    let zh_default_agents = fs::read_to_string(root.join("docs/zh-CN/reference/AGENTS.default.md"))
+        .expect("read zh-CN default AGENTS reference");
+    let public_docs = format!(
+        "{contributing}\n{config_examples}\n{zh_config_examples}\n{config_reference}\n{zh_config_reference}\n{default_agents}\n{zh_default_agents}"
+    );
+
+    assert!(
+        contributing.contains("Welcome to CrawClaw."),
+        "CONTRIBUTING.md should open with the current product name"
+    );
+    assert!(
+        default_agents.contains("CrawClaw workspace")
+            && zh_default_agents.contains("CrawClaw 工作区"),
+        "default AGENTS docs should describe the current CrawClaw workspace"
+    );
+    for retired in [
+        "Welcome to the lobster tank",
+        "name: \"Clawd\"",
+        "emoji: \"🦀\"",
+        "responsePrefix: \"🦀\"",
+        "Clawd’s “memory”",
+        "Clawd 的\"记忆\"",
+        "Add Clawd workspace",
+    ] {
+        assert!(
+            !public_docs.contains(retired),
+            "public contributor and configuration docs should not use retired casual branding: {retired}"
+        );
+    }
+}
+
+#[test]
+fn rust_runtime_repo_guardrails_keep_github_support_links_current() {
+    let root = repo_root();
+    let current_support_url = "https://discord.gg/qkhbAGHRBT";
+    let retired_support_url = "https://discord.gg/clawd";
+    let contributing =
+        fs::read_to_string(root.join("CONTRIBUTING.md")).expect("read contributing guide");
+    let issue_contact_links = fs::read_to_string(root.join(".github/ISSUE_TEMPLATE/config.yml"))
+        .expect("read GitHub issue contact links");
+    let auto_response = fs::read_to_string(root.join(".github/workflows/auto-response.yml"))
+        .expect("read GitHub auto response workflow");
+
+    assert!(
+        contributing.contains(current_support_url),
+        "CONTRIBUTING.md should advertise the current support invite"
+    );
+    for (relative, source) in [
+        (".github/ISSUE_TEMPLATE/config.yml", issue_contact_links),
+        (".github/workflows/auto-response.yml", auto_response),
+    ] {
+        assert!(
+            source.contains(current_support_url),
+            "{relative} should point users to the current support invite"
+        );
+        assert!(
+            !source.contains(retired_support_url),
+            "{relative} should not point users to the retired support invite"
+        );
+    }
+}
+
+#[test]
+fn rust_runtime_repo_guardrails_keep_public_community_links_current() {
+    let root = repo_root();
+    let current_support_url = "https://discord.gg/qkhbAGHRBT";
+    let public_community_paths = [
+        "docs/help/faq.md",
+        "docs/start/showcase.md",
+        "docs/zh-CN/start/showcase.md",
+    ];
+
+    for relative in public_community_paths {
+        let source = fs::read_to_string(root.join(relative)).expect("read public community doc");
+        assert!(
+            source.contains(current_support_url),
+            "{relative} should point users to the current community invite"
+        );
+        for retired in ["https://qqbot.gg/clawd", "https://qqbot.com/invite/clawd"] {
+            assert!(
+                !source.contains(retired),
+                "{relative} should not point users to retired community invite links"
+            );
+        }
+    }
+}
+
+#[test]
+fn rust_runtime_repo_guardrails_keep_clawhub_links_current() {
+    let root = repo_root();
+    let current_clawhub_url = "https://clawhub.ai";
+    let retired_clawhub_url = "https://clawhub.com";
+    let runtime_installer =
+        fs::read_to_string(root.join("crates/crawclaw-gateway/src/gateway_plugin_install.rs"))
+            .expect("read Gateway plugin installer");
+    let clawhub_docs =
+        fs::read_to_string(root.join("docs/tools/clawhub.md")).expect("read ClawHub docs");
+
+    assert!(
+        runtime_installer.contains(current_clawhub_url)
+            && clawhub_docs.contains(current_clawhub_url),
+        "Runtime and ClawHub docs should agree on the current ClawHub URL"
+    );
+    let unexpected = tracked_files(&root)
+        .into_iter()
+        .filter(|relative| relative != "crates/crawclaw-runtime/src/tests.rs")
+        .filter_map(|relative| {
+            let source = fs::read_to_string(root.join(&relative)).ok()?;
+            source.contains(retired_clawhub_url).then_some(relative)
+        })
+        .collect::<Vec<_>>();
+    assert!(
+        unexpected.is_empty(),
+        "public ClawHub links should use https://clawhub.ai, not the retired .com domain: {unexpected:?}"
+    );
+
+    let miscapitalized = tracked_files(&root)
+        .into_iter()
+        .filter(|relative| relative != "crates/crawclaw-runtime/src/tests.rs")
+        .filter_map(|relative| {
+            let source = fs::read_to_string(root.join(&relative)).ok()?;
+            source.contains("Clawhub").then_some(relative)
+        })
+        .collect::<Vec<_>>();
+    assert!(
+        miscapitalized.is_empty(),
+        "public docs and automation copy should use the canonical ClawHub capitalization: {miscapitalized:?}"
+    );
+}
+
+#[test]
 fn rust_runtime_repo_guardrails_keep_desktop_docs_off_retired_admin_name() {
     let root = repo_root();
     let desktop = fs::read_to_string(root.join("docs/install/desktop.md"))
         .expect("read desktop install guide");
     let runtime_surface = fs::read_to_string(root.join("docs/maintainers/runtime-surface.md"))
         .expect("read runtime surface guide");
-    let combined = format!("{desktop}\n{runtime_surface}");
+    let zh_glossary = fs::read_to_string(root.join("docs/.i18n/glossary.zh-CN.json"))
+        .expect("read zh-CN glossary");
+    let combined = format!("{desktop}\n{runtime_surface}\n{zh_glossary}");
     assert!(
         !combined.contains("Admin Desktop"),
         "desktop docs should describe retired surfaces without reviving the old Admin Desktop name"
@@ -981,18 +1232,219 @@ fn rust_runtime_repo_guardrails_keep_desktop_docs_off_retired_admin_name() {
 }
 
 #[test]
+fn rust_runtime_repo_guardrails_keep_reference_navigation_aligned() {
+    let root = repo_root();
+    let docs_json = fs::read_to_string(root.join("docs/docs.json")).expect("read docs nav config");
+    let docs_nav: serde_json::Value =
+        serde_json::from_str(&docs_json).expect("parse docs nav config");
+    fn tab_pages(docs_nav: &serde_json::Value, language: &str, tab_name: &str) -> Vec<String> {
+        docs_nav["navigation"]["languages"]
+            .as_array()
+            .expect("navigation languages")
+            .iter()
+            .find(|entry| entry["language"].as_str() == Some(language))
+            .unwrap_or_else(|| panic!("missing docs language {language}"))["tabs"]
+            .as_array()
+            .expect("language tabs")
+            .iter()
+            .find(|entry| entry["tab"].as_str() == Some(tab_name))
+            .unwrap_or_else(|| panic!("missing docs tab {tab_name}"))["groups"]
+            .as_array()
+            .expect("tab groups")
+            .iter()
+            .flat_map(|group| {
+                group["pages"]
+                    .as_array()
+                    .expect("group pages")
+                    .iter()
+                    .filter_map(|page| page.as_str().map(str::to_owned))
+            })
+            .collect()
+    }
+
+    let en_reference_pages = tab_pages(&docs_nav, "en", "Reference");
+    let zh_reference_pages = tab_pages(&docs_nav, "zh-Hans", "参考");
+    for page in [
+        "reference/index",
+        "reference/open-source-release-checklist",
+        "reference/support-matrix",
+    ] {
+        assert!(
+            en_reference_pages.contains(&page.to_string()),
+            "English reference navigation should expose {page}"
+        );
+        let zh_page = format!("zh-CN/{page}");
+        assert!(
+            zh_reference_pages.contains(&zh_page),
+            "zh-CN reference navigation should expose {zh_page}"
+        );
+    }
+
+    let zh_reference_index = fs::read_to_string(root.join("docs/zh-CN/reference/index.md"))
+        .expect("read zh-CN reference index");
+    for route in [
+        "/reference/open-source-release-checklist",
+        "/reference/support-matrix",
+        "/reference/prompt-caching",
+        "/reference/memory-config",
+    ] {
+        assert!(
+            zh_reference_index.contains(route),
+            "zh-CN reference index should mirror the English reference index route {route}"
+        );
+    }
+    assert!(
+        !zh_reference_index.contains("/reference/wizard"),
+        "zh-CN reference index should not link to a missing wizard reference page"
+    );
+}
+
+#[test]
+fn rust_runtime_repo_guardrails_keep_platform_validation_commands_current() {
+    let root = repo_root();
+    let docs_json = fs::read_to_string(root.join("docs/docs.json")).expect("read docs nav config");
+    let docs_nav: serde_json::Value =
+        serde_json::from_str(&docs_json).expect("parse docs nav config");
+    fn tab_pages(docs_nav: &serde_json::Value, language: &str, tab_name: &str) -> Vec<String> {
+        docs_nav["navigation"]["languages"]
+            .as_array()
+            .expect("navigation languages")
+            .iter()
+            .find(|entry| entry["language"].as_str() == Some(language))
+            .unwrap_or_else(|| panic!("missing docs language {language}"))["tabs"]
+            .as_array()
+            .expect("language tabs")
+            .iter()
+            .find(|entry| entry["tab"].as_str() == Some(tab_name))
+            .unwrap_or_else(|| panic!("missing docs tab {tab_name}"))["groups"]
+            .as_array()
+            .expect("tab groups")
+            .iter()
+            .flat_map(|group| {
+                group["pages"]
+                    .as_array()
+                    .expect("group pages")
+                    .iter()
+                    .filter_map(|page| page.as_str().map(str::to_owned))
+            })
+            .collect()
+    }
+    let en_install_pages = tab_pages(&docs_nav, "en", "Install");
+    let zh_install_pages = tab_pages(&docs_nav, "zh-Hans", "安装");
+    for page in [
+        "install/index",
+        "install/desktop",
+        "install/node",
+        "install/azure",
+        "install/digitalocean",
+        "install/exe-dev",
+        "vps",
+        "install/macos-vm",
+        "install/northflank",
+        "install/oracle",
+        "install/railway",
+        "install/raspberry-pi",
+    ] {
+        assert!(
+            en_install_pages.contains(&page.to_string()),
+            "English install navigation should expose {page}"
+        );
+        let zh_page = if page == "vps" {
+            "zh-CN/vps".to_string()
+        } else {
+            format!("zh-CN/{page}")
+        };
+        assert!(
+            zh_install_pages.contains(&zh_page),
+            "zh-CN install navigation should expose {zh_page}"
+        );
+    }
+    let zh_platform_pages = tab_pages(&docs_nav, "zh-Hans", "平台");
+    for retired_page in [
+        "zh-CN/platforms/digitalocean",
+        "zh-CN/platforms/oracle",
+        "zh-CN/platforms/raspberry-pi",
+    ] {
+        assert!(
+            !zh_platform_pages.contains(&retired_page.to_string()),
+            "zh-CN platform navigation should not expose legacy hosting platform page {retired_page}"
+        );
+    }
+    let redirects = docs_nav["redirects"].as_array().expect("docs redirects");
+    for (source, destination) in [
+        ("/platforms/digitalocean", "/install/digitalocean"),
+        ("/platforms/oracle", "/install/oracle"),
+        ("/platforms/raspberry-pi", "/install/raspberry-pi"),
+        (
+            "/zh-CN/platforms/digitalocean",
+            "/zh-CN/install/digitalocean",
+        ),
+        ("/zh-CN/platforms/oracle", "/zh-CN/install/oracle"),
+        (
+            "/zh-CN/platforms/raspberry-pi",
+            "/zh-CN/install/raspberry-pi",
+        ),
+    ] {
+        assert!(
+            redirects.iter().any(|redirect| {
+                redirect["source"].as_str() == Some(source)
+                    && redirect["destination"].as_str() == Some(destination)
+            }),
+            "docs redirects should send {source} to {destination}"
+        );
+    }
+    for relative in [
+        "docs/platforms/digitalocean.md",
+        "docs/platforms/oracle.md",
+        "docs/platforms/raspberry-pi.md",
+        "docs/zh-CN/platforms/digitalocean.md",
+        "docs/zh-CN/platforms/oracle.md",
+        "docs/zh-CN/platforms/raspberry-pi.md",
+    ] {
+        assert!(
+            !root.join(relative).exists(),
+            "{relative} should not remain as a duplicate hosting platform page; use install guides plus redirects"
+        );
+    }
+    assert!(
+        docs_json.contains("\"platforms/macos\"")
+            && docs_json.contains("\"platforms/windows\"")
+            && docs_json.contains("\"zh-CN/platforms/macos\"")
+            && docs_json.contains("\"zh-CN/platforms/windows\""),
+        "docs navigation should expose the current macOS and Windows platform guides in English and zh-CN"
+    );
+    for relative in [
+        "docs/platforms/macos.md",
+        "docs/platforms/windows.md",
+        "docs/zh-CN/platforms/macos.md",
+        "docs/zh-CN/platforms/windows.md",
+    ] {
+        let source = fs::read_to_string(root.join(relative)).expect("read platform guide");
+        assert!(
+            source.contains("pnpm desktop:tauri:release-check")
+                && source.contains("pnpm desktop:e2e:smoke"),
+            "{relative} should document both packaged release-check and desktop E2E smoke validation"
+        );
+        assert!(
+            !source.contains(
+                "pnpm desktop:tauri:release-check\npnpm desktop:tauri:release-check"
+            ),
+            "{relative} must not duplicate the release-check command as a stand-in for full validation"
+        );
+    }
+}
+
+#[test]
 fn rust_runtime_repo_guardrails_keep_public_plugin_docs_on_plugin_terminology() {
     let root = repo_root();
-    let plugin_overview = fs::read_to_string(root.join("docs/tools/plugin.md"))
-        .expect("read plugin overview");
+    let plugin_overview =
+        fs::read_to_string(root.join("docs/tools/plugin.md")).expect("read plugin overview");
     let plugin_architecture = fs::read_to_string(root.join("docs/plugins/architecture.md"))
         .expect("read plugin architecture");
-    let start_hubs = fs::read_to_string(root.join("docs/start/hubs.md"))
-        .expect("read start hubs");
-    let provider_plugin_metadata = fs::read_to_string(
-        root.join("docs/maintainers/provider-plugin-metadata-drift.md"),
-    )
-    .expect("read provider plugin metadata guide");
+    let start_hubs = fs::read_to_string(root.join("docs/start/hubs.md")).expect("read start hubs");
+    let provider_plugin_metadata =
+        fs::read_to_string(root.join("docs/maintainers/provider-plugin-metadata-drift.md"))
+            .expect("read provider plugin metadata guide");
     let security = fs::read_to_string(root.join("docs/gateway/security/index.md"))
         .expect("read security guide");
     let combined = format!(
@@ -1366,7 +1818,9 @@ fn automation_runtime_release_manifests_match_install_scripts() {
         );
         assert_eq!(
             manifest["assets"]["manifest"]["url"],
-            format!("{automation_release_download_base}/crawclaw-automation-{runtime_id}-manifest.json")
+            format!(
+                "{automation_release_download_base}/crawclaw-automation-{runtime_id}-manifest.json"
+            )
         );
         assert_eq!(
             manifest["assets"]["installScript"]["publishedAs"],
@@ -1374,7 +1828,9 @@ fn automation_runtime_release_manifests_match_install_scripts() {
         );
         assert_eq!(
             manifest["assets"]["installScript"]["url"],
-            format!("{automation_release_download_base}/crawclaw-automation-{runtime_id}-install.sh")
+            format!(
+                "{automation_release_download_base}/crawclaw-automation-{runtime_id}-install.sh"
+            )
         );
         assert!(
             !manifest_raw.contains("/releases/latest/download/"),

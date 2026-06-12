@@ -1,10 +1,10 @@
 blank_issues_enabled: false
 contact_links:
   - name: Onboarding
-    url: https://discord.gg/clawd
+    url: https://discord.gg/qkhbAGHRBT
     about: "New to CrawClaw? Join Discord for setup guidance in #help."
   - name: Support
-    url: https://discord.gg/clawd
+    url: https://discord.gg/qkhbAGHRBT
     about: "Get help from the CrawClaw community on Discord in #help."
   - name: Docs
     url: https://docs.crawclaw.ai/start/getting-started

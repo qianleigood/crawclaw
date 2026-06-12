@@ -5,10 +5,10 @@ read_when:
 summary: Windows 原生安装、Gateway 运行时模式、插件和验证关卡的 Windows 支持矩阵
 title: Windows
 x-i18n:
-  generated_at: "2026-06-05T14:41:43Z"
+  generated_at: "2026-06-12T07:14:37Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 3b0f08c032590dc9b0f7c303048bc9432d6341ed348aa7c1b5d70295daa3e1f5
+  source_hash: f30bfffbba516be703dda55e2a3d7cb38816467ec3624a3b040c012c7457e901
   source_path: platforms/windows.md
   workflow: 15
 ---
@@ -83,7 +83,7 @@ pnpm test
 
 ```bash
 pnpm desktop:tauri:release-check
-pnpm desktop:tauri:release-check
+pnpm desktop:e2e:smoke
 ```
 
 ## 一级验收标准

@@ -5,10 +5,10 @@ read_when:
 summary: Rust 智能体运行时构建、测试和实时验证的开发者工作流程
 title: 智能体运行时开发工作流程
 x-i18n:
-  generated_at: "2026-06-05T14:46:25Z"
+  generated_at: "2026-06-11T13:49:34Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 61cca92ee5d5f21c4dcb142b11a663e977507237d0b0b79d1f424fa086f8ef5d
+  source_hash: b012af933b3218272886f63c6aa56bd11e2f93b52bea1740dce04bc4fcdf3261
   source_path: reference/agent-runtime-development.md
   workflow: 15
 ---
@@ -19,10 +19,11 @@ x-i18n:
 
 ## 类型检查和 Linting
 
+- 本地检查：`pnpm check`
 - 类型检查和构建：`pnpm build`
-- Lint：`pnpm lint`
+- 仅 Oxlint：`pnpm lint`
 - 格式检查：`pnpm format`
-- 推送前完整门控：`pnpm lint && pnpm build && pnpm test`
+- 推送前完整门控：`pnpm check && pnpm build && pnpm test`
 
 ## 运行智能体运行时测试
 

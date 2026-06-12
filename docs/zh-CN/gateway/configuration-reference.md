@@ -5,10 +5,10 @@ read_when:
 summary: 每个 CrawClaw config key、默认值和 channel settings 的完整参考
 title: 配置参考
 x-i18n:
-  generated_at: "2026-06-10T20:16:06Z"
+  generated_at: "2026-06-11T14:20:09Z"
   model: MiniMax-M2.7-highspeed
   provider: minimax
-  source_hash: 34b1d928f39fd7b4afde0295bc91a7fb2903290913f1cdfeaed3070ebe22c414
+  source_hash: 70175834fa897828d8205088c0f8990917bd371ea47a7cf2d1b32dbfd06ca494
   source_path: gateway/configuration-reference.md
   workflow: 15
 ---
@@ -1280,7 +1280,7 @@ Anthropic Claude 4.6 模型在未设置显式思考级别时默认为 `adaptive`
 ```json5
 {
   messages: {
-    responsePrefix: "🦀", // or "auto"
+    responsePrefix: "CrawClaw:", // or "auto"
     ackReaction: "👀",
     ackReactionScope: "group-mentions", // group-mentions | group-all | direct | all
     removeAckAfterReply: false,
