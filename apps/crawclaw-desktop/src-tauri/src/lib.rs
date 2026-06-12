@@ -97,6 +97,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![desktop_api_base_url])
         .setup(|app| {
+            #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Regular);
             create_menu_bar_tray(app)?;
             install_desktop_native_settings_bridge(Arc::new(TauriSettingsBridge {
@@ -123,13 +124,17 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("failed to build CrawClaw Desktop")
-        .run(|app, event| match event {
-            tauri::RunEvent::Ready | tauri::RunEvent::Reopen { .. } => {
+        .run(|app, event| {
+            #[cfg(target_os = "macos")]
+            let should_show_main_window =
+                matches!(event, tauri::RunEvent::Ready | tauri::RunEvent::Reopen { .. });
+            #[cfg(not(target_os = "macos"))]
+            let should_show_main_window = matches!(event, tauri::RunEvent::Ready);
+            if should_show_main_window {
                 if let Err(error) = ensure_main_window(app) {
                     eprintln!("[desktop] failed to show main window: {error}");
                 }
             }
-            _ => {}
         });
 }
 
