@@ -84,6 +84,9 @@ jobs:
           install-bun: "false"
           use-sticky-disk: "false"
 
+      - name: Build desktop renderer
+        run: cargo run -q -p crawclaw-repo-tools -- build --profile desktop-renderer
+
       - name: Ensure version is not already published
         env:
           PREFLIGHT_ONLY: ${{ inputs.preflight_only }}
