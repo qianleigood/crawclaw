@@ -44,7 +44,7 @@ jobs:
           echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout tag
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: refs/tags/${{ steps.release.outputs.tag }}
           fetch-depth: 0
@@ -91,7 +91,7 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - name: Checkout tag
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: refs/tags/${{ needs.validate.outputs.tag }}
           fetch-depth: 0
