@@ -51,7 +51,7 @@ jobs:
           echo "PRE_COMMIT_CONFIG_PATH=$trusted_config" >>"$GITHUB_ENV"
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: "pip"
@@ -96,7 +96,7 @@ jobs:
           echo "PRE_COMMIT_CONFIG_PATH=$trusted_config" >>"$GITHUB_ENV"
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: "pip"
