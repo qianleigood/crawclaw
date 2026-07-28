@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Mark stale issues and pull requests
-        uses: actions/stale@v10
+        uses: actions/stale@v10.4.0
         with:
           repo-token: ${{ github.token }}
           days-before-issue-stale: 7
